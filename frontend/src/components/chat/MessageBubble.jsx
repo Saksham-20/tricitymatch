@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiCheck, FiEdit2, FiTrash2, FiX, FiSmile, FiCornerUpLeft, FiLock } from 'react-icons/fi';
+import { FiCheck, FiEdit2, FiTrash2, FiX, FiSmile, FiCornerUpLeft, FiLock, FiAlertTriangle, FiInfo } from 'react-icons/fi';
 import { BsCheck, BsCheckAll } from 'react-icons/bs';
 import { sanitizeText } from '../../utils/sanitize';
 import VoiceBubble from './VoiceBubble';
@@ -37,6 +37,42 @@ const MessageTicks = ({ message, isSent }) => {
     return <span className="inline-flex items-center ml-1"><BsCheckAll className="w-4 h-4 text-white/60" /></span>;
   }
   return <span className="inline-flex items-center ml-1"><BsCheck className="w-4 h-4 text-white/60" /></span>;
+};
+
+// Scam/phishing signals the server found in this message (utils/chatSafety). The
+// message is delivered either way; this is the caution beside it. Strong signals
+// (payment or bank details, a suspicious link) get a warning, a plain link a hint.
+const STRONG_FLAGS = ['upi_id', 'bank_details', 'payment_request', 'suspicious_link'];
+
+export const SafetyNotice = ({ flags, isSentByMe }) => {
+  if (!Array.isArray(flags) || flags.length === 0) return null;
+  const strong = flags.some((f) => STRONG_FLAGS.includes(f));
+  if (isSentByMe) {
+    if (!strong) return null;
+    return (
+      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 flex items-start gap-1.5">
+        <FiInfo className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+        <span>We showed the other person a caution beside this message.</span>
+      </p>
+    );
+  }
+  return (
+    <p
+      role="note"
+      className={`mt-1.5 text-xs leading-snug flex items-start gap-1.5 ${strong ? 'text-neutral-800 dark:text-neutral-100' : 'text-neutral-500 dark:text-neutral-400'}`}
+    >
+      {/* The message text carries the meaning; orange (2.9:1 on white) is only
+          the icon, never small text. */}
+      {strong
+        ? <FiAlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-warning" aria-hidden="true" />
+        : <FiInfo className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />}
+      <span>
+        {strong
+          ? 'Be careful. This message asks for money or bank details, or has a link that may be unsafe. Never send money to someone you have not met. You can report this person from the menu at the top.'
+          : 'This message has a link. Only open links you trust.'}
+      </span>
+    </p>
+  );
 };
 
 const QuoteBlock = ({ replyTo, isSentByMe, myUserId }) => {
@@ -224,6 +260,7 @@ const MessageBubble = ({
               </>
             )}
           </div>
+          <SafetyNotice flags={message.safetyFlags} isSentByMe={isSentByMe} />
           <ReactionPills
             reactions={message.reactions}
             myUserId={myUserId}

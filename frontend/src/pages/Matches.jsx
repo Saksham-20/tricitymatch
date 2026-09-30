@@ -25,7 +25,7 @@ const TABS = [
     empty: {
       title: 'Nothing saved yet',
       line: 'Tap the bookmark on a profile to save it here for later.',
-      supply: 'We’re verifying new Tricity members by hand every week, so this list grows as the community does.',
+      supply: 'New Tricity members join every week, so this list grows as the community does.',
     },
   },
   {

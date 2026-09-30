@@ -57,6 +57,10 @@ const CATEGORY_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name
   spam:            'mail-unread-outline',
   scam:            'card-outline',
   underage:        'alert-circle-outline',
+  financial_scam:  'card-outline',
+  threats:         'warning-outline',
+  stolen_photos:   'images-outline',
+  misleading_info: 'help-circle-outline',
 };
 
 function ReportCard({

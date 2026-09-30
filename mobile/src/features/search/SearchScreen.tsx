@@ -311,6 +311,8 @@ export default function SearchScreen() {
   // What the member has done to each card this session (drives the confirmed
   // state; a pass removes the card).
   const [acted, setActed] = useState<Record<string, MatchAction>>({});
+  const [mustHavesOff, setMustHavesOff] = useState(false);
+  const [mustHaveKeys, setMustHaveKeys] = useState<string[]>([]);
   // A Like that turns out to be mutual: the same celebration Matches and ProfileDetail play.
   const [celebrate, setCelebrate] = useState<MatchedWho | null>(null);
   const reduceMotion = useReduceMotion();
@@ -357,9 +359,13 @@ export default function SearchScreen() {
     isFetchNextPageError,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['search', appliedFilters],
+    queryKey: ['search', appliedFilters, mustHavesOff],
     queryFn: ({ pageParam }) =>
-      search({ ...toServerParams(appliedFilters), cursor: pageParam as string | undefined }),
+      search({
+        ...toServerParams(appliedFilters),
+        ...(mustHavesOff ? { mustHaves: 'off' as const } : {}),
+        cursor: pageParam as string | undefined,
+      }),
     getNextPageParam: (last: any) => last.nextCursor ?? undefined,
     initialPageParam: undefined as string | undefined,
   });
@@ -368,6 +374,13 @@ export default function SearchScreen() {
     (p) => acted[p.userId] !== 'pass'
   );
   const total: number = data?.pages[0]?.total ?? 0;
+  // The member's own must-have preferences narrow the list; say so and let them
+  // look wider. `mustHaveKeys` keeps the names while they are switched off.
+  const appliedMustHaves = data?.pages[0]?.mustHavesApplied ?? [];
+  useEffect(() => {
+    if (appliedMustHaves.length) setMustHaveKeys(appliedMustHaves);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedMustHaves.join(',')]);
   // Only a failure with nothing to show blanks the list. A failed background
   // refetch or next-page fetch keeps the profiles already on screen.
   const searchFailed = isError && profiles.length === 0;
@@ -648,6 +661,25 @@ export default function SearchScreen() {
           <Text variant="footnote" color="textMuted" testID="code-format-hint">
             Profile IDs look like TCS-A1B2C3D4.
           </Text>
+        </View>
+      ) : null}
+
+      {mustHaveKeys.length > 0 ? (
+        <View style={s.codeRow} testID="must-have-note">
+          <Text variant="footnote" color="textSecondary">
+            {mustHavesOff
+              ? 'Showing everyone, including people outside your must-haves.'
+              : `Showing people who meet your must-haves (${mustHaveKeys.join(', ')}).`}
+          </Text>
+          <PressableScale
+            onPress={() => setMustHavesOff((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={mustHavesOff ? 'Apply my must-haves' : 'Show everyone'}
+            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            testID="must-have-toggle"
+          >
+            <Text variant="footnote" color="primary">{mustHavesOff ? 'Apply my must-haves' : 'Show everyone'}</Text>
+          </PressableScale>
         </View>
       ) : null}
 

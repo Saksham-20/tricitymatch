@@ -3,6 +3,7 @@ import api from './axios';
 // Users
 export const getUsers = (params) => api.get('/admin/users', { params });
 export const getUser = (userId) => api.get(`/admin/users/${userId}`);
+export const getModerationHistory = (userId) => api.get(`/admin/users/${userId}/moderation-history`);
 export const createUser = (data) => api.post('/admin/users', data);
 export const updateUserStatus = (userId, data) => api.put(`/admin/users/${userId}/status`, data);
 export const updateSubscription = (userId, data) => api.put(`/admin/users/${userId}/subscription`, data);
@@ -18,6 +19,22 @@ export const getRevenueReport = (params) => api.get('/admin/revenue', { params }
 // Reports
 export const getReports = (params) => api.get('/admin/reports', { params });
 export const updateReport = (reportId, data) => api.put(`/admin/reports/${reportId}`, data);
+
+// Appeals against a suspension
+export const getAppeals = (params) => api.get('/admin/appeals', { params });
+export const decideAppeal = (id, data) => api.put(`/admin/appeals/${id}`, data);
+
+// Photo review (auto-held uploads and stolen-photo reports)
+export const getMediaReviews = (params) => api.get('/admin/media-reviews', { params });
+export const decideMediaReview = (id, data) => api.put(`/admin/media-reviews/${id}`, data);
+
+// Search ranking weights
+export const getRankingWeights = () => api.get('/admin/ranking-weights');
+export const saveRankingWeights = (weights) => api.put('/admin/ranking-weights', { weights });
+export const getRankingExperiment = () => api.get('/admin/ranking-experiment');
+export const startRankingExperiment = (experiment) => api.put('/admin/ranking-experiment', { experiment });
+export const stopRankingExperiment = () => api.put('/admin/ranking-experiment', { stop: true });
+export const resetRankingWeights = () => api.put('/admin/ranking-weights', { reset: true });
 
 // Invoice
 export const adminGetInvoice = (subscriptionId) =>

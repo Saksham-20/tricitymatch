@@ -44,6 +44,24 @@ const PreferencesStep = () => {
     }
   };
 
+  const mustHaves = formData.mustHavePreferences || [];
+  const toggleMustHave = (key) => {
+    updateFormData('mustHavePreferences', mustHaves.includes(key) ? mustHaves.filter((k) => k !== key) : [...mustHaves, key]);
+  };
+  // A plain function, not a component: a component defined here would be a new
+  // type every render and remount (dropping focus) on each toggle.
+  const mustHaveRow = (id, label) => (
+    <label className="flex items-center gap-2 mt-2 text-xs text-neutral-600 cursor-pointer min-h-[2.75rem]">
+      <input
+        type="checkbox"
+        checked={mustHaves.includes(id)}
+        onChange={() => toggleMustHave(id)}
+        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+      />
+      <span>{label}</span>
+    </label>
+  );
+
   return (
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise} className="grid grid-cols-2 gap-4">
@@ -72,6 +90,10 @@ const PreferencesStep = () => {
         />
       </motion.div>
 
+      <motion.div variants={fadeRise} className="-mt-3">
+        {mustHaveRow('age', "Must-have: only show me people in this age range")}
+      </motion.div>
+
       <motion.div variants={fadeRise}>
         <Select
           label="Preferred Education"
@@ -80,6 +102,7 @@ const PreferencesStep = () => {
           onChange={(value) => updateFormData('preferredEducation', value)}
           placeholder="Any education level"
         />
+        {mustHaveRow('education', "Must-have: this level or higher")}
       </motion.div>
 
       <motion.div variants={fadeRise}>
@@ -108,11 +131,12 @@ const PreferencesStep = () => {
             );
           })}
         </div>
+        {mustHaveRow('city', "Must-have: only show me people in these cities")}
       </motion.div>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
         <p className="font-medium text-neutral-800 mb-1">Smarter match recommendations</p>
-        <p>Your preferences help our algorithm find the most compatible matches for you.</p>
+        <p>Preferences guide who we suggest first. Anything you mark as a must-have is a rule: people who do not meet it will not appear in your search (you can switch this off from the search page).</p>
       </motion.div>
     </motion.div>
   );

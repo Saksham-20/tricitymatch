@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const { signOnSerialize, TTL } = require('../utils/privateMedia');
 
 const Message = sequelize.define('Message', {
   id: {
@@ -66,6 +67,13 @@ const Message = sequelize.define('Message', {
     allowNull: false,
     defaultValue: {}
   },
+  // Scam/phishing signals found in `content` (utils/chatSafety), e.g.
+  // ["upi_id","suspicious_link"]. NULL when nothing was found.
+  safetyFlags: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
+  },
   isRead: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
@@ -103,6 +111,9 @@ const Message = sequelize.define('Message', {
     }
   ]
 });
+
+// A voice note's stored URL is not directly playable; serialise a short-lived one.
+signOnSerialize(Message, { mediaUrl: TTL.playback });
 
 module.exports = Message;
 

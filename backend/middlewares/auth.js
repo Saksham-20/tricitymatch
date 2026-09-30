@@ -36,6 +36,11 @@ const extractToken = (req) => {
   return null;
 };
 
+const { needsReconsent } = require('../constants/legal');
+
+// Routes a member who has not re-accepted the Terms may still call.
+const RECONSENT_EXEMPT = /^(GET \/api(\/v1)?\/auth\/me|POST \/api(\/v1)?\/auth\/(accept-terms|logout|logout-all|me\/export)|DELETE \/api(\/v1)?\/auth\/account)$/;
+
 /**
  * Main authentication middleware
  * Verifies JWT and attaches user to request
@@ -59,7 +64,7 @@ const auth = asyncHandler(async (req, res, next) => {
     // because requireAdminScope reads it on every admin request — leaving it
     // out made a scoped sub-admin resolve to NO scopes and 403 on its own pages.
     const user = await User.findByPk(decoded.userId, {
-      attributes: ['id', 'email', 'role', 'status', 'adminPermissions']
+      attributes: ['id', 'email', 'role', 'status', 'adminPermissions', 'mfaEnabledAt', 'termsVersion']
     });
 
     if (!user) {
@@ -68,6 +73,14 @@ const auth = asyncHandler(async (req, res, next) => {
 
     if (user.status !== 'active') {
       throw createError.forbidden('Account is not active');
+    }
+
+    // The Terms moved on since this member accepted. Until they accept again the
+    // API serves only what they need to do that, sign out, export their data or
+    // delete their account. (Clients show the accept screen from `requiresReconsent`;
+    // this is the server-side half, so a stale client cannot skip it.)
+    if (needsReconsent(user) && !RECONSENT_EXEMPT.test(`${req.method} ${req.originalUrl.split('?')[0]}`)) {
+      throw createError.forbidden('Please review and accept the updated Terms to continue', 'TERMS_RECONSENT_REQUIRED');
     }
 
     // Attach user to request
@@ -122,6 +135,20 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * When STAFF_MFA_REQUIRED is on, a staff account without an enrolled second
+ * factor may sign in (it has to reach the enrolment screen) but cannot use any
+ * staff surface until it has enrolled.
+ */
+const assertStaffMfa = (user) => {
+  if (config.features.staffMfaRequired && !user.mfaEnabledAt) {
+    throw createError.forbidden(
+      'Turn on two-step verification (Settings → Account) to use this area',
+      'MFA_ENROLLMENT_REQUIRED'
+    );
+  }
+};
+
+/**
  * Admin authorization middleware
  * Must be used after auth middleware
  */
@@ -137,6 +164,7 @@ const adminAuth = asyncHandler(async (req, res, next) => {
     throw createError.forbidden('Admin access required');
   }
 
+  assertStaffMfa(req.user);
   next();
 });
 
@@ -175,6 +203,7 @@ const marketingAuth = asyncHandler(async (req, res, next) => {
     throw createError.forbidden('Marketing access required');
   }
 
+  assertStaffMfa(req.user);
   next();
 });
 

@@ -27,6 +27,9 @@ import { EASE_IN_OUT, EASE_OUT, STAGGER_MS, duration } from '@shared/constants/m
 // one `content` step each way, and the rest between bounces is two of them, which
 // keeps the whole cycle near the handoff's 1.2s. (A dedicated `loop` token in
 // motion.ts would say this directly; see primitiveRequests.)
+// Signals the server treats as strong (utils/chatSafety): payment or bank details, or a suspicious link.
+const STRONG_SAFETY_FLAGS = ['upi_id', 'bank_details', 'payment_request', 'suspicious_link'];
+
 const TYPING_DOT_BOUNCE_MS = duration.content;
 const TYPING_DOT_REST_MS = duration.content * 2;
 import { ChatThreadSkeleton } from '../../components/ui/skeletons';
@@ -450,6 +453,24 @@ const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, senderName
               {isOwn && <ReadReceipt msg={msg} />}
             </View>
           </View>
+          {!isOwn && msg.safetyFlags && msg.safetyFlags.length > 0 && (
+            // Caution beside a message the server found risky. It was still
+            // delivered; the text carries the meaning (icon colour is not enough).
+            <View style={s.safetyNote} accessibilityRole="alert">
+              <Ionicons
+                name={msg.safetyFlags.some((f) => STRONG_SAFETY_FLAGS.includes(f)) ? 'warning-outline' : 'information-circle-outline'}
+                size={14}
+                color={msg.safetyFlags.some((f) => STRONG_SAFETY_FLAGS.includes(f)) ? c.warning : c.textMuted}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              />
+              <Text variant="caption" color="textSecondary" style={s.safetyNoteText}>
+                {msg.safetyFlags.some((f) => STRONG_SAFETY_FLAGS.includes(f))
+                  ? t('chat.safetyStrong', 'Be careful. This message asks for money or bank details, or has a link that may be unsafe. Never send money to someone you have not met. You can report this person from the menu.')
+                  : t('chat.safetyLink', 'This message has a link. Only open links you trust.')}
+              </Text>
+            </View>
+          )}
           {reactions.length > 0 && (
             <View style={[s.reactionRow, isOwn && { alignSelf: 'flex-end' }]}>
               {reactions.map(([emoji, users]) => (
@@ -1688,6 +1709,8 @@ const makeS = (c: ThemeColours) => StyleSheet.create({
   quoteBlockOwn: { borderLeftColor: c.onPrimary + '80', backgroundColor: c.onPrimary + '1F' },
   quoteBlockTheirs: { borderLeftColor: c.primary, backgroundColor: c.surface2 },
   reactionRow: { flexDirection: 'row', gap: 4, marginTop: 2, marginHorizontal: spacing.md },
+  safetyNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4, marginHorizontal: spacing.md },
+  safetyNoteText: { flex: 1 },
   reactionPill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.border,

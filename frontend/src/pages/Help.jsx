@@ -29,7 +29,7 @@ const SECTIONS = [
     faqs: [
       {
         q: 'How do I get the verified badge?',
-        a: 'Go to Verification and capture a live selfie in your browser — we never accept an uploaded file, because an upload can be doctored. Our team compares it by hand against your profile photos and awards the badge, usually within 24–48 hours. We never ask for a government ID.',
+        a: 'Go to Verification and capture a live selfie in your browser — there is no file-upload option, because an uploaded photo can be someone else’s. Our team compares it by hand against your profile photos and awards the badge, usually within 24–48 hours. We never ask for a government ID.',
       },
       {
         q: 'Who can see my photos?',
@@ -91,11 +91,15 @@ const SECTIONS = [
     faqs: [
       {
         q: 'Someone is behaving inappropriately. What do I do?',
-        a: 'Use Report on their profile or in the chat. Reports go to our safety team and are reviewed within 24 hours. Blocking them immediately stops all contact and hides your profile from them.',
+        a: 'Use Report on their profile or in the chat. Reports go to our safety team; threats, reports about someone under the legal age and scams are marked urgent and read first. Blocking them immediately stops all contact and hides your profile from them.',
+      },
+      {
+        q: 'My account was suspended. Can I appeal?',
+        a: 'Yes. Use the appeal form at tricitymatch.com/appeal with the email address of your account and tell us what happened. A person reads every appeal and replies by email; if we got it wrong, your account is restored.',
       },
       {
         q: 'How do I delete my account?',
-        a: 'Settings → Account → Delete Account, or use the delete-account page. Your profile, photos, verification selfie, messages, matches and guardian links are erased immediately and cannot be recovered. We keep payment records as long as tax law requires, and a moderation record if you were reported, as described in our Privacy Policy.',
+        a: 'Settings → Pause or delete → Delete My Account, or use the delete-account page. Your profile is hidden straight away and, 30 days later, your profile, photos, verification selfie, messages, matches and guardian links are erased and cannot be recovered. Sign in and cancel before then to keep everything. If you only want a break, use Pause my profile instead. We keep payment records as long as tax law requires, and a moderation record if you were reported, as described in our Privacy Policy.',
       },
     ],
   },

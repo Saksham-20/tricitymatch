@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { google as googleConfig } from '../config';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
@@ -13,18 +14,21 @@ import {
 import useDarkMode from '../hooks/useDarkMode';
 import useElderMode from '../hooks/useElderMode';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
-import LiveSelfieCapture from '../components/verification/LiveSelfieCapture';
+import LiveSelfieCapture, { captureHeaders } from '../components/verification/LiveSelfieCapture';
 import InviteLink from '../components/common/InviteLink';
 import ContactNumberVerify from '../components/common/ContactNumberVerify';
+import TwoStepVerification from '../components/settings/TwoStepVerification';
+import DownloadMyData from '../components/settings/DownloadMyData';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { modal, backdrop } from '../utils/animations';
+import BlockedMembers from '../components/safety/BlockedMembers';
 
 const TABS = [
   { id: 'account',       label: 'Account',      icon: FiUser,          desc: 'Password & appearance' },
   { id: 'privacy',       label: 'Privacy',       icon: FiShield,        desc: 'Visibility controls' },
   { id: 'notifications', label: 'Notifications', icon: FiBell,          desc: 'Alert preferences' },
   { id: 'verification',  label: 'Verification',  icon: FiFileText,      desc: 'Identity & trust badge' },
-  { id: 'danger',        label: 'Danger Zone',   icon: FiAlertTriangle, desc: 'Irreversible actions' },
+  { id: 'danger',        label: 'Pause or delete', icon: FiAlertTriangle, desc: 'Take a break or leave' },
 ];
 
 // ─── Shared Toggle ────────────────────────────────────────────────────────────
@@ -361,6 +365,66 @@ const SessionsSection = () => {
         </button>
         )
       )}
+      <RecentSignIns />
+    </div>
+  );
+};
+
+// Every sign-in, including the ones that have ended: a device you signed out of
+// still tells you where the account has been. Server groups rotations into one
+// entry per sign-in and masks the network address.
+const RecentSignIns = () => {
+  const [history, setHistory] = useState(null);
+  const [error, setError] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || history) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/auth/login-history');
+        if (!cancelled) setHistory(data.history || []);
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, history]);
+
+  return (
+    <div className="mt-8 max-w-xl">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="text-sm font-semibold text-primary-700 dark:text-primary-300 hover:opacity-80 py-3 px-2 -mx-2"
+      >
+        {open ? 'Hide recent sign-ins' : 'See recent sign-ins'}
+      </button>
+      {open && (error ? (
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">Could not load your sign-ins. Try again in a moment.</p>
+      ) : !history ? (
+        <Skeleton className="h-3 w-40" />
+      ) : history.length === 0 ? (
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">No sign-ins recorded yet.</p>
+      ) : (
+        <ul className="divide-y divide-neutral-100 dark:divide-neutral-800 border-y border-neutral-100 dark:border-neutral-800">
+          {history.map((h) => (
+            <li key={`${h.signedInAt}-${h.device}`} className="py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">{h.device}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                  {new Date(h.signedInAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                  {h.approximateIp ? ` · ${h.approximateIp}` : ''}
+                </p>
+              </div>
+              <span className={`text-xs font-semibold flex-shrink-0 ${h.status === 'active' ? 'text-success' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                {h.status === 'active' ? 'Active' : 'Ended'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ))}
     </div>
   );
 };
@@ -502,6 +566,10 @@ const AccountTab = () => {
 
       <EmailSection />
 
+      <TwoStepVerification />
+
+      <DownloadMyData />
+
       <div>
         <GroupHeader title="Change Password" desc="Must be 8+ characters with uppercase, lowercase, number, and special character." />
         <form onSubmit={handleChangePassword} className="space-y-4 max-w-xl">
@@ -560,6 +628,7 @@ const PrivacyTab = () => {
     profileVisibility: 'everyone',
     showOnlineStatus: true,
     showLastSeen: true,
+    fieldVisibility: { income: 'everyone', birthDetails: 'everyone' },
   });
   // CRITICAL fix: this used to render the hardcoded defaults above
   // immediately and swallow a failed GET (`.catch(() => {})`), with no
@@ -584,6 +653,10 @@ const PrivacyTab = () => {
           profileVisibility: p.profileVisibility || 'everyone',
           showOnlineStatus: p.showOnlineStatus ?? true,
           showLastSeen: p.showLastSeen ?? true,
+          fieldVisibility: {
+            income: p.fieldVisibility?.income || 'everyone',
+            birthDetails: p.fieldVisibility?.birthDetails || 'everyone',
+          },
         });
       }
     }).catch(() => {
@@ -661,6 +734,32 @@ const PrivacyTab = () => {
       </div>
 
       <div>
+        <GroupHeader title="Details you share" desc="Show income and birth details to everyone, only to your matches, or to no one" />
+        <div className="max-w-xl space-y-4">
+          {[
+            ['income', 'Income', 'Also stops people finding you with an income filter'],
+            ['birthDetails', 'Birth time and place', 'Used for horoscope reports; your star sign match still works'],
+          ].map(([key, label, hint]) => (
+            <div key={key}>
+              <label htmlFor={`setting-field-${key}`} className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{label}</label>
+              <select
+                id={`setting-field-${key}`}
+                name={key}
+                value={settings.fieldVisibility[key]}
+                onChange={(e) => setSettings((s) => ({ ...s, fieldVisibility: { ...s.fieldVisibility, [key]: e.target.value } }))}
+                className="input-field"
+              >
+                <option value="everyone">Everyone who can see my profile</option>
+                <option value="matches">Only my matches</option>
+                <option value="hidden">Only me</option>
+              </select>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{hint}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
         <GroupHeader title="Activity Status" desc="Choose what others can see about your online activity" />
         <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-w-xl">
           <Toggle
@@ -689,34 +788,67 @@ const PrivacyTab = () => {
           ) : 'Save Privacy Settings'}
         </button>
       </div>
+
+      <div>
+        <GroupHeader title="Blocked members" desc="Blocked members can't message, call or find you, and you won't see them" />
+        <BlockedMembers />
+      </div>
     </div>
   );
 };
 
 // ─── Notifications tab ────────────────────────────────────────────────────────
 const NotificationsTab = () => {
-  const PREFS_KEY = 'tm_notif_prefs';
-  const defaultPrefs = { matches: true, messages: true, profileViews: true, interests: true, promotions: false };
+  // Server-side preferences (GET/PUT /notifications/preferences). They used to be
+  // a localStorage key that nothing read, so every toggle here did nothing.
+  const [prefs, setPrefs] = useState(null); // null = loading
+  const [loadError, setLoadError] = useState(false);
 
-  const [prefs, setPrefs] = useState(() => {
-    try { return { ...defaultPrefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; }
-    catch { return defaultPrefs; }
-  });
+  const load = useCallback(() => {
+    setPrefs(null);
+    setLoadError(false);
+    api.get('/notifications/preferences')
+      .then((r) => setPrefs(r.data.preferences))
+      .catch(() => setLoadError(true));
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const togglePref = (key) => {
-    const updated = { ...prefs, [key]: !prefs[key] };
-    setPrefs(updated);
-    localStorage.setItem(PREFS_KEY, JSON.stringify(updated));
-    toast.success('Preference saved');
+  const togglePref = async (key) => {
+    const before = prefs;
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next); // optimistic
+    try {
+      await api.put('/notifications/preferences', { [key]: next[key] });
+      toast.success('Preference saved');
+    } catch {
+      setPrefs(before);
+      toast.error('Could not save. Try again.');
+    }
   };
 
+  // Only the notices we actually send. Payment, security and verification
+  // messages are not optional and are not listed.
   const items = [
-    { key: 'matches',      label: 'New Matches',   desc: 'When someone matches with you' },
-    { key: 'messages',     label: 'Messages',       desc: 'When you receive a new message' },
-    { key: 'profileViews', label: 'Profile Views',  desc: 'When someone views your profile' },
-    { key: 'interests',    label: 'Interests',      desc: 'When someone sends you an interest' },
-    { key: 'promotions',   label: 'Promotions',     desc: 'Offers and promotional emails' },
+    { key: 'matches',   label: 'New matches', desc: 'When you and another member like each other (app, push and email)' },
+    { key: 'interests', label: 'Interests',   desc: 'When someone likes your profile' },
   ];
+
+  if (loadError) {
+    return (
+      <div className="space-y-4">
+        <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">Could not load your preferences. <button type="button" className="underline" onClick={load}>Try again</button></p>
+      </div>
+    );
+  }
+  if (!prefs) {
+    return (
+      <div className="space-y-4">
+        <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
+        <div className="h-24 max-w-xl rounded-2xl skeleton" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -762,7 +894,7 @@ const VerificationTab = () => {
       const fd = new FormData();
       fd.append('selfiePhoto', selfiePhoto);
 
-      const res = await api.post('/verification/submit', fd);
+      const res = await api.post('/verification/submit', fd, { headers: captureHeaders(selfiePhoto) });
       toast.success('Selfie submitted. We will review within 24 hours.');
       setStatus(res.data.verification);
     } catch (err) {
@@ -920,7 +1052,43 @@ const VerificationTab = () => {
 
 // ─── Danger Zone tab ──────────────────────────────────────────────────────────
 const DangerTab = () => {
-  const { logout } = useAuth();
+  const { logout, user, updateUser } = useAuth();
+  // Delete after a grace period by default; immediate erasure is an explicit choice.
+  const [deleteNow, setDeleteNow] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const scheduledFor = user?.deletionScheduledFor ? new Date(user.deletionScheduledFor) : null;
+  const paused = Boolean(user?.Profile?.pausedAt);
+  const fmtDate = (d) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const setPaused = async (pause) => {
+    setLifecycleBusy(true);
+    try {
+      const { data } = await api.post(pause ? '/profile/me/pause' : '/profile/me/resume');
+      updateUser({ Profile: { ...(user?.Profile || {}), pausedAt: pause ? (data.pausedAt || new Date().toISOString()) : null, isActive: !pause } });
+      toast.success(pause ? 'Your profile is hidden' : 'Your profile is visible again');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not change that. Try again.');
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  const cancelScheduledDeletion = async () => {
+    setLifecycleBusy(true);
+    try {
+      await api.post('/auth/account/cancel-deletion');
+      updateUser({ deletionScheduledFor: null, Profile: { ...(user?.Profile || {}), isActive: !user?.Profile?.pausedAt } });
+      toast.success('Deletion cancelled. Your account stays.');
+    } catch {
+      toast.error('Could not cancel. Try again.');
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+  // Members who signed up with Google have no password. `=== false` on purpose:
+  // an absent flag means "unknown", and unknown must not hide the password box.
+  const googleOnly = user?.hasPassword === false;
+  const googleBtnRef = useRef(null);
   const [showModal, setShowModal] = useState(false);
   const [password, setPassword]   = useState('');
   const [loading, setLoading]     = useState(false);
@@ -972,23 +1140,106 @@ const DangerTab = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showModal]);
 
-  const handleDelete = async () => {
-    if (!password) { toast.error('Please enter your password'); return; }
+  const deleteWith = async (data) => {
     setLoading(true);
     try {
-      await api.delete('/auth/account', { data: { password } });
-      toast.success('Account deleted');
-      await logout();
+      if (deleteNow) {
+        await api.delete('/auth/account', { data });
+        toast.success('Account deleted');
+        await logout();
+      } else {
+        const res = await api.post('/auth/account/schedule-deletion', data);
+        if (res.data?.immediate) {
+          toast.success('Account deleted');
+          await logout();
+          return;
+        }
+        updateUser({ deletionScheduledFor: res.data.scheduledFor, Profile: { ...(user?.Profile || {}), isActive: false } });
+        toast.success(`Deletion scheduled for ${fmtDate(new Date(res.data.scheduledFor))}`);
+        closeModal();
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not delete your account. Try again.');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not delete your account. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDelete = () => {
+    if (!password) { toast.error('Please enter your password'); return; }
+    return deleteWith({ password });
+  };
+
+  // Google-only members confirm with a fresh Google credential for the same
+  // account (the server checks it is the same identity).
+  useEffect(() => {
+    if (!showModal || !googleOnly || !googleConfig.isConfigured) return undefined;
+    let cancelled = false;
+
+    const render = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: googleConfig.clientId,
+        callback: (response) => deleteWith({ googleCredential: response.credential }),
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline', size: 'large', width: 280, text: 'continue_with',
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      render();
+      return () => { cancelled = true; };
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = render;
+    document.head.appendChild(script);
+    return () => { cancelled = true; if (script.parentNode) script.parentNode.removeChild(script); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal, googleOnly]);
+
   return (
     <div className="space-y-6">
-      <GroupHeader title="Danger Zone" desc="These actions are permanent and cannot be undone" />
+      <GroupHeader title="Pause or delete" desc="Take a break without losing anything, or delete your account" />
+
+      {scheduledFor && (
+        <div role="status" className="rounded-2xl bg-neutral-100 dark:bg-neutral-800 p-5 max-w-xl">
+          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Your account is scheduled for deletion</h4>
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
+            It will be permanently deleted on {fmtDate(scheduledFor)}. Your profile is hidden until then. Changed your mind? Cancel and everything stays as it was.
+          </p>
+          <button
+            onClick={cancelScheduledDeletion}
+            disabled={lifecycleBusy}
+            className="px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 transition-[background-color,transform] duration-[160ms] cursor-pointer"
+          >
+            Cancel deletion
+          </button>
+        </div>
+      )}
+
+      {!scheduledFor && (
+        <div className="rounded-2xl bg-neutral-100 dark:bg-neutral-800 p-5 max-w-xl">
+          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{paused ? 'Your profile is paused' : 'Pause my profile'}</h4>
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
+            {paused
+              ? 'Nobody can find or open your profile, and you cannot send or answer interests until you resume. Nothing has been deleted.'
+              : 'Hide your profile from search and suggestions for now. Your matches, messages and details stay, and you can resume any time.'}
+          </p>
+          <button
+            onClick={() => setPaused(!paused)}
+            disabled={lifecycleBusy}
+            className="px-4 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:scale-[0.97] text-neutral-800 dark:text-neutral-100 text-sm font-semibold disabled:opacity-60 transition-[background-color,transform] duration-[160ms] cursor-pointer"
+          >
+            {paused ? 'Resume my profile' : 'Pause my profile'}
+          </button>
+        </div>
+      )}
 
       {/* Doctrine §3.4 finding: dropped the border — the destructive tint
           alone still marks this as a distinct, dangerous action, so it no
@@ -997,11 +1248,12 @@ const DangerTab = () => {
       <div className="rounded-2xl bg-destructive/5 p-5 max-w-xl">
         <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Delete Account</h4>
         <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
-          Permanently removes your profile, matches, messages, and all data. This cannot be undone.
+          Removes your profile, matches, messages, and all data. Your profile is hidden straight away and the deletion happens after 30 days, so you can change your mind by signing in and cancelling. After that it cannot be undone.
         </p>
         <button
           onClick={() => setShowModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold transition-[background-color,transform] duration-[160ms] cursor-pointer"
+          disabled={Boolean(scheduledFor)}
+          className="px-4 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-50 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
         >
           Delete My Account
         </button>
@@ -1022,8 +1274,22 @@ const DangerTab = () => {
               className="bg-white dark:bg-neutral-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
             >
               <h3 id="delete-account-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Confirm Account Deletion</h3>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Enter your password to confirm. This action is permanent.</p>
-              <div className="relative mb-5">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                {googleOnly
+                  ? 'You signed up with Google. Confirm with the same Google account.'
+                  : 'Enter your password to confirm.'}
+                {' '}{deleteNow ? 'Everything is erased now and this cannot be undone.' : 'Your account will be deleted in 30 days; you can cancel before then.'}
+              </p>
+              <label className="flex items-start gap-2 mb-5 text-sm text-neutral-600 dark:text-neutral-300 cursor-pointer">
+                <input type="checkbox" checked={deleteNow} onChange={(e) => setDeleteNow(e.target.checked)} className="mt-1" />
+                <span>Delete immediately instead of waiting 30 days</span>
+              </label>
+              {googleOnly && (
+                googleConfig.isConfigured
+                  ? <div ref={googleBtnRef} className="mb-5 flex justify-center" aria-busy={loading} />
+                  : <p role="alert" className="mb-5 text-sm text-destructive">Google confirmation isn&apos;t available right now. Contact support to delete your account.</p>
+              )}
+              <div className={`relative mb-5 ${googleOnly ? 'hidden' : ''}`}>
                 <input
                   ref={passwordInputRef}
                   type={showPw ? 'text' : 'password'}
@@ -1053,13 +1319,15 @@ const DangerTab = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
-                >
-                  {loading ? 'Deleting…' : 'Delete'}
-                </button>
+                {!googleOnly && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="flex-1 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
+                  >
+                    {loading ? 'Working…' : deleteNow ? 'Delete now' : 'Schedule deletion'}
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>

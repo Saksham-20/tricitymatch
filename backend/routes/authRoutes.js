@@ -9,6 +9,7 @@ const {
   signup,
   login,
   getMe,
+  acceptTerms,
   forgotPassword,
   resetPassword,
   refreshToken,
@@ -16,8 +17,14 @@ const {
   logoutAll,
   changePassword,
   getSessions,
+  getLoginHistory,
+  scheduleAccountDeletion,
+  cancelAccountDeletion,
+  forgotPasswordPhone,
+  resetPasswordPhone,
   revokeSession,
   deleteAccount,
+  exportMyData,
   sendOtp,
   verifyOtp,
   googleAuth,
@@ -26,6 +33,7 @@ const {
   requestContactNumber,
   verifyContactNumber,
 } = require('../controllers/authController');
+const { getMfaStatus, setupMfa, enableMfa, disableMfa } = require('../controllers/mfaController');
 const { auth } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const {
@@ -45,6 +53,8 @@ const {
   changeEmailVerifyValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  phoneResetRequestValidation,
+  phoneResetSubmitValidation,
   refreshTokenValidation
 } = require('../validators');
 const { body, param } = require('express-validator');
@@ -92,6 +102,22 @@ router.post('/reset-password',
   resetPassword
 );
 
+// Phone-OTP password reset: only for accounts with no verified email to receive
+// a link (see the controller). Same budgets as the email flow.
+router.post('/forgot-password/phone',
+  passwordResetLimiter,
+  phoneResetRequestValidation,
+  handleValidationErrors,
+  forgotPasswordPhone
+);
+
+router.post('/reset-password/phone',
+  passwordResetSubmitLimiter,
+  phoneResetSubmitValidation,
+  handleValidationErrors,
+  resetPasswordPhone
+);
+
 // Google OAuth — verify Google ID token, sign in or register
 router.post('/google', authLimiter, googleAuth);
 
@@ -129,6 +155,7 @@ router.post(
 
 // Get current user
 router.get('/me', auth, getMe);
+router.post('/accept-terms', auth, body('termsVersion').isString().isLength({ max: 32 }), handleValidationErrors, acceptTerms);
 
 // Logout current session
 router.post('/logout', auth, logout);
@@ -192,6 +219,9 @@ router.post('/contact-number/verify',
 // Get active sessions
 router.get('/sessions', auth, getSessions);
 
+// Recent sign-ins (audit P2: login history)
+router.get('/login-history', auth, getLoginHistory);
+
 // Revoke a specific session
 router.delete('/sessions/:sessionId',
   auth,
@@ -200,15 +230,78 @@ router.delete('/sessions/:sessionId',
   revokeSession
 );
 
+// Delete after a grace period (cancellable). Same re-authentication as the
+// immediate delete below.
+router.post('/account/schedule-deletion',
+  auth,
+  sensitiveActionLimiter,
+  [
+    body('password').optional().isString().isLength({ max: 200 }),
+    body('googleCredential').optional().isString().isLength({ max: 4096 }),
+    body().custom((value) => {
+      if (!value || (!value.password && !value.googleCredential)) {
+        throw new Error('Password is required');
+      }
+      return true;
+    }),
+  ],
+  handleValidationErrors,
+  scheduleAccountDeletion
+);
+
+router.post('/account/cancel-deletion', auth, sensitiveActionLimiter, cancelAccountDeletion);
+
 // Delete account (soft-delete, requires password confirmation)
 router.delete('/account',
   auth,
   // Compares a password on every call. Without a dedicated limiter the only
   // bound was apiLimiter's 900-per-15-minutes-per-user budget.
   sensitiveActionLimiter,
-  [body('password').notEmpty().withMessage('Password is required')],
+  [
+    // Password members send `password`; Google-only members (no password) send a
+    // fresh `googleCredential` instead. The controller decides which applies.
+    body('password').optional().isString().isLength({ max: 200 }),
+    body('googleCredential').optional().isString().isLength({ max: 4096 }),
+    body().custom((value) => {
+      if (!value || (!value.password && !value.googleCredential)) {
+        throw new Error('Password is required');
+      }
+      return true;
+    }),
+  ],
   handleValidationErrors,
   deleteAccount
 );
+
+// Download everything we hold about the member. Re-authenticates like account
+// deletion (a stolen session must not be able to walk off with the whole file),
+// and shares its limiter: it assembles ~17 queries per call.
+router.post('/me/export',
+  auth,
+  sensitiveActionLimiter,
+  [
+    body('password').optional().isString().isLength({ max: 200 }),
+    body('googleCredential').optional().isString().isLength({ max: 4096 }),
+    body().custom((value) => {
+      if (!value || (!value.password && !value.googleCredential)) throw new Error('Password is required');
+      return true;
+    }),
+  ],
+  handleValidationErrors,
+  exportMyData
+);
+
+// ==================== TWO-STEP VERIFICATION ====================
+router.get('/mfa/status', auth, getMfaStatus);
+router.post('/mfa/setup', auth, sensitiveActionLimiter,
+  body('password').isString().isLength({ min: 1, max: 100 }).withMessage('Password is required'),
+  handleValidationErrors, setupMfa);
+router.post('/mfa/enable', auth, sensitiveActionLimiter,
+  body('code').isString().isLength({ min: 6, max: 7 }).withMessage('Enter the 6-digit code'),
+  handleValidationErrors, enableMfa);
+router.post('/mfa/disable', auth, sensitiveActionLimiter,
+  body('password').isString().isLength({ min: 1, max: 100 }).withMessage('Password is required'),
+  body('code').isString().isLength({ min: 6, max: 20 }).withMessage('Enter a code'),
+  handleValidationErrors, disableMfa);
 
 module.exports = router;

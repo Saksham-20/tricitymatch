@@ -10,6 +10,7 @@ const { log } = require('../middlewares/logger');
 // Redis. Required lazily inside the processors to keep queue.js free of the
 // model graph at import time, as the other jobs here are.
 const lifecycle = () => require('./lifecycleMail');
+const { recordJobSuccess, setQueueWaiting } = require('./metrics');
 
 // Job queues
 let emailQueue = null;
@@ -20,6 +21,21 @@ let cleanupQueue = null;
 const memoryQueue = {
   jobs: [],
   processing: false
+};
+
+/**
+ * Connection for the job queues: the dedicated non-evicting instance when one is
+ * configured (QUEUE_REDIS_*), otherwise the main Redis.
+ */
+const queueRedisConnection = () => {
+  const q = config.redis.queue || {};
+  if (q.url) return q.url;
+  if (!q.host && config.redis.url) return config.redis.url;
+  return {
+    host: q.host || config.redis.host,
+    port: q.port || config.redis.port,
+    ...((q.password || config.redis.password) ? { password: q.password || config.redis.password } : {}),
+  };
 };
 
 /**
@@ -39,13 +55,7 @@ const initQueues = async () => {
   try {
     const Bull = require('bull');
     const redisOptions = {
-      redis: config.redis.url
-        ? config.redis.url
-        : {
-          host: config.redis.host,
-          port: config.redis.port,
-          ...(config.redis.password ? { password: config.redis.password } : {}),
-        },
+      redis: queueRedisConnection(),
       defaultJobOptions: {
         removeOnComplete: 100, // Keep last 100 completed jobs
         removeOnFail: 500, // Keep last 500 failed jobs
@@ -71,6 +81,7 @@ const initQueues = async () => {
     [emailQueue, notificationQueue, cleanupQueue].forEach(queue => {
       queue.on('completed', (job) => {
         log.debug('Job completed', { queue: queue.name, jobId: job.id });
+        recordJobSuccess(job.name);
       });
 
       queue.on('failed', (job, err) => {
@@ -86,6 +97,16 @@ const initQueues = async () => {
         log.warn('Job stalled', { queue: queue.name, jobId: job.id });
       });
     });
+
+    // Waiting-job gauge for the backlog alert (the rule existed; nothing fed it).
+    const pollWaiting = async () => {
+      try {
+        const counts = await Promise.all([emailQueue, notificationQueue, cleanupQueue].map((q) => q.getWaitingCount()));
+        setQueueWaiting(counts.reduce((a, b) => a + b, 0));
+      } catch { /* metrics only */ }
+    };
+    const waitingTimer = setInterval(pollWaiting, 30000);
+    if (typeof waitingTimer.unref === 'function') waitingTimer.unref();
 
     log.info('Job queues initialized');
   } catch (error) {
@@ -186,37 +207,28 @@ const setupCleanupProcessor = (queue) => {
     return { cleaned: result };
   });
 
-  queue.process('cleanup-old-messages', async (job) => {
-    const { Message } = require('../models');
-    const { Op } = require('sequelize');
-    
-    // This job filtered on `deletedAt`, a column that does not exist on
-    // Messages -- there is no soft delete on that model and no migration ever
-    // added one. So it has never removed a single row: chat bodies, voice-note
-    // URLs and reply quotes are retained indefinitely.
-    //
-    // Retention is a policy decision (and for a matrimonial product, silently
-    // destroying conversation history is not a change to make unprompted), so
-    // this is opt-in. Set MESSAGE_RETENTION_MONTHS to a positive number to
-    // enable it; unset or 0 keeps the previous behaviour of retaining forever,
-    // but now says so out loud instead of failing silently.
-    const retentionMonths = Number(process.env.MESSAGE_RETENTION_MONTHS) || 0;
-    if (retentionMonths <= 0) {
-      log.info('Message retention disabled — set MESSAGE_RETENTION_MONTHS to enable', {
-        retained: 'indefinitely',
-      });
-      return { cleaned: 0, disabled: true };
-    }
+  queue.process('cleanup-old-messages', async () => {
+    const { runMessageRetention } = require('./messageRetention');
+    return runMessageRetention();
+  });
 
-    const cutoffDate = new Date();
-    cutoffDate.setMonth(cutoffDate.getMonth() - retentionMonths);
+  // Guardian invites that nobody answered inside their 7 days are closed, so
+  // they stop counting toward a candidate's 3-guardian cap and cannot be
+  // accepted late. Reads already ignore expired rows; this keeps the table
+  // honest.
+  queue.process('expire-guardian-invites', async () => {
+    const { expireStaleInvites } = require('./guardianInvites');
+    const expired = await expireStaleInvites();
+    log.info('Expired guardian invites', { count: expired });
+    return { expired };
+  });
 
-    const result = await Message.destroy({
-      where: { createdAt: { [Op.lt]: cutoffDate } },
-    });
-
-    log.info('Cleaned up old messages', { count: result, retentionMonths });
-    return { cleaned: result, retentionMonths };
+  // Accounts whose deletion grace period (ACCOUNT_DELETION_GRACE_DAYS) has ended.
+  queue.process('run-scheduled-deletions', async () => {
+    const { runScheduledDeletions } = require('./accountLifecycle');
+    const result = await runScheduledDeletions({ limit: 50 });
+    log.info('Scheduled deletions run', result);
+    return result;
   });
 
   queue.process('cleanup-inactive-sessions', async (job) => {
@@ -248,8 +260,12 @@ const setupCleanupProcessor = (queue) => {
 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    // Get active users with complete profiles (have gender set)
-    const users = await User.findAll({
+    const { linksFor } = require('./emailUnsubscribe');
+    const { forEachUserPage } = require('./batch');
+
+    let sent = 0;
+    // Active users with complete profiles (have gender set), EVERY page of them.
+    const total = await forEachUserPage(User, {
       where: { status: 'active' },
       include: [{
         model: Profile,
@@ -257,11 +273,7 @@ const setupCleanupProcessor = (queue) => {
         attributes: ['gender', 'city', 'preferredAgeMin', 'preferredAgeMax', 'firstName']
       }],
       attributes: ['id', 'email', 'lifecycleMail'],
-      limit: 500 // batch size — prevents memory overload on large user base
-    });
-    const { linksFor } = require('./emailUnsubscribe');
-
-    let sent = 0;
+    }, async (users) => {
     for (const user of users) {
       try {
         const profile = user.Profile;
@@ -344,8 +356,9 @@ const setupCleanupProcessor = (queue) => {
         log.warn('Weekly digest failed for user', { userId: user.id, error: err.message });
       }
     }
+    });
 
-    log.info('Weekly digest sent', { sent, total: users.length });
+    log.info('Weekly digest sent', { sent, total });
     return { sent };
   });
 
@@ -361,7 +374,10 @@ const setupCleanupProcessor = (queue) => {
     // We check profiles created in last 24h against each user's preferences
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const users = await User.findAll({
+    const { forEachUserPage } = require('./batch');
+    let notified = 0;
+
+    const total = await forEachUserPage(User, {
       where: { status: 'active' },
       include: [{
         model: Profile,
@@ -370,11 +386,7 @@ const setupCleanupProcessor = (queue) => {
                      'preferredEducation', 'preferredProfession', 'lifestylePreferences', 'firstName'],
       }],
       attributes: ['id', 'fcmTokens'],
-      limit: 1000,
-    });
-
-    let notified = 0;
-
+    }, async (users) => {
     for (const user of users) {
       try {
         const profile = user.Profile;
@@ -438,8 +450,9 @@ const setupCleanupProcessor = (queue) => {
         log.warn('Saved search alert failed for user', { userId: user.id, error: err.message });
       }
     }
+    });
 
-    log.info('Saved search alerts sent', { notified, total: users.length });
+    log.info('Saved search alerts sent', { notified, total });
     return { notified };
   });
 
@@ -475,6 +488,8 @@ const setupCleanupProcessor = (queue) => {
    */
   queue.process('subscription-lifecycle', () => lifecycle().runSubscriptionLifecycle());
   queue.process('photo-nudge', () => lifecycle().runPhotoNudge());
+  queue.process('payment-reconcile', () => require('./paymentReconcile').reconcilePendingOrders());
+  queue.process('evidence-purge', () => require('./evidencePreservation').purgeExpiredEvidence(require('../models')));
 };
 
 /**
@@ -601,6 +616,16 @@ const scheduleCleanupJobs = async () => {
       repeat: { cron: '0 4 * * *' }
     });
 
+    // Erase accounts whose deletion grace period has ended, daily at 5:30 AM
+    await cleanupQueue.add('run-scheduled-deletions', {}, {
+      repeat: { cron: '30 5 * * *' }
+    });
+
+    // Close unanswered guardian invites daily at 5 AM
+    await cleanupQueue.add('expire-guardian-invites', {}, {
+      repeat: { cron: '0 5 * * *' }
+    });
+
     // Expire subscriptions every hour
     await cleanupQueue.add('expire-subscriptions', {}, {
       repeat: { cron: '0 * * * *' }
@@ -621,6 +646,17 @@ const scheduleCleanupJobs = async () => {
     // the 10:00–22:00 IST window, at a per-member slot, at most once per
     // (row, kind) — see utils/lifecycleMail.js. Frequent ticks just let a slot
     // that falls at 14:07 go out at 14:15 rather than at the next hour.
+    // Asks Razorpay about orders the browser and the webhook both missed
+    // (utils/paymentReconcile.js). Every 30 minutes; idempotent activation.
+    // Moderation evidence is kept 180 days, then removed (utils/evidencePreservation).
+    await cleanupQueue.add('evidence-purge', {}, {
+      repeat: { cron: '30 3 * * *' }
+    });
+
+    await cleanupQueue.add('payment-reconcile', {}, {
+      repeat: { cron: '5,35 * * * *' }
+    });
+
     await cleanupQueue.add('subscription-lifecycle', {}, {
       repeat: { cron: '15,45 * * * *' }
     });
@@ -681,6 +717,7 @@ const closeQueues = async () => {
 };
 
 module.exports = {
+  queueRedisConnection, // exported for tests
   runSubscriptionLifecycle: (...args) => lifecycle().runSubscriptionLifecycle(...args),
   runPhotoNudge: (...args) => lifecycle().runPhotoNudge(...args),
   initQueues,

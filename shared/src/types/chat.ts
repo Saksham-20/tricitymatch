@@ -18,6 +18,8 @@ export interface Message {
   replyToId: string | null;
   reactions: MessageReactions;
   isRead: boolean;
+  /** Scam/phishing signals the server found in `content` (e.g. `payment_request`, `suspicious_link`); null when none. */
+  safetyFlags?: string[] | null;
   /** Server-included quote of the replied-to message (null once deleted). */
   ReplyTo?: Pick<Message, 'id' | 'content' | 'messageType' | 'senderId'> | null;
   deliveredAt: string | null;

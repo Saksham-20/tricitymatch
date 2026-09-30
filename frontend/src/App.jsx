@@ -35,6 +35,7 @@ import { SocketProvider } from './context/SocketContext';
 import { CallProvider } from './context/CallContext';
 import CallOverlay from './components/calls/CallOverlay';
 import ContactNumberPrompt from './components/common/ContactNumberPrompt';
+import TermsReconsentPrompt from './components/common/TermsReconsentPrompt';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -53,6 +54,8 @@ const Login = lazy(() => import('./pages/Login'));
 const ModernOnboarding = lazy(() => import('./pages/ModernOnboarding'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const HandOver = lazy(() => import('./pages/HandOver'));
+const ForgotPasswordPhone = lazy(() => import('./pages/ForgotPasswordPhone'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
@@ -78,6 +81,8 @@ const AdminVerifications = lazy(() => import('./pages/admin/AdminVerifications')
 const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'));
 const AdminRevenue = lazy(() => import('./pages/admin/AdminRevenue'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminAppeals = lazy(() => import('./pages/admin/AdminAppeals'));
+const Appeal = lazy(() => import('./pages/Appeal'));
 const AdminSafety = lazy(() => import('./pages/admin/AdminSafety'));
 const AdminMarketingUsers = lazy(() => import('./pages/admin/AdminMarketingUsers'));
 const AdminMarketingUserDetail = lazy(() => import('./pages/admin/AdminMarketingUserDetail'));
@@ -86,6 +91,8 @@ const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
 const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
 const AdminContactMessages = lazy(() => import('./pages/admin/AdminContactMessages'));
 const AdminLaunchOffer = lazy(() => import('./pages/admin/AdminLaunchOffer'));
+const AdminRanking = lazy(() => import('./pages/admin/AdminRanking'));
+const AdminPhotoReview = lazy(() => import('./pages/admin/AdminPhotoReview'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const AdminFunnel = lazy(() => import('./pages/admin/AdminFunnel'));
 const AdminAuditLog = lazy(() => import('./pages/admin/AdminAuditLog'));
@@ -173,14 +180,29 @@ const AnimatedRoutes = () => {
               <ForgotPassword />
             </PageTransition>
           } />
+          <Route path="/forgot-password/phone" element={
+            <PageTransition>
+              <ForgotPasswordPhone />
+            </PageTransition>
+          } />
           <Route path="/reset-password" element={
             <PageTransition>
               <ResetPassword />
             </PageTransition>
           } />
+          <Route path="/handover" element={
+            <PageTransition>
+              <HandOver />
+            </PageTransition>
+          } />
           <Route path="/terms" element={
             <PageTransition>
               <Terms />
+            </PageTransition>
+          } />
+          <Route path="/appeal" element={
+            <PageTransition>
+              <Appeal />
             </PageTransition>
           } />
           <Route path="/refund-policy" element={
@@ -466,6 +488,8 @@ const AnimatedRoutes = () => {
             <Route path="revenue"       element={<AdminScopeRoute scope="revenue"><AdminRevenue /></AdminScopeRoute>} />
             <Route path="reports"       element={<AdminScopeRoute scope="reports"><AdminReports /></AdminScopeRoute>} />
             <Route path="safety"        element={<AdminScopeRoute scope="reports"><AdminSafety /></AdminScopeRoute>} />
+            <Route path="appeals"       element={<AdminScopeRoute scope="reports"><AdminAppeals /></AdminScopeRoute>} />
+            <Route path="photo-review"  element={<AdminScopeRoute scope="reports"><AdminPhotoReview /></AdminScopeRoute>} />
             <Route path="marketing-users"          element={<AdminScopeRoute scope="marketing"><AdminMarketingUsers /></AdminScopeRoute>} />
             <Route path="marketing-users/:userId"  element={<AdminScopeRoute scope="marketing"><AdminMarketingUserDetail /></AdminScopeRoute>} />
             <Route path="referral-codes"           element={<AdminScopeRoute scope="marketing"><AdminReferralCodes /></AdminScopeRoute>} />
@@ -473,6 +497,7 @@ const AnimatedRoutes = () => {
             <Route path="success-stories"          element={<AdminScopeRoute scope="stories"><AdminSuccessStories /></AdminScopeRoute>} />
             <Route path="contact-messages"         element={<AdminScopeRoute scope="support"><AdminContactMessages /></AdminScopeRoute>} />
             <Route path="launch-offer"             element={<AdminScopeRoute scope="pricing"><AdminLaunchOffer /></AdminScopeRoute>} />
+            <Route path="ranking"                  element={<AdminScopeRoute scope="ranking"><AdminRanking /></AdminScopeRoute>} />
             <Route path="team"                     element={<AdminScopeRoute scope="team"><AdminTeam /></AdminScopeRoute>} />
             <Route path="funnel"                   element={<AdminScopeRoute scope="users"><AdminFunnel /></AdminScopeRoute>} />
             <Route path="audit-log"                element={<AdminScopeRoute scope="team"><AdminAuditLog /></AdminScopeRoute>} />
@@ -596,6 +621,7 @@ function App() {
                     <AppContent />
                     <CallOverlay />
                     <ContactNumberPrompt />
+                    <TermsReconsentPrompt />
                   </div>
                 </Router>
               </CallProvider>

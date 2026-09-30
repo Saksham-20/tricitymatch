@@ -93,7 +93,7 @@ api.interceptors.response.use(
     const noRefreshPaths = [
       '/auth/me', '/auth/login', '/auth/signup', '/auth/refresh',
       '/auth/forgot-password', '/auth/reset-password', '/auth/google',
-      '/auth/send-otp', '/auth/verify-otp',
+      '/auth/send-otp', '/auth/verify-otp', '/auth/mfa/',
     ];
     const skipRefresh = noRefreshPaths.some((p) => originalRequest.url?.includes(p));
 

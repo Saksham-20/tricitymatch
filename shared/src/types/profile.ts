@@ -107,6 +107,19 @@ export interface Profile {
   preferredEducation: string | null;
   preferredProfession: string | null;
   preferredCity: string[];
+  /** Preference keys (age, height, education, profession, city) the member will not compromise on. */
+  mustHavePreferences?: string[];
+  // Optional extras; the website edits them, the app only reads them for now.
+  nationality?: string | null;
+  willingToRelocate?: 'yes' | 'no' | 'maybe' | null;
+  livingArrangement?: 'with_family' | 'alone' | 'with_roommates' | null;
+  familyValues?: 'traditional' | 'moderate' | 'liberal' | null;
+  institution?: string | null;
+  industry?: string | null;
+  brothers?: number | null;
+  sisters?: number | null;
+  educationLevel?: string | null;
+  professionGroup?: string | null;
   // Personality & Lifestyle JSON
   personalityValues: PersonalityValues | null;
   familyPreferences: FamilyPreferences | null;

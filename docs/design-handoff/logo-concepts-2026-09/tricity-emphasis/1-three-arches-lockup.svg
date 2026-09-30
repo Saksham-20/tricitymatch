@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1030 256" width="1030" height="256"><title>TricityMatch lockup</title>
+<g>
+<g fill="#000" fill-rule="evenodd">
+<path d="M80 224V116a48 48 0 0 1 96 0V224H148V116a20 20 0 0 0 -40 0V224Z"/>
+<path d="M20 224V158a44 44 0 0 1 88 0V224H80V158a16 16 0 0 0 -32 0V224Z"/>
+<path d="M148 224V158a44 44 0 0 1 88 0V224H208V158a16 16 0 0 0 -32 0V224Z"/></g>
+<circle cx="128" cy="34" r="16" fill="#000"/></g>
+<g font-family="Playfair Display, Georgia, serif" fill="#000">
+<text x="290" y="128" font-size="104" font-weight="700" letter-spacing="-1">Tricity<tspan font-weight="400">Match</tspan></text>
+<text x="294" y="188" font-size="23" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" letter-spacing="5">CHANDIGARH · MOHALI · PANCHKULA</text></g></svg>

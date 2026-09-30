@@ -17,6 +17,9 @@ const Login = () => {
   const [phase, setPhase] = useState('identifier'); // 'identifier' | 'password'
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  // Set once the server says this account has two-step verification on.
+  const [mfaNeeded, setMfaNeeded] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -79,7 +82,10 @@ const Login = () => {
     setGoogleLoading(true);
     setApiError('');
     try {
-      const result = await api.post('/auth/google', { credential: response.credential });
+      // The page shows "By continuing you agree to the Terms and Privacy Policy" beside
+      // the Google button; the server needs that acceptance stated in the request
+      // before it will create a NEW account (an existing member is unaffected).
+      const result = await api.post('/auth/google', { credential: response.credential, termsAccepted: true });
       if (result.data.success) {
         // Fetch full user profile and let AuthContext handle state
         const meResult = await api.get('/auth/me');
@@ -87,14 +93,17 @@ const Login = () => {
           setUser(meResult.data.user);
           localStorage.setItem('tricitymatch-auth-hint', '1');
         }
-        goAfterLogin(result.data.user?.role);
+        // A brand-new Google member has no gender or date of birth yet (the
+        // server no longer invents placeholders): send them to fill the basics.
+        if (result.data.isNewUser) navigate('/profile/edit');
+        else goAfterLogin(result.data.user?.role);
       }
     } catch (err) {
       setApiError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
-  }, [goAfterLogin, setUser]);
+  }, [goAfterLogin, navigate, setUser]);
 
   useEffect(() => {
     if (!googleConfig.isConfigured) return;
@@ -172,8 +181,14 @@ const Login = () => {
     setLoading(true);
     try {
       const submitId = idType === 'phone' ? phoneDigits(identifier) : identifier.trim();
-      const result = await login(submitId, password);
+      const result = await login(submitId, password, mfaNeeded ? mfaCode : undefined);
       setLoading(false);
+
+      if (result.mfaRequired) {
+        setMfaNeeded(true);
+        setMfaCode('');
+        return;
+      }
 
       if (result.success) {
         setTimeout(() => goAfterLogin(result.role), 100);
@@ -332,7 +347,14 @@ const Login = () => {
                   exit="exit"
                   className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm"
                 >
-                  {apiError}
+                  <span>
+                    {apiError}
+                    {/not active/i.test(apiError) && (
+                      <>
+                        {' '}<Link to="/appeal" className="underline font-medium">Think this is a mistake? Appeal.</Link>
+                      </>
+                    )}
+                  </span>
                 </motion.div>
               ) : null}
             </AnimatePresence>
@@ -432,6 +454,27 @@ const Login = () => {
                       )}
                     </AnimatePresence>
                   </div>
+
+                  {mfaNeeded && (
+                    <div>
+                      <label htmlFor="mfa-code" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                        Authenticator code
+                      </label>
+                      <input
+                        id="mfa-code"
+                        name="mfaCode"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        autoFocus
+                        maxLength={20}
+                        className="input-field dark:bg-surface-dark-2 dark:border-neutral-700"
+                        placeholder="6-digit code or a recovery code"
+                        value={mfaCode}
+                        onChange={(e) => { setMfaCode(e.target.value); if (apiError) setApiError(''); }}
+                      />
+                      <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">Open your authenticator app and enter the current code.</p>
+                    </div>
+                  )}
 
                   {/* Forgot Password */}
                   <div className="flex items-center justify-end -mt-2">

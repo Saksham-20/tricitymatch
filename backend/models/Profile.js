@@ -1,5 +1,8 @@
 const { DataTypes } = require('sequelize');
+const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const sequelize = require('../config/database');
+const { normalizeEducation, normalizeProfession, normalizeCaste } = require('../constants/vocabularies');
+const { signOnSerialize, TTL } = require('../utils/privateMedia');
 
 const Profile = sequelize.define('Profile', {
   id: {
@@ -42,11 +45,12 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.DATE,
     allowNull: true,
     validate: {
+      // 21 for men and gender `other`, 18 for women (constants/marriageableAge).
+      // Field validators see the instance, so a gender edited in the same update
+      // is the one the age is judged against.
       isOldEnough(value) {
-        if (value) {
-          const age = Math.floor((Date.now() - new Date(value)) / (365.25 * 24 * 60 * 60 * 1000));
-          if (age < 18) throw new Error('Must be at least 18 years old');
-        }
+        const problem = marriageableAgeProblem(this.gender, value);
+        if (problem) throw new Error(problem);
       }
     }
   },
@@ -196,6 +200,25 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Optional extras (audit P2). Enumerations are validated in validators/index.
+  nationality: { type: DataTypes.STRING(60), allowNull: true },
+  willingToRelocate: { type: DataTypes.STRING(8), allowNull: true },          // yes | no | maybe
+  livingArrangement: { type: DataTypes.STRING(20), allowNull: true },         // with_family | alone | with_roommates
+  familyValues: { type: DataTypes.STRING(16), allowNull: true },              // traditional | moderate | liberal
+  institution: { type: DataTypes.STRING(120), allowNull: true },
+  industry: { type: DataTypes.STRING(60), allowNull: true },
+  brothers: { type: DataTypes.INTEGER, allowNull: true, validate: { min: 0, max: 15 } },
+  sisters: { type: DataTypes.INTEGER, allowNull: true, validate: { min: 0, max: 15 } },
+  // Derived from `education` / `profession` by the beforeSave hook below
+  // (constants/vocabularies). Never client-settable; search filters on these.
+  educationLevel: {
+    type: DataTypes.STRING(16),
+    allowNull: true
+  },
+  professionGroup: {
+    type: DataTypes.STRING(40),
+    allowNull: true
+  },
   income: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -253,6 +276,20 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.JSONB,
     allowNull: true // e.g., { travel: true, hobbies: ['reading', 'music'] }
   },
+  // Preference keys (age, height, education, profession, city) the member will
+  // not compromise on; search treats them as hard filters. See utils/preferenceFit.
+  mustHavePreferences: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: []
+  },
+  // Who may see income and birth details: { income, birthDetails } each
+  // everyone | matches | hidden. Empty = everyone. See constants/fieldVisibility.
+  fieldVisibility: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {}
+  },
   // Photos
   photos: {
     type: DataTypes.ARRAY(DataTypes.STRING),
@@ -270,6 +307,13 @@ const Profile = sequelize.define('Profile', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  // Set when the member paused (hid) their profile; isActive is false while set.
+  // Kept apart from isActive so "hidden by choice" and a scheduled deletion can
+  // be told apart and resumed.
+  pausedAt: {
+    type: DataTypes.DATE,
+    allowNull: true
   },
   bio: {
     type: DataTypes.TEXT,
@@ -347,6 +391,22 @@ const Profile = sequelize.define('Profile', {
     allowNull: true
   }
 }, {
+  hooks: {
+    // Keep the derived vocabulary columns and the canonical caste spelling in
+    // step with whatever text was written, on every path (editor, onboarding,
+    // guardian setup, admin edits).
+    beforeSave: (profile) => {
+      if (profile.isNewRecord || profile.changed('education')) {
+        profile.educationLevel = normalizeEducation(profile.education);
+      }
+      if (profile.isNewRecord || profile.changed('profession')) {
+        profile.professionGroup = normalizeProfession(profile.profession);
+      }
+      if (profile.changed('caste') && typeof profile.caste === 'string') {
+        profile.caste = normalizeCaste(profile.caste);
+      }
+    },
+  },
   indexes: [
     // Frequently filtered in search queries
     { fields: ['city'] },
@@ -358,6 +418,10 @@ const Profile = sequelize.define('Profile', {
     { fields: ['dateOfBirth'] }
   ]
 });
+
+// Voice/video intros are private media: clients receive short-lived URLs, the
+// stored attribute stays the underlying asset URL (see utils/privateMedia).
+signOnSerialize(Profile, { voiceIntroUrl: TTL.playback, videoIntroUrl: TTL.playback });
 
 module.exports = Profile;
 

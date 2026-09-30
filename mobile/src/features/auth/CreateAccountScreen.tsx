@@ -85,10 +85,14 @@ export default function CreateAccountScreen() {
   const [contact, setContact] = useState('');
   const [password, setPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Optional and unticked: promotional email is not a condition of joining.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   // A field only shows its problem after it has been left (or submit was tried).
   const [touched, setTouched] = useState({ contact: false, password: false, terms: false });
   // idle → sending → sent (boxes shown) → verifying → verified
   const [otpPhase, setOtpPhase] = useState<OtpPhase>('idle');
+  // Single-use proof from verify-otp; signup presents it for this contact.
+  const [otpProof, setOtpProof] = useState('');
   // A resend keeps the boxes on screen, so it is its own flag, not a phase.
   const [resending, setResending] = useState(false);
   const [otpResetKey, setOtpResetKey] = useState(0);
@@ -199,7 +203,7 @@ export default function CreateAccountScreen() {
     setOtpPhase('verifying');
     setOtpError('');
     try {
-      await verifyOtp(parsed.value, code, parsed.kind);
+      setOtpProof(await verifyOtp(parsed.value, code, parsed.kind));
       setOtpPhase('verified');
     } catch (err: unknown) {
       const status = failureStatus(err);
@@ -241,6 +245,8 @@ export default function CreateAccountScreen() {
       contactKind: parsed.kind,
       contactValue: parsed.value,
       password,
+      proof: otpProof,
+      marketing: marketingOptIn,
     });
   };
 
@@ -430,6 +436,25 @@ export default function CreateAccountScreen() {
             />
             <Text variant="footnote" color="textSecondary" style={st.termsText}>
               {t('auth.signup.termsLabel', 'I agree to the Terms & Privacy Policy')}
+            </Text>
+          </PressableScale>
+          <PressableScale
+            haptic
+            style={[st.termsRow, { minHeight: hit }]}
+            onPress={() => setMarketingOptIn((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityLabel={t('auth.signup.marketingOptIn', 'Email me reminders and suggestions about matches (optional)')}
+            accessibilityState={{ checked: marketingOptIn }}
+            testID="marketing-checkbox"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons
+              name={marketingOptIn ? 'checkbox' : 'square-outline'}
+              size={CHECKBOX_SIZE}
+              color={marketingOptIn ? c.primary : c.textMuted}
+            />
+            <Text variant="footnote" color="textSecondary" style={st.termsText}>
+              {t('auth.signup.marketingOptIn', 'Email me reminders and suggestions about matches (optional)')}
             </Text>
           </PressableScale>
           {/* The documents are their own full-height targets, not inline text in

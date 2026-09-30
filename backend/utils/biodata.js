@@ -14,6 +14,7 @@
  */
 
 const PDFDocument = require('pdfkit');
+const { pdfSafe } = require('./pdfText');
 
 const TEMPLATES = {
   classic: {
@@ -119,7 +120,8 @@ const generateBiodataPDF = (res, data) => {
   // Label/value row; skips null values entirely (no "—" walls).
   const detailRow = (label, value) => {
     if (value === null || value === undefined || value === '') return;
-    const text = String(value);
+    const text = pdfSafe(value);
+    if (!text) return;
     const rowH = Math.max(16, doc.heightOfString(text, { width: RIGHT - 200 }) + 4);
     ensureSpace(rowH);
     doc.fontSize(9).fillColor(T.faint).text(label, LEFT, y, { width: 140 });
@@ -127,7 +129,8 @@ const generateBiodataPDF = (res, data) => {
     y += rowH;
   };
 
-  const paragraph = (text) => {
+  const paragraph = (raw) => {
+    const text = pdfSafe(raw);
     if (!text) return;
     const h = doc.heightOfString(text, { width: RIGHT - LEFT }) + 6;
     ensureSpace(h);
@@ -138,7 +141,7 @@ const generateBiodataPDF = (res, data) => {
   // ── Header + identity block ─────────────────────────────
   stampHeader();
 
-  const name = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Member';
+  const name = pdfSafe(`${profile.firstName || ''} ${profile.lastName || ''}`, 'Member');
   const age = calcAge(profile.dateOfBirth);
 
   if (photoBuffer) {

@@ -1,0 +1,57 @@
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
+vi.mock('../../api/axios', () => ({ default: { post: vi.fn() } }));
+vi.mock('../../components/common/Seo', () => ({ default: () => null }));
+vi.mock('../../components/common/Logo', () => ({ default: () => <span>logo</span> }));
+
+import api from '../../api/axios';
+import ForgotPasswordPhone from '../../pages/ForgotPasswordPhone';
+
+beforeEach(() => vi.clearAllMocks());
+
+const typeCode = (code) => {
+  const boxes = screen.getAllByRole('textbox').filter((el) => el.getAttribute('maxlength') === '1' || el.inputMode === 'numeric');
+  const inputs = boxes.length >= 4 ? boxes : screen.getAllByRole('textbox');
+  code.split('').forEach((d, i) => fireEvent.change(inputs[i], { target: { value: d } }));
+};
+
+describe('ForgotPasswordPhone', () => {
+  it('rejects a number that is not a 10-digit Indian mobile', async () => {
+    render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '12345' } });
+    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/10-digit/);
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('sends the code, then resets with code and a strong password', async () => {
+    api.post.mockResolvedValue({ data: { success: true } });
+    render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '+91 98765 43210' } });
+    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/forgot-password/phone', { phone: '9876543210' }));
+
+    await screen.findByLabelText('New password');
+    typeCode('4821');
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'N3w!Password-2026' } });
+    fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/reset-password/phone', { phone: '9876543210', code: '4821', password: 'N3w!Password-2026' }));
+    expect(await screen.findByText('Password updated')).toBeInTheDocument();
+  });
+
+  it('does not call the server with a weak password', async () => {
+    api.post.mockResolvedValue({ data: { success: true } });
+    render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '9876543210' } });
+    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    await screen.findByLabelText('New password');
+    typeCode('4821');
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'weak' } });
+    fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/8\+ characters/);
+    expect(api.post).toHaveBeenCalledTimes(1);
+  });
+});

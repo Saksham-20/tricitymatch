@@ -161,7 +161,7 @@ export default function Privacy() {
 
             <section>
               <H>9. Your verification selfie</H>
-              <p>Photo verification is optional. If you use it, we capture a live selfie through your device camera — there is no upload option, because an uploaded photograph can be someone else's. A reviewer on our team compares it against your profile photographs and records only the result. The selfie is <strong>never shown to other members</strong>, is not used for advertising or training, and is deleted when your account is deleted. You can decline verification and continue using the Service without a verified badge, and you can withdraw your consent by writing to us.</p>
+              <p>Photo verification is optional. If you use it, we take a selfie through your device camera; the site and app offer no file-upload option, and our servers only accept a selfie that came from a camera session they started. That cannot prove a photograph was never staged, so a reviewer on our team compares it against your profile photographs and records the outcome and any note they leave. The selfie is <strong>never shown to other members</strong>, is not used for advertising or training, and is deleted when your account is deleted. You can decline verification and continue using the Service without a verified badge, and you can withdraw your consent by writing to us.</p>
             </section>
 
             <section>
@@ -185,9 +185,10 @@ export default function Privacy() {
               <p>We keep your data while your account is active. You can delete your account yourself at any time from <L to="/settings">Settings</L> — see <L to="/delete-account">how to delete your account</L>. Deletion is real, and this is exactly what it does:</p>
               <ul className="list-disc pl-5 space-y-1 mt-2">
                 <li><strong>Erased</strong> — your profile and every field in it, your photographs, voice and video intros, your verification selfie, your matches, shortlists, contact unlocks, profile views, notifications, call records, guardian links, blocks and sessions.</li>
+                <li><strong>Chat messages are deleted 24 months after they are sent</strong>, along with voice notes, even if you stay a member. A conversation where either person has an open report is kept until the report is decided.</li>
                 <li><strong>Message text is destroyed</strong>, and the empty row is left in place so the other person's conversation does not develop holes.</li>
                 <li><strong>Retained</strong> — payment and membership records, because tax and accounting law requires them and because refunds have to be reconcilable; and moderation records where another member has reported you, because a report should not be erasable by the person reported.</li>
-                <li>When you delete your account, your profile, photographs, verification selfie and registration details (email, phone) are <strong>erased immediately</strong>, in the same action. We keep payment and invoice records for as long as tax and accounting law requires, and a moderation record where you were reported.</li>
+                <li>When you delete your account, your profile, photographs, verification selfie and registration details (email, phone) are <strong>erased 30 days after you ask</strong>, in one action, unless you cancel first (your profile is hidden from the moment you ask; on the website you can choose to erase immediately instead). We keep payment and invoice records for as long as tax and accounting law requires, and a moderation record where you were reported.</li>
                 <li>Content we have removed on a complaint or an official order, and its associated records, are preserved for <strong>180 days</strong> for investigation, or longer if a court or agency requires it.</li>
                 <li>Server and security logs are kept for a rolling period as required by the CERT-In Directions, 2022, and then rotate out.</li>
               </ul>

@@ -22,8 +22,8 @@ const persistTokens = async (env: AuthEnvelope): Promise<AuthResult> => {
   return { accessToken: env.tokens?.accessToken, user: env.user };
 };
 
-export const login = async (email: string, password: string): Promise<AuthResult> => {
-  const res = await apiClient.post<AuthEnvelope>('/auth/login', { email, password });
+export const login = async (email: string, password: string, mfaCode?: string): Promise<AuthResult> => {
+  const res = await apiClient.post<AuthEnvelope>('/auth/login', { email, password, ...(mfaCode ? { mfaCode } : {}) });
   return persistTokens(res.data);
 };
 
@@ -34,10 +34,21 @@ export interface SignupPayload {
   email?: string;
   phone?: string;
   password: string;
+  /** Proof from verifyOtp() for whichever contact is being registered. */
+  emailProof?: string;
+  phoneProof?: string;
   firstName?: string;
   lastName?: string;
   gender?: string;
   dateOfBirth?: string;
+  /** Stated in the request: the server refuses a signup that does not assert it. */
+  termsAccepted: boolean;
+  /** Optional, unticked by default: promotional email. */
+  marketingConsent?: boolean;
+  /** 'self' or 'other'; with 'other', the operator's attestation is required. */
+  creatingFor?: 'self' | 'other';
+  relationshipToProfile?: string;
+  subjectAttestation?: boolean;
 }
 
 export const signup = async (payload: SignupPayload): Promise<AuthResult> => {
@@ -65,6 +76,17 @@ export const forgotPassword = async (email: string): Promise<void> => {
   await apiClient.post('/auth/forgot-password', { email });
 };
 
+// Password reset by texted code, for accounts with no verified email. The first
+// call answers identically for every number (the server never says whether one
+// is registered), so its result is never used to decide what to show.
+export const forgotPasswordPhone = async (phone: string): Promise<void> => {
+  await apiClient.post('/auth/forgot-password/phone', { phone });
+};
+
+export const resetPasswordPhone = async (phone: string, code: string, password: string): Promise<void> => {
+  await apiClient.post('/auth/reset-password/phone', { phone, code, password });
+};
+
 export const resetPassword = async (token: string, password: string): Promise<void> => {
   await apiClient.post('/auth/reset-password', { token, password });
 };
@@ -73,8 +95,10 @@ export const sendOtp = async (target: string, type: 'phone' | 'email' = 'phone')
   await apiClient.post('/auth/send-otp', { type, target });
 };
 
-export const verifyOtp = async (target: string, otp: string, type: 'phone' | 'email' = 'phone'): Promise<void> => {
-  await apiClient.post('/auth/verify-otp', { type, target, code: otp });
+// Returns the single-use proof signup must present for this contact.
+export const verifyOtp = async (target: string, otp: string, type: 'phone' | 'email' = 'phone'): Promise<string> => {
+  const res = await apiClient.post<{ verificationProof?: string }>('/auth/verify-otp', { type, target, code: otp });
+  return res.data?.verificationProof ?? '';
 };
 
 export const getMe = async (): Promise<AuthUser> => {
@@ -85,6 +109,17 @@ export const getMe = async (): Promise<AuthUser> => {
 // The server verifies the member's password before erasing the account; a bare DELETE 400s.
 export const deleteAccount = async (password: string): Promise<void> => {
   await apiClient.delete('/auth/account', { data: { password } });
+};
+
+// Deletion with a grace period: the profile is hidden now and the account is
+// erased on `scheduledFor`, and can be cancelled by signing in before then.
+export const scheduleAccountDeletion = async (password: string): Promise<{ scheduledFor: string | null; immediate: boolean }> => {
+  const res = await apiClient.post<{ scheduledFor?: string; immediate?: boolean }>('/auth/account/schedule-deletion', { password });
+  return { scheduledFor: res.data.scheduledFor ?? null, immediate: Boolean(res.data.immediate) };
+};
+
+export const cancelAccountDeletion = async (): Promise<void> => {
+  await apiClient.post('/auth/account/cancel-deletion');
 };
 
 // ─── Account security ─────────────────────────────────────────────────────────
@@ -121,4 +156,9 @@ export const revokeSession = async (sessionId: string): Promise<void> => {
 /** Signs out every device including this one. */
 export const logoutAll = async (): Promise<void> => {
   await apiClient.post('/auth/logout-all');
+};
+
+/** Re-accept the Terms after a version bump. `termsVersion` is the one the server asked for. */
+export const acceptTerms = async (termsVersion: string): Promise<void> => {
+  await apiClient.post('/auth/accept-terms', { termsVersion, accepted: true });
 };

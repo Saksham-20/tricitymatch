@@ -30,6 +30,16 @@
  * personal data and it is destroyed; the row survives so the other participant's
  * conversation does not develop holes. This is the conventional approach.
  *
+ * What happens to the FILES: every photo, selfie, video and voice file the member
+ * uploaded is destroyed at Cloudinary after the database erasure commits (see
+ * utils/memberMedia). Before this the rows went and the files stayed on public
+ * URLs. A CDN failure never blocks the erasure; it is reported in the result so
+ * the listed public_ids can be retried.
+ *
+ * Also scrubbed: the MarketingLeads row created when the member signed up through
+ * a referral (name, phone, email) and, by matching contact, ContactMessages the
+ * member sent (identity and IP go; the enquiry text stays for grievance records).
+ *
  * What is RETAINED: Subscriptions and UnlockPurchases (financial records needed
  * for accounting, reconciliation and refunds -- they carry amounts and payment
  * identifiers, not free-text personal data) and Reports (a moderation record
@@ -38,6 +48,8 @@
  */
 
 const crypto = require('crypto');
+const { emailLookupCandidates } = require('../utils/emailAddress');
+const { preserveEvidence } = require('./evidencePreservation');
 const { Op } = require('sequelize');
 
 // Required lazily inside eraseAccount rather than at module load. authController
@@ -56,17 +68,34 @@ const TOMBSTONE = '[deleted]';
 const eraseAccount = async (userId) => {
   const counts = {};
   const sequelize = db();
+
+  // Read what will be needed AFTER the rows are gone: the contact details that
+  // identify this member's leads and enquiries, and the URLs of every uploaded
+  // file. Once the transaction commits there is no way to find either.
+  const { collectMemberMedia, destroyMedia } = require('./memberMedia');
+  const [identityRows] = await sequelize.query(
+    'SELECT "email", "phone" FROM "Users" WHERE "id" = :userId',
+    { replacements: { userId } }
+  );
+  const identity = (identityRows && identityRows[0]) || {};
+  const mediaUrls = await collectMemberMedia(sequelize, [userId]);
+
   // User is deliberately absent: the Users row is scrubbed via raw SQL below,
   // because the model's beforeUpdate hook rejects a user with neither email nor
   // phone and would re-hash the placeholder password we write.
   const {
     Profile, Verification, GuardianLink, ProfileView, Match, ContactUnlock,
     Notification, RefreshToken, CallSession, AnalyticsEvent, ChatGrant, Block,
-    GroupMember,
+    GroupMember, MediaReview,
   } = models();
 
   await sequelize.transaction(async (transaction) => {
     const bothWays = (a, b) => ({ [Op.or]: [{ [a]: userId }, { [b]: userId }] });
+
+    // Snapshot what any report against this member rests on BEFORE their
+    // messages are tombstoned and their profile destroyed — otherwise deleting
+    // the account would delete the evidence.
+    counts.evidenceArchived = (await preserveEvidence([userId], transaction, { models: models() })).archived;
 
     // ── Rows that are wholly this member's personal data ──
     counts.profiles = await Profile.destroy({ where: { userId }, transaction });
@@ -97,6 +126,9 @@ const eraseAccount = async (userId) => {
       where: bothWays('blockerId', 'blockedUserId'), transaction,
     });
     counts.groupMemberships = await GroupMember.destroy({ where: { userId }, transaction });
+    // Photos held for review or named in a report: the assets are destroyed below
+    // (collectMemberMedia includes them); the queue rows go with the member.
+    counts.mediaReviews = await MediaReview.destroy({ where: { userId }, transaction });
     counts.refreshTokens = await RefreshToken.destroy({ where: { userId }, transaction });
 
     // ── Message bodies: destroy the content, keep the row ──
@@ -119,6 +151,44 @@ const eraseAccount = async (userId) => {
       { replacements: { tombstone: TOMBSTONE, userId }, transaction }
     );
     counts.groupMessagesTombstoned = groupMessages.length;
+
+    // ── Lead and enquiry copies of this member's identity ──
+    // MarketingLeads.phone is NOT NULL, so it is blanked rather than nulled.
+    // The referral lead created at signup holds a copy of the name, phone and
+    // email; a support enquiry holds name, email, phone and the sender's IP.
+    // Matching is by the member's own contact details (captured above).
+    // Copies may hold the address as typed or in the older Gmail-stripped form.
+    const emailForms = emailLookupCandidates(identity.email);
+    if (emailForms.length === 0) emailForms.push(null);
+
+    const [leadRows] = await sequelize.query(
+      `UPDATE "MarketingLeads"
+          SET "name" = :deleted, "phone" = '', "email" = NULL, "updatedAt" = NOW()
+        WHERE "convertedUserId" = :userId
+           OR lower("email") IN (:emails)
+           OR (:phone::text IS NOT NULL AND "phone" = :phone)
+        RETURNING "id"`,
+      { replacements: { userId, deleted: 'Deleted member', emails: emailForms, phone: identity.phone || null }, transaction }
+    );
+    counts.marketingLeadsScrubbed = leadRows.length;
+
+    const [enquiryRows] = await sequelize.query(
+      `UPDATE "ContactMessages"
+          SET "name" = :deleted, "email" = :placeholder, "phone" = NULL, "ipAddress" = NULL, "updatedAt" = NOW()
+        WHERE lower("email") IN (:emails)
+           OR (:phone::text IS NOT NULL AND "phone" = :phone)
+        RETURNING "id"`,
+      {
+        replacements: {
+          deleted: 'Deleted member',
+          placeholder: 'deleted@deleted.invalid',
+          emails: emailForms,
+          phone: identity.phone || null,
+        },
+        transaction,
+      }
+    );
+    counts.contactMessagesScrubbed = enquiryRows.length;
 
     // ── Scrub the User row itself ──
     //
@@ -151,6 +221,37 @@ const eraseAccount = async (userId) => {
       }
     );
   });
+
+  // ── After commit: everything the database transaction cannot cover ──
+  // None of it may fail the erasure, which has already happened.
+
+  // Live sockets: a connected session would otherwise keep receiving events.
+  try {
+    const { getIO } = require('./socket');
+    const io = getIO();
+    if (io) io.in(`user_${userId}`).disconnectSockets(true);
+  } catch { /* best effort */ }
+
+  // The member's own cached daily set. (Other members' cached sets are
+  // re-validated on every read, so the erased profile stops appearing at once —
+  // see utils/profileVisibility.stillVisible.)
+  try {
+    const { delPattern } = require('./cache');
+    await delPattern(`daily-matches:*:${userId}:*`);
+  } catch { /* best effort */ }
+
+  const media = await destroyMedia(mediaUrls);
+  counts.media = {
+    deleted: media.deleted,
+    alreadyGone: media.alreadyGone,
+    local: media.local,
+    skipped: media.skipped,
+    failed: media.failed.length,
+  };
+  if (media.failed.length) {
+    // public_ids are not personal data; log them so an operator can retry.
+    counts.mediaFailed = media.failed;
+  }
 
   return counts;
 };

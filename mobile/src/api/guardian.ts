@@ -47,6 +47,31 @@ export const inviteGuardian = async (email: string): Promise<void> => {
   await apiClient.post('/guardian/invite', { email });
 };
 
+// ─── Invites addressed to me (I am the person being asked to be a guardian) ───
+
+export interface GuardianInvite {
+  linkId: string;
+  candidateName: string;
+  relationship: string | null;
+  expiresAt: string;
+}
+
+export const getPendingGuardianInvites = async (): Promise<GuardianInvite[]> => {
+  const res = await apiClient.get<{ invites: GuardianInvite[] }>('/guardian/pending-invites');
+  return res.data.invites ?? [];
+};
+
+export const respondToGuardianInvite = async (linkId: string, decision: 'accept' | 'decline'): Promise<void> => {
+  // Literal paths, so the api-conformance check can match each to a server route.
+  if (decision === 'accept') await apiClient.post(`/guardian/${linkId}/accept`);
+  else await apiClient.post(`/guardian/${linkId}/decline`);
+};
+
+// The emailed link carries a one-time token; opening it signed in is the acceptance.
+export const resolveGuardianInvite = async (token: string): Promise<void> => {
+  await apiClient.post(`/guardian/resolve-invite/${encodeURIComponent(token)}`);
+};
+
 export const revokeGuardian = async (linkId: string): Promise<void> => {
   await apiClient.delete(`/guardian/${linkId}`);
 };

@@ -9,6 +9,7 @@ const cloudinary = require('cloudinary').v2;
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
+const { parseCloudinaryAsset } = require('../utils/cloudinaryAsset');
 const { createError } = require('./errorHandler');
 
 // Configure Cloudinary (log once so we know which storage is used)
@@ -93,17 +94,6 @@ const imageFileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-// File filter for documents — validates Content-Type header AND filename extension
-const documentFileFilter = (req, file, cb) => {
-  if (!ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
-    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. Only images and PDFs are allowed.`), false);
-  }
-  if (!hasAllowedExtension(file.originalname, file.mimetype)) {
-    return cb(createError.badRequest('File extension does not match the declared file type.'), false);
-  }
-  cb(null, true);
-};
-
 // Create Cloudinary storage configuration.
 // SEC-4: pin resource_type per endpoint (never 'auto') and scope allowed_formats
 // tightly. Cloudinary content-validates uploads against allowed_formats by actually
@@ -130,6 +120,7 @@ const createCloudinaryStorage = (folder, transformation = [], opts = {}) => {
     cloudinary: cloudinary,
     params: {
       folder: `${config.cloudinary.folder}/${folder}`,
+      ...(opts.type ? { type: opts.type } : {}),
       allowed_formats: formats,
       transformation: transformation.length > 0 ? transformation : undefined,
       resource_type: resourceType,
@@ -152,7 +143,7 @@ const galleryPhotoStorage = createCloudinaryStorage('gallery', [
 // from 'auto'/raw/video.
 const documentStorage = createCloudinaryStorage('verification-docs', [
   { quality: 'auto:eco' },
-], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] });
+], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp'], type: 'authenticated' });
 
 // Create multer upload instances
 const uploadProfilePhoto = multer({
@@ -200,6 +191,7 @@ const voiceIntroStorage = config.cloudinary.isConfigured()
       cloudinary,
       params: {
         folder: `${config.cloudinary.folder}/voice-intros`,
+        type: 'authenticated', // private media: see utils/privateMedia
         resource_type: 'video', // Cloudinary uses 'video' for audio
         allowed_formats: ['mp3', 'm4a', 'aac', 'ogg', 'wav', 'webm'],
       },
@@ -230,6 +222,7 @@ const voiceMessageStorage = config.cloudinary.isConfigured()
       cloudinary,
       params: {
         folder: `${config.cloudinary.folder}/voice-messages`,
+        type: 'authenticated', // private media: see utils/privateMedia
         resource_type: 'video', // Cloudinary uses 'video' for audio
         allowed_formats: ['mp3', 'm4a', 'aac', 'ogg', 'wav', 'webm'],
       },
@@ -267,6 +260,7 @@ const videoIntroStorage = config.cloudinary.isConfigured()
       cloudinary,
       params: {
         folder: `${config.cloudinary.folder}/video-intros`,
+        type: 'authenticated', // private media: see utils/privateMedia
         resource_type: 'video',
         allowed_formats: ['mp4', 'mov', 'webm'],
       },
@@ -285,16 +279,25 @@ const uploadVideoIntro = multer({
   limits: { fileSize: MAX_VIDEO_SIZE },
 }).single('videoIntro');
 
-// Upload for verification documents
-const uploadDocuments = multer({
+// Selfie for photo verification: ONE image, one field. Identity documents are not
+// collected (2026-07-02), so any other file field is refused outright instead of
+// being uploaded to Cloudinary and then ignored, which left stray identity
+// documents hosted and never deleted.
+const selfieFileFilter = (req, file, cb) => {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+    return cb(createError.badRequest(`Invalid file type: ${file.mimetype}. A selfie must be a JPEG, PNG or WebP image.`), false);
+  }
+  if (!hasAllowedExtension(file.originalname, file.mimetype)) {
+    return cb(createError.badRequest('File extension does not match the declared file type.'), false);
+  }
+  cb(null, true);
+};
+
+const uploadSelfie = multer({
   storage: documentStorage,
-  fileFilter: documentFileFilter,
-  limits: { fileSize: MAX_FILE_SIZE * 2 }, // Allow larger files for documents
-}).fields([
-  { name: 'documentFront', maxCount: 1 },
-  { name: 'documentBack', maxCount: 1 },
-  { name: 'selfiePhoto', maxCount: 1 },
-]);
+  fileFilter: selfieFileFilter,
+  limits: { fileSize: MAX_FILE_SIZE, files: 1 },
+}).fields([{ name: 'selfiePhoto', maxCount: 1 }]);
 
 // SEC-4 (full): magic-byte content validation.
 // Read the leading bytes of a file and confirm they match the signature for the
@@ -357,24 +360,6 @@ const validateUploadedFiles = (req, res, next) => {
   next();
 };
 
-// Extract Cloudinary public_id from URL (handles optional transformations)
-// e.g. .../upload/v123/folder/id.jpg or .../upload/c_fill,w_500/v123/folder/id.jpg
-function getCloudinaryPublicId(fileUrl) {
-  if (!fileUrl || !fileUrl.includes('cloudinary')) return null;
-  const parts = fileUrl.split('/');
-  const vIndex = parts.findIndex((p) => /^v\d+$/.test(p));
-  if (vIndex === -1 || vIndex >= parts.length - 1) {
-    // Fallback: last two segments as folder/filename
-    const file = parts[parts.length - 1];
-    const folder = parts[parts.length - 2];
-    if (!file || !folder) return null;
-    return `${folder}/${file.split('.')[0]}`;
-  }
-  const pathAfterVersion = parts.slice(vIndex + 1).join('/');
-  const withoutExt = pathAfterVersion.replace(/\.[^.]+$/, '');
-  return withoutExt || null;
-}
-
 // Delete file from Cloudinary
 const deleteFromCloudinary = async (fileUrl) => {
   if (!fileUrl || !config.cloudinary.isConfigured()) {
@@ -382,12 +367,19 @@ const deleteFromCloudinary = async (fileUrl) => {
   }
 
   try {
-    const publicId = getCloudinaryPublicId(fileUrl);
-    if (!publicId) {
+    // resource_type comes from the URL. Voice notes and video intros are stored
+    // as `video`; destroying them with the SDK default (`image`) answered
+    // "not found" and silently left the media live.
+    const asset = parseCloudinaryAsset(fileUrl);
+    if (!asset || asset.kind !== 'cloudinary') {
       if (config.isDevelopment) console.warn('[upload] Could not extract public_id from URL:', fileUrl?.slice(0, 80));
       return;
     }
-    const result = await cloudinary.uploader.destroy(publicId);
+    const result = await cloudinary.uploader.destroy(asset.publicId, {
+      resource_type: asset.resourceType,
+      type: asset.type,
+      invalidate: true,
+    });
     if (config.isDevelopment && result?.result !== 'ok') {
       console.warn('[upload] Cloudinary destroy result:', result);
     }
@@ -427,7 +419,7 @@ module.exports = {
   uploadProfilePhoto,
   uploadGalleryPhotos,
   uploadPhotos,
-  uploadDocuments,
+  uploadSelfie,
   uploadVoiceIntro,
   uploadVoiceMessage,
   uploadVideoIntro,

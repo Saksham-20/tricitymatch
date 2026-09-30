@@ -8,6 +8,7 @@
  */
 
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const { emailIdentityKey } = require('../utils/emailAddress');
 const { RedisRateLimitStore } = require('./rateLimitStore');
 const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
@@ -514,18 +515,19 @@ const sanitizeObject = (obj, depth = 0) => {
     }
 
     if (typeof obj[key] === 'string') {
-      // Remove null bytes
+      // Remove null bytes.
+      //
+      // String VALUES are deliberately not inspected for a leading '$'. That rule
+      // used to delete the value, on the theory of blocking NoSQL operators — but
+      // this app talks to Postgres through Sequelize, where a string starting
+      // with '$' is just a string. All it did was silently destroy legitimate
+      // input: `$` is one of the symbols the password policy REQUIRES, so a
+      // password like `$Secret123` could neither register nor log in, and a chat
+      // message or bio starting with a price ("$500 budget") vanished. Operator
+      // injection is stopped where it matters: by the KEY check above (an object
+      // key such as `$gt`) and by parameterised queries.
       obj[key] = obj[key].replace(/\0/g, '');
-      // Block string values that look like operator injections
-      if (obj[key].startsWith('$')) {
-        delete obj[key];
-      }
     } else if (Array.isArray(obj[key])) {
-      // Sanitize array elements
-      obj[key] = obj[key].filter((item) => {
-        if (typeof item === 'string') return !item.startsWith('$');
-        return true;
-      });
       obj[key].forEach((item) => {
         if (item && typeof item === 'object') sanitizeObject(item, depth + 1);
       });
@@ -590,7 +592,10 @@ const _delLockoutData = async (key) => {
 const loginLookupKey = (body = {}) => {
   const raw = (body.identifier ?? body.email ?? '').toString().trim();
   if (!raw) return null;
-  return raw.includes('@') ? raw.toLowerCase() : raw;
+  // Emails collapse spelling variants of one mailbox (Gmail dots / +tags) so the
+  // attempt budget cannot be multiplied by retrying variants. This is the LOCKOUT
+  // key only — the database lookup uses emailLookupCandidates in authController.
+  return raw.includes('@') ? emailIdentityKey(raw) : raw;
 };
 
 const checkAccountLockout = asyncHandler(async (req, res, next) => {
@@ -699,6 +704,7 @@ module.exports = {
   corsOptions,
   corsDelegate,
   sanitizeRequest,
+  sanitizeObject,
   // Account lockout
   checkAccountLockout,
   recordFailedLogin,

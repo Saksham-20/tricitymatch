@@ -12,6 +12,7 @@ import OnboardingNavigator from './OnboardingNavigator';
 import MainNavigator from './MainNavigator';
 import { useNavAnimation } from './useNavAnimation';
 import IncomingCallModal from '../components/calls/IncomingCallModal';
+import TermsReconsentModal from '../components/TermsReconsentModal';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -90,6 +91,9 @@ export default function RootNavigator() {
           <Stack.Screen name="Main" component={MainNavigator} />
         )}
       </Stack.Navigator>
+
+      {/* The Terms moved on since this member accepted them */}
+      <TermsReconsentModal />
 
       {/* Foreground incoming call overlay — shown globally on top of any screen */}
       {isAuthenticated && incomingCall && (

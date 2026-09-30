@@ -3,14 +3,29 @@
  * Handles profile search with optimized queries
  */
 
-const { Profile, User, Match, Subscription, Block, Verification } = require('../models');
+const { Profile, User, Match, Subscription, Verification } = require('../models');
 const { Op, fn, col, where: seqWhere } = require('sequelize');
 const Sequelize = require('sequelize');
 const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
 const { toProfileCode, parseProfileCode } = require('../utils/profileCode');
 const { randomUUID } = require('crypto');
+const {
+  loadViewerContext,
+  listingScope,
+  viewerHasPaidAccess,
+  redactForViewer,
+} = require('../utils/profileVisibility');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { rankBreakdown } = require('../utils/rankingWeights');
+const { weightsFor } = require('../utils/rankingExperiment');
+const { mustHaveClauses } = require('../utils/preferenceFit');
+const { normalizeEducation, professionGroupFromFilter } = require('../constants/vocabularies');
+
+// Ranked search scores the newest CANDIDATE_CAP matching profiles together, so the
+// order is global rather than per page. Past the cap the directory is larger than
+// one ranked pool; the response says so (pagination.capped).
+const CANDIDATE_CAP = 500;
 
 // Escape special characters for LIKE patterns to prevent injection
 const escapeLikePattern = (str) => {
@@ -42,7 +57,8 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     motherTongue,
     manglikFilter,  // 'manglik_only' | 'non_manglik_only' | 'exclude_incompatible'
     verifiedOnly,   // 'true' → only photo-verified members
-    sortBy = 'compatibility'
+    sortBy = 'compatibility',
+    mustHaves       // 'off' → ignore the searcher's own must-have preferences
   } = req.query;
 
   const userId = req.user.id;
@@ -57,49 +73,25 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     throw createError.badRequest('Please complete your profile first');
   }
 
-  // Fetch blocked/blocking user IDs to exclude from results
-  const blocks = await Block.findAll({
-    where: {
-      [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }]
-    },
-    attributes: ['blockerId', 'blockedUserId']
-  });
-  const blockedUserIds = blocks.map(b => b.blockerId === userId ? b.blockedUserId : b.blockerId);
-
-  // Build where clause
-  const where = {
-    isActive: true,
-    incognitoMode: { [Op.ne]: true }, // Exclude users in incognito mode
-    userId: {
-      [Op.ne]: userId, // Exclude self
-      ...(blockedUserIds.length > 0 ? { [Op.notIn]: blockedUserIds } : {})
-    }
-  };
-
-  // M-2 (2026-07-01 pentest): respect the "matches only" privacy setting in search.
-  // profileVisibility='matches_only' profiles are hidden from non-mutual viewers;
-  // NULL / 'everyone' remain visible to all.
-  const mutualRows = await Match.findAll({
-    where: { userId, isMutual: true },
-    attributes: ['matchedUserId'],
-  });
-  const mutualUserIds = mutualRows.map((m) => m.matchedUserId);
-  where[Op.and] = [
-    ...(where[Op.and] || []),
-    {
-      [Op.or]: [
-        { profileVisibility: { [Op.is]: null } },
-        { profileVisibility: { [Op.ne]: 'matches_only' } },
-        ...(mutualUserIds.length ? [{ userId: { [Op.in]: mutualUserIds } }] : []),
-      ],
-    },
-  ];
+  // Who may appear (blocked, incognito, matches-only unless mutual, self) is one
+  // shared rule for every listing — see utils/profileVisibility.
+  const viewerCtx = await loadViewerContext(userId);
+  const where = listingScope(viewerCtx);
 
   // Gender filter: opposite gender when set; otherwise both so results aren't empty
   const gender = (currentProfile.gender || '').toLowerCase();
   if (gender === 'male') where.gender = 'female';
   else if (gender === 'female') where.gender = 'male';
   else where.gender = { [Op.in]: ['male', 'female'] };
+
+  // The searcher's own must-have partner preferences are hard filters. A
+  // must-have with no value behind it, and candidates whose own field is blank,
+  // are never excluded (utils/preferenceFit).
+  const mustHave = mustHaves === 'off' ? { clauses: [], applied: [] } : mustHaveClauses(currentProfile);
+  if (mustHave.clauses.length) {
+    if (!where[Op.and]) where[Op.and] = [];
+    where[Op.and].push(...mustHave.clauses);
+  }
 
   // Age filter: dateOfBirth in [now - (ageMax+1) years exclusive, now - ageMin years inclusive]
   // "Age in [25, 35]" → born between 1991-01-01 (exclusive, >25 not >=26) and 2001-01-01 (inclusive, <=35)
@@ -132,14 +124,21 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     where.city = { [Op.iLike]: `%${escapeLikePattern(city)}%` };
   }
 
-  // Education filter
+  // Education filter: matches the canonical level, so "Master" also finds
+  // "Masters", "M.Tech" and "MBA". Text we cannot classify keeps the exact match.
   if (education) {
-    where.education = education;
+    const level = normalizeEducation(education);
+    if (level) where.educationLevel = level;
+    else where.education = education;
   }
 
-  // Profession filter (escape special characters)
+  // Profession filter: the canonical group ("Software / IT" finds "Software
+  // Engineer" and "Engineer (Software)"); unclassifiable text falls back to a
+  // contains match with special characters escaped.
   if (profession) {
-    where.profession = { [Op.iLike]: `%${escapeLikePattern(profession)}%` };
+    const group = professionGroupFromFilter(profession);
+    if (group && group !== 'Other') where.professionGroup = group;
+    else where.profession = { [Op.iLike]: `%${escapeLikePattern(profession)}%` };
   }
 
   // Lifestyle filters
@@ -182,6 +181,12 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
   }
   if (!isNaN(parsedIncomeMax) && parsedIncomeMax >= 0) {
     where.income = { ...(where.income || {}), [Op.lte]: parsedIncomeMax };
+  }
+  if (where.income) {
+    // A member who hides their income must not be findable by it: a range
+    // filter would reveal exactly what they chose not to show.
+    if (!where[Op.and]) where[Op.and] = [];
+    where[Op.and].push(Sequelize.literal(`COALESCE("Profile"."fieldVisibility"->>'income', 'everyone') = 'everyone'`));
   }
 
   // Mother tongue filter (exact case-insensitive match to use LOWER() index)
@@ -227,6 +232,8 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     );
   }
 
+  const rankedSearch = sortBy === 'compatibility';
+
   // Column-backed sorts run at the DB level so they paginate correctly;
   // 'compatibility' is computed in JS below, so it keeps the default order.
   const orderClause =
@@ -258,8 +265,10 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
         where: { status: 'active' }
       }
     ],
-    limit: parseInt(limit),
-    offset: parseInt(offset),
+    // Ranked search pulls the whole candidate pool and pages in memory below;
+    // column sorts page in SQL.
+    limit: rankedSearch ? CANDIDATE_CAP : parseInt(limit),
+    offset: rankedSearch ? 0 : parseInt(offset),
     order: orderClause
   });
 
@@ -317,34 +326,58 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
   const now = new Date();
 
-  // Calculate compatibility for each profile
-  const profilesWithCompatibility = profiles.map((profile) => {
-    const compatibilityScore = calculateCompatibility(currentProfile, profile);
-    const match = matchMap.get(profile.userId);
-    const premiumPlan = subMap.get(profile.userId) || null;
-    // Check if referral boost is still active
-    const isBoostedActive = profile.User?.isBoosted &&
-      (!profile.User?.boostExpiresAt || new Date(profile.User.boostExpiresAt) > now);
+  const viewerPaid = await viewerHasPaidAccess(userId);
 
-    const raw = profile.toJSON();
+  // Score every candidate (cheap: no serialisation yet).
+  // The live weights, or this member's arm of a running ranking experiment.
+  const { weights } = weightsFor(userId);
+  const scored = profiles.map((profile) => {
+    const compatibilityScore = calculateCompatibility(currentProfile, profile);
+    const premiumPlan = subMap.get(profile.userId) || null;
+    const isBoosted = Boolean(profile.User?.isBoosted &&
+      (!profile.User?.boostExpiresAt || new Date(profile.User.boostExpiresAt) > now));
+    // Verified members get a ranking nudge so getting verified visibly pays off,
+    // and a profile with no photograph sorts below anyone who has one. It is not
+    // hidden -- that would punish a member who may still be a genuine match --
+    // and the penalty out-weighs any single positive nudge so a plan cannot buy
+    // it back.
+    const rank = rankBreakdown({
+      compatibilityScore,
+      premiumPlan,
+      isBoosted,
+      isVerified: verifiedUserIds.has(profile.userId),
+      hasPhoto: Array.isArray(profile.photos) && profile.photos.length > 0,
+    }, weights);
+    return { profile, compatibilityScore, premiumPlan, isBoosted, rank };
+  });
+
+  // Order the WHOLE pool, then take the requested page. Sorting after SQL paging
+  // (the old behaviour) only re-ordered each page of 20 newest-first rows, so
+  // page 2 could hold a better match than page 1.
+  if (rankedSearch) scored.sort((a, b) => b.rank.total - a.rank.total);
+  const pageRows = rankedSearch ? scored.slice(offset, offset + limit) : scored;
+
+  const profilesWithCompatibility = pageRows.map(({ profile, compatibilityScore, premiumPlan, isBoosted, rank }) => {
+    const match = matchMap.get(profile.userId);
     const isMutual = match ? match.isMutual : false;
 
-    // Enforce photo blur: hide photos for non-mutual matches when user has photoBlurUntilMatch
-    const profilePhoto = (raw.photoBlurUntilMatch && !isMutual) ? null : raw.profilePhoto;
-    const photos = (raw.photoBlurUntilMatch && !isMutual) ? [] : raw.photos;
+    // Photo blur, intro-media URLs and owner-only keys are withheld here, in the
+    // payload — the same redaction every other listing applies.
+    const raw = redactForViewer(profile.toJSON(), { isMutual, hasPaidAccess: viewerPaid });
 
     const profileData = {
       ...raw,
-      profilePhoto,
-      photos,
       userId: raw.userId || raw.User?.id || profile.userId,
       compatibilityScore,
       matchStatus: match ? match.action : null,
       isMutual,
-      isBoosted: isBoostedActive,
+      isBoosted,
       isPremium: !!premiumPlan,
       premiumPlan,
-      isVerified: verifiedUserIds.has(raw.userId || profile.userId)
+      isVerified: verifiedUserIds.has(raw.userId || profile.userId),
+      // Why this profile sits where it does.
+      rankScore: rank.total,
+      rankFactors: rank.factors,
     };
 
     // Remove nested User object
@@ -354,34 +387,6 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
 
     return profileData;
   });
-
-  // Boost premium members and referral-boosted users toward top
-  const premiumBoost = (plan) => {
-    if (plan === 'vip' || plan === 'nri') return 20;
-    if (plan === 'elite') return 15;
-    if (plan === 'premium_plus') return 10;
-    if (plan === 'basic_premium') return 5;
-    return 0;
-  };
-
-  // Sort by compatibility if requested
-  if (sortBy === 'compatibility') {
-    // A profile with no photograph is the first thing a family skips, and at
-    // launch scale a page of them makes the whole directory look empty. They
-    // are not hidden — hiding a member's profile from search is a punishment,
-    // and they may still be a genuine match — but they sort below anyone who
-    // has uploaded one. The penalty is larger than any single positive nudge so
-    // it cannot be out-boosted by a paid plan.
-    const hasPhoto = (p) => Array.isArray(p.photos) && p.photos.length > 0;
-    const rank = (p) => (p.compatibilityScore || 0)
-      + premiumBoost(p.premiumPlan)
-      + (p.isBoosted ? 8 : 0)
-      // Verified members get a ranking nudge (+8, on par with a referral boost)
-      // so getting verified visibly pays off in where you land in results.
-      + (p.isVerified ? 8 : 0)
-      + (hasPhoto(p) ? 0 : -40);
-    profilesWithCompatibility.sort((a, b) => rank(b) - rank(a));
-  }
 
   // Get total count — must apply the SAME User join as the rows query above.
   // Counting profiles alone included members whose account is suspended or
@@ -394,14 +399,21 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     col: 'id',
   });
 
+  // A ranked pool is at most CANDIDATE_CAP deep; do not advertise pages past it.
+  const reachable = rankedSearch ? Math.min(total, CANDIDATE_CAP) : total;
+
   res.json({
     success: true,
     profiles: profilesWithCompatibility,
+    // Which of the member's must-haves shaped this list, so the client can say
+    // so and offer to switch them off (?mustHaves=off).
+    mustHaves: { applied: mustHave.applied },
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
       total,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(reachable / limit),
+      capped: rankedSearch && total > CANDIDATE_CAP
     }
   });
 });
@@ -426,22 +438,21 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
       ? { gender: 'male' }
       : { gender: { [Op.in]: ['male', 'female'] } };
 
-  // Get profiles user hasn't interacted with, excluding blocked users
-  const [interactedUserIds, suggestionBlocks] = await Promise.all([
+  // Profiles the viewer hasn't interacted with. Who may appear at all is the
+  // shared visibility rule; the interacted set is layered on top of it.
+  const [interactedUserIds, viewerCtx] = await Promise.all([
     Match.findAll({ where: { userId }, attributes: ['matchedUserId'] })
       .then(matches => matches.map(m => m.matchedUserId)),
-    Block.findAll({
-      where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
-      attributes: ['blockerId', 'blockedUserId']
-    })
+    loadViewerContext(userId)
   ]);
-  const blockedSuggestionIds = suggestionBlocks.map(b => b.blockerId === userId ? b.blockedUserId : b.blockerId);
-  const excludedIds = [...new Set([...interactedUserIds, ...blockedSuggestionIds])];
+  const excludedIds = [...new Set([...interactedUserIds, ...viewerCtx.blockedIds])];
+  const scope = listingScope(viewerCtx);
+  scope.userId = { [Op.ne]: userId, [Op.notIn]: excludedIds };
+  const viewerPaid = await viewerHasPaidAccess(userId);
 
   const profiles = await Profile.findAll({
     where: {
-      isActive: true,
-      userId: { [Op.ne]: userId, [Op.notIn]: excludedIds },
+      ...scope,
       ...genderFilter
     },
     include: [
@@ -489,15 +500,8 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
 
   const nowSug = new Date();
 
-  // Calculate compatibility and sort (with premium + referral boost)
-  const premiumBoostSug = (plan) => {
-    if (plan === 'vip' || plan === 'nri') return 20;
-    if (plan === 'elite') return 15;
-    if (plan === 'premium_plus') return 10;
-    if (plan === 'basic_premium') return 5;
-    return 0;
-  };
-
+  // Calculate compatibility and sort with the same admin-tunable weights as search.
+  const { weights: weightsSug } = weightsFor(userId);
   const profilesWithCompatibility = profiles.map(profile => {
     const isBoostedActive = profile.User?.isBoosted &&
       (!profile.User?.boostExpiresAt || new Date(profile.User.boostExpiresAt) > nowSug);
@@ -509,17 +513,22 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
     };
   });
 
-  profilesWithCompatibility.sort((a, b) => {
-    const scoreA = a.compatibilityScore + premiumBoostSug(a.premiumPlan) + (a.isBoosted ? 8 : 0);
-    const scoreB = b.compatibilityScore + premiumBoostSug(b.premiumPlan) + (b.isBoosted ? 8 : 0);
-    return scoreB - scoreA;
-  });
+  const suggestionScore = (item) => rankBreakdown({
+    compatibilityScore: item.compatibilityScore,
+    premiumPlan: item.premiumPlan,
+    isBoosted: Boolean(item.isBoosted),
+    // Suggestions do not load verification or photo state; neutral, not penalised.
+    isVerified: false,
+    hasPhoto: true,
+  }, weightsSug).total;
+  profilesWithCompatibility.sort((a, b) => suggestionScore(b) - suggestionScore(a));
 
   // Return top matches
   const topMatches = profilesWithCompatibility
     .slice(0, limit)
     .map(item => {
-      const raw = item.profile.toJSON();
+      // Never mutual (interacted profiles are excluded above), so blur applies.
+      const raw = redactForViewer(item.profile.toJSON(), { isMutual: false, hasPaidAccess: viewerPaid });
       const premiumPlan = item.premiumPlan;
       const profileData = {
         ...raw,
@@ -554,12 +563,7 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
     throw createError.badRequest('Enter a valid profile ID, e.g. TCS-A1B2C3D4');
   }
 
-  // Exclude profiles in a block relationship with the requester
-  const blocks = await Block.findAll({
-    where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
-    attributes: ['blockerId', 'blockedUserId'],
-  });
-  const blockedUserIds = blocks.map(b => (b.blockerId === userId ? b.blockedUserId : b.blockerId));
+  const isSelfCode = String(userId).slice(0, 8).toLowerCase() === prefix;
 
   // UTIL-2: the 8-hex code is the first 4 bytes (time_low) of the userId UUID, so
   // match an indexed UUID range instead of LOWER(CAST(userId AS text)) LIKE — the
@@ -567,17 +571,28 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
   const uuidLo = `${prefix}-0000-0000-0000-000000000000`;
   const uuidHi = `${prefix}-ffff-ffff-ffff-ffffffffffff`;
 
+  // A code the member chose to share is a direct lookup, so incognito does not
+  // hide it — but matches-only, blocks, deactivated and banned/suspended accounts
+  // do, exactly as in every other listing. (This lookup used to check isActive
+  // and blocks only, so a matches-only or banned member was reachable by code.)
+  // Looking up your own code is always allowed.
+  const viewerCtx = await loadViewerContext(userId);
+  const scope = isSelfCode
+    ? { isActive: true }
+    : listingScope(viewerCtx, { includeIncognito: true });
+
   // Fetch up to 2 to detect (extremely rare) prefix collisions instead of silently
   // returning an arbitrary row, as the old findOne did.
   const matches = await Profile.findAll({
     where: {
-      isActive: true,
-      userId: {
-        [Op.between]: [uuidLo, uuidHi],
-        ...(blockedUserIds.length > 0 ? { [Op.notIn]: blockedUserIds } : {}),
-      },
+      ...scope,
+      [Op.and]: [
+        ...(scope[Op.and] || []),
+        { userId: { [Op.between]: [uuidLo, uuidHi] } },
+      ],
     },
     attributes: ['userId', 'firstName', 'lastName', 'dateOfBirth', 'city', 'profession', 'profilePhoto', 'photoBlurUntilMatch'],
+    include: [{ model: User, attributes: [], where: { status: 'active' }, required: true }],
     limit: 2,
   });
 
@@ -590,25 +605,21 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
   }
   const profile = matches[0];
 
-  const raw = profile.toJSON();
-  const isSelf = raw.userId === userId;
+  const rawProfile = profile.toJSON();
+  const isSelf = rawProfile.userId === userId;
 
-  // Photo-privacy: mirror the main search (see line ~324) — hide the photo from a
-  // non-mutual viewer when the target enabled blur-until-match. (Own profile is
-  // always shown to itself.)
-  const mutual = isSelf
-    ? null
-    : await Match.findOne({
-        where: { userId, matchedUserId: raw.userId, isMutual: true },
-        attributes: ['id'],
-      });
-  const profilePhoto = (raw.photoBlurUntilMatch && !mutual && !isSelf) ? null : raw.profilePhoto;
+  // Same redaction as every other listing (photo blur until match, owner-only
+  // keys). Own profile is shown to itself untouched.
+  const raw = redactForViewer(rawProfile, {
+    isSelf,
+    isMutual: viewerCtx.mutualIds.has(rawProfile.userId),
+    hasPaidAccess: false,
+  });
 
   res.json({
     success: true,
     profile: {
       ...raw,
-      profilePhoto,
       profileCode: toProfileCode(raw.userId),
       isSelf,
     },

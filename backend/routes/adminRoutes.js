@@ -18,8 +18,10 @@ const {
   getUsers,
   deleteUsers,
   getUser,
+  getModerationHistory,
   createUser,
   updateUserStatus,
+  changeMemberIdentity,
   updateSubscription,
   getVerifications,
   updateVerification,
@@ -47,6 +49,10 @@ const {
   replyToContactMessage,
   getLaunchOffer,
   updateLaunchOffer,
+  getRankingWeights,
+  getRankingExperiment,
+  updateRankingExperiment,
+  updateRankingWeights,
   updateContactMessage,
   getSuccessStories,
   createSuccessStory,
@@ -71,10 +77,14 @@ const { Op } = require('sequelize');
 const { ALL_PLANS } = require('../constants/plans');
 const { 
   updateUserStatusValidation, 
+  adminCreateUserValidation,
+  adminCreateAdminValidation,
   updateVerificationValidation, 
   adminSearchValidation 
 } = require('../validators');
 const { body, param } = require('express-validator');
+const { listAppeals, decideAppeal, listEvidence, getEvidence } = require('../controllers/appealController');
+const { listMediaReviews, decideMediaReview } = require('../controllers/mediaReviewController');
 
 // All admin routes require authentication and an admin-family role. Each route
 // then names the permission it needs: `admin`/`super_admin` hold every scope,
@@ -85,14 +95,40 @@ router.use(auth, adminAuth, adminLimiter);
 // ==================== USER MANAGEMENT ====================
 
 router.get('/users', requireAdminScope('users'), adminSearchValidation, handleValidationErrors, getUsers);
-router.post('/users', requireAdminScope('users'), createUser);
+router.post('/users', requireAdminScope('users'), adminCreateUserValidation, handleValidationErrors, createUser);
 router.delete('/users', requireAdminScope('users'), deleteUsers);
 router.put('/users/bulk-status', requireAdminScope('users'), bulkUpdateStatus);
 // Before /users/:userId — Express matches in declaration order, and `export`
 // would otherwise be read as a user id and rejected by the UUID validator.
 router.get('/users/export', requireAdminScope('users'), exportUsers);
 router.get('/users/:userId', requireAdminScope('users'), param('userId').isUUID(4), handleValidationErrors, getUser);
+router.get('/users/:userId/moderation-history', requireAdminScope('reports'), param('userId').isUUID(4), handleValidationErrors, getModerationHistory);
 router.put('/users/:userId/status', requireAdminScope('users'), updateUserStatusValidation, handleValidationErrors, updateUserStatus);
+// Appeals and preserved evidence belong to the moderation desk (`reports` scope).
+router.get('/appeals', requireAdminScope('reports'), listAppeals);
+router.put('/appeals/:id', requireAdminScope('reports'),
+  param('id').isUUID(4),
+  body('decision').isIn(['overturned', 'upheld']).withMessage('Invalid decision'),
+  body('note').isString().isLength({ min: 10, max: 1000 }).withMessage('A note (10-1000 characters) is required'),
+  handleValidationErrors, decideAppeal);
+// Photos held by automated screening, and photos named in stolen-photo reports.
+router.get('/media-reviews', requireAdminScope('reports'), listMediaReviews);
+router.put('/media-reviews/:id', requireAdminScope('reports'),
+  param('id').isUUID(4),
+  body('decision').isIn(['approve', 'reject']).withMessage('Invalid decision'),
+  body('note').optional({ nullable: true }).isString().isLength({ max: 500 }),
+  handleValidationErrors, decideMediaReview);
+router.get('/evidence', requireAdminScope('reports'), listEvidence);
+router.get('/evidence/:id', requireAdminScope('reports'), param('id').isUUID(4), handleValidationErrors, getEvidence);
+
+router.put('/users/:userId/identity', requireAdminScope('users'),
+  param('userId').isUUID(4),
+  body('dateOfBirth').optional().isISO8601().withMessage('Invalid date format'),
+  body('gender').optional().isIn(['male', 'female', 'other']).withMessage('Invalid gender'),
+  body('reason').isString().isLength({ min: 10, max: 500 }).withMessage('A reason (10-500 characters) is required'),
+  handleValidationErrors,
+  changeMemberIdentity
+);
 router.delete('/users/:userId/subscription',
   requireAdminScope('subscriptions'),
   param('userId').isUUID(4),
@@ -118,7 +154,7 @@ router.get('/plan-options', requireAdminScope('subscriptions'), getPlanOptions);
 // ==================== ADMIN TEAM ====================
 
 router.get('/admins', requireAdminScope('team'), getAdmins);
-router.post('/admins', requireAdminScope('team'), createAdmin);
+router.post('/admins', requireAdminScope('team'), adminCreateAdminValidation, handleValidationErrors, createAdmin);
 router.put('/users/:userId/role',
   requireAdminScope('team'),
   param('userId').isUUID(4),
@@ -274,6 +310,10 @@ router.post(
 // express-validator chains that would drift from it.
 router.get('/launch-offer', requireAdminScope('pricing'), getLaunchOffer);
 router.put('/launch-offer', requireAdminScope('pricing'), updateLaunchOffer);
+router.get('/ranking-weights', requireAdminScope('ranking'), getRankingWeights);
+router.put('/ranking-weights', requireAdminScope('ranking'), updateRankingWeights);
+router.get('/ranking-experiment', requireAdminScope('ranking'), getRankingExperiment);
+router.put('/ranking-experiment', requireAdminScope('ranking'), updateRankingExperiment);
 
 // ==================== SUCCESS STORIES ====================
 

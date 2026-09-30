@@ -125,6 +125,19 @@ groups:
           summary: "Redis connection lost"
           description: "Application has lost connection to Redis"
 
+      # The cache instance evicts under memory pressure by design, but evicting
+      # means OTPs and lockout counters (which carry TTLs) are being dropped early.
+      - alert: RedisEvictingKeys
+        expr: |
+          increase(redis_evicted_keys_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis is evicting keys"
+          description: "{{ $value }} keys evicted in 10m - raise maxmemory or find the key that is growing"
+
       # ==================== SECURITY ALERTS ====================
 
       # High rate of authentication failures (possible attack)
@@ -154,6 +167,21 @@ groups:
           runbook: "Review source IPs, adjust rate limits if needed"
 
       # ==================== QUEUE ALERTS ====================
+
+      # A scheduled job stopped completing. The hourly/daily jobs (expiry,
+      # reconcile, lifecycle mail, token cleanup) are silent when they die, so a
+      # missing run is the only signal. 26h covers the daily ones with slack.
+      - alert: BackgroundJobStalled
+        expr: |
+          time() - tricitymatch_job_last_success_timestamp_seconds{job=~"expire-subscriptions|cleanup-expired-tokens|cleanup-inactive-sessions"} > 93600
+        for: 10m
+        labels:
+          severity: critical
+          service: queue
+        annotations:
+          summary: "Background job {{ $labels.job }} has not completed for over 26h"
+          description: "Check the backend logs and that Redis is reachable; without Redis no scheduled job runs."
+
 
       # High queue backlog
       - alert: HighQueueBacklog

@@ -19,7 +19,8 @@ describe('group membership gate', () => {
     const membership = { groupId: 'g1', userId: 'u1', role: 'member' };
     GroupMember.findOne.mockResolvedValue(membership);
     await expect(requireMembership('g1', 'u1')).resolves.toBe(membership);
-    expect(GroupMember.findOne).toHaveBeenCalledWith({ where: { groupId: 'g1', userId: 'u1' } });
+    // Only an ACTIVE row is membership; a pending invitation grants nothing.
+    expect(GroupMember.findOne).toHaveBeenCalledWith({ where: { groupId: 'g1', userId: 'u1', status: 'active' } });
   });
 
   it('throws 403 when the user is not a member (IDOR guard)', async () => {

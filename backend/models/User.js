@@ -58,6 +58,11 @@ const User = sequelize.define('User', {
     allowNull: true,
     defaultValue: null
   },
+  // TOTP second factor (utils/totp.js). The secret is stored encrypted and never
+  // leaves the server; `mfaEnabledAt` is set only after a valid first code.
+  mfaSecret: { type: DataTypes.TEXT, allowNull: true },
+  mfaEnabledAt: { type: DataTypes.DATE, allowNull: true },
+  mfaRecoveryHashes: { type: DataTypes.JSONB, allowNull: true },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'banned', 'pending', 'deleted'),
     defaultValue: 'pending'
@@ -76,6 +81,26 @@ const User = sequelize.define('User', {
   },
   termsVersion: {
     type: DataTypes.STRING(32),
+    allowNull: true,
+    defaultValue: null
+  },
+  // Notification choices (utils/notificationPrefs). NULL = defaults.
+  notificationPrefs: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
+  },
+  // When the account will be erased, if the member scheduled a deletion. The
+  // profile is hidden until then and signing in lets them cancel.
+  deletionScheduledFor: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null
+  },
+  // How consent was given (ip, user agent, optional choices, guardian
+  // attestation). See utils/consentRecord.
+  consent: {
+    type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: null
   },
@@ -182,7 +207,8 @@ const User = sequelize.define('User', {
       if ((user.changed('email') || user.changed('phone')) && !user.email && !user.phone) {
         throw new Error('An email address or phone number is required');
       }
-      if (user.changed('password')) {
+      // A null password (Google-only account) is stored as null, never hashed.
+      if (user.changed('password') && user.password) {
         user.password = await bcrypt.hash(user.password, config.auth.bcryptRounds);
       }
     }
@@ -190,6 +216,8 @@ const User = sequelize.define('User', {
 });
 
 User.prototype.comparePassword = async function(candidatePassword) {
+  // Google-only members have no hash; bcrypt.compare would throw a 500.
+  if (!this.password || typeof candidatePassword !== 'string') return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -217,6 +245,15 @@ User.prototype.toJSON = function() {
 
   // Internal mail bookkeeping.
   delete values.lifecycleMail;
+
+  // Consent evidence carries the IP and user agent of the acceptance. The member
+  // can read it through the data export; it never rides the generic user shape.
+  delete values.consent;
+
+  // Second-factor material: never serialised. `mfaEnabled` (derived) is enough.
+  values.mfaEnabled = Boolean(values.mfaEnabledAt);
+  delete values.mfaSecret;
+  delete values.mfaRecoveryHashes;
 
   return values;
 };

@@ -5,15 +5,22 @@
 
 const jwt = require('jsonwebtoken');
 const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
+const { cleanName } = require('../constants/names');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { eraseAccount } = require('../utils/accountErasure');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
-const { log } = require('../middlewares/logger');
+const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
+const { issueProof, consumeProof } = require('../utils/otpProof');
+const otpStore = require('../utils/otpStore');
+const { buildConsent, renewConsent, truthy } = require('../utils/consentRecord');
+const { checkSecondFactor } = require('../utils/mfa');
+const { buildMemberExport } = require('../utils/dataExport');
+const { log, logSecurityEvent, logAudit } = require('../middlewares/logger');
 const { OAuth2Client } = require('google-auth-library');
 const smsService = require('../utils/smsService');
-const { TERMS_VERSION } = require('../constants/legal');
+const { TERMS_VERSION, needsReconsent } = require('../constants/legal');
 const { trackEvent } = require('../utils/trackEvent');
 const { grantFoundingIfOpen } = require('../utils/foundingGrant');
 const { getActiveSubscription } = require('../utils/entitlements');
@@ -41,6 +48,11 @@ const getCookieOptions = (maxAge) => ({
 // Step-1 basics). Kept in one place so login/signup/getMe stay in sync.
 const withDerivedUserFields = async (userInstance) => {
   const user = userInstance.toJSON();
+  // Whether the member can re-authenticate with a password. Members who signed
+  // up with Google have none and must confirm sensitive actions (account
+  // deletion) with a fresh Google credential instead. Only stated when the
+  // column was actually loaded: `undefined` means "unknown", never "no password".
+  if (userInstance.password !== undefined) user.hasPassword = Boolean(userInstance.password);
   // Read through utils/entitlements — the SAME query every gate uses, including
   // its endDate predicate. Filtering on `status:'active'` alone (what this did
   // until 2026-08-10) meant that between a subscription's expiry and the hourly
@@ -49,6 +61,11 @@ const withDerivedUserFields = async (userInstance) => {
   // runs at all. The sweep is cleanup, not correctness.
   const activeSub = await getActiveSubscription(user.id);
   user.subscriptionPlan = activeSub?.planType || 'free';
+  // True when the Terms have moved on since the version this member accepted.
+  // Clients block the app behind an accept screen; the server enforces it too
+  // (middlewares/auth.js).
+  user.requiresReconsent = needsReconsent(userInstance);
+  user.currentTermsVersion = TERMS_VERSION;
   const profile = user.Profile;
   // Authoritative flag persisted on the profile: set at signup for web (full profile
   // collected first), at the end of onboarding Step 14 for mobile. The migration
@@ -134,6 +151,33 @@ const generateRefreshToken = async (userId, userAgent, ipAddress, existingFamily
   return { token, sessionId: row.id };
 };
 
+/**
+ * Tell the member when their account is signed in from a device it has not been
+ * used from before (audit P2). Best-effort and off the request path: a mail or
+ * lookup failure must never fail or slow a sign-in. The first-ever sign-in is
+ * not "new" (see utils/deviceRecognition).
+ */
+const alertIfNewDevice = (req, user, sessionId) => {
+  const userAgent = req.headers['user-agent'];
+  const ip = req.clientIp || req.ip;
+  setImmediate(async () => {
+    try {
+      const { isNewDevice, describeDevice, maskIp } = require('../utils/deviceRecognition');
+      if (!(await isNewDevice(RefreshToken, { userId: user.id, sessionId, userAgent }))) return;
+      const device = describeDevice(userAgent).label;
+      const where = maskIp(ip);
+      const detail = `Your account was signed in to from ${device}${where ? ` (network ${where})` : ''}, a device we have not seen before.`;
+      const { notify } = require('../utils/notifyUser');
+      await notify(user.id, 'system', 'New sign-in to your account', `${device}. If this was not you, change your password and sign out other devices in Settings.`);
+      if (user.email) {
+        await sendSecurityAlert(user.email, '', 'New sign-in', detail, new Date().toUTCString());
+      }
+    } catch (error) {
+      log.warn('New-device alert failed', { userId: user.id, error: error.message });
+    }
+  });
+};
+
 // Parse duration string (e.g., '7d', '1h', '30m') to milliseconds
 const parseDuration = (duration) => {
   const units = {
@@ -162,26 +206,48 @@ const clearAuthCookies = (res) => {
   res.clearCookie('refreshToken', { path: '/' });
 };
 
+/**
+ * Find the account for an email address under any form it may be stored in:
+ * the address as typed (canonical), then the form older signups stored after
+ * Gmail dot/+tag stripping. Canonical wins if both exist.
+ */
+const findUserByEmail = async (email, options = {}) => {
+  for (const candidate of emailLookupCandidates(email)) {
+    const found = await User.findOne({ ...options, where: { ...(options.where || {}), email: candidate } });
+    if (found) return found;
+  }
+  return null;
+};
+
 // @route   POST /api/auth/signup
 // @desc    Register a new user
 // @access  Public
 exports.signup = asyncHandler(async (req, res) => {
-  const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode } = req.body;
+  const { email, password, phone, firstName, lastName, gender, dateOfBirth, referralCode, creatingFor } = req.body;
+  const marketingConsent = truthy(req.body.marketingConsent);
+  const subjectAttested = truthy(req.body.subjectAttestation);
   const codeFromQuery = req.query.ref || req.body.ref;
   // Member invite (Phase S) — a DIFFERENT param from the marketing `ref` above.
   // Both may be present on one signup and are honoured independently.
   const inviteFromRequest = req.body.invite || req.query.invite;
 
   // Flexible auth: account is identified by EITHER an email OR a phone number.
-  const normalizedEmail = email ? email.toLowerCase().trim() : null;
+  const normalizedEmail = email ? canonicalEmail(email) : null;
   const normalizedPhone = phone ? String(phone).trim() : null;
   if (!normalizedEmail && !normalizedPhone) {
     throw createError.badRequest('An email address or phone number is required');
   }
 
+  // A profile made on someone else's behalf needs the operator to attest, in the
+  // request, that the person is of legal age and knows about and agrees to it.
+  // The Terms say so; this is the record that it was asserted.
+  if (creatingFor && creatingFor !== 'self' && !subjectAttested) {
+    throw createError.badRequest('Please confirm the person this profile is for is of legal age and agrees to it');
+  }
+
   // Check if user already exists (by whichever identifier was provided)
   if (normalizedEmail) {
-    const existingByEmail = await User.findOne({ where: { email: normalizedEmail } });
+    const existingByEmail = await findUserByEmail(normalizedEmail, { attributes: ['id'] });
     if (existingByEmail) throw createError.conflict('An account already exists with this email');
   }
   if (normalizedPhone) {
@@ -225,29 +291,25 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   }
 
-  // Consume the OTP-verified markers set by verify-otp so the account is stamped
-  // verified at creation (proves the contact was confirmed, not client-trusted).
+  // A contact counts as verified only when the caller presents the single-use
+  // proof verify-otp handed back for it (bound to whoever entered the code).
+  // No client is exempt: every account starts with at least one proven contact,
+  // so nobody can register an address or number they do not control.
   let emailWasVerified = false;
   let phoneWasVerified = false;
   try {
-    const { get: cacheGet, del: cacheDel } = require('../utils/cache');
     if (normalizedEmail) {
-      const k = `otp-verified:email:${normalizedEmail}`;
-      if (await cacheGet(k)) { emailWasVerified = true; await cacheDel(k); }
+      emailWasVerified = await consumeProof('email', normalizedEmail, req.body.emailProof);
     }
     if (normalizedPhone) {
-      const k = `otp-verified:phone:${smsService.normalizePhone(normalizedPhone)}`;
-      if (await cacheGet(k)) { phoneWasVerified = true; await cacheDel(k); }
+      phoneWasVerified = await consumeProof('phone', smsService.normalizePhone(normalizedPhone), req.body.phoneProof);
     }
-  } catch { /* non-fatal */ }
+  } catch (err) {
+    log.warn('Signup proof check failed', { error: err.message });
+  }
 
-  // A verified mobile number is compulsory: other members call it after an
-  // unlock. Native builds already in stores have no screen for it yet, so they
-  // are exempt and prompted in-app once one ships (the server hides any
-  // unverified number regardless).
-  const isNativeClient = String(req.headers['x-app-client'] || '').toLowerCase() === 'mobile';
-  if (!isNativeClient && !phoneWasVerified) {
-    throw createError.badRequest('Please verify your mobile number to create your account.');
+  if (!emailWasVerified && !phoneWasVerified) {
+    throw createError.badRequest('Please verify your email or mobile number to create your account.');
   }
 
   const sequelize = require('../config/database');
@@ -265,6 +327,11 @@ exports.signup = asyncHandler(async (req, res) => {
         // Terms + Privacy checkbox, so account creation IS the acceptance.
         termsAcceptedAt: new Date(),
         termsVersion: TERMS_VERSION,
+        consent: buildConsent(req, { marketing: marketingConsent, createdFor: req.body.relationshipToProfile || creatingFor, subjectAttested }),
+        // Promotional email is a separate, optional choice. Unticked means opted
+        // out from the start, using the same switch the unsubscribe link flips
+        // (a member can turn it back on from the link or their account).
+        ...(marketingConsent ? {} : { lifecycleMail: { emailOptOut: new Date().toISOString() } }),
         invitedBy,
         ...(referralData && referralData)
       }, { transaction: t });
@@ -349,6 +416,10 @@ exports.signup = asyncHandler(async (req, res) => {
     });
   }
 
+  // Guardian invites sent to this address before the account existed are now
+  // visible to it — say so (only when the address was proved at signup).
+  setImmediate(() => { require('../utils/guardianInvites').noticeInvitesOnJoin(result); });
+
   // Generate tokens — the refresh row first, so the access token can carry its id.
   const { token: refreshToken, sessionId } = await generateRefreshToken(
     result.id,
@@ -397,10 +468,11 @@ exports.login = asyncHandler(async (req, res) => {
   // Shared with checkAccountLockout so the lockout gate keys off exactly what
   // we record failures against (see loginLookupKey in middlewares/security).
   const lookupKey = loginLookupKey(req.body);
-  const where = isEmail ? { email: lookupKey } : { phone: lookupKey };
-
-  // Find user by email or phone
-  const user = await User.findOne({ where });
+  // Email: lookupKey is the lockout identity (variants collapsed), NOT what is
+  // stored — look the account up under every form it may be stored in.
+  const user = isEmail
+    ? await findUserByEmail(rawIdentifier)
+    : await User.findOne({ where: { phone: lookupKey } });
   if (!user) {
     await recordFailedLogin(lookupKey);
     throw createError.unauthorized('Invalid credentials');
@@ -432,13 +504,31 @@ exports.login = asyncHandler(async (req, res) => {
     throw createError.unauthorized('Invalid credentials');
   }
 
-  // Clear failed login attempts on success
-  await clearLoginAttempts(lookupKey);
-
   // Check if user is active
   if (user.status !== 'active') {
     throw createError.forbidden('Account is not active. Please contact support.');
   }
+
+  // Second factor. The password is already proven, so answering "a code is
+  // needed" reveals nothing an attacker does not hold. A missing code is the
+  // normal first step (not counted as a failure); a wrong one counts toward
+  // lockout, which is what bounds guessing a 6-digit code.
+  if (user.mfaEnabledAt) {
+    const supplied = req.body.mfaCode;
+    if (!supplied) throw createError.unauthorized('Enter the code from your authenticator app', 'MFA_REQUIRED');
+    const factor = await checkSecondFactor(user, supplied);
+    if (!factor.ok) {
+      await recordFailedLogin(lookupKey);
+      throw createError.unauthorized('That code is not right', 'INVALID_MFA_CODE');
+    }
+    if (factor.recoveryUsed) {
+      user.mfaRecoveryHashes = (user.mfaRecoveryHashes || []).filter((h) => h !== factor.recoveryUsed);
+      logSecurityEvent('mfa_recovery_code_used', req, { userId: user.id });
+    }
+  }
+
+  // Clear failed login attempts on success
+  await clearLoginAttempts(lookupKey);
 
   // Update last login
   user.lastLogin = new Date();
@@ -451,6 +541,7 @@ exports.login = asyncHandler(async (req, res) => {
     req.clientIp || req.ip
   );
   const accessToken = generateAccessToken(user.id, sessionId);
+  alertIfNewDevice(req, user, sessionId);
 
   // Set cookies
   setAuthCookies(res, accessToken, refreshToken);
@@ -608,14 +699,16 @@ exports.getMe = asyncHandler(async (req, res) => {
 // @access  Public
 exports.forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  const normalizedEmail = email.toLowerCase();
-  
+  const normalizedEmail = canonicalEmail(email);
+
   // Always respond with same message to prevent email enumeration
   const genericMessage = 'If the email exists, a reset link has been sent.';
 
-  const user = await User.findOne({ where: { email: normalizedEmail } });
+  const user = await findUserByEmail(normalizedEmail);
 
-  if (!user) {
+  // A member with no password (Google-only) has nothing to reset: same generic
+  // answer as an unknown address, so this cannot be used to tell them apart.
+  if (!user || !user.password) {
     // Simulate processing time to prevent timing attacks
     await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
     return res.json({ success: true, message: genericMessage });
@@ -684,6 +777,9 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   if (!decoded.pwdFp) {
     throw createError.badRequest('Reset token is malformed or is no longer valid');
   }
+  if (!user.password) {
+    throw createError.badRequest('Reset token has already been used or is no longer valid');
+  }
   const currentFp = require('crypto')
     .createHash('sha256')
     .update(user.password)
@@ -722,6 +818,87 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   });
 });
 
+// ── Phone-OTP password reset ──────────────────────────────────────────────────
+// For accounts that were created with a mobile number and no verified email, the
+// email link has nowhere to go: those members had no way back in. A one-time code
+// texted to the number they verified stands in for the link.
+//
+// Narrow on purpose, because a phone number is a weaker proof than a mailbox
+// (SIM swap): only ordinary members (never staff), only accounts that already
+// have a password (a Google-only account must not gain a password because
+// someone held its number), only a VERIFIED number, and only when there is no
+// verified email that the normal flow could use instead. Every session is
+// revoked on success and an email alert goes out if there is an address.
+const PHONE_RESET_GENERIC = 'If a matching account can be reset by mobile, we sent a code to that number.';
+const PHONE_RESET_BAD_CODE = 'That code is not right or has expired. Request a new one.';
+
+const findPhoneResetCandidate = async (phone10) => {
+  const { Op } = require('sequelize');
+  if (!/^[6-9]\d{9}$/.test(phone10)) return null;
+  const user = await User.findOne({ where: { phone: { [Op.in]: phoneVariants(phone10) } } });
+  if (!user) return null;
+  const eligible = user.status === 'active'
+    && user.role === 'user'
+    && Boolean(user.password)
+    && user.phoneVerified
+    && !(user.email && user.emailVerified);
+  return eligible ? user : null;
+};
+
+// @route   POST /api/auth/forgot-password/phone
+// @desc    Text a reset code to a verified mobile number (phone-only accounts)
+// @access  Public
+exports.forgotPasswordPhone = asyncHandler(async (req, res) => {
+  const phone10 = toPhone10(req.body.phone);
+  const user = await findPhoneResetCandidate(phone10);
+
+  if (user) {
+    try {
+      await smsService.sendOtp(phone10);
+    } catch (error) {
+      // Budget spent, provider down: the caller must not be able to tell this
+      // apart from "no such account", so it is logged and answered the same.
+      log.warn('Phone reset code not sent', { userId: user.id, error: error.message });
+    }
+  } else {
+    // Match the time an eligible request spends, so timing does not answer either.
+    await new Promise((resolve) => setTimeout(resolve, Math.random() * 200 + 100));
+  }
+  res.json({ success: true, message: PHONE_RESET_GENERIC });
+});
+
+// @route   POST /api/auth/reset-password/phone
+// @desc    Set a new password with the texted code
+// @access  Public
+exports.resetPasswordPhone = asyncHandler(async (req, res) => {
+  const phone10 = toPhone10(req.body.phone);
+  const { code, password } = req.body;
+
+  const user = await findPhoneResetCandidate(phone10);
+  // One answer for every failure (no such account, ineligible, wrong or expired
+  // code). Only a real, eligible account has a code stored, so distinguishing
+  // "invalid" from "expired or not sent" would reveal which numbers are members.
+  if (!user) throw createError.badRequest(PHONE_RESET_BAD_CODE);
+  try {
+    await smsService.verifyOtp(phone10, String(code));
+  } catch (error) {
+    throw createError.badRequest(PHONE_RESET_BAD_CODE);
+  }
+
+  user.password = password;
+  await user.save();
+  await RefreshToken.revokeAllUserTokens(user.id, 'password_reset');
+  await clearLoginAttempts(phone10);
+
+  logSecurityEvent('password_reset_by_phone', req, { userId: user.id });
+  if (user.email) {
+    sendSecurityAlert(user.email, '', 'Your password was changed', 'Your TricityMatch password was just changed using a code sent to your mobile number.', new Date().toUTCString())
+      .catch((error) => log.warn('Phone reset alert failed', { userId: user.id, error: error.message }));
+  }
+
+  res.json({ success: true, message: 'Password updated. Sign in with your new password.' });
+});
+
 // @route   POST /api/auth/change-password
 // @desc    Change password (while logged in)
 // @access  Private
@@ -731,6 +908,12 @@ exports.changePassword = asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.user.id);
   if (!user) {
     throw createError.notFound('User not found');
+  }
+
+  // Google-only members have no password to change (bcrypt on a null hash
+  // would throw a 500).
+  if (!user.password) {
+    throw createError.badRequest('Your account signs in with Google, so there is no password to change');
   }
 
   // Verify current password
@@ -822,6 +1005,15 @@ exports.getSessions = asyncHandler(async (req, res) => {
   });
 });
 
+// @route   GET /api/auth/login-history
+// @desc    Recent sign-ins (one entry per login), newest first
+// @access  Private
+exports.getLoginHistory = asyncHandler(async (req, res) => {
+  const { loginHistory } = require('../utils/deviceRecognition');
+  const history = await loginHistory(RefreshToken, req.user.id, { limit: 20 });
+  res.json({ success: true, history });
+});
+
 // @route   DELETE /api/auth/sessions/:sessionId
 // @desc    Revoke a specific session
 // @access  Private
@@ -847,18 +1039,34 @@ exports.revokeSession = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Re-authenticate the signed-in member before a sensitive action (erasure,
+ * data export). Password members give their password; Google-only members
+ * (no password: bcrypt on a null hash used to 500) give a fresh Google
+ * credential for the SAME Google identity — a token for another account is refused.
+ */
+const reauthenticateMember = async (user, { password, googleCredential }, action) => {
+  if (user.password) {
+    if (!password) throw createError.badRequest(`Password is required to ${action}`);
+    if (!(await user.comparePassword(password))) throw createError.unauthorized('Incorrect password');
+    return;
+  }
+  if (!user.googleId) throw createError.badRequest(`Password is required to ${action}`);
+  if (!googleCredential) throw createError.badRequest(`Confirm with Google to ${action}`);
+  const payload = await verifyGoogleCredential(googleCredential);
+  if (payload.sub !== user.googleId) throw createError.unauthorized('That Google account does not match this member');
+};
+
 // @route   DELETE /api/auth/account
 // @desc    Soft-delete account (requires password confirmation)
 // @access  Private
 exports.deleteAccount = asyncHandler(async (req, res) => {
-  const { password } = req.body;
-  if (!password) throw createError.badRequest('Password is required to delete your account');
+  const { password, googleCredential } = req.body;
 
   const user = await User.findByPk(req.user.id);
   if (!user) throw createError.notFound('User not found');
 
-  const isValid = await user.comparePassword(password);
-  if (!isValid) throw createError.unauthorized('Incorrect password');
+  await reauthenticateMember(user, { password, googleCredential }, 'delete your account');
 
   // Real erasure. This used to be `user.status = 'deleted'` plus a token purge,
   // which left the profile (exact DOB, birth time, place of birth, caste,
@@ -868,10 +1076,73 @@ exports.deleteAccount = asyncHandler(async (req, res) => {
   const erased = await eraseAccount(user.id);
 
   log.info('Account erased', { userId: user.id, erased });
+  if (erased.mediaFailed && erased.mediaFailed.length) {
+    // The database erasure is complete but some files could not be destroyed.
+    // public_ids are not personal data; this is the retry list for an operator.
+    log.error('Erasure left media files behind', { userId: user.id, files: erased.mediaFailed });
+  }
 
   clearAuthCookies(res);
 
   res.json({ success: true, message: 'Account deleted successfully' });
+});
+
+// @route   POST /api/auth/account/schedule-deletion
+// @desc    Delete the account after a grace period (cancellable by signing in)
+// @access  Private (re-authentication required, same as immediate deletion)
+exports.scheduleAccountDeletion = asyncHandler(async (req, res) => {
+  const { password, googleCredential } = req.body;
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.notFound('User not found');
+  await reauthenticateMember(user, { password, googleCredential }, 'delete your account');
+
+  const { scheduleDeletion } = require('../utils/accountLifecycle');
+  const result = await scheduleDeletion(user);
+  if (result.immediate) {
+    // Grace period switched off in configuration: same outcome as DELETE /account.
+    await eraseAccount(user.id);
+    clearAuthCookies(res);
+    return res.json({ success: true, immediate: true, message: 'Account deleted successfully' });
+  }
+
+  if (user.email) {
+    sendSecurityAlert(
+      user.email, '', 'Account deletion scheduled',
+      `Your TricityMatch account will be deleted on ${result.scheduledFor.toUTCString()}. Your profile is hidden until then. Sign in and cancel in Settings to keep it.`,
+      new Date().toUTCString()
+    ).catch((error) => log.warn('Deletion notice failed', { userId: user.id, error: error.message }));
+  }
+  res.json({ success: true, scheduledFor: result.scheduledFor, message: 'Deletion scheduled. Sign in and cancel any time before then to keep your account.' });
+});
+
+// @route   POST /api/auth/account/cancel-deletion
+// @desc    Cancel a scheduled deletion and restore the profile
+// @access  Private
+exports.cancelAccountDeletion = asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.notFound('User not found');
+  const { cancelDeletion } = require('../utils/accountLifecycle');
+  const result = await cancelDeletion(user);
+  res.json({ success: true, cancelled: result.changed });
+});
+
+// @route   POST /api/auth/me/export
+// @desc    Download everything we hold about the signed-in member (re-auth required)
+// @access  Private
+exports.exportMyData = asyncHandler(async (req, res) => {
+  const { password, googleCredential } = req.body;
+  const user = await User.findByPk(req.user.id);
+  if (!user) throw createError.notFound('User not found');
+  await reauthenticateMember(user, { password, googleCredential }, 'download your data');
+
+  const data = await buildMemberExport(user.id);
+  logAudit('member_data_exported', user.id, { collections: Object.keys(data).length });
+
+  const day = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="tricitymatch-my-data-${day}.json"`);
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(JSON.stringify(data, null, 2));
 });
 
 // @route   POST /api/auth/send-otp
@@ -886,8 +1157,9 @@ exports.sendOtp = asyncHandler(async (req, res) => {
   // existing (even logged-in) user could trigger an OTP to their own number.
   const { Op } = require('sequelize');
   if (type === 'email') {
-    const email = String(target).toLowerCase().trim();
-    const exists = await User.findOne({ where: { email }, attributes: ['id'] });
+    const email = canonicalEmail(target);
+    if (!email) throw createError.badRequest('A valid email address is required');
+    const exists = await findUserByEmail(email, { attributes: ['id'] });
     if (exists) throw createError.conflict('An account already exists with this email. Please log in instead.');
   } else if (type === 'phone') {
     // Match every form a phone might be stored in (bare 10-digit, +91, 91…).
@@ -901,18 +1173,22 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     const result = await smsService.sendOtp(target);
     res.json(result);
   } else if (type === 'email') {
-    // Email OTP: use smsService-style store but deliver via email (Resend)
-    const { set: cacheSet } = require('../utils/cache');
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0 });
-    await cacheSet(`otp:${target}`, payload, 600);
-    await sendOtpEmail(target, code, 'verify your email');
+    // Email OTP: same store, budget and hashing as the phone path, delivered by email.
+    const otpEmail = canonicalEmail(target);
+    await otpStore.spendSend('email', otpEmail);
+    const code = await otpStore.issue('email', otpEmail, { digits: 6 });
+    try {
+      await sendOtpEmail(otpEmail, code, 'verify your email');
+    } catch (err) {
+      await otpStore.discard('email', otpEmail);
+      throw err;
+    }
     // Dev affordance: log the code when no email channel is configured.
     // Gate on isDevelopment, not !isProduction: the negative form is also true
     // for 'staging', 'qa' or any unrecognised NODE_ENV. The code is interpolated
     // into the message string, where redactValue can never reach it.
     if (!config.email.isConfigured() && config.isDevelopment) {
-      log.info(`[EMAIL-OTP DEV] Code for ${target}: ${code}`);
+      log.info(`[EMAIL-OTP DEV] Code for ${otpEmail}: ${code}`);
     }
     res.json({ success: true, message: 'OTP sent to email' });
   } else {
@@ -935,30 +1211,16 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
 
   let result;
   if (type === 'email') {
-    // Email OTP lives at `otp:<email>` (set by send-otp). It must NOT go through
-    // smsService.verifyOtp, which canonicalizes the target as a phone number —
-    // an email normalizes to null and throws before any code check. Verify here.
-    const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
-    const key = `otp:${String(target).toLowerCase().trim()}`;
-
+    // Email OTP lives in the shared store under the 'email' namespace. It must
+    // NOT go through smsService.verifyOtp, which canonicalizes the target as a
+    // phone number — an email normalizes to null and throws before any code check.
+    const emailTarget = canonicalEmail(String(target));
     const bypassCodes = config.sms.bypassCodes || [];
     if (bypassCodes.length > 0 && bypassCodes.includes(String(code))) {
-      await cacheDel(key);
+      await otpStore.discard('email', emailTarget);
       result = { success: true, message: 'OTP verified (bypass)' };
     } else {
-      const raw = await cacheGet(key);
-      if (!raw) throw createError.badRequest('OTP expired or not sent. Please request a new one.');
-      let entry;
-      try { entry = JSON.parse(raw); } catch { throw createError.badRequest('OTP data corrupt. Please request a new one.'); }
-      if (entry.expiresAt < Date.now()) { await cacheDel(key); throw createError.badRequest('OTP has expired. Please request a new one.'); }
-      if ((entry.attempts || 0) >= 5) { await cacheDel(key); throw createError.badRequest('Too many incorrect attempts. Please request a new OTP.'); }
-      if (entry.code !== String(code)) {
-        const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - Date.now()) / 1000));
-        await cacheSet(key, JSON.stringify({ ...entry, attempts: (entry.attempts || 0) + 1 }), ttlSec);
-        const remaining = 5 - (entry.attempts || 0) - 1;
-        throw createError.badRequest(`Invalid OTP. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
-      }
-      await cacheDel(key);
+      await otpStore.verify('email', emailTarget, code);
       result = { success: true, message: 'OTP verified successfully' };
     }
   } else {
@@ -966,22 +1228,19 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     result = await smsService.verifyOtp(target, code);
   }
 
-  // Record a short-lived "this contact was just verified" marker so signup can
-  // (a) stamp the new account as verified and (b) prove the contact really was
-  // confirmed — not just trusted from a client flag. 30-min window to finish
-  // signup. Phone is canonicalized to match how signup normalizes it.
-  try {
-    const { set: cacheSet } = require('../utils/cache');
-    const key = type === 'phone'
-      ? `otp-verified:phone:${smsService.normalizePhone(target)}`
-      : `otp-verified:email:${String(target).toLowerCase().trim()}`;
-    await cacheSet(key, '1', 1800);
-  } catch { /* non-fatal: verification still succeeds */ }
+  // Issue the single-use proof signup will ask for (see utils/otpProof). Unlike
+  // the old contact-keyed marker it is returned only to the caller who entered
+  // the correct code. Not "non-fatal": without it signup cannot proceed, so a
+  // cache failure must surface here rather than as a confusing signup error.
+  const verificationProof = await issueProof(
+    type === 'phone' ? 'phone' : 'email',
+    type === 'phone' ? smsService.normalizePhone(target) : canonicalEmail(String(target))
+  );
 
   // Funnel stage 2 — still pre-account (userId NULL), same raw-counter caveat.
   trackEvent(null, 'otp_verify_succeeded');
 
-  res.json({ ...result, message: `${type} verified successfully` });
+  res.json({ ...result, verificationProof, message: `${type} verified successfully` });
 });
 
 // ---- Contact number (the number other members call after an unlock) ----
@@ -1035,6 +1294,21 @@ exports.verifyContactNumber = asyncHandler(async (req, res) => {
   res.json({ success: true, phone: phone10, phoneVerified: true });
 });
 
+// Verify a Google ID token and return its payload. Shared by sign-in and by
+// account deletion (re-authentication for members who have no password).
+async function verifyGoogleCredential(credential) {
+  const clientId = config.google.clientId;
+  if (!clientId) throw createError.internal('Google OAuth is not configured on this server');
+
+  const client = new OAuth2Client(clientId);
+  try {
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    return ticket.getPayload();
+  } catch {
+    throw createError.unauthorized('Invalid Google credential');
+  }
+}
+
 // @route   POST /api/auth/google
 // @desc    Sign in / sign up with Google ID token
 // @access  Public
@@ -1042,27 +1316,16 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   const { credential } = req.body;
   if (!credential) throw createError.badRequest('Google credential is required');
 
-  const clientId = config.google.clientId;
-  if (!clientId) throw createError.internal('Google OAuth is not configured on this server');
-
-  const client = new OAuth2Client(clientId);
-  let payload;
-  try {
-    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
-    payload = ticket.getPayload();
-  } catch {
-    throw createError.unauthorized('Invalid Google credential');
-  }
+  const payload = await verifyGoogleCredential(credential);
 
   const { sub: googleId, email, given_name: rawFirstName, family_name: rawLastName, email_verified } = payload;
   if (!email_verified) throw createError.badRequest('Google account email is not verified');
 
   // Names arriving on this path never pass signupValidation, so they skip the
-  // [a-zA-Z\s'-] restriction every other write path enforces. The account
-  // holder controls their own Google display name, so this is untrusted input:
-  // hold it to the same charset and length as a native signup.
-  const sanitizeGoogleName = (value) =>
-    String(value ?? '').replace(/[^a-zA-Z\s'-]/g, '').trim().slice(0, 50);
+  // character rule every other write path enforces. The account holder controls
+  // their own Google display name, so this is untrusted input: hold it to the
+  // same charset (constants/names) and length as a native signup.
+  const sanitizeGoogleName = (value) => cleanName(value, 50);
   const firstName = sanitizeGoogleName(rawFirstName);
   const lastName = sanitizeGoogleName(rawLastName);
 
@@ -1073,34 +1336,54 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   let isNewUser = false;
 
   if (!user) {
-    user = await User.findOne({ where: { email: email.toLowerCase() } });
+    user = await findUserByEmail(email);
     if (user) {
-      // Link Google to existing email account
+      // Link Google to the existing account with this email.
+      //
+      // If that account's email was never verified, whoever created it may not
+      // own the address (they signed up with a victim's email, then waited for
+      // the victim to arrive via Google). Google has now proven the address, so
+      // the rightful owner takes the account: drop any password the earlier
+      // registrant set and end every session they hold.
+      const takeover = !user.emailVerified;
       user.googleId = googleId;
-      if (!user.emailVerified) user.emailVerified = true;
+      if (takeover) {
+        user.emailVerified = true;
+        user.password = null;
+      }
       await user.save();
+      if (takeover) {
+        await RefreshToken.revokeAllUserTokens(user.id, 'google_link_unverified_email');
+        log.warn('Google link took over an unverified-email account', { userId: user.id });
+      }
     } else {
       // New user — create account + profile in one transaction
+      // A NEW account needs acceptance stated in the request, exactly like email
+      // signup. An existing member signing in with Google is not creating one.
+      if (!truthy(req.body.termsAccepted)) {
+        throw createError.badRequest('Please accept the Terms and Privacy Policy to create an account');
+      }
       isNewUser = true;
       user = await sequelize.transaction(async (t) => {
         const newUser = await User.create({
-          email: email.toLowerCase(),
+          email: canonicalEmail(email),
           googleId,
           password: null,
           status: 'active',
           emailVerified: true,
-          // Google sign-in creates the account from the login page, whose
-          // "By continuing, you agree…" notice carries the same Terms/Privacy.
           termsAcceptedAt: new Date(),
           termsVersion: TERMS_VERSION,
+          consent: buildConsent(req, { marketing: truthy(req.body.marketingConsent) }),
+          ...(truthy(req.body.marketingConsent) ? {} : { lifecycleMail: { emailOptOut: new Date().toISOString() } }),
         }, { transaction: t });
 
         await Profile.create({
           userId: newUser.id,
           firstName: firstName || '',
           lastName: lastName || '',
-          gender: 'other',
-          dateOfBirth: new Date('2000-01-01'),
+          // gender/dateOfBirth stay NULL: a placeholder here meant every
+          // Google member was a 26-year-old of gender 'other' in search until
+          // they edited it. Onboarding collects the real values.
         }, { transaction: t });
 
         return newUser;
@@ -1121,6 +1404,12 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     }
   }
 
+  // Google carries no second factor, so it cannot stand in for one: an account
+  // with two-step verification on must sign in with its password and code.
+  if (user.mfaEnabledAt) {
+    throw createError.unauthorized('This account uses two-step verification. Sign in with your password and code.', 'MFA_REQUIRED_PASSWORD_LOGIN');
+  }
+
   // Every other auth path rejects `status !== 'active'`; this one checked only
   // for 'banned', so inactive / pending / deleted accounts could still sign in
   // through Google.
@@ -1137,6 +1426,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     req.clientIp || req.ip
   );
   const accessToken = generateAccessToken(user.id, sessionId);
+  if (!isNewUser) alertIfNewDevice(req, user, sessionId);
   setAuthCookies(res, accessToken, refreshToken);
 
   res.status(isNewUser ? 201 : 200).json({
@@ -1153,7 +1443,7 @@ exports.googleAuth = asyncHandler(async (req, res) => {
 // @access  Private
 exports.requestEmailChange = asyncHandler(async (req, res) => {
   const { newEmail, password } = req.body;
-  const normalized = (newEmail || '').toLowerCase().trim();
+  const normalized = canonicalEmail(newEmail) || '';
   if (!normalized) throw createError.badRequest('New email is required');
 
   const user = await User.findByPk(req.user.id);
@@ -1170,14 +1460,21 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
     throw createError.badRequest('That is already your email address');
   }
 
-  const taken = await User.findOne({ where: { email: normalized } });
+  const taken = await findUserByEmail(normalized, { attributes: ['id'] });
   if (taken) throw createError.conflict('That email is already in use');
 
-  const { set: cacheSet } = require('../utils/cache');
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  const payload = JSON.stringify({ code, expiresAt: Date.now() + 600 * 1000, attempts: 0, userId: user.id });
-  await cacheSet(`email-change:${normalized}`, payload, 600);
-  await sendOtpEmail(normalized, code, 'confirm your new email address');
+  // Budget is per member (not per address) so one account cannot fan out mail to
+  // many addresses; the code itself is bound to member + address, so nobody else
+  // can burn its attempts or redeem it.
+  await otpStore.spendSend('email-change', user.id);
+  const changeTarget = `${user.id}:${normalized}`;
+  const code = await otpStore.issue('email-change', changeTarget, { digits: 6 });
+  try {
+    await sendOtpEmail(normalized, code, 'confirm your new email address');
+  } catch (err) {
+    await otpStore.discard('email-change', changeTarget);
+    throw err;
+  }
   // Dev affordance (matches smsService): log the code when email isn't configured.
   // isDevelopment, not !isProduction -- see the note in sendOtp.
   if (!config.email.isConfigured() && config.isDevelopment) {
@@ -1192,33 +1489,19 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
 // @access  Private
 exports.verifyEmailChange = asyncHandler(async (req, res) => {
   const { newEmail, code } = req.body;
-  const normalized = (newEmail || '').toLowerCase().trim();
+  const normalized = canonicalEmail(newEmail) || '';
   if (!normalized || !code) throw createError.badRequest('New email and code are required');
 
-  const { get: cacheGet, set: cacheSet, del: cacheDel } = require('../utils/cache');
-  const key = `email-change:${normalized}`;
-  const raw = await cacheGet(key);
-  if (!raw) throw createError.badRequest('Code expired or not found. Please request a new one.');
-
-  const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
-  if (data.userId !== req.user.id) throw createError.unauthorized('This code was issued for a different account');
-  if (Date.now() > data.expiresAt) { await cacheDel(key); throw createError.badRequest('Code expired. Please request a new one.'); }
-  if (data.attempts >= 5) { await cacheDel(key); throw createError.badRequest('Too many attempts. Please request a new code.'); }
-  if (String(code).trim() !== String(data.code)) {
-    data.attempts += 1;
-    await cacheSet(key, JSON.stringify(data), 600);
-    throw createError.badRequest('Incorrect code');
-  }
+  await otpStore.verify('email-change', `${req.user.id}:${normalized}`, code);
 
   // Re-check availability (guards a race between request and verify)
-  const taken = await User.findOne({ where: { email: normalized } });
+  const taken = await findUserByEmail(normalized, { attributes: ['id'] });
   if (taken && taken.id !== req.user.id) throw createError.conflict('That email is already in use');
 
   const user = await User.findByPk(req.user.id);
   user.email = normalized;
   user.emailVerified = true;
   await user.save();
-  await cacheDel(key);
 
   const fullUser = await User.findByPk(user.id, {
     attributes: { exclude: ['password'] },
@@ -1227,3 +1510,27 @@ exports.verifyEmailChange = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Email updated successfully', user: await withDerivedUserFields(fullUser) });
 });
 
+
+// @route   POST /api/auth/accept-terms
+// @desc    Accept the current Terms and Privacy Policy (re-consent after a version bump)
+// @access  Private
+// The client must send the version it displayed; accepting a version that is not
+// the current one would record consent to text the member was not shown.
+exports.acceptTerms = asyncHandler(async (req, res) => {
+  if (String(req.body.termsVersion || '') !== TERMS_VERSION) {
+    throw createError.conflict('The Terms have been updated again. Reload and review the latest version.');
+  }
+  if (!truthy(req.body.accepted)) {
+    throw createError.badRequest('Please accept the Terms and Privacy Policy to continue');
+  }
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'consent'] });
+  if (!user) throw createError.unauthorized('Not authenticated');
+
+  user.termsAcceptedAt = new Date();
+  user.termsVersion = TERMS_VERSION;
+  user.consent = renewConsent(user.consent, req);
+  await user.save({ fields: ['termsAcceptedAt', 'termsVersion', 'consent'], hooks: false });
+
+  logAudit('terms_accepted', req.user.id, { termsVersion: TERMS_VERSION });
+  res.json({ success: true, termsVersion: TERMS_VERSION, requiresReconsent: false });
+});

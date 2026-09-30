@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getUser, updateSubscription, updateVerification, cancelSubscription, deleteUsers } from '../../api/adminApi';
+import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, deleteUsers } from '../../api/adminApi';
 import usePlanOptions from '../../hooks/usePlanOptions';
 import toast from 'react-hot-toast';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2 } from 'react-icons/fi';
@@ -20,6 +20,68 @@ const InfoRow = ({ label, value }) => (
     <span className="text-sm text-gray-800 font-medium">{value || '—'}</span>
   </div>
 );
+
+const HISTORY_LABEL = {
+  report_received: 'Report received',
+  report_decided: 'Report decided',
+  photo_held: 'Photo held',
+  photo_decided: 'Photo decision',
+  appeal_submitted: 'Appeal',
+  appeal_decided: 'Appeal decision',
+  staff_action: 'Staff action',
+};
+
+// Reports, photo holds, appeals and staff actions in one timeline. Needs the
+// `reports` scope; a member of staff without it simply does not see the block.
+function ModerationHistory({ userId }) {
+  const [history, setHistory] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    getModerationHistory(userId)
+      .then((res) => { if (alive) setHistory(res.data); })
+      .catch(() => { if (alive) setHistory(null); });
+    return () => { alive = false; };
+  }, [userId]);
+
+  if (!history || history.timeline.length === 0) return null;
+  const { summary, timeline } = history;
+  const stats = [
+    ['Reports received', summary.reportsReceived],
+    ['Resolved', summary.reportsResolved],
+    ['Reports filed', summary.reportsFiled],
+    ['Photos held', summary.photosHeld],
+    ['Appeals', summary.appeals],
+  ];
+  return (
+    <Section title="Moderation History">
+      <div className="flex flex-wrap gap-2 mb-3">
+        {stats.map(([label, n]) => (
+          <span key={label} className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+            {label}: {n}
+          </span>
+        ))}
+      </div>
+      <ol className="space-y-2">
+        {[...timeline].reverse().map((e) => (
+          <li key={`${e.kind}-${e.id}-${e.at}`} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium text-gray-800">
+                {HISTORY_LABEL[e.kind] || e.kind}
+                <span className="font-normal text-gray-500"> · {e.summary?.replace(/_/g, ' ')}</span>
+              </p>
+              <span className="text-xs text-gray-400 flex-shrink-0">{new Date(e.at).toLocaleString('en-IN')}</span>
+            </div>
+            {(e.byName || e.note) && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                {e.byName ? `By ${e.byName}` : ''}{e.byName && e.note ? ' — ' : ''}{e.note || ''}
+              </p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </Section>
+  );
+}
 
 export default function AdminUserDetail() {
   const { userId } = useParams();
@@ -327,6 +389,8 @@ export default function AdminUserDetail() {
           </div>
         </Section>
       )}
+
+      <ModerationHistory userId={userId} />
 
       {/* Override Plan Modal */}
       {planModal && (

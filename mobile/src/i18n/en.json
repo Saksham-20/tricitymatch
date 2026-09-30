@@ -42,7 +42,9 @@
       "wrongCredentials": "Wrong email, mobile number or password.",
       "googleUnavailable": "Google sign-in is not available in this build. Continue with your email or mobile number.",
       "lockedOut": "Too many sign-in attempts. Wait a little, then try again, or reset your password.",
-      "accountInactive": "This account is not active. Contact support for help."
+      "accountInactive": "This account is not active. Contact support for help.",
+      "authenticatorCode": "Authenticator code",
+      "wrongCode": "That code is not right. Try the current code from your authenticator app."
     },
     "signup": {
       "title": "Create your account",
@@ -80,7 +82,7 @@
       "saveFailed": "Couldn't save your details. Check your connection and try again.",
       "detailsRejected": "Those details weren't accepted. Check your name and date of birth, then try again.",
       "stillIncomplete": "Your details were saved, but your account isn't ready yet. Tap {{action}} to try again.",
-      "nameInvalid": "Enter at least 2 letters, using English letters only.",
+      "nameInvalid": "Enter at least 2 letters, in English, Hindi or Punjabi.",
       "profileLoadFailed": "Couldn't load your saved details",
       "profileLoadFailedBody": "You can still fill these in.",
       "stepOne": "Step 1 of 2",
@@ -108,13 +110,13 @@
       "female": "Female",
       "dobRequired": "Enter your date of birth as DD/MM/YYYY",
       "dobInvalid": "Enter a valid date",
-      "dobUnder": "You must be at least 18 years old",
+      "dobUnder": "You must be at least {{min}} years old",
       "dobOver": "Members must be 65 or younger",
       "dobA11yHint": "Type day, month and year as eight digits. The slashes are added for you.",
       "tooManySignups": "Too many signup attempts. Please try again later.",
-      "nameHint": "English letters only, 2 to 50 characters.",
+      "nameHint": "English, Hindi or Punjabi letters, 2 to 50 characters.",
       "nameLength": "Names need 2 to 50 characters.",
-      "nameChars": "Use English letters only, with no digits or symbols.",
+      "nameChars": "Use letters only, with no digits or symbols.",
       "checkDetails": "Check your name and date of birth, then try again.",
       "dobHintMin": "You must be 18 or older. Shown as age only.",
       "resendIn": "Resend in {{seconds}}s",
@@ -126,7 +128,10 @@
         "sibling": "Sibling",
         "relative": "Relative",
         "friend": "Friend"
-      }
+      },
+      "marketingOptIn": "Email me reminders and suggestions about matches (optional)",
+      "attestSubject": "The person this profile is for is of legal age to marry, knows about it, and agrees to it.",
+      "attestRequired": "Confirm the person agrees to this profile"
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -619,7 +624,7 @@
     "familyMode": "Family Mode",
     "support": "Support",
     "legal": "Legal",
-    "danger": "Danger Zone",
+    "danger": "Pause or delete",
     "deleteAccount": "Delete Account",
     "deleteAccountWarning": "This will permanently delete your account in 30 days. This cannot be undone.",
     "incognito": "Incognito Mode",
@@ -811,5 +816,14 @@
     "noScore": "No guna score for this pair",
     "noScoreRecognised": "One of the two nakshatras isn't one we can match, so there is no guna score.",
     "noScoreGeneric": "A guna match needs a nakshatra on both profiles."
+  },
+  "reconsent": {
+    "title": "We have updated our Terms",
+    "body": "Please read the updated Terms and Privacy Policy and accept them to keep using TricityMatch. Your profile and matches are unchanged.",
+    "agree": "I agree to the updated Terms and Privacy Policy",
+    "accept": "Accept and continue",
+    "signOut": "Sign out",
+    "failed": "Could not save your choice",
+    "tryAgain": "Please try again."
   }
 }

@@ -33,6 +33,7 @@ import { signup } from '../../api/auth';
 import { useAuthStore } from '../../stores/authStore';
 import { spacing, borderRadius, type, type ThemeColours } from '@shared/constants/theme';
 import { tapSize } from '../../utils/elderTheme';
+import { minAgeFor, ageOnIso } from '../../utils/marriageableAge';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignupBasics'>;
 type Route = RouteProp<AuthStackParamList, 'SignupBasics'>;
@@ -53,12 +54,12 @@ export const REGISTERING_FOR_KEY = 'registeringFor';
 const STACK_NAMES_FONT_SCALE = 1.3;
 
 // Mirrors the signup validator in backend/validators/index.js (firstName and
-// lastName): 2-50 characters after trimming, English letters, spaces, hyphens
+// lastName): 2-50 characters after trimming, English/Hindi/Punjabi letters, spaces, hyphens
 // and apostrophes. A client looser than that turns a typo into a rejection on
 // the very last step of the funnel, and in production the server's reason is
 // stripped down to "Validation failed". Non-Latin names are a server/product
 // change, not something to accept here and fail there.
-const NAME_PATTERN = /^[a-zA-Z\s'-]+$/;
+const NAME_PATTERN = /^(?:[A-Za-zÀ-ÖØ-öø-ÿ]|[ऀ-ॣ]|[ॱ-ॿ]|[ਁ-੥]|[ੰ-ੵ]|[\s'’.-]|‌|‍)+$/;
 const NAME_MIN = 2;
 const NAME_MAX = 50;
 
@@ -89,9 +90,12 @@ export default function BasicsScreen() {
   const fieldHeight = { minHeight: Math.max(50, hit) };
   const stackNames = elder || fontScale > STACK_NAMES_FONT_SCALE;
 
-  const { contactKind, contactValue, password } = route.params;
+  const { contactKind, contactValue, password, proof } = route.params;
 
   const [registeringFor, setRegisteringFor] = useState('self');
+  // A profile made for someone else needs the operator's attestation, recorded by the server.
+  const [attested, setAttested] = useState(false);
+  const [attestTouched, setAttestTouched] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | null>(null);
@@ -146,7 +150,8 @@ export default function BasicsScreen() {
       // Same arithmetic as the server's signup validator, so the two agree on
       // who is 18 today.
       const age = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      if (age < 18) { rejectDob(t('auth.signup.dobUnder', 'You must be at least 18 years old')); return; }
+      // 18 is the floor for anyone; men need 21 — checked against the chosen gender below.
+      if (age < 18) { rejectDob(t('auth.signup.dobUnder', { min: 18, defaultValue: 'You must be at least {{min}} years old' })); return; }
       if (Math.floor(age) > MAX_AGE) { rejectDob(t('auth.signup.dobInvalid', 'Enter a valid date')); return; }
       setDob(iso);
     }
@@ -157,7 +162,7 @@ export default function BasicsScreen() {
   const genderMsg = t('auth.signup.genderRequired', 'Choose one');
   const dobRequiredMsg = t('auth.signup.dobRequired', 'Enter your date of birth as DD/MM/YYYY');
 
-  const nameCharsMsg = t('auth.signup.nameChars', 'Use English letters only, with no digits or symbols.');
+  const nameCharsMsg = t('auth.signup.nameChars', 'Use letters only, with no digits or symbols.');
   const nameLengthMsg = t('auth.signup.nameLength', 'Names need 2 to 50 characters.');
   // Characters before length: a Hindi or Punjabi name fails the alphabet first, and
   // "2 to 50 characters" would send that member the wrong way.
@@ -174,7 +179,12 @@ export default function BasicsScreen() {
   const firstNameError = (submitted || touched.first) ? firstNameProblem : undefined;
   const lastNameError = (submitted || touched.last) ? lastNameProblem : undefined;
   const genderError = submitted && !gender ? genderMsg : undefined;
-  const dobShownError = dobError || ((submitted || touched.dob) && !dob ? dobRequiredMsg : '');
+  // Men must be 21, women 18 — judged against the gender chosen, whichever order they are filled in.
+  const minAge = minAgeFor(gender);
+  const dobAgeError = dob && ageOnIso(dob) < minAge
+    ? t('auth.signup.dobUnder', { min: minAge, defaultValue: 'You must be at least {{min}} years old' })
+    : '';
+  const dobShownError = dobError || dobAgeError || ((submitted || touched.dob) && !dob ? dobRequiredMsg : '');
 
   // Input's error text has no live region, so a blur that produces an error says so.
   const leaveField = (key: 'first' | 'last' | 'dob', problem: string | undefined) => {
@@ -185,15 +195,20 @@ export default function BasicsScreen() {
   const handleCreate = async () => {
     if (loading) return;
     setSubmitted(true);
-    if (firstNameProblem || lastNameProblem || !gender || !dob || dobError) {
+    if (firstNameProblem || lastNameProblem || !gender || !dob || dobError || dobAgeError) {
       // Nothing moves on screen for a screen-reader user: read out what is missing.
       const problems = [
         firstNameProblem,
         lastNameProblem,
         !gender && genderMsg,
-        (dobError || !dob) && (dobError || dobRequiredMsg),
+        (dobError || dobAgeError || !dob) && (dobError || dobAgeError || dobRequiredMsg),
       ].filter(Boolean) as string[];
       AccessibilityInfo.announceForAccessibility(problems.join('. '));
+      return;
+    }
+    if (registeringFor !== 'self' && !attested) {
+      setAttestTouched(true);
+      AccessibilityInfo.announceForAccessibility(t('auth.signup.attestRequired', 'Confirm the person agrees to this profile'));
       return;
     }
     setLoading(true);
@@ -202,11 +217,21 @@ export default function BasicsScreen() {
       await AsyncStorage.setItem(REGISTERING_FOR_KEY, registeringFor).catch(() => {});
       const result = await signup({
         [contactKind === 'phone' ? 'phone' : 'email']: contactValue,
+        [contactKind === 'phone' ? 'phoneProof' : 'emailProof']: proof,
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         gender,
         dateOfBirth: dob,
+        // This screen is only reachable after the Terms box was ticked on the
+        // previous one; the server needs it stated in the request.
+        termsAccepted: true,
+        marketingConsent: Boolean(route.params.marketing),
+        creatingFor: registeringFor === 'self' ? 'self' : 'other',
+        ...(registeringFor === 'self' ? {} : {
+          relationshipToProfile: registeringFor === 'son' || registeringFor === 'daughter' ? 'child' : registeringFor,
+          subjectAttestation: attested,
+        }),
       });
       setAccessToken(result.accessToken);
       setUser(result.user);
@@ -285,6 +310,29 @@ export default function BasicsScreen() {
         })}
       </View>
 
+      {registeringFor !== 'self' && (
+        <View>
+          <PressableScale
+            haptic
+            style={[st.attestRow, { minHeight: hit }]}
+            onPress={() => { setAttested((v) => !v); setAttestTouched(true); }}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: attested }}
+            accessibilityLabel={t('auth.signup.attestSubject', 'The person this profile is for is of legal age to marry, knows about it, and agrees to it.')}
+            testID="attest-checkbox"
+            pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name={attested ? 'checkbox' : 'square-outline'} size={22} color={attested ? c.primary : c.textMuted} />
+            <Text variant="footnote" color="textSecondary" style={st.attestText}>
+              {t('auth.signup.attestSubject', 'The person this profile is for is of legal age to marry, knows about it, and agrees to it.')}
+            </Text>
+          </PressableScale>
+          {attestTouched && !attested && (
+            <Text variant="footnote" color="error" style={st.attestError}>{t('auth.signup.attestRequired', 'Confirm the person agrees to this profile')}</Text>
+          )}
+        </View>
+      )}
+
       <View style={[st.nameRow, stackNames && st.nameRowStacked]}>
         <Input
           containerStyle={stackNames ? undefined : st.nameField}
@@ -321,7 +369,7 @@ export default function BasicsScreen() {
       </View>
       {/* Named up front so a hi/pa member is not first told on blur. Swapped for the error once there is one. */}
       {!firstNameError && !lastNameError ? (
-        <Text variant="caption" color="textSecondary" style={st.nameHint}>{t('auth.signup.nameHint', 'English letters only, 2 to 50 characters.')}</Text>
+        <Text variant="caption" color="textSecondary" style={st.nameHint}>{t('auth.signup.nameHint', 'English, Hindi or Punjabi letters, 2 to 50 characters.')}</Text>
       ) : null}
 
       <Text variant="footnote" color="textPrimary" style={st.label}>{t('auth.signup.gender', 'Gender')}</Text>
@@ -390,6 +438,9 @@ const makeSt = (c: ThemeColours) => StyleSheet.create({
   // Same face as the Input primitive's label, so group labels and field labels match.
   label: { fontFamily: type.headline.fontFamily, marginBottom: 6, marginTop: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
+  attestRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  attestText: { flex: 1 },
+  attestError: { marginBottom: spacing.md },
   // Selected = accent-tinted (the Chip primitive's idiom), not a flat burgundy
   // fill: white on the dark-mode accent (#C75D7E) is only ~4:1.
   chip: {

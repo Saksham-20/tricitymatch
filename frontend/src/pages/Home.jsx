@@ -464,9 +464,9 @@ const Home = () => {
 
   const processSteps = [
     { n: '01', t: 'Create your profile',    b: 'Build a detailed profile that reflects who you truly are, then earn your verified badge with a live selfie.',       meta: ['~12 min', 'Selfie verified', 'Free'] },
-    { n: '02', t: 'Discover matches',       b: 'Our matching engine surfaces compatible profiles across 40+ signals. You stay in full control of who sees you.',                    meta: ['Smart ranking', '40+ signals', 'Daily refresh'] },
+    { n: '02', t: 'Discover matches',       b: 'Our matching engine scores compatible profiles on age, location, education, lifestyle and family preferences. You stay in full control of who sees you.',                    meta: ['Smart ranking', 'Match score', 'Daily refresh'] },
     { n: '03', t: 'Connect securely',       b: 'Every conversation is encrypted in transit and stays private. Express interest, chat, and bring family in when ready.',                  meta: ['Encrypted in transit', 'Read receipts', 'No phone reveal'] },
-    { n: '04', t: 'Begin your journey',     b: 'Meet in person with confidence. We\'ve done the groundwork on verification and compatibility.',                        meta: ['Verified meet', 'Family flow', 'Lifelong support'] },
+    { n: '04', t: 'Begin your journey',     b: 'Take your time to talk, bring your family in, and meet somewhere public when you are ready.',                        meta: ['Family flow', 'Your pace', 'Lifelong support'] },
   ];
 
   const cities = [
@@ -490,7 +490,7 @@ const Home = () => {
       dropped the number. */}
   const whyCards = [
     { tag: 'Security',   title: 'Photo-verified profiles',   body: 'The verified badge is earned with a live selfie matched by human review. No uploads, no shortcuts.',           glyph: '◉' },
-    { tag: 'Technology', title: 'Intelligent matching, 40+ signals',        body: 'Values, lifestyle, family expectations: far beyond age and location.',                                  glyph: '◇' },
+    { tag: 'Technology', title: 'Intelligent matching',        body: 'Values, lifestyle, family expectations: far beyond age and location.',                                  glyph: '◇' },
     { tag: 'Hyperlocal', title: 'Built only for the Tricity',      body: 'Made for Chandigarh, Mohali, Panchkula. Meet partners from your community.',                            glyph: '▣' },
     { tag: 'Privacy',    title: 'Incognito browsing',              body: 'Browse privately. Appear only to those you\'ve expressed interest in.',                                  glyph: '◐' },
     { tag: 'Comms',      title: 'Private conversations',           body: 'Encrypted in transit, with read receipts. Free members read every message for free, and once a premium member you matched with reaches out, you get five free replies over the next 48 hours.', glyph: '▲' },

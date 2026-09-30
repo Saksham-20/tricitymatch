@@ -209,7 +209,10 @@ const ForgotPassword = () => {
               ) : 'Send reset link'}
             </button>
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
+              <Link to="/forgot-password/phone" className="block text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-300 font-medium transition-colors">
+                No email on your account? Reset with your mobile number
+              </Link>
               <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 font-medium inline-flex items-center gap-1 transition-colors">
                 <FiArrowLeft className="w-4 h-4" /> Back to login
               </Link>

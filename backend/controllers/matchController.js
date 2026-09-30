@@ -4,6 +4,14 @@
  */
 
 const { Match, Profile, User, Subscription, Block, Verification } = require('../models');
+const {
+  loadViewerContext,
+  listingScope,
+  matchesOnlyClause,
+  stillVisible,
+  viewerHasPaidAccess,
+  redactForViewer,
+} = require('../utils/profileVisibility');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
@@ -16,6 +24,8 @@ const { trackEvent } = require('../utils/trackEvent');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
+const { severRelationshipRows, evictChatRoom } = require('../utils/relationship');
+const { isEnabled } = require('../utils/notificationPrefs');
 
 // @route   POST /api/match/:userId
 // @desc    Like/shortlist/pass a profile
@@ -38,8 +48,50 @@ exports.matchAction = asyncHandler(async (req, res) => {
     throw createError.forbidden('Cannot perform this action');
   }
 
+  // The target must be a real, active, visible member. This used to check only
+  // blocks, so anyone could like themselves (a self "mutual match"), act on a
+  // banned or non-existent id, and send a "liked your profile" notification to a
+  // member who had set their profile to matches-only.
+  if (userId === currentUserId) {
+    throw createError.badRequest('You cannot act on your own profile');
+  }
+  const [targetUser, targetProfile, actorProfile] = await Promise.all([
+    User.findByPk(userId, { attributes: ['id', 'status'] }),
+    Profile.findOne({ where: { userId }, attributes: ['isActive', 'profileVisibility'] }),
+    Profile.findOne({ where: { userId: currentUserId }, attributes: ['isActive', 'pausedAt'] }),
+  ]);
+  // A paused (or deletion-scheduled) member is hidden from everyone; letting
+  // them keep sending interests would surface them to people while they are
+  // meant to be invisible.
+  if (actorProfile && actorProfile.isActive === false) {
+    throw createError.forbidden(
+      'Your profile is hidden. Resume it to send or answer interests.',
+      'PROFILE_HIDDEN'
+    );
+  }
+  if (!targetUser || targetUser.status !== 'active' || !targetProfile || !targetProfile.isActive) {
+    throw createError.notFound('Profile not found');
+  }
+  if (targetProfile.profileVisibility === 'matches_only') {
+    // Matches-only members can be reached only by someone they already liked.
+    const theyLikedMe = await Match.findOne({
+      where: { userId, matchedUserId: currentUserId, action: 'like' },
+      attributes: ['id'],
+    });
+    if (!theyLikedMe) throw createError.notFound('Profile not found');
+  }
+
   // Use transaction for consistency
   const result = await sequelize.transaction(async (t) => {
+    // Serialise everything that touches this PAIR. Two members liking each other
+    // at the same moment each read "no reverse like yet" and neither marked the
+    // match mutual; the same race made a withdraw and a re-like interleave. The
+    // advisory lock is per unordered pair and released at commit.
+    await sequelize.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended(:pairKey, 0))',
+      { replacements: { pairKey: [currentUserId, userId].sort().join(':') }, transaction: t }
+    );
+
     // Check if match already exists
     let match = await Match.findOne({
       where: {
@@ -48,6 +100,10 @@ exports.matchAction = asyncHandler(async (req, res) => {
       },
       transaction: t
     });
+    // What this row said BEFORE this request: every transition below is decided
+    // from it, so a repeated tap is a no-op rather than a second announcement.
+    const previousAction = match ? match.action : null;
+    const wasMutual = Boolean(match && match.isMutual);
 
     // Calculate compatibility
     const [currentProfile, matchedProfile] = await Promise.all([
@@ -144,9 +200,25 @@ exports.matchAction = asyncHandler(async (req, res) => {
       });
     }
 
-    // Check for mutual match
-    let isMutualMatch = false;
-    if (action === 'like') {
+    // Interest state machine (per row: none | like | shortlist | pass).
+    //   * Any action may follow any other; a member can change their mind.
+    //   * Leaving 'like' while the pair is mutual WITHDRAWS the match: the mutual
+    //     flag, chat grant and live calls end, and the other member's like stays
+    //     as an ordinary one-way like. (Previously a pass left isMutual=true on
+    //     both rows, so chat carried on.)
+    //   * Liking a member who liked you makes the match mutual exactly once;
+    //     liking again while already mutual changes nothing and announces nothing.
+    let isMutualMatch = wasMutual;
+    let newlyMutual = false;
+    let withdrawn = false;
+
+    if (action !== 'like' && wasMutual) {
+      await severRelationshipRows(currentUserId, userId, { transaction: t, clearMutualDate: true });
+      match.isMutual = false;
+      match.mutualMatchDate = null;
+      isMutualMatch = false;
+      withdrawn = true;
+    } else if (action === 'like' && !wasMutual) {
       const reverseMatch = await Match.findOne({
         where: {
           userId,
@@ -159,6 +231,7 @@ exports.matchAction = asyncHandler(async (req, res) => {
       if (reverseMatch) {
         // Mutual match! Update both records
         isMutualMatch = true;
+        newlyMutual = true;
         const mutualDate = new Date();
 
         match.isMutual = true;
@@ -171,7 +244,9 @@ exports.matchAction = asyncHandler(async (req, res) => {
       }
     }
 
-    return { match, isMutualMatch, currentProfile, matchedProfile };
+    const firstLike = action === 'like' && previousAction !== 'like';
+
+    return { match, isMutualMatch, newlyMutual, withdrawn, firstLike, currentProfile, matchedProfile };
   });
 
   // Funnel stage 5 — first expressed interest. 'pass' is a rejection, not an
@@ -199,20 +274,21 @@ exports.matchAction = asyncHandler(async (req, res) => {
         ? `${result.matchedProfile.firstName} ${result.matchedProfile.lastName}`
         : 'Someone';
 
-      if (result.isMutualMatch) {
-        // Mutual match — notify both users in-app + email
+      if (result.newlyMutual) {
+        // Mutual match — notify both users in-app + email (once: only on the
+        // transition, never for a repeated like)
         await Promise.all([
-          notify(userId, 'new_match', "It's a Match!", `You and ${currentName} liked each other!`, result.match.id),
-          notify(currentUserId, 'new_match', "It's a Match!", `You and ${matchedName} liked each other!`, result.match.id),
+          notify(userId, 'new_match', "It's a Match!", `You and ${currentName} liked each other!`, result.match.id, { category: 'matches' }),
+          notify(currentUserId, 'new_match', "It's a Match!", `You and ${matchedName} liked each other!`, result.match.id, { category: 'matches' }),
         ]);
 
         const profileUrl = `${config.server.frontendUrl}/profile/${userId}`;
         const matchedProfileUrl = `${config.server.frontendUrl}/profile/${currentUserId}`;
         Promise.all([
-          sendMatchNotification(matchedUser.email, currentName, profileUrl),
-          sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl),
+          isEnabled(matchedUser.notificationPrefs, 'matches') ? sendMatchNotification(matchedUser.email, currentName, profileUrl) : null,
+          isEnabled(currentUser.notificationPrefs, 'matches') ? sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl) : null,
         ]).catch(err => log.error('Failed to send match emails', { error: err.message }));
-      } else if (result.match.action === 'like') {
+      } else if (result.firstLike && !result.isMutualMatch) {
         // One-way like — notify the liked user in-app only (no email, avoid spam).
         // D3: a like-with-note leads with what was liked + the note.
         const item = result.match.likedItem;
@@ -224,17 +300,24 @@ exports.matchAction = asyncHandler(async (req, res) => {
         } else {
           body = `${currentName} liked your profile. Like them back to connect!`;
         }
-        await notify(userId, 'new_match', 'Someone liked your profile!', body, result.match.id);
+        await notify(userId, 'new_match', 'Someone liked your profile!', body, result.match.id, { category: 'interests' });
       }
     } catch (error) {
       log.error('Error sending match notifications', { error: error.message, userId, currentUserId });
     }
   });
 
+  // Socket half of a withdrawal (the database half ran in the transaction).
+  if (result.withdrawn) evictChatRoom(currentUserId, userId);
+
   res.json({
     success: true,
     match: result.match,
-    isMutual: result.isMutualMatch
+    isMutual: result.isMutualMatch,
+    // True only on the request that CREATED the match, so a client can celebrate
+    // once. `isMutual` stays the truthful current state.
+    newMatch: result.newlyMutual,
+    withdrawn: result.withdrawn
   });
 });
 
@@ -266,20 +349,20 @@ const computeDailyMatches = async (userId) => {
       ? { gender: 'male' }
       : { gender: { [Op.in]: ['male', 'female'] } };
 
-  const [interacted, blocks] = await Promise.all([
+  const [interacted, viewerCtx] = await Promise.all([
     Match.findAll({ where: { userId }, attributes: ['matchedUserId'] }).then(rows => rows.map(r => r.matchedUserId)),
-    Block.findAll({
-      where: { [Op.or]: [{ blockerId: userId }, { blockedUserId: userId }] },
-      attributes: ['blockerId', 'blockedUserId'],
-    }),
+    loadViewerContext(userId),
   ]);
-  const blockedIds = blocks.map(b => (b.blockerId === userId ? b.blockedUserId : b.blockerId));
-  const excludedIds = [...new Set([...interacted, ...blockedIds])];
+  const excludedIds = [...new Set([...interacted, ...viewerCtx.blockedIds])];
+
+  // Who may appear is the shared visibility rule (incognito, matches-only,
+  // blocks, inactive); the already-interacted set is layered on top.
+  const scope = listingScope(viewerCtx);
+  scope.userId = { [Op.ne]: userId, [Op.notIn]: excludedIds };
 
   const profiles = await Profile.findAll({
     where: {
-      isActive: true,
-      userId: { [Op.ne]: userId, [Op.notIn]: excludedIds },
+      ...scope,
       ...genderFilter,
     },
     include: [{ model: User, attributes: ['id', 'status', 'isBoosted', 'boostExpiresAt'], where: { status: 'active' } }],
@@ -328,8 +411,11 @@ const computeDailyMatches = async (userId) => {
     .sort((a, b) => b.score - a.score)
     .slice(0, DAILY_CACHE_SIZE)
     .map(item => {
-      const raw = item.profile.toJSON();
-      delete raw.User;
+      // The set is cached for the day and shared by every tier, so it is stored
+      // in its most restricted form: never mutual (interacted profiles are
+      // excluded above) so blur applies, and no intro-media URLs. Cards do not
+      // need them; the profile page fetches them under the viewer's live tier.
+      const raw = redactForViewer(item.profile.toJSON(), { isMutual: false, hasPaidAccess: false });
       return {
         ...raw,
         userId: raw.userId,
@@ -369,13 +455,20 @@ exports.getDailyMatches = asyncHandler(async (req, res) => {
 
   const cacheKey = `daily-matches:v2:${userId}:${istDateKey()}`;
   // Cache the full ranked set once per IST day; recompute on Redis miss.
-  const fullSet = await getOrSet(cacheKey, () => computeDailyMatches(userId), secondsToNextISTMidnight());
+  const cachedSet = await getOrSet(cacheKey, () => computeDailyMatches(userId), secondsToNextISTMidnight());
+
+  // The set lives all day, but members change: one can go matches-only or
+  // incognito, be blocked, banned, deactivated or erased after it was cached.
+  // Re-check every candidate against current state so none of them keeps
+  // appearing until midnight (this also covers an erased member's profile JSON
+  // still sitting in other viewers' caches).
+  const fullSet = await stillVisible(userId, cachedSet || []);
 
   res.json({
     success: true,
-    matches: (fullSet || []).slice(0, visibleCount),
+    matches: fullSet.slice(0, visibleCount),
     isPremium: isPremiumViewer,
-    totalAvailable: (fullSet || []).length,
+    totalAvailable: fullSet.length,
     visibleCount,
     refreshesAt: 'next midnight IST',
   });
@@ -390,21 +483,28 @@ exports.getLikes = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  // Members in a block relationship (either direction) never appear in a list.
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
+  const viewerPaid = await viewerHasPaidAccess(userId);
+
   // Get likes with pagination
   const { count, rows: likes } = await Match.findAndCountAll({
     where: {
       matchedUserId: userId,
-      action: 'like'
+      action: 'like',
+      ...(blockedIds.length ? { userId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {
         model: User,
         as: 'User',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
           where: { isActive: true },
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],
@@ -431,7 +531,7 @@ exports.getLikes = asyncHandler(async (req, res) => {
     .filter(like => like.User?.Profile)
     .map(like => ({
       userId: like.userId,
-      ...like.User.Profile.toJSON(),
+      ...redactForViewer(like.User.Profile.toJSON(), { isMutual: viewerCtx.mutualIds.has(like.userId), hasPaidAccess: viewerPaid }),
       likedAt: like.createdAt,
       compatibilityScore: like.compatibilityScore,
       // D3 (additive): the note + liked-item snapshot the liker attached
@@ -462,20 +562,26 @@ exports.getShortlist = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
+  const viewerPaid = await viewerHasPaidAccess(userId);
+
   const { count, rows: shortlisted } = await Match.findAndCountAll({
     where: {
       userId,
-      action: 'shortlist'
+      action: 'shortlist',
+      ...(blockedIds.length ? { matchedUserId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
-          where: { isActive: true },
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          where: { isActive: true, [Op.and]: [matchesOnlyClause(viewerCtx)] },
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],
@@ -488,7 +594,7 @@ exports.getShortlist = asyncHandler(async (req, res) => {
     .filter(match => match.MatchedUser?.Profile)
     .map(match => ({
       userId: match.matchedUserId,
-      ...match.MatchedUser.Profile.toJSON(),
+      ...redactForViewer(match.MatchedUser.Profile.toJSON(), { isMutual: viewerCtx.mutualIds.has(match.matchedUserId), hasPaidAccess: viewerPaid }),
       shortlistedAt: match.createdAt,
       compatibilityScore: match.compatibilityScore
     }));
@@ -514,20 +620,26 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
+  const viewerPaid = await viewerHasPaidAccess(userId);
+
   const { count, rows: sent } = await Match.findAndCountAll({
     where: {
       userId,
-      action: 'like'
+      action: 'like',
+      ...(blockedIds.length ? { matchedUserId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
-          where: { isActive: true },
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          where: { isActive: true, [Op.and]: [matchesOnlyClause(viewerCtx)] },
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],
@@ -540,7 +652,7 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
     .filter(match => match.MatchedUser?.Profile)
     .map(match => ({
       userId: match.matchedUserId,
-      ...match.MatchedUser.Profile.toJSON(),
+      ...redactForViewer(match.MatchedUser.Profile.toJSON(), { isMutual: viewerCtx.mutualIds.has(match.matchedUserId), hasPaidAccess: viewerPaid }),
       likedAt: match.createdAt,
       compatibilityScore: match.compatibilityScore,
       isMutual: match.isMutual,
@@ -569,21 +681,26 @@ exports.getMutualMatches = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
+  const viewerCtx = await loadViewerContext(userId);
+  const blockedIds = viewerCtx.blockedIds;
+
   const { count, rows: mutualMatches } = await Match.findAndCountAll({
     where: {
       userId,
-      isMutual: true
+      isMutual: true,
+      ...(blockedIds.length ? { matchedUserId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [
       {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
+        where: { status: 'active' },
         include: [{
           model: Profile,
           where: { isActive: true },
           required: false,
-          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+          attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
         }]
       }
     ],

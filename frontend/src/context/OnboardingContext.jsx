@@ -79,7 +79,12 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   // already requires it).
   useEffect(() => {
     if (onboardingMode === 'edit') return;
-    const { password, confirmPassword, ...safeDraft } = formData;
+    // The OTP proofs are single-use credentials too, and are not persisted; a
+    // resumed draft therefore asks for the code again rather than showing a
+    // "verified" state the server would reject.
+    // eslint-disable-next-line no-unused-vars
+    const { password, confirmPassword, emailProof, phoneProof, ...persisted } = formData;
+    const safeDraft = { ...persisted, emailVerification: false, phoneVerification: false };
     localStorage.setItem('onboarding_draft', JSON.stringify(safeDraft));
   }, [formData, onboardingMode]);
 
@@ -234,6 +239,9 @@ function getInitialFormData() {
     password: '',
     confirmPassword: '',
     account_agree: false,
+    // Separate, optional choices. Not conditions of using the service.
+    account_marketing: false,
+    account_attest: false,
 
     // Creating by guardian for someone else
     creatingFor: 'self', // 'self', 'parent', 'sibling', 'child', 'relative', 'friend'
@@ -289,6 +297,14 @@ function getInitialFormData() {
     fatherOccupation: '',
     motherOccupation: '',
     numberOfSiblings: 0,
+    brothers: '',
+    sisters: '',
+    familyValues: '',
+    livingArrangement: '',
+    nationality: '',
+    willingToRelocate: '',
+    institution: '',
+    industry: '',
 
     // Lifestyle
     skinTone: '', // 'fair', 'wheatish', 'dark'
@@ -318,12 +334,17 @@ function getInitialFormData() {
     preferredEducation: '',
     preferredProfession: '',
     preferredCity: ['Chandigarh', 'Mohali', 'Panchkula'],
+    // Preferences the member will not compromise on (age, education, city ...)
+    mustHavePreferences: [],
 
     // Photos & Verification
     photos: [],
     profilePhoto: null,
     phoneVerification: false,
     emailVerification: false,
+    // Single-use proofs verify-otp returns; the signup payload carries them.
+    phoneProof: '',
+    emailProof: '',
     // Single canonical contact number used for BOTH the account (User.phone) and
     // phone verification — never re-asked. (Was split across `phone`/`phoneNumber`.)
     phone: '',
@@ -463,7 +484,7 @@ export const STEPS = [
     title: 'Preferences',
     icon: 'Heart',
     description: 'What are you looking for? — all optional',
-    fields: ['preferredAgeMin', 'preferredAgeMax', 'preferredEducation', 'preferredCity'],
+    fields: ['preferredAgeMin', 'preferredAgeMax', 'preferredEducation', 'preferredCity', 'mustHavePreferences'],
     required: [],
     showIn: ['edit', 'create_for_other'],
   },

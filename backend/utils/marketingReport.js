@@ -28,6 +28,10 @@ const PAID_SUBSCRIPTION_WHERE = {
 };
 
 const money = (v) => (v == null ? 0 : Number(v));
+// What a paid subscription actually kept: a partial refund reduces it, and a full
+// refund never reaches here (the plan is cancelled, so PAID_SUBSCRIPTION_WHERE
+// excludes it). Commission follows the net, not the gross.
+const netPaid = (sub) => Math.max(0, money(sub.amount) - money(sub.refundedAmount));
 
 /**
  * @param {string} marketingUserId
@@ -56,7 +60,7 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
             model: Subscription,
             required: false,
             where: PAID_SUBSCRIPTION_WHERE,
-            attributes: ['id', 'planType', 'status', 'amount', 'startDate', 'endDate', 'razorpayPaymentId', 'createdAt'],
+            attributes: ['id', 'planType', 'status', 'amount', 'refundedAmount', 'startDate', 'endDate', 'razorpayPaymentId', 'createdAt'],
           },
         ],
       },
@@ -98,13 +102,13 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
       paid: Boolean(sub),
       planType: sub ? sub.planType : null,
       planStatus: sub ? sub.status : null,
-      amountPaid: sub ? money(sub.amount) : money(lead.paymentStatus === 'paid' ? lead.amountPaid : 0),
+      amountPaid: sub ? netPaid(sub) : money(lead.paymentStatus === 'paid' ? lead.amountPaid : 0),
       paidAt: sub ? sub.startDate : null,
       planEndsAt: sub ? sub.endDate : null,
       paymentId: sub ? sub.razorpayPaymentId : lead.paymentId || null,
       // Shown per row so the rep can check the total against its parts rather
       // than being handed one number to trust.
-      commission: commissionOn(sub ? money(sub.amount) : 0, commissionRate),
+      commission: commissionOn(sub ? netPaid(sub) : 0, commissionRate),
       createdAt: lead.createdAt,
     };
   });
@@ -132,7 +136,7 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
             model: Subscription,
             required: true,
             where: PAID_SUBSCRIPTION_WHERE,
-            attributes: ['amount'],
+            attributes: ['amount', 'refundedAmount'],
           },
         ],
       },
@@ -145,7 +149,7 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
     const subs = (lead.ConvertedUser && lead.ConvertedUser.Subscriptions) || [];
     if (!subs.length) return;
     paidMembers += 1;
-    subs.forEach((s) => { revenue += money(s.amount); });
+    subs.forEach((s) => { revenue += netPaid(s); });
   });
 
   return {

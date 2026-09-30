@@ -5,7 +5,8 @@ import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiSend, FiMessageCircle, FiChevronLeft, FiMoreVertical, FiLock, FiMic, FiX, FiCornerUpLeft } from 'react-icons/fi';
+import { FiSend, FiMessageCircle, FiChevronLeft, FiLock, FiMic, FiX, FiCornerUpLeft } from 'react-icons/fi';
+import SafetyMenu from '../components/safety/SafetyMenu';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText } from '../utils/sanitize';
@@ -760,14 +761,21 @@ const Chat = () => {
                   </button>
                 </div>
 
-                <button
-                  onClick={() => navigate(`/profile/${selected.userId}`)}
-                  aria-label="View profile"
-                  title="View profile"
-                  className="p-3 -mr-3 hover:bg-neutral-100 rounded-full transition-colors"
-                >
-                  <FiMoreVertical className="w-5 h-5 text-neutral-500" />
-                </button>
+                {/* Report / Block. Blocking removes the conversation from the list
+                    and clears the open thread; the server has already ended the
+                    match and refuses any further message either way. */}
+                <SafetyMenu
+                  userId={selected.userId}
+                  name={selected.firstName || selected.name}
+                  className="-mr-2"
+                  onBlocked={() => {
+                    const rest = conversations.filter((c) => c.userId !== selected.userId);
+                    setConversations(rest);
+                    setSelected(rest.find((c) => !c.locked) || rest[0] || null);
+                    setMessages([]);
+                    setShowMobileSidebar(true);
+                  }}
+                />
               </div>
             </div>
 

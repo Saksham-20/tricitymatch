@@ -88,6 +88,11 @@ const Search = () => {
   const [hasMore, setHasMore]     = useState(true);
   const [sortBy, setSortBy]       = useState('compatibility');
   const [totalCount, setTotalCount] = useState(0);
+  // Partner preferences the member marked as must-haves shape the results; they
+  // can switch them off for a wider look. `mustHaveKeys` remembers which ones
+  // applied so the note stays available while they are off.
+  const [mustHavesOff, setMustHavesOff] = useState(false);
+  const [mustHaveKeys, setMustHaveKeys] = useState([]);
 
   const [filters, setFilters] = useState({
     ageMin: '', ageMax: '',
@@ -152,6 +157,8 @@ const Search = () => {
       params.append('page', currentPage);
       params.append('limit', 18);
       params.append('sortBy', currentSort);
+      const currentMustHavesOff = options.overrideMustHavesOff ?? mustHavesOff;
+      if (currentMustHavesOff) params.append('mustHaves', 'off');
 
       const response = await api.get(`/search?${params.toString()}`);
 
@@ -181,6 +188,8 @@ const Search = () => {
       currentPage === 1 ? setProfiles(normalized) : setProfiles(prev => [...prev, ...normalized]);
       setSearchError(false);
 
+      const applied = response.data?.mustHaves?.applied;
+      if (Array.isArray(applied) && applied.length) setMustHaveKeys(applied);
       const pagination = response.data?.pagination || response.data?.data?.pagination || {};
       setHasMore(pagination.page < pagination.pages);
       setTotalCount(pagination.total || normalized.length);
@@ -327,6 +336,28 @@ const Search = () => {
           {/* Results area */}
           <motion.div variants={fadeInUp} className="lg:col-span-3">
 
+            {mustHaveKeys.length > 0 && (
+              <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-700 dark:text-neutral-300">
+                <p>
+                  {mustHavesOff
+                    ? 'Showing everyone, including people outside your must-haves.'
+                    : `Showing people who meet your must-haves (${mustHaveKeys.join(', ')}).`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !mustHavesOff;
+                    setMustHavesOff(next);
+                    setPage(1);
+                    searchProfiles({ overridePage: 1, overrideMustHavesOff: next });
+                  }}
+                  className="text-xs font-medium text-primary-600 dark:text-primary-300 hover:underline whitespace-nowrap min-h-[2.75rem]"
+                >
+                  {mustHavesOff ? 'Apply my must-haves' : 'Show everyone'}
+                </button>
+              </div>
+            )}
+
             {/* Results meta bar */}
             <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
               <p className="text-sm text-neutral-600">
@@ -417,7 +448,7 @@ const Search = () => {
                   title={activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
                   description={activeFilterCount > 0
                     ? 'Widen a filter or two: with a community this focused, a narrow search can rule out everyone.'
-                    : 'We verify every member by hand, one Tricity family at a time. The fastest way to find someone worth meeting is to bring someone you already trust.'}
+                    : 'New Tricity families join every week. The fastest way to find someone worth meeting is to bring someone you already trust.'}
                   actionLabel={activeFilterCount > 0 ? 'Clear filters' : undefined}
                   onAction={activeFilterCount > 0 ? handleClearFilters : undefined}
                   className="py-16"

@@ -9,8 +9,43 @@
  * for old rows but are no longer written.
  */
 
-const { Verification, User } = require('../models');
+const { Verification, Profile } = require('../models');
+const config = require('../config/env');
+const { startSession, consumeSession } = require('../utils/captureSession');
+const { signMediaUrl, TTL } = require('../utils/privateMedia');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
+
+// @route   POST /api/verification/capture-session
+// @desc    Start a capture session. The client calls this when the camera opens and
+//          sends the token back as X-Capture-Token with the selfie.
+// @access  Private
+exports.startCaptureSession = asyncHandler(async (req, res) => {
+  const { token, expiresInSeconds } = await startSession(req.user.id);
+  res.json({ success: true, captureToken: token, expiresInSeconds });
+});
+
+// Runs BEFORE the upload middleware: a submission that cannot be accepted must
+// not first be streamed to Cloudinary (it would sit there, orphaned).
+//   1. the member has a profile photo for the reviewer to compare against
+//   2. the selfie came out of a capture session this server started
+exports.precheckSubmission = asyncHandler(async (req, res, next) => {
+  const profile = await Profile.findOne({ where: { userId: req.user.id }, attributes: ['profilePhoto'] });
+  if (!profile?.profilePhoto) {
+    throw createError.badRequest('Add a profile photo first — your selfie is compared with it.');
+  }
+
+  if (config.verification.requireCaptureToken) {
+    const result = await consumeSession(req.user.id, req.get('x-capture-token'));
+    if (!result.ok) {
+      throw createError.badRequest(
+        result.reason === 'too_fast'
+          ? 'That was too quick. Take the selfie with your camera and try again.'
+          : 'Your camera session expired. Open the camera again and retake the selfie.'
+      );
+    }
+  }
+  next();
+});
 
 // @route   POST /api/verification/submit
 // @desc    Submit a selfie for photo verification
@@ -88,9 +123,11 @@ exports.getVerificationStatus = asyncHandler(async (req, res) => {
     success: true,
     verification: {
       status: verification.status,
-      selfiePhoto: verification.selfiePhoto,
+      // Identity evidence: a short-lived link, never the stored asset URL.
+      selfiePhoto: signMediaUrl(verification.selfiePhoto, TTL.selfie),
       adminNotes: verification.status === 'rejected' ? verification.adminNotes : null,
-      verifiedAt: verification.verifiedAt,
+      // Only an approval is a "verified at"; the column records any decision.
+      verifiedAt: verification.status === 'approved' ? verification.verifiedAt : null,
       submittedAt: verification.createdAt
     }
   });

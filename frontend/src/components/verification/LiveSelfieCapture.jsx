@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiCamera, FiRefreshCw, FiVideo, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 import { fade } from '../../utils/animations';
+import api from '../../api/axios';
 
 /**
  * LiveSelfieCapture — captures a selfie strictly from the live camera.
@@ -15,10 +16,20 @@ import { fade } from '../../utils/animations';
  * Contract mirrors the old SelfieField: props { file, onChange } where onChange
  * receives a File (or null on retake), so the parent's multipart submit is
  * unchanged (`form.append('selfiePhoto', file)`).
+ *
+ * The server refuses a selfie that did not come out of a capture session it
+ * started, so opening the camera asks for one and the captured File carries it
+ * as `file.captureToken`; the parent sends it as the X-Capture-Token header
+ * (see captureHeaders below).
  */
+
+/** Headers the parent must send with the selfie upload. */
+export const captureHeaders = (file) => (file?.captureToken ? { 'X-Capture-Token': file.captureToken } : {});
+
 export default function LiveSelfieCapture({ file, onChange }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const sessionRef = useRef(null);
   const [phase, setPhase] = useState('idle'); // idle | starting | live | captured | error
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -62,6 +73,12 @@ export default function LiveSelfieCapture({ file, onChange }) {
         // iOS Safari needs an explicit play() after setting srcObject.
         await videoRef.current.play().catch(() => {});
       }
+      // Server-side capture session (best effort here: if it fails the upload is
+      // refused with a clear "open the camera again" message).
+      sessionRef.current = null;
+      api.post('/verification/capture-session')
+        .then((res) => { sessionRef.current = res.data?.captureToken || null; })
+        .catch(() => {});
       setPhase('live');
     } catch (err) {
       const denied = err?.name === 'NotAllowedError' || err?.name === 'SecurityError';
@@ -107,6 +124,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
       (blob) => {
         if (!blob) return;
         const f = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        f.captureToken = sessionRef.current;
         onChange(f);
         setPhase('captured');
         stopStream();

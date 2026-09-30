@@ -13,6 +13,9 @@ const {
   getMyGroups,
   getGroup,
   addMember,
+  getMyInvitations,
+  acceptInvitation,
+  declineInvitation,
   removeMember,
   leaveGroup,
   deleteGroup,
@@ -38,6 +41,8 @@ const uuidParams = (...names) => [
 // Group management
 router.post('/', createGroup);
 router.get('/', getMyGroups);
+// Registered before '/:groupId' so 'invitations' is not read as a group id.
+router.get('/invitations', getMyInvitations);
 router.get('/:groupId', uuidParams('groupId'), getGroup);
 router.delete('/:groupId', uuidParams('groupId'), deleteGroup);
 
@@ -47,6 +52,8 @@ router.delete('/:groupId', uuidParams('groupId'), deleteGroup);
 // the response now generic.
 router.post('/:groupId/members', matchActionLimiter, uuidParams('groupId'), addMember);
 router.post('/:groupId/invite', matchActionLimiter, uuidParams('groupId'), addMember); // alias: invite by phone/userId
+router.post('/:groupId/accept', matchActionLimiter, uuidParams('groupId'), acceptInvitation);
+router.post('/:groupId/decline', matchActionLimiter, uuidParams('groupId'), declineInvitation);
 router.delete('/:groupId/leave', uuidParams('groupId'), leaveGroup);
 router.delete('/:groupId/members/:memberUserId', uuidParams('groupId', 'memberUserId'), removeMember);
 

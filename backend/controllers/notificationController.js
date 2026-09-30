@@ -5,6 +5,7 @@
 const { Notification, User } = require('../models');
 const { Op } = require('sequelize');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { resolvePrefs, validatePrefsUpdate } = require('../utils/notificationPrefs');
 
 // @route   GET /api/notifications
 // @desc    Get notifications for current user (paginated)
@@ -130,4 +131,25 @@ exports.removeFcmToken = asyncHandler(async (req, res) => {
   await User.update({ fcmTokens: updated }, { where: { id: req.user.id } });
 
   res.json({ success: true, message: 'FCM token removed' });
+});
+
+// @route   GET /api/notifications/preferences
+// @access  Private
+exports.getPreferences = asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'notificationPrefs'] });
+  res.json({ success: true, preferences: resolvePrefs(user?.notificationPrefs) });
+});
+
+// @route   PUT /api/notifications/preferences
+// @desc    Change one or more preferences ({ matches: false, ... })
+// @access  Private
+exports.updatePreferences = asyncHandler(async (req, res) => {
+  const checked = validatePrefsUpdate(req.body);
+  if (!checked.ok) throw createError.badRequest(checked.error);
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'notificationPrefs'] });
+  if (!user) throw createError.unauthorized('Not authenticated');
+  const next = { ...resolvePrefs(user.notificationPrefs), ...checked.patch };
+  user.notificationPrefs = next;
+  await user.save({ fields: ['notificationPrefs'], hooks: false });
+  res.json({ success: true, preferences: next });
 });

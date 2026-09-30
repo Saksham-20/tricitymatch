@@ -13,6 +13,8 @@ const {
   deletePhoto,
   deleteProfilePhoto,
   updatePrivacySettings,
+  pauseMyProfile,
+  resumeMyProfile,
   unlockContact,
   getProfileViewers,
   getRecentlyViewed,
@@ -125,6 +127,10 @@ router.delete('/video-intro', auth, deleteVideoIntro);
 
 // Update privacy settings
 router.put('/privacy', auth, updatePrivacySettings);
+
+// Pause / resume: hide the profile from every listing without deleting anything.
+router.post('/me/pause', auth, profileUpdateLimiter, pauseMyProfile);
+router.post('/me/resume', auth, profileUpdateLimiter, resumeMyProfile);
 
 // ==================== OTHER USER PROFILE ROUTES ====================
 

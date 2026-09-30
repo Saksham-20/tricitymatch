@@ -5,19 +5,18 @@
  */
 
 const https = require('https');
-const { get: cacheGet, set: cacheSet, del: cacheDel } = require('./cache');
+const { incr: cacheIncr } = require('./cache');
+const otpStore = require('./otpStore');
 const config = require('../config/env');
 const { AppError } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 
-const OTP_TTL_SECONDS = 600; // 10 minutes
-const MAX_VERIFY_ATTEMPTS = 5;
-
-const otpKey = (phone) => `otp:${phone}`;
-const rateKey = (phone) => `otp_rate:${phone}`;
-
+const NS = 'phone';
+// Only Indian mobile numbers can receive our DLT-registered template; a foreign
+// number would still be billed and never delivered.
+const INDIAN_MOBILE = /^91[6-9]\d{9}$/;
 // 4-digit OTP to match the registered DLT/MSG91 template (##OTP## = 4 digits)
-const generateCode = () => String(Math.floor(1000 + Math.random() * 9000));
+const OTP_DIGITS = 4;
 
 /**
  * Canonicalize a phone number to digits-with-country-code (default India: 91XXXXXXXXXX).
@@ -147,16 +146,34 @@ const sendMSG91 = (phone, code) => {
   });
 };
 
-// ─── Rate limiting ────────────────────────────────────────────────────────────
+// ─── Global send budget ───────────────────────────────────────────────────────
 
-const checkRateLimit = async (phone) => {
-  const raw = await cacheGet(rateKey(phone));
-  const count = raw ? parseInt(raw, 10) : 0;
-  if (count >= 3) {
-    throw new AppError('Too many OTP requests. Please wait before requesting again.', 429);
+const budgetDayKey = () => `otp_sms_day:${new Date().toISOString().slice(0, 10)}`;
+
+/**
+ * Count one billed text against the daily ceiling across every number. Alerts at
+ * 80% and refuses past 100%. Fails closed on the ceiling only; a cache error
+ * here must not turn into an unlimited spend, so it propagates.
+ */
+const spendGlobalBudget = async () => {
+  const budget = config.sms.dailyBudget;
+  if (!budget || budget <= 0) return;
+  const used = await cacheIncr(budgetDayKey(), 90000);
+  if (used >= Math.ceil(budget * 0.8)) {
+    log.error(`[OTP] SMS daily budget at ${used}/${budget}`);
+    try {
+      const { triggerAlert, ALERT_TYPES, SEVERITY } = require('./alerts');
+      await triggerAlert(
+        ALERT_TYPES.RATE_LIMIT_EXCEEDED,
+        used > budget ? SEVERITY.CRITICAL : SEVERITY.WARNING,
+        `SMS OTP daily budget ${used}/${budget}`,
+        { used, budget }
+      );
+    } catch { /* alerting must never block a member */ }
   }
-  // Increment — set 3600s (1 hour) window if new, preserve TTL otherwise via re-set
-  await cacheSet(rateKey(phone), String(count + 1), 3600);
+  if (used > budget) {
+    throw new AppError('We cannot send verification codes right now. Please try again later.', 503);
+  }
 };
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -169,24 +186,26 @@ const sendOtp = async (rawPhone) => {
   // Canonicalize FIRST — never store/send an unroutable number (no fake success).
   const phone = normalizePhone(rawPhone);
   if (!phone) throw new AppError('A valid phone number is required.', 400);
+  if (!INDIAN_MOBILE.test(phone)) {
+    throw new AppError('Enter a valid 10-digit Indian mobile number, or sign up with your email.', 400);
+  }
 
-  await checkRateLimit(phone);
-
-  const code = generateCode();
-  const payload = JSON.stringify({ code, expiresAt: Date.now() + OTP_TTL_SECONDS * 1000, attempts: 0 });
-  await cacheSet(otpKey(phone), payload, OTP_TTL_SECONDS);
+  await otpStore.spendSend(NS, phone);
 
   const provider = config.sms.provider;
+  const live = provider && provider !== 'dev' && config.sms.isConfigured();
+  if (live) await spendGlobalBudget();
 
-  if (!provider || provider === 'dev' || !config.sms.isConfigured()) {
-    // Production: warn about dev mode, don't log the OTP code (security)
+  const code = await otpStore.issue(NS, phone, { digits: OTP_DIGITS });
+
+  if (!live) {
+    // Never log the code in production. Only genuine development prints it; the
+    // previous `else` also covered 'staging', 'qa' and any unrecognised NODE_ENV.
     if (config.server.isProduction) {
-      log.error(`[OTP PROD-DEV-MODE] SMS not configured in production. OTP for ${phone} generated but not sent.`);
+      log.error('[OTP PROD-DEV-MODE] SMS not configured in production. OTP generated but not sent.');
     } else if (config.isDevelopment) {
-      // Only genuine development prints the code. The previous `else` also
-      // covered 'staging', 'qa' and any unrecognised NODE_ENV, and the code sits
-      // in the message string where the log redactor cannot mask it.
-      log.info(`[OTP DEV] Code for ${phone}: ${code}`);
+      // The code is in the message string, where the log redactor cannot mask it.
+      log.info(`[OTP DEV] Code for ***${phone.slice(-4)}: ${code}`);
     } else {
       log.warn(`[OTP] SMS not configured for NODE_ENV=${config.env}; code generated but not logged.`);
     }
@@ -196,10 +215,10 @@ const sendOtp = async (rawPhone) => {
   try {
     if (provider === 'msg91') await sendMSG91(phone, code);
     else await sendFast2SMS(phone, code);
-    log.info(`[OTP] Sent via ${provider} to ${phone}`);
+    log.info(`[OTP] Sent via ${provider}`);
     return { success: true, message: 'OTP sent successfully', isDev: false };
   } catch (err) {
-    await cacheDel(otpKey(phone));
+    await otpStore.discard(NS, phone);
     log.error(`[OTP] Send failed via ${provider}: ${err.message}`);
     throw new AppError('Failed to send OTP. Please try again.', 503);
   }
@@ -209,45 +228,21 @@ const sendOtp = async (rawPhone) => {
  * Verify OTP. Throws AppError on invalid/expired/max-attempts.
  */
 const verifyOtp = async (rawPhone, code) => {
-  // Same canonicalization as sendOtp so the Redis key matches regardless of the
+  // Same canonicalization as sendOtp so the key matches regardless of the
   // string form the client sent on verify (e.g. bare 7973… vs +91 79734…).
   const phone = normalizePhone(rawPhone);
   if (!phone) throw new AppError('A valid phone number is required.', 400);
 
   // ⚠️ PRE-LAUNCH TESTING ONLY — master bypass codes (OTP_BYPASS_CODES) always
-  // verify so login/signup work before SMS is wired. REMOVE before real users.
+  // verify so login/signup work before SMS is wired. Fatal at boot in production.
   const bypassCodes = config.sms.bypassCodes || [];
   if (bypassCodes.length > 0 && bypassCodes.includes(String(code))) {
-    log.warn(`[OTP BYPASS] Master code used for ${phone} — disable OTP_BYPASS_CODES before launch.`);
-    await cacheDel(otpKey(phone));
+    log.warn('[OTP BYPASS] Master code used — disable OTP_BYPASS_CODES before launch.');
+    await otpStore.discard(NS, phone);
     return { success: true, message: 'OTP verified (bypass)' };
   }
 
-  const raw = await cacheGet(otpKey(phone));
-  if (!raw) throw new AppError('OTP expired or not sent. Please request a new one.', 400);
-
-  let entry;
-  try { entry = JSON.parse(raw); } catch { throw new AppError('OTP data corrupt. Please request a new one.', 400); }
-
-  if (entry.expiresAt < Date.now()) {
-    await cacheDel(otpKey(phone));
-    throw new AppError('OTP has expired. Please request a new one.', 400);
-  }
-
-  if (entry.attempts >= MAX_VERIFY_ATTEMPTS) {
-    await cacheDel(otpKey(phone));
-    throw new AppError('Too many incorrect attempts. Please request a new OTP.', 400);
-  }
-
-  if (entry.code !== code) {
-    const updated = JSON.stringify({ ...entry, attempts: entry.attempts + 1 });
-    const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - Date.now()) / 1000));
-    await cacheSet(otpKey(phone), updated, ttlSec);
-    const remaining = MAX_VERIFY_ATTEMPTS - entry.attempts - 1;
-    throw new AppError(`Invalid OTP. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`, 400);
-  }
-
-  await cacheDel(otpKey(phone));
+  await otpStore.verify(NS, phone, code);
   return { success: true, message: 'OTP verified successfully' };
 };
 

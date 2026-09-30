@@ -528,7 +528,9 @@ const MyProfileView = () => {
                 {profile.weight && <DetailRow label="Weight" value={`${profile.weight} kg`} />}
                 {profile.education && <DetailRow label="Education" value={profile.education} />}
                 {profile.degree && <DetailRow label="Degree" value={profile.degree} />}
+                {profile.institution && <DetailRow label="College" value={profile.institution} />}
                 {profile.profession && <DetailRow label="Profession" value={profile.profession} />}
+                {profile.industry && <DetailRow label="Industry" value={profile.industry} />}
                 {profile.income && <DetailRow label="Income" value={formatIncome(profile.income)} />}
                 {profile.religion && <DetailRow label="Religion" value={profile.religion} />}
                 {profile.caste && <DetailRow label="Caste" value={profile.caste} />}
@@ -569,12 +571,16 @@ const MyProfileView = () => {
             )}
 
             {/* Family */}
-            {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings > 0) && (
+            {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings > 0 || profile.brothers != null || profile.sisters != null || profile.familyValues || profile.livingArrangement) && (
               <Card title="Family Background" icon={FiHome} action={<EditBtn small to="/profile/edit?section=family" />}>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {profile.familyType && <Pill label="Family Type" value={friendlyLabel('familyType', profile.familyType)} />}
                   {profile.familyStatus && <Pill label="Family Status" value={friendlyLabel('familyStatus', profile.familyStatus)} />}
                   {profile.numberOfSiblings > 0 && <Pill label="Siblings" value={profile.numberOfSiblings} />}
+                  {profile.brothers != null && <Pill label="Brothers" value={profile.brothers} />}
+                  {profile.sisters != null && <Pill label="Sisters" value={profile.sisters} />}
+                  {profile.familyValues && <Pill label="Family Values" value={formatEnum(profile.familyValues)} />}
+                  {profile.livingArrangement && <Pill label="Lives" value={formatEnum(profile.livingArrangement)} />}
                   {profile.numberOfChildren > 0 && <Pill label="Children" value={profile.numberOfChildren} />}
                 </div>
                 <div>

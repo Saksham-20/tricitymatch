@@ -107,7 +107,8 @@ const CreateAccountStep = () => {
   const verifyOtp = async (code) => {
     setOtpVerifying(true);
     try {
-      await api.post('/auth/verify-otp', { type: idType, target: idTarget(), code });
+      const { data: verified } = await api.post('/auth/verify-otp', { type: idType, target: idTarget(), code });
+      updateFormData(idType === 'email' ? 'emailProof' : 'phoneProof', verified?.verificationProof || '');
       updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', true);
       setOtpCode('');
       setStepErrors({});
@@ -150,6 +151,7 @@ const CreateAccountStep = () => {
         }
       }
       if (!data.account_agree) newErrors.account_agree = 'Please agree to the Terms & Privacy Policy to continue';
+      if (data.creatingFor !== 'self' && !data.account_attest) newErrors.account_attest = 'Please confirm the person agrees to this profile';
       setStepErrors(newErrors);
       return Object.keys(newErrors).length === 0;
     }
@@ -359,6 +361,14 @@ const CreateAccountStep = () => {
               />
               {errors.account_agree && <p className="text-sm text-destructive dark:text-red-300 mt-1.5">{errors.account_agree}</p>}
             </div>
+
+            {/* Optional, unticked: not a condition of joining. */}
+            <CheckBox
+              checked={!!formData.account_marketing}
+              onChange={(checked) => updateFormData('account_marketing', checked)}
+              size="md"
+              label={<span className="text-sm text-neutral-600">Email me reminders and suggestions about matches (optional).</span>}
+            />
           </>
         )}
       </div>
@@ -455,6 +465,15 @@ const CreateAccountStep = () => {
             label={<span className="text-sm text-neutral-600">I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.</span>} />
           {errors.account_agree && <p className="text-sm text-red-600 mt-1.5">{errors.account_agree}</p>}
         </div>
+        {formData.creatingFor !== 'self' && (
+          <div>
+            <CheckBox checked={!!formData.account_attest} onChange={(checked) => updateFormData('account_attest', checked)} size="md"
+              label={<span className="text-sm text-neutral-600">The person this profile is for is of legal age to marry, knows about this profile, and agrees to it.</span>} />
+            {errors.account_attest && <p className="text-sm text-red-600 mt-1.5">{errors.account_attest}</p>}
+          </div>
+        )}
+        <CheckBox checked={!!formData.account_marketing} onChange={(checked) => updateFormData('account_marketing', checked)} size="md"
+          label={<span className="text-sm text-neutral-600">Email reminders and suggestions about matches (optional).</span>} />
       </motion.div>
     </motion.div>
   );

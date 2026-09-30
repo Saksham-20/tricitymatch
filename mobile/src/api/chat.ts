@@ -219,6 +219,23 @@ export const inviteToFamilyGroup = async (groupId: string, phone: string, relati
   await apiClient.post(`/groups/${groupId}/invite`, { phone, relation });
 };
 
+export interface GroupInvitation {
+  groupId: string;
+  groupName: string;
+  invitedByName: string | null;
+  invitedAt: string;
+}
+
+export const getGroupInvitations = async (): Promise<GroupInvitation[]> => {
+  const res = await apiClient.get<{ invitations: GroupInvitation[] }>('/groups/invitations');
+  return res.data.invitations ?? [];
+};
+
+/** Accept or decline an invitation. Nothing in the group is readable until accepted. */
+export const respondToGroupInvitation = async (groupId: string, accept: boolean): Promise<void> => {
+  await apiClient.post(`/groups/${groupId}/${accept ? 'accept' : 'decline'}`);
+};
+
 export const leaveFamilyGroup = async (groupId: string): Promise<void> => {
   await apiClient.delete(`/groups/${groupId}/leave`);
 };

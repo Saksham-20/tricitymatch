@@ -250,6 +250,10 @@ const config = {
     apiKey: optionalString('SMS_API_KEY'),
     senderId: optionalString('SMS_SENDER_ID', 'TRCSDI'),
     msg91TemplateId: optionalString('MSG91_TEMPLATE_ID'),
+    // Ceiling on OTP texts per UTC day across ALL numbers. Per-number and per-IP
+    // limits do not stop a botnet spreading sends over many numbers, and every
+    // text is billed. An alert fires at 80%; past 100% sends are refused.
+    dailyBudget: optionalNumber('SMS_DAILY_BUDGET', 1500),
     // ⚠️ PRE-LAUNCH TESTING ONLY — master OTP codes that always verify when SMS
     // is not yet wired. REMOVE (unset OTP_BYPASS_CODES) before real users.
     bypassCodes: optionalString('OTP_BYPASS_CODES', '')
@@ -260,6 +264,20 @@ const config = {
     },
   },
 
+  // Photo verification. A submission must come out of a capture session the server
+  // started (utils/captureSession). Turn off only as an emergency rollback if a
+  // client build cannot start sessions.
+  verification: {
+    requireCaptureToken: optionalBoolean('VERIFICATION_REQUIRE_CAPTURE_TOKEN', true),
+  },
+
+  // Image moderation. 'off' (default) screens nothing; 'cloudinary' uses the
+  // Cloudinary Rekognition AI Moderation add-on (account must be subscribed);
+  // 'stub' is for tests/dev and flags URLs containing "flag-test".
+  moderation: {
+    provider: optionalString('IMAGE_MODERATION_PROVIDER', 'off'),
+  },
+
   // Upload
   upload: {
     dir: optionalString('UPLOAD_DIR', './uploads'),
@@ -267,10 +285,29 @@ const config = {
     maxGalleryPhotos: optionalNumber('MAX_GALLERY_PHOTOS', 6),
   },
 
+  // Realtime
+  socket: {
+    // Relay Socket.io emits between backend instances through Redis. Only needed
+    // once there is more than one instance; see utils/socketAdapter.
+    redisAdapter: optionalBoolean('SOCKET_REDIS_ADAPTER', false),
+  },
+
   // Chat
   chat: {
     maxMessageLength: optionalNumber('MAX_MESSAGE_LENGTH', 2000),
     messageEditTimeLimit: optionalNumber('MESSAGE_EDIT_TIME_LIMIT_MINUTES', 15),
+    // Chat messages are deleted this many months after they were sent (0 keeps
+    // them forever). Stated in the Privacy Policy. Messages between two members
+    // with an open report are held back until it is decided.
+    messageRetentionMonths: optionalNumber('MESSAGE_RETENTION_MONTHS', 24),
+  },
+
+  // Account lifecycle
+  account: {
+    // A deletion the member schedules waits this many days before the account is
+    // erased, and can be cancelled by signing in. 0 disables the wait (immediate
+    // erasure stays available through DELETE /auth/account either way).
+    deletionGraceDays: optionalNumber('ACCOUNT_DELETION_GRACE_DAYS', 30),
   },
 
   // Admin
@@ -322,6 +359,16 @@ const config = {
     isConfigured: () => {
       return !!optionalString('REDIS_URL') || !!optionalString('REDIS_HOST');
     },
+    // Job queues (Bull) belong on an instance that NEVER evicts: dropping a queued
+    // job silently loses an email, a renewal notice or a payment reconcile. The
+    // cache instance evicts under memory pressure by design. Unset QUEUE_REDIS_*
+    // falls back to the main instance (dev, single-Redis installs).
+    queue: {
+      url: optionalString('QUEUE_REDIS_URL', ''),
+      host: optionalString('QUEUE_REDIS_HOST', '') || optionalString('REDIS_HOST', 'localhost'),
+      port: optionalNumber('QUEUE_REDIS_PORT', 0) || optionalNumber('REDIS_PORT', 6379),
+      password: optionalString('QUEUE_REDIS_PASSWORD', '') || optionalString('REDIS_PASSWORD', ''),
+    },
   },
 
   // Founding-member offer (Phase S)
@@ -363,6 +410,10 @@ const config = {
     // it). Two-way door: flipping only changes whether NEW grants are created
     // and whether existing grants authorize; rows persist harmlessly when off.
     freeReplyWindow: optionalBoolean('FREE_REPLY_WINDOW', false),
+    // Staff (admin, sub_admin, super_admin, marketing) must have TOTP enabled to
+    // use their panels. Ships DARK so a deploy cannot lock every existing admin
+    // out before they have enrolled: enrol first (Settings → Account), then flip.
+    staffMfaRequired: optionalBoolean('STAFF_MFA_REQUIRED', false),
     // D7: astrologer marketplace visibility. Default OFF — routes 404 and
     // clients hide the entry points until the owner turns it on.
     astrologerMarketplace: optionalBoolean('ASTROLOGER_MARKETPLACE', false),

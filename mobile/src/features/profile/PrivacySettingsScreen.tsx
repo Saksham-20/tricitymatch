@@ -11,7 +11,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { tapSize } from '../../utils/elderTheme';
 import { showToast } from '../../utils/toast';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { getMyProfile, updatePrivacy, type PrivacySettings } from '../../api/profile';
+import { getMyProfile, updatePrivacy, type FieldLevel, type PrivacySettings } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import type { Profile } from '../../types';
 
@@ -31,6 +31,22 @@ const VISIBILITY_OPTIONS: { key: Visibility; label: string }[] = [
   { key: 'everyone', label: 'Everyone' },
   { key: 'matches_only', label: 'Matches only' },
 ];
+
+const FIELD_LEVELS: { key: FieldLevel; label: string }[] = [
+  { key: 'everyone', label: 'Everyone' },
+  { key: 'matches', label: 'Matches' },
+  { key: 'hidden', label: 'Only me' },
+];
+
+const FIELD_GROUPS = [
+  { key: 'income', label: 'Income', hint: 'Also stops people finding you with an income filter.' },
+  { key: 'birthDetails', label: 'Birth time and place', hint: 'Used for horoscope reports. Your star sign match still works.' },
+] as const;
+
+type FieldGroupKey = (typeof FIELD_GROUPS)[number]['key'];
+type FieldState = Record<FieldGroupKey, FieldLevel>;
+
+const asLevel = (v: unknown): FieldLevel => (v === 'matches' || v === 'hidden' ? v : 'everyone');
 
 // ─── Toggle row ──────────────────────────────────────────────────────────────
 // The whole row is the switch: a bare 51x31 native switch is under 44pt tall.
@@ -130,6 +146,7 @@ export default function PrivacySettingsScreen() {
   const [visibility, setVisibility] = useState<Visibility>('everyone');
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const [showLastSeen, setShowLastSeen] = useState(true);
+  const [fields, setFields] = useState<FieldState>({ income: 'everyone', birthDetails: 'everyone' });
 
   // What the server currently holds. Absent columns read as the defaults the
   // controls open on.
@@ -138,8 +155,14 @@ export default function PrivacySettingsScreen() {
   const serverOnline = typeof p?.showOnlineStatus === 'boolean' ? p.showOnlineStatus : true;
   const serverLastSeen = typeof p?.showLastSeen === 'boolean' ? p.showLastSeen : true;
 
+  const serverFields: FieldState = {
+    income: asLevel(p?.fieldVisibility?.income),
+    birthDetails: asLevel(p?.fieldVisibility?.birthDetails),
+  };
+
   const dirty =
-    visibility !== serverVisibility || showOnlineStatus !== serverOnline || showLastSeen !== serverLastSeen;
+    visibility !== serverVisibility || showOnlineStatus !== serverOnline || showLastSeen !== serverLastSeen ||
+    fields.income !== serverFields.income || fields.birthDetails !== serverFields.birthDetails;
 
   // Hydrate from the loaded profile (these columns ride on the profile record).
   // The first load always hydrates; after that a refetch (a background refresh, an
@@ -153,6 +176,7 @@ export default function PrivacySettingsScreen() {
     setVisibility(serverVisibility);
     setShowOnlineStatus(serverOnline);
     setShowLastSeen(serverLastSeen);
+    setFields(serverFields);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
@@ -162,7 +186,7 @@ export default function PrivacySettingsScreen() {
       // Write the saved values into the cache first so `dirty` clears at once;
       // otherwise Save re-enables until the refetch below lands.
       queryClient.setQueryData<Profile>(queryKeys.me, (old) =>
-        old ? ({ ...old, ...settings } as Profile) : old,
+        old ? ({ ...old, ...settings, fieldVisibility: { ...(old as ProfileWithPrivacy).fieldVisibility, ...settings.fieldVisibility } } as Profile) : old,
       );
       // The profile is cached under two keys (`me` and `myProfile`); Settings and
       // Home read the second, so refreshing only one leaves them on the old values.
@@ -205,7 +229,7 @@ export default function PrivacySettingsScreen() {
   };
 
   const save = () => {
-    mutation.mutate({ profileVisibility: visibility, showOnlineStatus, showLastSeen });
+    mutation.mutate({ profileVisibility: visibility, showOnlineStatus, showLastSeen, fieldVisibility: fields });
   };
 
   if (isLoading) {
@@ -266,6 +290,36 @@ export default function PrivacySettingsScreen() {
               ? 'Anyone on TricityMatch can view your full profile.'
               : 'Only people you have matched with can view your full profile.'}
           </Text>
+
+          {/* Details shared: income and birth details each get their own level */}
+          {FIELD_GROUPS.map(({ key, label, hint }) => (
+            <View key={key} style={styles.fieldBlock}>
+              <Text variant="headline" color="fgStrong" style={styles.sectionTitle} accessibilityRole="header">
+                {label}
+              </Text>
+              <View style={styles.segment} accessibilityRole="radiogroup" accessibilityLabel={`Who can see your ${label.toLowerCase()}`}>
+                {FIELD_LEVELS.map(({ key: level, label: levelLabel }) => {
+                  const active = fields[key] === level;
+                  return (
+                    <PressableScale
+                      key={level}
+                      style={[styles.segmentBtn, { minHeight: segmentHeight }, active && styles.segmentBtnActive]}
+                      onPress={() => edit((v: FieldLevel) => setFields((f) => ({ ...f, [key]: v })))(level)}
+                      haptic
+                      testID={`field-${key}-${level}`}
+                      accessibilityLabel={levelLabel}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Text variant="subhead" color={active ? 'primary' : 'textSecondary'}>{levelLabel}</Text>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+              <Text variant="footnote" color="textSecondary" style={styles.hint}>{hint}</Text>
+            </View>
+          ))}
 
           {/* Toggles */}
           <View style={styles.toggleCard}>
@@ -340,6 +394,7 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.xl,
   },
+  fieldBlock: { marginTop: spacing.xs },
   toggleCard: {
     backgroundColor: c.surfaceCard,
     borderRadius: borderRadius.md,

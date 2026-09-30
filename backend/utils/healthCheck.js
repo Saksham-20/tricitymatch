@@ -165,12 +165,12 @@ const checkDiskSpace = async () => {
 /**
  * Basic liveness check - is the app running?
  */
+// Public (no auth): process id and uptime are not part of the answer to "is it
+// alive?" and are useful only to someone probing the host.
 const livenessCheck = () => {
   return {
     status: STATUS.HEALTHY,
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    pid: process.pid
+    timestamp: new Date().toISOString()
   };
 };
 
@@ -190,9 +190,22 @@ const readinessCheck = async (redisClient = null) => {
       ? STATUS.DEGRADED
       : STATUS.HEALTHY;
 
+  // The readiness route is public (load balancers and the container healthcheck
+  // call it), so it reports only each dependency's status. The driver's error
+  // text and pool sizes stay in the authenticated /health/full report.
+  const publicChecks = Object.fromEntries(
+    Object.entries(checks).map(([name, c]) => [name, { status: c.status }])
+  );
+  if (checks.database.status === STATUS.UNHEALTHY || checks.redis.status === STATUS.UNHEALTHY) {
+    require('../middlewares/logger').log.error('Readiness check failing', {
+      database: checks.database.error || checks.database.status,
+      redis: checks.redis.error || checks.redis.status,
+    });
+  }
+
   return {
     status: overallStatus,
-    checks,
+    checks: publicChecks,
     timestamp: new Date().toISOString()
   };
 };

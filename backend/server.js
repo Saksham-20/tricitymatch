@@ -38,6 +38,7 @@ const initializeSocket = require('./socket/socketHandler');
 
 // Import monitoring utilities
 const { initRedis, close: closeCache } = require('./utils/cache');
+const { attachRedisAdapter } = require('./utils/socketAdapter');
 const { initQueues, scheduleCleanupJobs, closeQueues } = require('./utils/queue');
 const { metricsMiddleware, setGauge } = require('./utils/metrics');
 const { requestPerformanceMiddleware } = require('./utils/performance');
@@ -281,12 +282,13 @@ if (config.isDevelopment || process.env.ENABLE_SWAGGER === 'true') {
 // Note: Comprehensive health checks are available at /monitoring/health/*
 
 // Simple health check endpoint (for load balancers)
+// Public and unauthenticated: it says the process is up and nothing else. Uptime
+// and environment name were free reconnaissance (restart timing, and whether a
+// target is running a development configuration).
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: config.env
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -348,6 +350,14 @@ const startServer = async () => {
       console.log('✓ Database migrations up to date');
     }
 
+    // Search ranking weights (admin-editable). A failure means the defaults.
+    try {
+      await require('./utils/rankingWeights').initRankingWeights();
+      await require('./utils/rankingExperiment').initRankingExperiment();
+    } catch (error) {
+      console.log('⚠ Ranking weights unavailable — defaults in effect');
+    }
+
     // Warm the admin-editable launch-offer / founding-window settings. Sync
     // reads downstream (getPlanDetails runs inside payment transactions) serve
     // off this cache; a failure here just means regular pricing, never free.
@@ -368,6 +378,9 @@ const startServer = async () => {
     } catch (error) {
       console.log('⚠ Redis not available, using in-memory cache');
     }
+
+    // Relay realtime events between instances (off unless SOCKET_REDIS_ADAPTER=true).
+    attachRedisAdapter(io);
 
     // Initialize background job queues
     try {

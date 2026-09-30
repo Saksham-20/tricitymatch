@@ -29,7 +29,12 @@ const metrics = {
   cacheMisses: 0,
   
   // Rate limit metrics
-  rateLimitHits: 0
+  rateLimitHits: 0,
+
+  // Background jobs: unix seconds of the last successful run per job name, and
+  // the number of jobs waiting across all queues.
+  jobLastSuccess: new Map(),
+  queueWaiting: 0
 };
 
 // Keep only last N duration samples
@@ -99,6 +104,16 @@ const setGauge = (metricName, value) => {
   if (metricName in metrics) {
     metrics[metricName] = value;
   }
+};
+
+/** A background job finished successfully (feeds the missed-run alert). */
+const recordJobSuccess = (jobName, atMs = Date.now()) => {
+  metrics.jobLastSuccess.set(String(jobName), Math.floor(atMs / 1000));
+};
+
+/** Jobs waiting across all queues. */
+const setQueueWaiting = (n) => {
+  metrics.queueWaiting = Number(n) || 0;
 };
 
 /**
@@ -235,6 +250,16 @@ const getPrometheusMetrics = () => {
   lines.push('# TYPE rate_limit_hits_total counter');
   lines.push(`rate_limit_hits_total ${metrics.rateLimitHits}`);
   
+  // Background jobs. Names carry the tricitymatch_ prefix the alert rules use.
+  lines.push('# HELP tricitymatch_job_last_success_timestamp_seconds Unix time of the last successful run of each background job');
+  lines.push('# TYPE tricitymatch_job_last_success_timestamp_seconds gauge');
+  for (const [job, ts] of metrics.jobLastSuccess) {
+    lines.push(`tricitymatch_job_last_success_timestamp_seconds{job="${job.replace(/[^a-zA-Z0-9_-]/g, '_')}"} ${ts}`);
+  }
+  lines.push('# HELP tricitymatch_queue_waiting_total Jobs waiting across all queues');
+  lines.push('# TYPE tricitymatch_queue_waiting_total gauge');
+  lines.push(`tricitymatch_queue_waiting_total ${metrics.queueWaiting}`);
+
   // Process metrics
   const memory = process.memoryUsage();
   lines.push('# HELP process_memory_heap_bytes Process heap memory');
@@ -338,6 +363,8 @@ module.exports = {
   recordError,
   setGauge,
   recordCacheAccess,
+  recordJobSuccess,
+  setQueueWaiting,
   getLatencyStats,
   getPrometheusMetrics,
   getJsonMetrics,

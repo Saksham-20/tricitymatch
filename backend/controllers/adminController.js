@@ -23,10 +23,16 @@ const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
+const { buildModerationHistory } = require('../utils/moderationHistory');
+const { csvCell } = require('../utils/csv');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
+const { marriageableAgeProblem } = require('../constants/marriageableAge');
+const { invoiceBlocker } = require('../utils/invoiceEligibility');
+const { recordRefund } = require('../utils/paymentRefunds');
 const { notify } = require('../utils/notifyUser');
 const { sendVerificationApproved, sendVerificationRejected, sendSupportReply } = require('../utils/email');
+const { fingerprintOf } = require('../utils/verificationFingerprint');
 const {
   ADMIN_SCOPES,
   ALL_SCOPES,
@@ -236,6 +242,23 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
     throw createError.notFound('User not found');
   }
 
+  // Staff accounts are managed through Admins & Roles, and never by themselves.
+  // This route used to change ANY account's status: a support sub-admin holding
+  // only `users` could ban an admin (or the last super_admin), and an admin could
+  // deactivate their own account and lock the site out of administration.
+  if (user.id === req.user.id) {
+    throw createError.badRequest('You cannot change the status of your own account');
+  }
+  if (user.role !== 'user') {
+    if (!FULL_ACCESS_ROLES.includes(req.user.role) && !scopesFor(req.user).includes('team')) {
+      throw createError.forbidden('Only an admin who manages the team can change a staff account');
+    }
+    if (rankOf(user.role) > rankOf(req.user.role)) {
+      throw createError.forbidden(`You cannot modify a ${user.role} account`);
+    }
+    if (status !== 'active') await assertNotLastFullAdmin(user, 'user');
+  }
+
   const previousStatus = user.status;
   user.status = status;
   await user.save();
@@ -252,6 +275,48 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
     message: 'User status updated',
     user
   });
+});
+
+// @route   PUT /api/admin/users/:userId/identity
+// @desc    Correct a member's date of birth and/or gender (locked to members once
+//          onboarding completes). Support-only, reason required, audited, and the
+//          new pair must still satisfy the marriageable-age rule.
+// @access  Private/Admin (scope: users)
+exports.changeMemberIdentity = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { dateOfBirth, gender, reason } = req.body;
+
+  if (dateOfBirth === undefined && gender === undefined) {
+    throw createError.badRequest('Provide dateOfBirth and/or gender');
+  }
+  if (typeof reason !== 'string' || reason.trim().length < 10) {
+    throw createError.badRequest('A reason of at least 10 characters is required for the audit trail');
+  }
+
+  const profile = await Profile.findOne({ where: { userId } });
+  if (!profile) throw createError.notFound('Profile not found');
+
+  const previous = { dateOfBirth: profile.dateOfBirth, gender: profile.gender };
+  const nextGender = gender !== undefined ? gender : profile.gender;
+  const nextDob = dateOfBirth !== undefined ? dateOfBirth : profile.dateOfBirth;
+  if (gender !== undefined && !['male', 'female', 'other'].includes(gender)) {
+    throw createError.badRequest('Invalid gender');
+  }
+  const problem = marriageableAgeProblem(nextGender, nextDob);
+  if (problem) throw createError.badRequest(problem);
+
+  if (gender !== undefined) profile.gender = gender;
+  if (dateOfBirth !== undefined) profile.dateOfBirth = new Date(dateOfBirth);
+  await profile.save();
+
+  logAudit('member_identity_changed', req.user.id, {
+    targetUserId: userId,
+    reason: reason.trim(),
+    previous,
+    next: { dateOfBirth: profile.dateOfBirth, gender: profile.gender },
+  });
+
+  res.json({ success: true, message: 'Member identity updated', profile: { gender: profile.gender, dateOfBirth: profile.dateOfBirth } });
 });
 
 // @route   GET /api/admin/verifications
@@ -313,11 +378,35 @@ exports.updateVerification = asyncHandler(async (req, res) => {
     throw createError.notFound('Verification not found');
   }
 
+  // A reviewer cannot rule on their own selfie. Otherwise anyone holding the
+  // `verifications` scope could badge themselves.
+  if (verification.userId === req.user.id) {
+    throw createError.forbidden('You cannot review your own verification');
+  }
+
+  // Approval vouches for the profile as it is NOW: record what was compared, so a
+  // later photo or name change withdraws the badge (utils/verificationFingerprint).
+  let approvedFingerprint = null;
+  if (status === 'approved') {
+    const memberProfile = await Profile.findOne({
+      where: { userId: verification.userId },
+      attributes: ['profilePhoto', 'firstName', 'lastName', 'dateOfBirth', 'gender'],
+    });
+    if (!memberProfile?.profilePhoto) {
+      throw createError.badRequest('This member has no profile photo to compare the selfie with');
+    }
+    approvedFingerprint = fingerprintOf(memberProfile);
+  }
+
   const previousStatus = verification.status;
   verification.status = status;
   verification.adminNotes = safeAdminNotes;
+  // verifiedAt/verifiedBy record WHEN and BY WHOM the decision was made, for any
+  // decision (the moderation-safety stats read them that way). Member-facing
+  // output only reports verifiedAt for an approved verification.
   verification.verifiedAt = new Date();
   verification.verifiedBy = req.user.id;
+  verification.approvedFingerprint = approvedFingerprint;
   await verification.save();
 
   // Audit log
@@ -412,13 +501,16 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // and no payment id, so summing on amount alone reported comped plans as
     // money that was never taken. razorpayPaymentId also carries the Google
     // Play purchase token, so store purchases still count.
-    Subscription.sum('amount', {
+    // Net of refunds: a partly refunded plan only counts what was kept.
+    Subscription.findOne({
+      attributes: [[sequelize.literal('COALESCE(SUM("amount" - "refundedAmount"), 0)'), 'total']],
       where: {
         status: 'active',
         razorpayPaymentId: { [Op.ne]: null },
         createdAt: { [Op.gte]: startOfMonth },
       },
-    }),
+      raw: true,
+    }).then((row) => Number(row?.total) || 0),
 
     // Pending verification requests
     Verification.count({ where: { status: 'pending' } }),
@@ -439,7 +531,7 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // Monthly revenue for last 6 months
     sequelize.query(
       `SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon YY') AS month,
-              SUM(amount)::float AS amount
+              SUM(amount - "refundedAmount")::float AS amount
        FROM "Subscriptions"
        WHERE "createdAt" >= :sixMonthsAgo AND status = 'active'
          AND "razorpayPaymentId" IS NOT NULL
@@ -503,9 +595,13 @@ exports.getReports = asyncHandler(async (req, res) => {
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
   const { status } = req.query;
-  const VALID_REPORT_STATUSES = ['pending', 'reviewed', 'dismissed'];
+  // Every status the workflow can write. The allowlist used to stop at
+  // pending/reviewed/dismissed, so the queue's Reviewing and Resolved tabs
+  // silently returned everything.
+  const VALID_REPORT_STATUSES = ['pending', 'reviewing', 'reviewed', 'resolved', 'dismissed'];
   const where = {};
   if (status && VALID_REPORT_STATUSES.includes(status)) where.status = status;
+  if (['urgent', 'normal'].includes(req.query.priority)) where.priority = req.query.priority;
 
   const { count, rows: reports } = await Report.findAndCountAll({
     where,
@@ -523,7 +619,8 @@ exports.getReports = asyncHandler(async (req, res) => {
         include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
       },
     ],
-    order: [['createdAt', 'DESC']],
+    // 'urgent' sorts after 'normal', so DESC puts urgent reports first.
+    order: [['priority', 'DESC'], ['createdAt', 'DESC']],
     limit,
     offset,
   });
@@ -545,7 +642,7 @@ exports.getReports = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 exports.updateReport = asyncHandler(async (req, res) => {
   const { reportId } = req.params;
-  const { status, adminNotes } = req.body;
+  const { status, adminNotes, assignToMe } = req.body;
 
   const validStatuses = ['reviewing', 'resolved', 'reviewed', 'dismissed'];
   if (!validStatuses.includes(status)) {
@@ -560,6 +657,10 @@ exports.updateReport = asyncHandler(async (req, res) => {
   report.adminNotes = adminNotes || null;
   report.reviewedBy = req.user.id;
   report.reviewedAt = new Date();
+  // Owner of the case: whoever picks it up (or asks to) holds it until someone
+  // else does — a queue with no owner is a queue where everyone assumes another
+  // person has it.
+  if (assignToMe || status === 'reviewing') report.assignedTo = req.user.id;
   await report.save();
 
   logAudit('report_status_changed', req.user.id, { reportId, previous, status });
@@ -666,7 +767,22 @@ exports.getUser = asyncHandler(async (req, res) => {
     attributes: ['id', 'reason', 'status', 'createdAt'],
   });
 
+  // Opening a member's full record is itself a privileged read.
+  logAudit('member_record_viewed', req.user.id, { targetUserId: userId });
+
   res.json({ success: true, user, reports });
+});
+
+// @route   GET /api/v1/admin/users/:userId/moderation-history
+// @desc    Reports, photo holds, appeals and staff actions for one member
+// @access  Private/Admin (scope: reports)
+exports.getModerationHistory = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const exists = await User.count({ where: { id: userId } });
+  if (!exists) throw createError.notFound('User not found');
+  const history = await buildModerationHistory(userId);
+  logAudit('moderation_history_viewed', req.user.id, { targetUserId: userId });
+  res.json({ success: true, ...history });
 });
 
 // @route   PUT /api/admin/users/:userId/subscription
@@ -821,12 +937,7 @@ exports.exportUsers = asyncHandler(async (req, res) => {
   });
   await attachActivePlans(users);
 
-  const esc = (value) => {
-    if (value === null || value === undefined) return '';
-    const str = String(value);
-    // A name containing a comma or a quote must not shift every later column.
-    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-  };
+  const esc = csvCell;
 
   const header = ['Name', 'Email', 'Phone', 'City', 'Gender', 'Role', 'Status', 'Plan', 'Has photo', 'Joined'];
   const lines = [header.join(',')];
@@ -1170,7 +1281,7 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
        TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month,
        "planType",
        COUNT(*)::int AS count,
-       SUM(amount)::float AS revenue
+       SUM(amount - "refundedAmount")::float AS revenue
      FROM "Subscriptions"
      WHERE status IN ('active', 'expired')
        AND amount > 0
@@ -1185,8 +1296,8 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
   const [totals] = await sequelize.query(
     `SELECT
        COUNT(*)::int AS total_transactions,
-       SUM(amount)::float AS total_revenue,
-       AVG(amount)::float AS avg_transaction
+       SUM(amount - "refundedAmount")::float AS total_revenue,
+       AVG(amount - "refundedAmount")::float AS avg_transaction
      FROM "Subscriptions"
      WHERE status IN ('active', 'expired') AND amount > 0
        AND "razorpayPaymentId" IS NOT NULL`,
@@ -1194,17 +1305,7 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
   );
 
   if (format === 'csv') {
-    // Sanitize CSV fields against formula injection. Excel and Sheets also treat
-    // a leading TAB or CR as a formula lead-in, so they belong in the prefix set;
-    // and any cell is then RFC4180-quoted so a value containing a comma, quote or
-    // newline cannot break out into a new column or row. Today every column here
-    // is a date, an enum or a number, but this function is the kind of thing that
-    // gets reused for a user-supplied column later.
-    const csvSafe = (v) => {
-      const raw = String(v == null ? '' : v);
-      const guarded = /^[=+\-@|\t\r]/.test(raw) ? `'${raw}` : raw;
-      return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
-    };
+    const csvSafe = csvCell;
     const rows = ['Month,Plan,Transactions,Revenue'];
     monthlyRevenue.forEach(r => {
       rows.push([csvSafe(r.month), csvSafe(r.planType), csvSafe(r.count), csvSafe(r.revenue)].join(','));
@@ -1243,12 +1344,8 @@ exports.adminGetInvoice = asyncHandler(async (req, res) => {
   // Same rule as the member-facing endpoint: no receipt for a ₹0 grant, and
   // none for an order that was created but never paid. An admin handing a
   // member a PDF for money that never arrived is worse than no PDF.
-  if (!subscription.amount || parseFloat(subscription.amount) === 0) {
-    throw createError.badRequest('Invoice not available for a free or granted plan');
-  }
-  if (subscription.status === 'pending' && !subscription.razorpayPaymentId) {
-    throw createError.badRequest('This payment was never completed, so there is no invoice for it');
-  }
+  const blocked = invoiceBlocker(subscription);
+  if (blocked) throw createError.badRequest(blocked);
 
   generateInvoicePDF(res, {
     subscription,
@@ -1344,6 +1441,20 @@ exports.refundSubscription = asyncHandler(async (req, res) => {
     reason,
     razorpayRefundId: refund.id,
   });
+
+  // Record it on the subscription now (the webhook's refund.processed will find
+  // it already recorded and do nothing). Best-effort: the refund has happened at
+  // the gateway either way, and the webhook is the safety net if this fails.
+  try {
+    await recordRefund({
+      paymentId: subscription.razorpayPaymentId,
+      refundId: refund.id,
+      amountPaise,
+      source: 'admin',
+    });
+  } catch (err) {
+    log.error('Could not record refund on the subscription', { error: err.message, subscriptionId: subscription.id });
+  }
 
   if (subscription.User?.id) {
     await notify(
@@ -1793,6 +1904,7 @@ exports.createSuccessStory = asyncHandler(async (req, res) => {
     throw createError.badRequest('coupleNames and quote are required');
   }
   const story = await SuccessStory.create(data);
+  logAudit('success_story_created', req.user.id, { storyId: story.id });
   res.status(201).json({ success: true, story });
 });
 
@@ -1802,7 +1914,9 @@ exports.createSuccessStory = asyncHandler(async (req, res) => {
 exports.updateSuccessStory = asyncHandler(async (req, res) => {
   const story = await SuccessStory.findByPk(req.params.id);
   if (!story) throw createError.notFound('Story not found');
+  const previous = story.status;
   await story.update(sanitizeStoryInput(req.body));
+  logAudit('success_story_updated', req.user.id, { storyId: story.id, previousStatus: previous, status: story.status });
   res.json({ success: true, story });
 });
 
@@ -1813,6 +1927,7 @@ exports.deleteSuccessStory = asyncHandler(async (req, res) => {
   const story = await SuccessStory.findByPk(req.params.id);
   if (!story) throw createError.notFound('Story not found');
   await story.destroy();
+  logAudit('success_story_deleted', req.user.id, { storyId: req.params.id });
   res.json({ success: true, message: 'Story deleted' });
 });
 
@@ -1986,6 +2101,66 @@ exports.updateLaunchOffer = asyncHandler(async (req, res) => {
     state: getOfferState(),
     founding: getFoundingState(),
   });
+});
+
+// @route   GET /api/v1/admin/ranking-weights
+// @desc    Current search ranking weights, the defaults, and the allowed ranges
+// @access  Admin (ranking scope)
+exports.getRankingWeights = asyncHandler(async (req, res) => {
+  const { getWeights, DEFAULT_WEIGHTS, LIMITS, FACTOR_LABELS } = require('../utils/rankingWeights');
+  res.json({ success: true, weights: getWeights(), defaults: DEFAULT_WEIGHTS, limits: LIMITS, labels: FACTOR_LABELS });
+});
+
+// @route   PUT /api/v1/admin/ranking-weights
+// @desc    Save search ranking weights (or reset with { reset: true })
+// @access  Admin (ranking scope)
+exports.updateRankingWeights = asyncHandler(async (req, res) => {
+  const { saveWeights, resetWeights } = require('../utils/rankingWeights');
+  let weights;
+  try {
+    weights = req.body?.reset === true
+      ? await resetWeights(req.user.id)
+      : await saveWeights(req.body?.weights, req.user.id);
+  } catch (err) {
+    if (err.statusCode === 400) throw createError.badRequest(err.message);
+    throw err;
+  }
+  logAudit('ranking_weights_updated', req.user.id, { weights, reset: req.body?.reset === true });
+  res.json({ success: true, weights });
+});
+
+// @route   GET /api/v1/admin/ranking-experiment
+// @desc    The running (or last) ranking experiment and what each arm did
+// @access  Admin (ranking scope)
+exports.getRankingExperiment = asyncHandler(async (req, res) => {
+  const exp = require('../utils/rankingExperiment');
+  const stored = await exp.readStored();
+  const results = stored ? await exp.results(stored) : null;
+  res.json({
+    success: true,
+    experiment: stored,
+    variantWeights: stored ? exp.variantWeights(stored.overrides) : null,
+    results,
+    maxShare: exp.MAX_SHARE,
+  });
+});
+
+// @route   PUT /api/v1/admin/ranking-experiment
+// @desc    Start an experiment, or stop it with { stop: true }
+// @access  Admin (ranking scope)
+exports.updateRankingExperiment = asyncHandler(async (req, res) => {
+  const exp = require('../utils/rankingExperiment');
+  let experiment;
+  try {
+    experiment = req.body?.stop === true
+      ? await exp.stopExperiment(req.user.id)
+      : await exp.saveExperiment(req.body?.experiment, req.user.id);
+  } catch (err) {
+    if (err.statusCode === 400) throw createError.badRequest(err.message);
+    throw err;
+  }
+  logAudit(req.body?.stop === true ? 'ranking_experiment_stopped' : 'ranking_experiment_started', req.user.id, { experiment });
+  res.json({ success: true, experiment });
 });
 
 // @route   POST /api/v1/admin/contact-messages/:id/reply

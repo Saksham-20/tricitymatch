@@ -20,8 +20,10 @@ export const queryKeys = {
   myProfile:    ['profile', 'me'] as const,
   groupThread:  (groupId: string) => ['chat', 'group', groupId] as const,
   familyGroups: ['chat', 'family-groups'] as const,
+  groupInvitations: ['chat', 'group-invitations'] as const,
   guardianLinks:    ['guardian', 'links'] as const,
   guardianCandidates: ['guardian', 'candidates'] as const,
+  guardianInvites:  ['guardian', 'invites'] as const,
   guardianMatches:  (candidateId: string) => ['guardian', 'matches', candidateId] as const,
   guardianShortlist:(candidateId: string) => ['guardian', 'shortlist', candidateId] as const,
 };

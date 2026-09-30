@@ -10,6 +10,7 @@ const cookie = require('cookie');
 const config = require('../config/env');
 const { log, logSecurityEvent } = require('../middlewares/logger');
 const { hasChatAccess } = require('../utils/entitlements');
+const { isBlockedBetween } = require('../utils/blocks');
 
 // Socket rate limiting map
 const socketRateLimits = new Map();
@@ -138,9 +139,11 @@ const authenticateSocket = async (socket, next) => {
   }
 };
 
-// Verify mutual match between users
+// Verify mutual match between users. A block in either direction severs the
+// relationship for every socket purpose, whatever the Match row still says.
 const verifyMutualMatch = async (userId1, userId2) => {
   try {
+    if (await isBlockedBetween(userId1, userId2)) return false;
     const match = await Match.findOne({
       where: {
         [Op.or]: [
@@ -159,6 +162,45 @@ const verifyMutualMatch = async (userId1, userId2) => {
 // Generate consistent room ID for two users
 const getRoomId = (userId1, userId2) => {
   return [userId1, userId2].sort().join('_room_');
+};
+
+const ROOM_SEPARATOR = '_room_';
+
+// Parse a client-supplied room id into the OTHER participant, or null.
+//
+// The room string used to be split on the separator and joined verbatim after
+// checking only ONE of its parts, so a member with a mutual match to X could
+// join `X_room_Y` — a conversation they are not in — and receive its live
+// messages, edits, deletes and reactions. A room is now valid only when it is
+// exactly two UUIDs, one of them the caller, in canonical (sorted) order; the
+// server then joins the room it derived itself, never the string it was sent.
+const parseRoomId = (roomId, callerId) => {
+  if (typeof roomId !== 'string') return null;
+  const parts = roomId.split(ROOM_SEPARATOR);
+  if (parts.length !== 2) return null;
+  const [a, b] = parts;
+  if (!UUID_RE.test(a) || !UUID_RE.test(b) || a === b) return null;
+  if (a !== callerId && b !== callerId) return null;
+  if (getRoomId(a, b) !== roomId) return null;
+  return a === callerId ? b : a;
+};
+
+// Wrap an async socket handler. socket.io does not catch a rejected handler:
+// it surfaces as an unhandledRejection, which server.js treats as fatal, so ONE
+// malformed emit from ANY authenticated socket (a `typing` with no payload, a
+// non-string id) used to take the whole API process down.
+const guarded = (socket, eventName, handler) => async (...args) => {
+  try {
+    await handler(...args);
+  } catch (error) {
+    log.error(`Socket handler failed: ${eventName}`, {
+      userId: socket.userId,
+      error: error && error.message,
+    });
+    try {
+      socket.emit('error', { code: 'SOCKET_ERROR', message: 'Request could not be processed' });
+    } catch { /* socket already gone */ }
+  }
 };
 
 // Store interval reference for cleanup
@@ -223,62 +265,50 @@ const initializeSocket = (io) => {
     socket.join(`user_${userId}`);
 
     // ==================== JOIN ROOM ====================
-    socket.on('join-room', async (roomId) => {
-      try {
-        // Rate limit check
-        if (!checkRateLimit(socket.id, 'join-room')) {
-          socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' });
-          return;
-        }
-
-        if (!(await ensureStillActive(socket))) return;
-
-        if (typeof roomId !== 'string') {
-          socket.emit('error', { code: 'INVALID_ROOM', message: 'Invalid room ID' });
-          return;
-        }
-
-        // Extract user IDs from roomId
-        const userIds = roomId.split('_room_');
-        const otherUserId = userIds.find(id => id !== userId);
-
-        if (!otherUserId) {
-          socket.emit('error', { code: 'INVALID_ROOM', message: 'Invalid room ID' });
-          return;
-        }
-
-        // Verify mutual match
-        const isMutual = await verifyMutualMatch(userId, otherUserId);
-        if (!isMutual) {
-          socket.emit('error', { code: 'NOT_MATCHED', message: 'You can only chat with mutual matches' });
-          return;
-        }
-
-        // Verify chat entitlement through the SAME function the REST gate uses
-        // (utils/entitlements) so the socket and `requireChatAccess` can never
-        // disagree about who may chat — including under FREE_CHAT_FOR_MUTUALS.
-        // The mutual check above already ran, so this only decides paid-vs-flag.
-        const access = await hasChatAccess(userId, otherUserId);
-        if (!access.allowed) {
-          socket.emit('error', { code: 'PREMIUM_REQUIRED', message: 'Chat requires an active premium subscription' });
-          return;
-        }
-
-        socket.join(roomId);
-        
-        if (config.isDevelopment) {
-          console.log(`User ${userId} joined room ${roomId}`);
-        }
-      } catch (error) {
-        log.error('Join room error', { userId, error: error.message });
-        socket.emit('error', { code: 'JOIN_FAILED', message: 'Failed to join room' });
+    socket.on('join-room', guarded(socket, 'join-room', async (roomId) => {
+      if (!checkRateLimit(socket.id, 'join-room')) {
+        socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' });
+        return;
       }
-    });
+
+      if (!(await ensureStillActive(socket))) return;
+
+      const otherUserId = parseRoomId(roomId, userId);
+      if (!otherUserId) {
+        socket.emit('error', { code: 'INVALID_ROOM', message: 'Invalid room ID' });
+        return;
+      }
+
+      // Verify mutual match (also false when either side has blocked the other)
+      const isMutual = await verifyMutualMatch(userId, otherUserId);
+      if (!isMutual) {
+        socket.emit('error', { code: 'NOT_MATCHED', message: 'You can only chat with mutual matches' });
+        return;
+      }
+
+      // Verify chat entitlement through the SAME function the REST gate uses
+      // (utils/entitlements) so the socket and `requireChatAccess` can never
+      // disagree about who may chat — including under FREE_CHAT_FOR_MUTUALS.
+      // The mutual check above already ran, so this only decides paid-vs-flag.
+      const access = await hasChatAccess(userId, otherUserId);
+      if (!access.allowed) {
+        socket.emit('error', { code: 'PREMIUM_REQUIRED', message: 'Chat requires an active premium subscription' });
+        return;
+      }
+
+      // Join the room the SERVER derived from the two verified participants.
+      const room = getRoomId(userId, otherUserId);
+      socket.join(room);
+
+      if (config.isDevelopment) {
+        console.log(`User ${userId} joined room ${room}`);
+      }
+    }));
 
     // ==================== LEAVE ROOM ====================
     socket.on('leave-room', (roomId) => {
       if (!checkRateLimit(socket.id, 'leave-room')) return;
-      if (typeof roomId !== 'string') return;
+      if (typeof roomId !== 'string' || roomId.length > 100) return;
       socket.leave(roomId);
       
       if (config.isDevelopment) {
@@ -296,13 +326,16 @@ const initializeSocket = (io) => {
     socket.on('send-message', () => {});
 
     // ==================== TYPING INDICATOR ====================
-    socket.on('typing', async ({ receiverId, isTyping }) => {
+    socket.on('typing', guarded(socket, 'typing', async (payload) => {
       // Rate limit check
       if (!checkRateLimit(socket.id, 'typing')) {
         return; // Silently drop typing events when rate limited
       }
 
-      if (!receiverId) return;
+      // Destructuring an absent payload throws; a hostile client controls the
+      // shape entirely, so read it defensively and shape-check before any query.
+      const { receiverId, isTyping } = payload && typeof payload === 'object' ? payload : {};
+      if (typeof receiverId !== 'string' || !UUID_RE.test(receiverId)) return;
       if (!(await ensureStillActive(socket))) return;
 
       // SOCK-6: only relay typing to a mutual match — otherwise any user could
@@ -313,9 +346,9 @@ const initializeSocket = (io) => {
       const roomId = getRoomId(userId, receiverId);
       socket.to(roomId).emit('user_typing', {
         userId,
-        isTyping
+        isTyping: isTyping === true,
       });
-    });
+    }));
 
     // ==================== MESSAGE EDITED ====================
     // ES1: edits are broadcast authoritatively by the REST PUT handler
@@ -354,7 +387,7 @@ const initializeSocket = (io) => {
           socket.emit('error', { code: 'INVALID_GROUP', message: 'Invalid group id' });
           return;
         }
-        const membership = await GroupMember.findOne({ where: { groupId, userId } });
+        const membership = await GroupMember.findOne({ where: { groupId, userId, status: 'active' } });
         if (!membership) {
           logSecurityEvent('group_join_denied', { userId, groupId });
           socket.emit('error', { code: 'NOT_A_MEMBER', message: 'You are not a member of this group' });
@@ -378,7 +411,7 @@ const initializeSocket = (io) => {
     socket.on('group-send-message', () => {});
 
     // ==================== ONLINE STATUS ====================
-    socket.on('get-online-status', async (userIds) => {
+    socket.on('get-online-status', guarded(socket, 'get-online-status', async (userIds) => {
       // Rate limit check
       if (!checkRateLimit(socket.id, 'get-online-status')) {
         socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many requests. Please slow down.' });
@@ -388,7 +421,9 @@ const initializeSocket = (io) => {
       if (!Array.isArray(userIds)) return;
       if (!(await ensureStillActive(socket))) return;
 
-      const requested = userIds.slice(0, 50).filter((id) => typeof id === 'string');
+      // UUID-shaped only: the ids feed uuid columns, and a malformed one made
+      // Postgres reject the whole query.
+      const requested = userIds.slice(0, 50).filter((id) => typeof id === 'string' && UUID_RE.test(id));
       if (requested.length === 0) {
         socket.emit('online-status', {});
         return;
@@ -436,7 +471,7 @@ const initializeSocket = (io) => {
       }
 
       socket.emit('online-status', onlineStatuses);
-    });
+    }));
 
     // ==================== DISCONNECT ====================
     socket.on('disconnect', (reason) => {

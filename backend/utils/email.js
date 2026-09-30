@@ -258,6 +258,36 @@ const templates = {
     text: `Welcome to TricityMatch, ${name}! Complete your profile to get started: ${config.server.frontendUrl}/profile/edit`,
   }),
 
+  guardianInvite: (guardianName, candidateName, link) => ({
+    subject: `${candidateName || 'A member'} has invited you as a guardian — TricityMatch`,
+    html: brandLayout({
+      eyebrow: 'Guardian invite',
+      preheader: 'You have been asked to view a profile as a family guardian.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(guardianName || 'there')},</p>
+        <p><strong>${escapeHtml(candidateName || 'A TricityMatch member')}</strong> has asked you to be their family guardian on TricityMatch.</p>
+        ${panel(`As a guardian you can <strong>see</strong> their shortlist and mutual matches. You cannot message anyone or change their profile, and either of you can end this at any time.`)}
+        <p style="color:${BRAND.soft};font-size:13px;">This invite expires in 7 days. If you were not expecting it, ignore this email — nothing happens unless you accept.</p>`,
+      cta: { href: link, label: 'Review invite' },
+    }),
+    text: `${candidateName || 'A TricityMatch member'} has invited you to be their family guardian on TricityMatch. Review the invite (expires in 7 days): ${link} — you can see their shortlist and mutual matches, nothing more. Ignore this email if you were not expecting it.`,
+  }),
+
+  accountHandover: (ownerName, managerName, link) => ({
+    subject: 'Your TricityMatch profile is ready for you',
+    html: brandLayout({
+      eyebrow: 'Profile hand-over',
+      preheader: 'Someone set up a TricityMatch profile for you. Take it over.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(ownerName || 'there')},</p>
+        <p>${escapeHtml(managerName || 'A family member')} created a TricityMatch profile on your behalf. Use the button below to take it over: you will choose your own password, and this email address becomes your sign-in.</p>
+        ${panel(`<strong>This link works once and expires in 7 days.</strong> Once you take over, the person who set it up is signed out and can no longer open it.`, { accent: BRAND.gold })}
+        <p style="color:${BRAND.soft};font-size:13px;">If you do not want this profile, ignore this email and it will not be handed over.</p>`,
+      cta: { href: link, label: 'Take over my profile' },
+    }),
+    text: `${managerName || 'A family member'} created a TricityMatch profile for you. Take it over (one use, expires in 7 days): ${link} — you choose your own password. Ignore this email if you do not want it.`,
+  }),
+
   passwordReset: (name, resetLink) => ({
     subject: 'Reset your password — TricityMatch',
     html: brandLayout({
@@ -618,11 +648,19 @@ const sendWinBack = (to, name, newProfiles, unsub) =>
 
 const sendAddPhotoNudge = (to, name, unsub) => sendEmail(to, 'addPhotoNudge', { name, unsub });
 
+const sendGuardianInvite = (to, guardianName, candidateName, link) =>
+  sendEmail(to, 'guardianInvite', { guardianName, candidateName, link });
+
+const sendAccountHandover = (to, ownerName, managerName, link) =>
+  sendEmail(to, 'accountHandover', { ownerName, managerName, link });
+
 module.exports = {
   sendEmail,
   sendPaymentFailed,
   sendCheckoutFollowUp,
   sendRenewalReminder,
+  sendGuardianInvite,
+  sendAccountHandover,
   sendMembershipExpired,
   sendWinBack,
   sendAddPhotoNudge,

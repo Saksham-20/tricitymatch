@@ -33,6 +33,13 @@ router.post('/success-stories', contactLimiter, successStoryValidation, handleVa
 // Public contact form (no auth) — stores enquiry + best-effort emails support
 router.post('/contact', contactLimiter, contactValidation, handleValidationErrors, submitContact);
 
+// Appeal against a suspension (no auth — a suspended member cannot sign in).
+// Same answer whatever the email is, so it is not an account-existence oracle.
+router.post('/appeals', contactLimiter,
+  require('express-validator').body('email').isEmail().withMessage('Please provide a valid email'),
+  require('express-validator').body('statement').isString().isLength({ min: 20, max: 2000 }).withMessage('Please write 20-2000 characters'),
+  handleValidationErrors, require('../controllers/appealController').submitAppeal);
+
 // Traffic-stage beacon. Public by necessity — the stages it reports happen
 // before an account exists, which is exactly the half of the funnel nothing
 // else can see.

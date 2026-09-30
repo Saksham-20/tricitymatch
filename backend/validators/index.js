@@ -4,6 +4,9 @@
  */
 
 const { body, param, query } = require('express-validator');
+const { NAME_PATTERN } = require('../constants/names');
+const { canonicalEmail } = require('../utils/emailAddress');
+const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
 const { PURCHASABLE_PLANS } = require('../constants/plans');
 
@@ -51,9 +54,31 @@ const signupValidation = [
     .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail()
+    .customSanitizer(canonicalEmail)
     .isLength({ max: 255 })
     .withMessage('Email must not exceed 255 characters'),
+  // Single-use proofs returned by verify-otp; the controller checks them.
+  // Explicit, request-borne acceptance. Signup used to stamp consent for ANY
+  // request that got this far, so a direct API call or an old client was recorded
+  // as having accepted a checkbox it never saw.
+  body('termsAccepted')
+    .custom((v) => v === true || v === 'true')
+    .withMessage('Please accept the Terms and Privacy Policy to create an account'),
+  body('marketingConsent').optional({ nullable: true }).isBoolean().withMessage('marketingConsent must be true or false'),
+  body('creatingFor')
+    .optional({ checkFalsy: true })
+    .isIn(['self', 'other', 'parent', 'sibling', 'child', 'relative', 'friend'])
+    .withMessage('Invalid value for who the profile is for'),
+  body('relationshipToProfile')
+    .optional({ checkFalsy: true })
+    .isIn(['parent', 'sibling', 'child', 'relative', 'friend', 'other'])
+    .withMessage('Invalid relationship'),
+  body('subjectAttestation').optional({ nullable: true }).isBoolean().withMessage('subjectAttestation must be true or false'),
+  body(['emailProof', 'phoneProof'])
+    .optional({ checkFalsy: true })
+    .isString()
+    .isLength({ max: 128 })
+    .withMessage('Invalid verification proof'),
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters')
@@ -68,15 +93,15 @@ const signupValidation = [
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('First name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('First name can only contain letters, spaces, hyphens, and apostrophes'),
+    .matches(NAME_PATTERN)
+    .withMessage('First name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('lastName')
     .optional({ checkFalsy: true })
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('Last name can only contain letters, spaces, hyphens, and apostrophes'),
+    .matches(NAME_PATTERN)
+    .withMessage('Last name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('phone')
     .optional({ checkFalsy: true })
     .matches(/^[6-9]\d{9}$/)
@@ -89,16 +114,9 @@ const signupValidation = [
     .optional()
     .isISO8601()
     .withMessage('Invalid date of birth format')
-    .custom((value) => {
-      const dob = new Date(value);
-      const today = new Date();
-      const age = Math.floor((today - dob) / (365.25 * 24 * 60 * 60 * 1000));
-      if (age < 18) {
-        throw new Error('You must be at least 18 years old');
-      }
-      if (age > 120) {
-        throw new Error('Invalid date of birth');
-      }
+    .custom((value, { req }) => {
+      const problem = marriageableAgeProblem(req.body.gender, value);
+      if (problem) throw new Error(problem);
       return true;
     }),
   // Member invite token (Phase S). Optional and non-blocking BY DESIGN: an
@@ -126,13 +144,18 @@ const loginValidation = [
   body('password')
     .notEmpty()
     .withMessage('Password is required'),
+  body('mfaCode')
+    .optional({ checkFalsy: true })
+    .isString()
+    .isLength({ max: 20 })
+    .withMessage('Invalid code'),
 ];
 
 const changeEmailRequestValidation = [
   body('newEmail')
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail()
+    .customSanitizer(canonicalEmail)
     .isLength({ max: 255 }),
   body('password')
     .optional({ checkFalsy: true })
@@ -143,7 +166,7 @@ const changeEmailVerifyValidation = [
   body('newEmail')
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .customSanitizer(canonicalEmail),
   body('code')
     .isLength({ min: 4, max: 6 })
     .withMessage('Code must be 4–6 digits')
@@ -155,7 +178,7 @@ const forgotPasswordValidation = [
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .customSanitizer(canonicalEmail),
 ];
 
 const resetPasswordValidation = [
@@ -168,6 +191,20 @@ const resetPasswordValidation = [
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+];
+
+// Phone-OTP password reset (accounts that have no verified email to receive a link).
+const phoneResetRequestValidation = [
+  body('phone').isString().withMessage('Enter your mobile number').isLength({ min: 10, max: 16 }).withMessage('Enter a valid mobile number'),
+];
+
+const phoneResetSubmitValidation = [
+  body('phone').isString().isLength({ min: 10, max: 16 }).withMessage('Enter a valid mobile number'),
+  body('code').isString().isNumeric().isLength({ min: 4, max: 6 }).withMessage('Enter the code we sent'),
+  body('password')
+    .isString().isLength({ min: 8, max: 100 }).withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/)
     .withMessage('Password must contain uppercase, lowercase, number, and special character'),
 ];
 
@@ -198,21 +235,21 @@ const updateProfileValidation = [
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('First name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('First name can only contain letters'),
+    .matches(NAME_PATTERN)
+    .withMessage('First name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('lastName')
     .optional()
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be 2-50 characters')
-    .matches(/^[a-zA-Z\s'-]+$/)
-    .withMessage('Last name can only contain letters'),
+    .matches(NAME_PATTERN)
+    .withMessage('Last name can only contain letters, spaces, hyphens, apostrophes and full stops'),
   body('gender')
     .optional()
     .isIn(['male', 'female', 'other'])
     .withMessage('Invalid gender'),
   body('dateOfBirth')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Invalid date format'),
   body('height')
@@ -347,6 +384,24 @@ const updateProfileValidation = [
   body('numberOfSiblings')
     .optional({ checkFalsy: true })
     .isInt({ min: 0, max: 20 }).withMessage('Number of siblings must be 0-20').toInt(),
+  body('brothers')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 0, max: 15 }).withMessage('Brothers must be 0-15').toInt(),
+  body('sisters')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 0, max: 15 }).withMessage('Sisters must be 0-15').toInt(),
+  body('willingToRelocate')
+    .optional({ checkFalsy: true })
+    .isIn(['yes', 'no', 'maybe']).withMessage('Invalid relocation answer'),
+  body('livingArrangement')
+    .optional({ checkFalsy: true })
+    .isIn(['with_family', 'alone', 'with_roommates']).withMessage('Invalid living arrangement'),
+  body('familyValues')
+    .optional({ checkFalsy: true })
+    .isIn(['traditional', 'moderate', 'liberal']).withMessage('Invalid family values'),
+  body('nationality').optional().trim().isLength({ max: 60 }).withMessage('Nationality too long'),
+  body('institution').optional().trim().isLength({ max: 120 }).withMessage('Institution too long'),
+  body('industry').optional().trim().isLength({ max: 60 }).withMessage('Industry too long'),
   body('degree').optional().trim().isLength({ max: 100 }).withMessage('Degree too long'),
   body('preferredEducation').optional().trim().isLength({ max: 100 }).withMessage('Preferred education too long'),
   body('preferredProfession').optional().trim().isLength({ max: 100 }).withMessage('Preferred profession too long'),
@@ -592,6 +647,26 @@ const updateUserStatusValidation = [
     .withMessage('Invalid status'),
 ];
 
+// Accounts an admin creates on someone's behalf were validated by nothing: the
+// controllers only checked the fields were present, so "a" was an acceptable
+// password for a member AND for an admin. Members get the signup rule; staff
+// accounts (whose compromise is far worse) also need 12 characters.
+const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/;
+const strongPassword = (minLength) => body('password')
+  .isString().withMessage('Password is required')
+  .isLength({ min: minLength, max: 100 }).withMessage(`Password must be at least ${minLength} characters`)
+  .matches(STRONG_PASSWORD).withMessage('Password must contain uppercase, lowercase, number, and special character');
+
+const adminCreateUserValidation = [
+  body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
+  strongPassword(8),
+];
+
+const adminCreateAdminValidation = [
+  body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
+  strongPassword(12),
+];
+
 const updateVerificationValidation = [
   isUUID('verificationId', 'param'),
   body('status')
@@ -683,7 +758,7 @@ const contactValidation = [
     .escape(),
   body('email')
     .isEmail().withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .customSanitizer(canonicalEmail),
   body('phone')
     .optional({ checkFalsy: true })
     .trim()
@@ -711,6 +786,8 @@ module.exports = {
   changeEmailVerifyValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  phoneResetRequestValidation,
+  phoneResetSubmitValidation,
   refreshTokenValidation,
   // Profile
   updateProfileValidation,
@@ -732,6 +809,8 @@ module.exports = {
   verifyPaymentValidation,
   // Admin
   updateUserStatusValidation,
+  adminCreateUserValidation,
+  adminCreateAdminValidation,
   updateVerificationValidation,
   adminSearchValidation,
   // Verification

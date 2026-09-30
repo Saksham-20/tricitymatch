@@ -25,6 +25,7 @@ const ADMIN_SCOPES = {
   subscriptions: 'Grant or change a member plan, download invoices',
   verifications: 'Approve or reject photo verifications',
   pricing: 'Edit launch pricing, offers and the founding window',
+  ranking: 'Tune how search results are ranked',
   revenue: 'View revenue reports and export them',
   reports: 'Work the abuse/report queue',
   support: 'Read and reply to the support inbox',
@@ -44,6 +45,10 @@ const ADMIN_ROLES = ['sub_admin', 'admin', 'super_admin'];
 
 // Roles that implicitly hold every scope.
 const FULL_ACCESS_ROLES = ['admin', 'super_admin'];
+
+// Everyone who can act on other members' data or money. These hold the second
+// factor when STAFF_MFA_REQUIRED is on.
+const STAFF_ROLES = [...ADMIN_ROLES, 'marketing_manager', 'marketing'];
 
 /**
  * Effective scopes for a user row. `admin`/`super_admin` get everything;
@@ -73,6 +78,7 @@ module.exports = {
   DEFAULT_SUB_ADMIN_SCOPES,
   ADMIN_ROLES,
   FULL_ACCESS_ROLES,
+  STAFF_ROLES,
   scopesFor,
   hasScope,
   sanitizeScopes,

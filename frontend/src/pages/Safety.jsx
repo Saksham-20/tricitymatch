@@ -41,7 +41,7 @@ const PILLARS = [
     icon: FiFlag,
     n: '04',
     t: 'Reporting & blocking',
-    body: 'Use Report and Block on any profile. Reports are reviewed by our safety team within 24 hours. Blocked users cannot view your profile or contact you.',
+    body: 'Use Report and Block on any profile. Our safety team reviews every report, and urgent ones — threats, underage members, scams — go to the front of the queue. Blocked members cannot view your profile or contact you.',
     points: [],
   },
 ];
@@ -63,7 +63,7 @@ export default function Safety() {
             Meet with <span className="text-primary-700 italic">confidence.</span>
           </h1>
           <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            We do the groundwork on verification and privacy so you can focus on finding the right person.
+            We build the verification and privacy tools so you can focus on finding the right person.
             Here's how we keep the platform — and you — safe.
           </p>
         </div>

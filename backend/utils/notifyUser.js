@@ -7,15 +7,24 @@
  * @param {string} title    — Short title
  * @param {string} body     — Longer description
  * @param {string} [relatedId] — Optional UUID of related entity
+ * @param {{ category?: string }} [opts] — a member-controllable category (see
+ *   utils/notificationPrefs). When the recipient has switched it off, NOTHING is
+ *   created, pushed or emitted. Omit for notices a member cannot opt out of.
  */
 
 const { Notification, User } = require('../models');
 const { getIO } = require('./socket');
 const { log } = require('../middlewares/logger');
 const { sendPushNotification } = require('./fcm');
+const { isEnabled } = require('./notificationPrefs');
 
-const notify = async (userId, type, title, body, relatedId = null) => {
+const notify = async (userId, type, title, body, relatedId = null, opts = {}) => {
   try {
+    if (opts.category) {
+      const recipient = await User.findByPk(userId, { attributes: ['id', 'notificationPrefs'] });
+      if (recipient && !isEnabled(recipient.notificationPrefs, opts.category)) return null;
+    }
+
     const notification = await Notification.create({ userId, type, title, body, relatedId });
 
     // Emit real-time event if user has an active socket connection

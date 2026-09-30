@@ -5,20 +5,23 @@
  */
 
 const express = require('express');
-const { param } = require('express-validator');
+const { param, body } = require('express-validator');
 const router = express.Router();
-const crypto = require('crypto');
 const { auth } = require('../middlewares/auth');
 const { asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { GuardianLink, Profile, User, Match } = require('../models');
 const { Op } = require('sequelize');
-const { log } = require('../middlewares/logger');
+const { log, logAudit } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
-const { matchActionLimiter, sensitiveActionLimiter } = require('../middlewares/security');
+const { matchActionLimiter, sensitiveActionLimiter, passwordResetSubmitLimiter } = require('../middlewares/security');
+const { canonicalEmail } = require('../utils/emailAddress');
+const invites = require('../utils/guardianInvites');
+const { issueHandover, completeHandover } = require('../utils/accountHandover');
+const { sendGuardianInvite, sendAccountHandover, sendSecurityAlert } = require('../utils/email');
 
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 
-const MAX_GUARDIANS = 3;
+const { MAX_GUARDIANS } = invites;
 
 // :linkId and :candidateId are uuid columns; an arbitrary string otherwise
 // reaches Postgres and returns 500 with the driver's error text.
@@ -26,11 +29,11 @@ const uuidParam = (name) => [param(name).isUUID(4).withMessage(`Invalid ${name}`
 
 // ─── Candidate routes ─────────────────────────────────────────────────────────
 
-// GET /guardian/my-guardians — list active guardians I invited
+// GET /guardian/my-guardians — guardians I invited (accepted or still waiting)
 router.get('/my-guardians', auth, asyncHandler(async (req, res) => {
+  await invites.expireStaleInvites({ candidateId: req.user.id });
   const links = await GuardianLink.findAll({
-    where: { candidateId: req.user.id, status: ['pending', 'active'] },
-    include: [{ model: User, as: 'Guardian', attributes: ['id', 'email'] }],
+    where: { candidateId: req.user.id, ...invites.liveLinks() },
     order: [['createdAt', 'ASC']],
   });
 
@@ -43,15 +46,21 @@ router.get('/my-guardians', auth, asyncHandler(async (req, res) => {
     relationship: l.relationship,
     status: l.status,
     addedAt: l.createdAt,
+    // Only meaningful while the invite is waiting.
+    expiresAt: l.status === 'pending' ? l.inviteExpiresAt : null,
   }));
 
   res.json({ success: true, guardians });
 }));
 
-// POST /guardian/invite — invite a guardian by email
+// POST /guardian/invite — invite a guardian by email.
+//
+// The guardian must accept. The reply is the same whether or not the address
+// belongs to a member, so this cannot be used to probe who is registered.
 router.post('/invite', auth, matchActionLimiter, asyncHandler(async (req, res) => {
-  const { email, name, phone, relationship } = req.body;
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const { name, phone, relationship } = req.body;
+  const email = canonicalEmail(typeof req.body.email === 'string' ? req.body.email : '');
+  if (!email || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new AppError('Valid email required', 400);
   }
   // Optional creator metadata (set when a guardian sets up a candidate profile
@@ -62,70 +71,110 @@ router.post('/invite', auth, matchActionLimiter, asyncHandler(async (req, res) =
     relationship: relationship ? String(relationship).trim().slice(0, 40) : null,
   };
 
-  // Count active/pending guardians
+  // Expired pendings must not hold a slot.
+  await invites.expireStaleInvites({ candidateId: req.user.id });
+
   const activeCount = await GuardianLink.count({
-    where: { candidateId: req.user.id, status: ['pending', 'active'] },
+    where: { candidateId: req.user.id, ...invites.liveLinks() },
   });
   if (activeCount >= MAX_GUARDIANS) {
     throw new AppError(`Maximum ${MAX_GUARDIANS} guardians allowed`, 400);
   }
 
-  // Check for duplicate
   const existing = await GuardianLink.findOne({
-    where: { candidateId: req.user.id, inviteEmail: email, status: ['pending', 'active'] },
+    where: { candidateId: req.user.id, inviteEmail: email, ...invites.liveLinks() },
   });
   if (existing) throw new AppError('This email is already a guardian or has a pending invite', 409);
 
-  const guardianUser = await User.findOne({ where: { email } });
+  const guardianUser = await invites.findMemberByEmail(email);
 
-  // Cannot be your own guardian. The resolve-invite path already guards this;
-  // the direct (on-platform) branch must too, else a member could invite their
-  // own email and burn a guardian slot on a self-link.
+  // Cannot be your own guardian.
   if (guardianUser && guardianUser.id === req.user.id) {
     throw new AppError('Cannot be your own guardian', 400);
   }
 
-  if (guardianUser) {
-    // User already on platform — link directly as active
-    const link = await GuardianLink.create({
-      candidateId: req.user.id,
-      guardianId: guardianUser.id,
-      inviteEmail: email,
-      status: 'active',
-      ...creatorMeta,
-    });
+  const memberGuardian = guardianUser && guardianUser.status === 'active' ? guardianUser : null;
+  const { token, hash } = invites.newInviteToken();
+  const link = await GuardianLink.create({
+    candidateId: req.user.id,
+    // A member is pointed at directly so the invite shows up in their account;
+    // a non-member is matched by (verified) email when they join.
+    guardianId: memberGuardian ? memberGuardian.id : null,
+    inviteEmail: email,
+    inviteToken: hash,
+    inviteExpiresAt: new Date(Date.now() + invites.INVITE_TTL_MS),
+    status: 'pending',
+    ...creatorMeta,
+  });
 
+  const candidateName = await invites.displayName(req.user.id);
+  if (memberGuardian) {
     await notify(
-      guardianUser.id,
+      memberGuardian.id,
       'system',
-      'Guardian access granted',
-      'You have been given read-only guardian access to a candidate\'s profile on TricityMatch.'
+      'Guardian invite',
+      `${candidateName || 'A member'} asked you to be their family guardian. Open Guardian to accept or decline.`,
+      link.id
     );
+  }
+  // Mail everyone, member or not: the reply gives nothing away and a member who
+  // is not looking at the app still finds out.
+  sendGuardianInvite(email, creatorMeta.guardianName, candidateName, invites.inviteLink(token))
+    .catch((err) => log.warn('Guardian invite email failed (invite still stored)', { linkId: link.id, error: err.message }));
 
-    log.info('Guardian linked directly', { candidateId: req.user.id, guardianId: guardianUser.id });
-    res.json({ success: true, message: 'Guardian linked', method: 'direct', linkId: link.id });
-  } else {
-    // Not on platform — store pending invite with expiry token
-    const token = crypto.randomBytes(32).toString('hex');
-    const link = await GuardianLink.create({
-      candidateId: req.user.id,
-      guardianId: null,
-      inviteEmail: email,
-      inviteToken: token,
-      inviteExpiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
-      status: 'pending',
-      ...creatorMeta,
-    });
+  logAudit('guardian_invited', req.user.id, { linkId: link.id });
+  log.info('Guardian invite created', { candidateId: req.user.id, linkId: link.id });
+  res.json({
+    success: true,
+    message: 'Invite sent. It stays open for 7 days and they choose whether to accept.',
+    method: 'pending',
+    linkId: link.id,
+  });
+}));
 
-    log.info('Guardian invite created (user not on platform)', { candidateId: req.user.id, email });
-    res.json({
-      success: true,
-      message: 'Invite stored — they will see the link when they join TricityMatch',
-      method: 'pending',
-      linkId: link.id,
+// GET /guardian/pending-invites — invites waiting for ME to accept or decline
+router.get('/pending-invites', auth, asyncHandler(async (req, res) => {
+  const me = await User.findByPk(req.user.id, { attributes: ['id', 'email', 'emailVerified'] });
+  const links = await invites.pendingInvitesFor(me);
+  const result = [];
+  for (const l of links) {
+    result.push({
+      linkId: l.id,
+      candidateName: await invites.displayName(l.candidateId),
+      relationship: l.relationship,
+      expiresAt: l.inviteExpiresAt,
+      invitedAt: l.createdAt,
     });
   }
+  res.json({ success: true, invites: result });
 }));
+
+const respondToInvite = (decision) => [
+  auth, sensitiveActionLimiter, uuidParam('linkId'),
+  asyncHandler(async (req, res) => {
+    const me = await User.findByPk(req.user.id, { attributes: ['id', 'email', 'emailVerified'] });
+    const link = await GuardianLink.findOne({
+      where: { id: req.params.linkId, status: 'pending', inviteExpiresAt: { [Op.gt]: new Date() } },
+    });
+    // One answer for "no such invite", "not yours" and "expired": an id that is
+    // not addressed to you tells you nothing.
+    if (!link || !invites.isInvitee(link, me)) throw new AppError('Invite not found or expired', 404);
+    if (link.candidateId === me.id) throw new AppError('Cannot be your own guardian', 400);
+
+    if (decision === 'accept') {
+      await link.update({ guardianId: me.id, inviteToken: null, status: 'active' });
+      const guardianName = (await invites.displayName(me.id)) || 'Your guardian';
+      await notify(link.candidateId, 'system', 'Guardian accepted', `${guardianName} accepted your guardian invite.`, link.id);
+      logAudit('guardian_accepted', me.id, { linkId: link.id, candidateId: link.candidateId });
+      return res.json({ success: true, message: 'You are now a guardian', candidateId: link.candidateId });
+    }
+    await link.update({ guardianId: me.id, inviteToken: null, status: 'revoked' });
+    logAudit('guardian_declined', me.id, { linkId: link.id, candidateId: link.candidateId });
+    res.json({ success: true, message: 'Invite declined' });
+  }),
+];
+router.post('/:linkId/accept', ...respondToInvite('accept'));
+router.post('/:linkId/decline', ...respondToInvite('decline'));
 
 // DELETE /guardian/:linkId — revoke guardian access
 //
@@ -245,8 +294,9 @@ router.get('/candidate/:candidateId/shortlisted', auth, uuidParam('candidateId')
   res.json({ success: true, shortlisted: result });
 }));
 
-// POST /guardian/resolve-invite/:token — called when a new user joins and has a pending invite
-// (triggered from authController after signup, optional — links pending invites to new account)
+// POST /guardian/resolve-invite/:token — the emailed link. The web Guardian page
+// calls it once the invited person is signed in (or has just signed up), which
+// is the acceptance: the token only ever went to the invited address.
 // Round 1 added this file's sensitiveActionLimiter import and the log-redaction
 // prefix, but never applied the limiter to the route — the import sat unused and
 // the endpoint kept only the global 200/15m apiLimiter. The :token here is a
@@ -257,7 +307,7 @@ router.post('/resolve-invite/:token', auth, sensitiveActionLimiter, asyncHandler
 
   const link = await GuardianLink.findOne({
     where: {
-      inviteToken: token,
+      inviteToken: invites.hashInviteToken(token),
       status: 'pending',
       inviteExpiresAt: { [Op.gt]: new Date() },
     },
@@ -269,7 +319,55 @@ router.post('/resolve-invite/:token', auth, sensitiveActionLimiter, asyncHandler
   if (link.candidateId === req.user.id) throw new AppError('Cannot be your own guardian', 400);
 
   await link.update({ guardianId: req.user.id, inviteToken: null, status: 'active' });
+  await notify(link.candidateId, 'system', 'Guardian accepted', 'Your guardian invite was accepted.', link.id);
+  logAudit('guardian_accepted', req.user.id, { linkId: link.id, candidateId: link.candidateId, via: 'token' });
   res.json({ success: true, message: 'Guardian access accepted', candidateId: link.candidateId });
 }));
+
+// ─── Hand-over of a profile someone else set up ───────────────────────────────
+
+// POST /guardian/handover — the person who runs this account names its owner.
+// Re-entering the password stops a borrowed or hijacked session from giving the
+// account away.
+router.post('/handover', auth, sensitiveActionLimiter,
+  body('email').isEmail().withMessage('A valid email is required'),
+  body('password').isString().isLength({ min: 1, max: 128 }),
+  body('ownerName').optional({ nullable: true }).isString().isLength({ max: 120 }),
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const manager = await User.findByPk(req.user.id);
+    if (!manager.password) throw new AppError('Set a password on this account before handing it over.', 400);
+    if (!(await manager.comparePassword(req.body.password))) throw new AppError('Password is incorrect', 401);
+
+    const managerName = await invites.displayName(manager.id);
+    const { link, email } = await issueHandover({ managerUser: manager, ownerEmail: req.body.email, managerName });
+    const ownerName = req.body.ownerName ? String(req.body.ownerName).trim().slice(0, 120) : '';
+
+    await sendAccountHandover(email, ownerName, managerName, link).catch((err) => {
+      log.warn('Hand-over email failed', { userId: manager.id, error: err.message });
+      throw new AppError('We could not send the email. Check the address and try again.', 502);
+    });
+    logAudit('account_handover_started', manager.id, {});
+    res.json({ success: true, message: 'We sent the owner a link. It works once and expires in 7 days.' });
+  }));
+
+// POST /guardian/handover/complete — the owner opens the emailed link (no
+// session: they do not have an account yet) and chooses their own password.
+router.post('/handover/complete', passwordResetSubmitLimiter,
+  body('token').isString().isLength({ min: 32, max: 128 }),
+  body('password')
+    .isString().isLength({ min: 8, max: 100 }).withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/).withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const result = await completeHandover({ token: req.body.token, password: req.body.password });
+    if (result.previousEmail) {
+      sendSecurityAlert(result.previousEmail, '', 'Profile handed over',
+        'The profile you set up on TricityMatch was taken over by its owner. You no longer have access to it.', new Date().toISOString())
+        .catch(() => {});
+    }
+    logAudit('account_handover_completed', result.userId, {});
+    res.json({ success: true, message: 'Your profile is yours now. Sign in with your email and new password.' });
+  }));
 
 module.exports = router;

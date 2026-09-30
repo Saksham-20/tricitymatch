@@ -20,6 +20,9 @@ const TEST_EMAIL_SQL = `(u.email ILIKE '%@example.com' OR u.email ILIKE '%@loadt
 const SIGNALS = {
   duplicatePhoto: { weight: 40, label: 'Uses a photo also used by another account' },
   duplicatePhone: { weight: 35, label: 'Phone number shared with another account' },
+  // Weaker than a shared photo: a parent's profile for a child and the child's
+  // own can legitimately coincide, so this raises a review, not a ban.
+  duplicateIdentity: { weight: 20, label: 'Same name, birth date and gender as another account' },
   massOutreach: { weight: 30, label: '25+ likes in the first 24 hours' },
   messageBlast: { weight: 30, label: 'Messaged 15+ different people in the first 48 hours' },
   reported: { weight: 25, label: 'Reported by 2+ members' },
@@ -47,6 +50,18 @@ exports.getSuspicious = asyncHandler(async (req, res) => {
          GROUP BY 1 HAVING count(*) > 1
        )
      ),
+     identity_dupes AS (
+       SELECT p."userId" FROM "Profiles" p
+       JOIN "Users" pu ON pu.id = p."userId" AND pu.status IN ('active', 'pending')
+       WHERE p."dateOfBirth" IS NOT NULL AND btrim(coalesce(p."firstName", '')) <> ''
+         AND (lower(btrim(p."firstName")), lower(btrim(coalesce(p."lastName", ''))), p."dateOfBirth", p.gender) IN (
+           SELECT lower(btrim(p2."firstName")), lower(btrim(coalesce(p2."lastName", ''))), p2."dateOfBirth", p2.gender
+           FROM "Profiles" p2
+           JOIN "Users" pu2 ON pu2.id = p2."userId" AND pu2.status IN ('active', 'pending')
+           WHERE p2."dateOfBirth" IS NOT NULL AND btrim(coalesce(p2."firstName", '')) <> ''
+           GROUP BY 1, 2, 3, 4 HAVING count(DISTINCT p2."userId") > 1
+         )
+     ),
      outreach AS (
        SELECT u.id FROM "Users" u
        JOIN "Matches" m ON m."userId" = u.id AND m.action = 'like' AND m."createdAt" < u."createdAt" + INTERVAL '24 hours'
@@ -65,6 +80,7 @@ exports.getSuspicious = asyncHandler(async (req, res) => {
             p."firstName", p."lastName", p.city,
             (u.id IN (SELECT "userId" FROM photo_dupes)) AS "duplicatePhoto",
             (u.id IN (SELECT id FROM phone_dupes))       AS "duplicatePhone",
+            (u.id IN (SELECT "userId" FROM identity_dupes)) AS "duplicateIdentity",
             (u.id IN (SELECT id FROM outreach))          AS "massOutreach",
             (u.id IN (SELECT id FROM blast))             AS "messageBlast",
             (u.id IN (SELECT id FROM reported))          AS "reported"
@@ -73,6 +89,7 @@ exports.getSuspicious = asyncHandler(async (req, res) => {
      WHERE u.role = 'user' AND u.status IN ('active', 'pending')
        ${includeTest ? '' : `AND NOT ${TEST_EMAIL_SQL}`}
        AND (u.id IN (SELECT "userId" FROM photo_dupes) OR u.id IN (SELECT id FROM phone_dupes)
+         OR u.id IN (SELECT "userId" FROM identity_dupes)
          OR u.id IN (SELECT id FROM outreach) OR u.id IN (SELECT id FROM blast)
          OR u.id IN (SELECT id FROM reported))
      LIMIT 300`,

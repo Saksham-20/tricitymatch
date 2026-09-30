@@ -98,11 +98,13 @@ describe('RefreshToken storage', () => {
 describe('message retention job', () => {
   it('does not filter on deletedAt, a column Messages does not have', () => {
     const src = require('fs').readFileSync(
-      path.resolve(__dirname, '../../utils/queue.js'), 'utf8'
+      path.resolve(__dirname, '../../utils/messageRetention.js'), 'utf8'
     );
     // The job silently matched nothing for its entire life because it filtered
     // on a soft-delete column that was never added to the Messages table.
     expect(src).not.toMatch(/deletedAt:\s*\{\s*\[Op\.lt\]/);
-    expect(src).toMatch(/MESSAGE_RETENTION_MONTHS/);
+    expect(src).toMatch(/messageRetentionMonths/);
+    // and queue.js delegates to it rather than carrying its own copy
+    expect(require('fs').readFileSync(path.resolve(__dirname, '../../utils/queue.js'), 'utf8')).toMatch(/runMessageRetention/);
   });
 });

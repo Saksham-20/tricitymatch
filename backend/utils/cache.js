@@ -166,6 +166,58 @@ const del = async (key) => {
   }
 };
 
+/**
+ * Atomically add one to a counter and return the new value. The TTL is set when
+ * the counter is created and is NOT extended by later increments, so it is a
+ * fixed window. Read-modify-write through get/set is not safe for a budget:
+ * parallel requests all read the same value and each writes value + 1.
+ */
+const incr = async (key, ttlSeconds) => {
+  if (isRedisAvailable()) {
+    const results = await redisClient
+      .multi()
+      .set(key, '0', 'EX', ttlSeconds, 'NX')
+      .incr(key)
+      .exec();
+    const [err, value] = results[1];
+    if (err) throw err;
+    return Number(value);
+  }
+  // Single-threaded: no await between read and write, so this is atomic.
+  const now = Date.now();
+  const expiresAt = memoryCacheTTL.get(key);
+  let current = memoryCache.get(key);
+  if (current === undefined || (expiresAt && now > expiresAt)) {
+    current = 0;
+    memoryCacheTTL.set(key, now + ttlSeconds * 1000);
+  }
+  current = Number(current) + 1;
+  memoryCache.set(key, current);
+  return current;
+};
+
+/**
+ * Read a value and delete it in one step, so two parallel callers cannot both
+ * consume the same single-use secret. Returns null for the loser.
+ */
+const take = async (key) => {
+  try {
+    if (isRedisAvailable()) {
+      const value = await redisClient.getdel(key);
+      return value ? JSON.parse(value) : null;
+    }
+    const cached = memoryCache.get(key);
+    const ttl = memoryCacheTTL.get(key);
+    memoryCache.delete(key);
+    memoryCacheTTL.delete(key);
+    if (cached === undefined || (ttl && Date.now() > ttl)) return null;
+    return cached;
+  } catch (error) {
+    log.error('Cache take error', { key, error: error.message });
+    return null;
+  }
+};
+
 // SCAN page size. Large enough that invalidating a user's handful of keys is a
 // couple of round-trips, small enough that no single call blocks Redis.
 const SCAN_BATCH = 500;
@@ -338,6 +390,8 @@ module.exports = {
   get,
   set,
   del,
+  incr,
+  take,
   delPattern,
   getOrSet,
   invalidateUser,

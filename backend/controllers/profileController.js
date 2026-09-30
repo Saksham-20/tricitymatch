@@ -3,7 +3,24 @@
  * Handles user profile management with proper security
  */
 
-const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification } = require('../models');
+const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification, MediaReview } = require('../models');
+const { holdFlaggedPhotos } = require('../utils/imageModeration');
+const { revalidateVerification } = require('../utils/verificationFingerprint');
+
+// Withdraw the photo-verified badge if the photo or name it vouched for changed.
+const recheckVerification = async (userId) => {
+  try {
+    await revalidateVerification(userId, { Verification, Profile, notify, log });
+  } catch (err) {
+    log.error('Verification re-check failed', { error: err.message, userId });
+  }
+};
+const { applyIdentityRules } = require('../utils/identityLock');
+const { blockedIdsFor } = require('../utils/blocks');
+const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
+const { sanitizeMustHaves } = require('../utils/preferenceFit');
+const { applyFieldVisibility, sanitizeFieldVisibility } = require('../constants/fieldVisibility');
+const { getActiveSubscription } = require('../utils/entitlements');
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
@@ -16,6 +33,10 @@ const { generateBiodataPDF, TEMPLATES: BIODATA_TEMPLATES } = require('../utils/b
 const { toProfileCode } = require('../utils/profileCode');
 const { sanitizeSavedSearchList } = require('../utils/savedSearches');
 const { notify } = require('../utils/notifyUser');
+const { withSignedMedia, signMediaUrl, TTL: MEDIA_TTL } = require('../utils/privateMedia');
+
+// Private intro media leaves the server as short-lived URLs only.
+const INTRO_MEDIA = { voiceIntroUrl: MEDIA_TTL.playback, videoIntroUrl: MEDIA_TTL.playback };
 const { trackEvent } = require('../utils/trackEvent');
 
 // Completion milestones and their messages
@@ -151,7 +172,7 @@ exports.getMyProfile = asyncHandler(async (req, res) => {
     await profile.save();
   }
 
-  const payload = profile.get ? profile.get({ plain: true }) : profile.toJSON();
+  const payload = withSignedMedia(profile.get ? profile.get({ plain: true }) : profile.toJSON(), INTRO_MEDIA);
 
   // Own verification state, derived the same way every other surface derives it
   // (an approved Verification row — there is no column). Without it the member's
@@ -192,6 +213,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   const PROFILE_UPDATABLE_FIELDS = PROFILE_EDITABLE_FIELDS;
 
   // Use transaction for data consistency
+  let heldPhotoCount = 0;
   await sequelize.transaction(async (t) => {
     // Build updateData from ONLY allowlisted fields — prevents mass-assignment
     const bodyProfilePhoto = req.body?.profilePhoto;
@@ -215,6 +237,11 @@ exports.updateProfile = asyncHandler(async (req, res) => {
         } else if (arrayFields.includes(field)) {
           // If multer parsed a single appended element, it's a string. Make it an array.
           updateData[field] = typeof value === 'string' ? (value ? [value] : []) : value;
+        } else if (field === 'mustHavePreferences') {
+          updateData[field] = sanitizeMustHaves(value);
+        } else if (field === 'fieldVisibility') {
+          // Merge onto the stored value so changing one group keeps the other.
+          updateData[field] = { ...(profile.fieldVisibility || {}), ...sanitizeFieldVisibility(value) };
         } else if (jsonFields.includes(field)) {
           // If the frontend stringified the object for FormData, parse it back
           if (typeof value === 'string') {
@@ -232,7 +259,8 @@ exports.updateProfile = asyncHandler(async (req, res) => {
             'residenceCountry', 'residenceStatus', 'familyLocation',
             'religion', 'caste', 'subCaste', 'gotra', 'motherTongue', 'placeOfBirth',
             'birthTime', 'rashi', 'nakshatra', 'zodiacSign', 'fatherOccupation', 'motherOccupation',
-            'preferredEducation', 'preferredProfession', 'firstName', 'lastName', 'personalityType'];
+            'preferredEducation', 'preferredProfession', 'firstName', 'lastName', 'personalityType',
+            'nationality', 'institution', 'industry'];
           if (freeTextFields.includes(field) && typeof value === 'string') {
             value = value.replace(/<[^>]*>/g, '').trim();
           }
@@ -254,6 +282,11 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       const v = updateData[key];
       if (v === '' || v === null || v === undefined) delete updateData[key];
     });
+
+    // Age rule (21 men / 18 women / 21 other) and the post-onboarding lock on
+    // date of birth + gender. Runs on the sanitised update so an unchanged
+    // resubmitted value is dropped rather than re-validated.
+    applyIdentityRules(profile, updateData);
 
     // Normalize social connections to the canonical { key: {url, visibility} }
     // shape, dropping unknown platforms and unsafe (non-http) URLs. null clears
@@ -336,6 +369,25 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       }
     }
 
+    // Screen the photos uploaded in THIS request. Flagged ones are held off the
+    // profile (never visible to anyone) and queued for staff; the member is told.
+    const uploadedNow = [
+      ...(req.files?.photos || []).map(getStoredPath),
+      ...(req.files?.profilePhoto || []).map(getStoredPath),
+    ].filter(Boolean);
+    const { held } = await holdFlaggedPhotos({
+      userId: req.user.id,
+      newUrls: [...new Set(uploadedNow)],
+      profilePhoto: finalProfilePhoto,
+      MediaReview,
+      transaction: t,
+    });
+    if (held.length) {
+      heldPhotoCount = held.length;
+      finalPhotos = finalPhotos.filter((u) => !held.includes(u));
+      if (held.includes(finalProfilePhoto)) finalProfilePhoto = finalPhotos[0] || null;
+    }
+
     updateData.photos = finalPhotos;
     updateData.profilePhoto = finalProfilePhoto || null;
 
@@ -380,18 +432,36 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     trackEvent(req.user.id, 'profile_60pct');
   }
 
+  // A changed main photo or name withdraws the photo-verified badge until re-reviewed.
+  await recheckVerification(req.user.id);
+
   // Reload once more so response has latest DB state; send plain object so client gets photos array
   await profile.reload();
-  const payload = profile.get ? profile.get({ plain: true }) : profile.toJSON();
+  const payload = withSignedMedia(profile.get ? profile.get({ plain: true }) : profile.toJSON(), INTRO_MEDIA);
 
   if (process.env.NODE_ENV === 'development' && payload.photos?.length) {
     console.log('[profile] Responding with photos count:', payload.photos.length);
   }
 
+  if (heldPhotoCount > 0) {
+    notify(
+      req.user.id,
+      'system',
+      'A photo is being reviewed',
+      heldPhotoCount === 1
+        ? 'One of your new photos is being checked by our team before it appears on your profile. We will let you know.'
+        : `${heldPhotoCount} of your new photos are being checked by our team before they appear on your profile. We will let you know.`
+    ).catch((err) => log.error('Held-photo notification failed', { error: err.message }));
+  }
+
   res.json({
     success: true,
     profile: payload,
-    message: 'Profile updated successfully'
+    // Photos from this upload that are waiting for a reviewer (0 when none).
+    photosUnderReview: heldPhotoCount,
+    message: heldPhotoCount > 0
+      ? 'Profile updated. Some photos are under review before they go live.'
+      : 'Profile updated successfully'
   });
 });
 
@@ -436,6 +506,8 @@ exports.deletePhoto = asyncHandler(async (req, res) => {
   const completion = calculateCompletion(profileData);
   profile.completionPercentage = completion;
   await profile.save();
+
+  await recheckVerification(req.user.id);
 
   res.json({
     success: true,
@@ -485,6 +557,8 @@ exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
   const completion = calculateCompletion(profileData);
   profile.completionPercentage = completion;
   await profile.save();
+
+  await recheckVerification(req.user.id);
 
   res.json({
     success: true,
@@ -600,12 +674,12 @@ exports.getProfile = asyncHandler(async (req, res) => {
   });
 
   // Check subscription for contact visibility
-  const viewerSubscription = await Subscription.findOne({
-    where: { userId: viewerId, status: 'active' }
-  });
+  // Live paid plan only: the query carries the endDate predicate, so a row that
+  // still says 'active' after its end date (the hourly sweep is cleanup, not
+  // correctness) no longer grants intro media or contact display here.
+  const viewerSubscription = await getActiveSubscription(viewerId);
 
-  const hasPremiumAccess = viewerSubscription &&
-    PAID_PLANS.includes(viewerSubscription.planType);
+  const hasPremiumAccess = Boolean(viewerSubscription);
 
   // Check if contact was already unlocked
   const existingUnlock = await ContactUnlock.findOne({
@@ -647,6 +721,15 @@ exports.getProfile = asyncHandler(async (req, res) => {
 
   // Prepare response with privacy checks
   const profileData = profile.toJSON();
+
+  // Owner-only keys (private settings, quiz answers, the member's own saved
+  // searches) are never useful to another viewer. A member viewing their own
+  // profile through this route still gets everything.
+  if (viewerId !== userId) {
+    // Field-level visibility reads the owner's setting, so it runs first.
+    applyFieldVisibility(profileData, { isMutual, isSelf: false });
+    stripOwnerOnlyKeys(profileData);
+  }
 
   // (Incognito handling moved up — the view is simply not recorded when the
   // viewer browses in incognito mode. See CTRL-1.)
@@ -988,13 +1071,22 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
   const offset = (page - 1) * limit;
 
+  // A member in a block relationship with the viewer is not shown as a viewer.
+  const blockedIds = [...(await blockedIdsFor(userId))];
+
+  const mutualRows = await Match.findAll({ where: { userId, isMutual: true }, attributes: ['matchedUserId'] });
+  const mutualIds = new Set(mutualRows.map(m => m.matchedUserId));
+
   const { count, rows: views } = await ProfileView.findAndCountAll({
-    where: { viewedUserId: userId },
+    where: {
+      viewedUserId: userId,
+      ...(blockedIds.length ? { viewerId: { [Op.notIn]: blockedIds } } : {})
+    },
     include: [{
-      model: User, as: 'Viewer', attributes: ['id'],
+      model: User, as: 'Viewer', attributes: ['id'], where: { status: 'active' },
       include: [{
         model: Profile, where: { isActive: true },
-        attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession']
+        attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
       }]
     }],
     order: [['createdAt', 'DESC']],
@@ -1004,7 +1096,11 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
 
   const validViewers = views
     .filter(v => v.Viewer?.Profile)
-    .map(v => ({ userId: v.viewerId, ...v.Viewer.Profile.toJSON(), viewedAt: v.createdAt }));
+    .map(v => ({
+      userId: v.viewerId,
+      ...redactForViewer(v.Viewer.Profile.toJSON(), { isMutual: mutualIds.has(v.viewerId), hasPaidAccess: true }),
+      viewedAt: v.createdAt
+    }));
 
   res.json({
     success: true,
@@ -1056,13 +1152,20 @@ exports.getRecentlyViewed = asyncHandler(async (req, res) => {
   const profiles = finalIds.length
     ? await Profile.findAll({
         where: { userId: { [Op.in]: finalIds }, isActive: true },
-        attributes: ['userId', 'firstName', 'lastName', 'city', 'profilePhoto', 'gender', 'dateOfBirth', 'education', 'profession'],
+        attributes: ['userId', 'firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession'],
+        // A member who has since been banned or deleted is not shown.
+        include: [{ model: User, attributes: [], where: { status: 'active' }, required: true }],
       })
     : [];
+  const mutualRows = await Match.findAll({ where: { userId, isMutual: true }, attributes: ['matchedUserId'] });
+  const mutualIds = new Set(mutualRows.map(m => m.matchedUserId));
 
   // Preserve recency order + attach viewedAt timestamp
   const lastViewedMap = Object.fromEntries(grouped.map(g => [g.viewedUserId, g.lastViewedAt]));
-  const profileMap = Object.fromEntries(profiles.map(p => [p.userId, p.toJSON()]));
+  const profileMap = Object.fromEntries(profiles.map(p => [
+    p.userId,
+    redactForViewer(p.toJSON(), { isMutual: mutualIds.has(p.userId), hasPaidAccess: false })
+  ]));
   const ordered = finalIds
     .filter(id => profileMap[id])
     .map(id => ({ ...profileMap[id], viewedAt: lastViewedMap[id] }));
@@ -1096,9 +1199,14 @@ exports.getCompatibilityBreakdown = asyncHandler(async (req, res) => {
 });
 
 exports.updatePrivacySettings = asyncHandler(async (req, res) => {
-  const { profileVisibility, showOnlineStatus, showLastSeen } = req.body;
+  const { profileVisibility, showOnlineStatus, showLastSeen, fieldVisibility } = req.body;
   const profile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!profile) throw createError.notFound('Profile not found');
+
+  if (fieldVisibility !== undefined) {
+    // Merge so changing one group keeps the other; unknown groups/levels dropped.
+    profile.fieldVisibility = { ...(profile.fieldVisibility || {}), ...sanitizeFieldVisibility(fieldVisibility) };
+  }
 
   if (profileVisibility !== undefined) {
     const valid = ['everyone', 'matches_only'];
@@ -1116,6 +1224,7 @@ exports.updatePrivacySettings = asyncHandler(async (req, res) => {
     profileVisibility: profile.profileVisibility,
     showOnlineStatus: profile.showOnlineStatus,
     showLastSeen: profile.showLastSeen,
+    fieldVisibility: profile.fieldVisibility || {},
   }});
 });
 
@@ -1141,7 +1250,7 @@ exports.uploadVoiceIntro = asyncHandler(async (req, res) => {
   profile.voiceIntroUrl = audioUrl;
   await profile.save();
 
-  res.json({ success: true, voiceIntroUrl: audioUrl });
+  res.json({ success: true, voiceIntroUrl: signMediaUrl(audioUrl, MEDIA_TTL.playback) });
 });
 
 // @route   DELETE /api/v1/profile/voice-intro
@@ -1186,7 +1295,7 @@ exports.uploadVideoIntro = asyncHandler(async (req, res) => {
   profile.videoIntroUrl = videoUrl;
   await profile.save();
 
-  res.json({ success: true, videoIntroUrl: videoUrl });
+  res.json({ success: true, videoIntroUrl: signMediaUrl(videoUrl, MEDIA_TTL.playback) });
 });
 
 // @route   DELETE /api/v1/profile/video-intro
@@ -1273,9 +1382,12 @@ exports.downloadKundliReport = asyncHandler(async (req, res) => {
   const myProfile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!myProfile) throw createError.notFound('Your profile not found');
 
-  const { profile: theirProfile } = await assertProfileVisible(req.user.id, userId, {
+  const visible = await assertProfileVisible(req.user.id, userId, {
     viewerRole: req.user.role,
   });
+  // The report prints the other member's place of birth: honour their choice.
+  // Nakshatra, rashi and manglik feed the score itself and stay available.
+  const theirProfile = applyFieldVisibility(visible.profile.toJSON(), { isMutual: visible.isMutual, isSelf: visible.isSelf });
 
   const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
   const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
@@ -1354,4 +1466,26 @@ exports.downloadBiodata = asyncHandler(async (req, res) => {
     photoBuffer,
     profileCode: toProfileCode(req.user.id),
   });
+});
+
+
+// @route   POST /api/profile/me/pause
+// @desc    Hide my profile from everyone until I resume it
+// @access  Private
+exports.pauseMyProfile = asyncHandler(async (req, res) => {
+  const { pauseProfile } = require('../utils/accountLifecycle');
+  const result = await pauseProfile(req.user.id);
+  res.json({ success: true, paused: true, pausedAt: result.pausedAt || null });
+});
+
+// @route   POST /api/profile/me/resume
+// @desc    Make my profile visible again
+// @access  Private
+exports.resumeMyProfile = asyncHandler(async (req, res) => {
+  const { resumeProfile } = require('../utils/accountLifecycle');
+  const result = await resumeProfile(req.user.id);
+  if (result.reason === 'deletion_scheduled') {
+    throw createError.conflict('Your account is scheduled for deletion. Cancel the deletion first.', 'DELETION_SCHEDULED');
+  }
+  res.json({ success: true, paused: false });
 });

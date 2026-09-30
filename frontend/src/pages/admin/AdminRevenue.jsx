@@ -14,9 +14,19 @@ const KPI = ({ label, value }) => (
   </div>
 );
 
+// Same rules as the server's utils/csv.js: quote structure characters, and turn a
+// cell that begins like a spreadsheet formula into plain text.
+const csvCell = (v) => {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+  const raw = String(v);
+  const guarded = /^[=+\-@|\t\r]/.test(raw) ? `'${raw}` : raw;
+  return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
+};
+
 function exportCSV(rows) {
   const headers = ['Month', 'Total Revenue (₹)', 'Subscriptions'];
-  const csv = [headers, ...rows.map((r) => [r.month, r.amount, r.count])].map((r) => r.join(',')).join('\n');
+  const csv = [headers, ...rows.map((r) => [r.month, r.amount, r.count])].map((r) => r.map(csvCell).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

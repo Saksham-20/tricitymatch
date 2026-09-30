@@ -27,7 +27,9 @@ const NULLABLE_NONSTRING_FIELDS = [
   'gender', 'skinTone', 'diet', 'smoking', 'drinking',
   'maritalStatus', 'manglikStatus', 'familyType', 'familyStatus',
   // integers
-  'height', 'weight', 'income', 'numberOfChildren', 'numberOfSiblings',
+  'height', 'weight', 'income', 'numberOfChildren', 'numberOfSiblings', 'brothers', 'sisters',
+  // enum-like strings: '' from a form means "not chosen"
+  'willingToRelocate', 'livingArrangement', 'familyValues',
   'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
 ];
 
@@ -50,15 +52,19 @@ const PROFILE_EDITABLE_FIELDS = [
   'placeOfBirth', 'birthTime', 'manglikStatus', 'zodiacSign', 'rashi', 'nakshatra',
   // Family
   'familyType', 'familyStatus', 'fatherOccupation', 'motherOccupation', 'numberOfSiblings',
+  'brothers', 'sisters', 'familyValues', 'livingArrangement',
+  // Extras
+  'nationality', 'willingToRelocate', 'institution', 'industry',
   // Preferences
   'preferredAgeMin', 'preferredAgeMax', 'preferredHeightMin', 'preferredHeightMax',
-  'preferredEducation', 'preferredProfession', 'preferredCity',
+  'preferredEducation', 'preferredProfession', 'preferredCity', 'mustHavePreferences',
   // Rich/JSON
   'personalityValues', 'familyPreferences', 'lifestylePreferences',
   'bio', 'interestTags', 'profilePrompts', 'quizAnswers',
   'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
   // Privacy toggles (already client-editable pre-fix)
   'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch',
+  'fieldVisibility',
 ];
 
 // The validator stripper must additionally let the photo fields through so the

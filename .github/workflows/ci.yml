@@ -20,9 +20,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Was 18.x while the project targets Node 20 (engines >=18, but local dev and
-  # the Docker images are 20). CI must build what production runs.
-  NODE_VERSION: '20.x'
+  # CI must build what production runs: the Docker images are Node 22 (Node 20
+  # reached end of life in April 2026).
+  NODE_VERSION: '22.x'
 
 jobs:
   # ==================== BACKEND TESTS ====================
@@ -70,20 +70,31 @@ jobs:
       - name: Run linting
         run: npm run lint
 
+      # config/env.js is the single source for the connection and reads DB_*, not
+      # TEST_DB_*. With only TEST_DB_* set, migrations ran against the development
+      # defaults (matrimony_dev / password "root") and could never reach the
+      # service container.
       - name: Run database migrations
         run: npm run migrate:test
         env:
           NODE_ENV: test
-          TEST_DB_HOST: localhost
-          TEST_DB_PORT: 5432
-          TEST_DB_NAME: tricitymatch_test
-          TEST_DB_USER: postgres
-          TEST_DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: tricitymatch_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          JWT_SECRET: test-jwt-secret-for-ci-testing-32chars!
+          COOKIE_SECRET: test-cookie-secret-for-ci-testing
+          FRONTEND_URL: http://localhost:3000
 
+      # REQUIRE_DB_TESTS makes an unreachable database a failure, not a skip: the
+      # tests in tests/integration/db (schema parity, match races, payment-id
+      # uniqueness) are only worth having if a green run means they ran.
       - name: Run tests
         run: npm run test:ci
         env:
           NODE_ENV: test
+          REQUIRE_DB_TESTS: '1'
           TEST_DB_HOST: localhost
           TEST_DB_PORT: 5432
           TEST_DB_NAME: tricitymatch_test
@@ -165,6 +176,16 @@ jobs:
       # bumps that would break the mobile app -- so a repo-wide gate would be
       # permanently red and therefore permanently ignored. This gate covers what
       # actually reaches a server or a browser, and it is allowed to fail.
+      # The backend image installs from backend/package-lock.json (its Docker
+      # context cannot see the root lockfile). Fail here, not in the image build,
+      # when package.json and that lockfile disagree.
+      # Run from a copy: inside the repo npm resolves the workspace root instead.
+      - name: Backend image lockfile in sync
+        run: |
+          mkdir "$RUNNER_TEMP/be"
+          cp backend/package.json backend/package-lock.json backend/.npmrc "$RUNNER_TEMP/be/"
+          cd "$RUNNER_TEMP/be" && npm ci --omit=dev --dry-run --ignore-scripts
+
       - name: npm audit (backend production deps)
         run: npm audit --omit=dev --workspace=backend --audit-level=high
 
