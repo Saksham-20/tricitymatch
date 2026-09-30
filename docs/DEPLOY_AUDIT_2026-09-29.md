@@ -1,5 +1,7 @@
 # Deploy runbook: audit branch `fix/audit-p0-2026-09`
 
+**DEPLOYED 2026-09-30** (merge `974da94`, backup `/var/backups/tricitymatch/db-pre-audit-2026-09-30.sql.gz`, rollback HEAD `ebbbcca` recorded in `/var/backups/tricitymatch/pre-audit-deploy-HEAD.txt`). Migrations 000065-000079 applied on boot, `redis-queue` up (noeviction), `redis` on volatile-lru, private-media migration converted 1 asset. Verified: health, health/full 401, plans, legacy tricityshadi API 200, /appeal + /handover 200, co-tenants 200, authenticated smoke (search/vocab/must-haves/login-history/biodata PDF/privacy), logout 401. Two harmless log lines noted: `biodata_downloaded` is not in `EVENT_TYPES` (analytics event dropped) and a Commander MaxListeners warning.
+
 Covers 49 commits (P0, P1, P2 of `docs/AUDIT_2026-09-29/README.md`). Nothing here has been run
 against production. Steps marked **owner** need a person with the server or a third-party console.
 
