@@ -7,7 +7,7 @@ export type AuthStackParamList = {
   Welcome: undefined;
   Login: undefined;
   Signup: undefined;
-  SignupBasics: { contactKind: 'email' | 'phone'; contactValue: string; password: string; proof: string; marketing?: boolean };
+  SignupBasics: { contactKind: 'email' | 'phone'; contactValue: string; password: string; proof: string; marketing?: boolean; referralCode?: string };
   ForgotPassword: undefined;
   ForgotPasswordPhone: undefined;
   ResetPassword: { token: string };

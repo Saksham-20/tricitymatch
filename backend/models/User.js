@@ -175,6 +175,12 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: 0
   },
+  // Short typeable member referral code (migration 000080). Minted lazily by
+  // utils/referral.js; unique where set (partial index `users_referral_code`).
+  referralCode: {
+    type: DataTypes.STRING(16),
+    allowNull: true
+  },
   // Self-FK to the inviting member. ON DELETE SET NULL (migration 000048) so
   // removing an inviter never cascades away the accounts they brought in.
   invitedBy: {

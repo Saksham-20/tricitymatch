@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
 import { planFeatures } from '../utils/planFeatures';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
+import ReferralPanel from '../components/subscription/ReferralPanel';
 import { fadeRise, fade, staggerIndex } from '../utils/animations';
 
 // Gate `whileHover` behind a real pointer (doctrine §8): a touch tap on a
@@ -863,6 +864,9 @@ const Subscription = () => {
   // fail-closed for the same reason as launchOffer.
   const [founding, setFounding] = useState({ open: false });
   const [claimingFounding, setClaimingFounding] = useState(false);
+  // Accepted referral code ({ code, discount, finalPrice, … }) — priced by the
+  // server, sent with create-order, which re-validates it.
+  const [referral, setReferral] = useState(null);
   const [currentSub, setCurrentSub] = useState(null);
   const [loading, setLoading] = useState(true);
   // Distinct from "no plans" — a failed fetch must not silently render as an
@@ -960,7 +964,10 @@ const Subscription = () => {
 
     setProcessingPlan(planType);
     try {
-      const res = await api.post('/subscription/create-order', { planType });
+      const res = await api.post('/subscription/create-order', {
+        planType,
+        ...(referral ? { referralCode: referral.code } : {}),
+      });
       await loadRazorpayScript();
       await openCheckout({
         order: res.data.order,
@@ -984,6 +991,8 @@ const Subscription = () => {
         error.message ||
         'Failed to create order'
       );
+      // A code the server just refused must not stay "applied" on screen.
+      if (referral && error.response?.status === 400) setReferral(null);
       setProcessingPlan(null);
     }
   };
@@ -1132,6 +1141,10 @@ const Subscription = () => {
       },
     ]);
 
+  // The paid tier a referral code is previewed against: the first paid card on
+  // sale. With one plan on sale (the launch setup) that is simply that plan.
+  const paidCheckoutPlan = (gridPlans.find(([key]) => key !== 'free') || [])[0] || null;
+
   // NRI Connect is a segment tier, not a rung on the ladder. Shown to everyone
   // it is just one more card each buyer has to read and rule out, which is the
   // cost every extra option carries. Members who declared NRI status see it;
@@ -1171,6 +1184,15 @@ const Subscription = () => {
           onClaim={handleClaimFounding}
           claiming={claimingFounding}
         />
+
+        {/* Referral code: apply one at checkout, or share your own */}
+        {razorpay.isConfigured && (
+          <ReferralPanel
+            planType={paidCheckoutPlan}
+            applied={referral}
+            onChange={setReferral}
+          />
+        )}
 
         {/* Payments-unavailable notice */}
         {!razorpay.isConfigured && (

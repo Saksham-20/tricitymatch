@@ -27,6 +27,7 @@ const {
   exportMyData,
   sendOtp,
   verifyOtp,
+  checkReferralCode,
   googleAuth,
   requestEmailChange,
   verifyEmailChange,
@@ -44,7 +45,8 @@ const {
   passwordResetLimiter,
   passwordResetSubmitLimiter,
   sensitiveActionLimiter,
-  checkAccountLockout
+  checkAccountLockout,
+  createRateLimiter
 } = require('../middlewares/security');
 const {
   signupValidation,
@@ -141,6 +143,20 @@ const otpTargetValidation = [
       return true;
     }),
 ];
+// Referral-code check for the signup form. Public, so it is a guessing surface
+// for codes: IP-limited well below the general API limiter.
+const referralCheckLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  message: 'Too many referral code checks, please try again later',
+});
+router.post(
+  '/referral-check',
+  referralCheckLimiter,
+  body('code').isString().trim().isLength({ min: 3, max: 32 }).withMessage('Enter a referral code'),
+  handleValidationErrors,
+  checkReferralCode
+);
 router.post('/send-otp', otpLimiter, otpTargetValidation, handleValidationErrors, sendOtp);
 router.post(
   '/verify-otp',

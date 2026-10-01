@@ -49,6 +49,8 @@ export interface SignupPayload {
   creatingFor?: 'self' | 'other';
   relationshipToProfile?: string;
   subjectAttestation?: boolean;
+  /** Optional marketing-rep or member referral code. */
+  referralCode?: string;
 }
 
 export const signup = async (payload: SignupPayload): Promise<AuthResult> => {
@@ -93,6 +95,20 @@ export const resetPassword = async (token: string, password: string): Promise<vo
 
 export const sendOtp = async (target: string, type: 'phone' | 'email' = 'phone'): Promise<void> => {
   await apiClient.post('/auth/send-otp', { type, target });
+};
+
+export interface ReferralCheck {
+  valid: boolean;
+  kind?: 'marketing' | 'member';
+  referrerName?: string | null;
+  discountPaise?: number;
+  message?: string;
+}
+
+/** Is this referral code real? Advisory only — signup never depends on it. */
+export const checkReferralCode = async (code: string): Promise<ReferralCheck> => {
+  const res = await apiClient.post<ReferralCheck>('/auth/referral-check', { code });
+  return res.data;
 };
 
 // Returns the single-use proof signup must present for this contact.

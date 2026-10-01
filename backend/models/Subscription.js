@@ -92,6 +92,15 @@ const Subscription = sequelize.define('Subscription', {
     type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: null
+  },
+  // Referral code applied to this order (migration 000080; utils/referral.js):
+  // { code, kind: 'marketing'|'member', discountPaise, referrerUserId,
+  //   marketingUserId, rewardedAt }. Must stay declared here — Sequelize drops
+  // writes to an attribute the model does not know (see lifecycleMail above).
+  referral: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
   }
 }, {
   validate: {
@@ -123,6 +132,11 @@ const Subscription = sequelize.define('Subscription', {
 Subscription.prototype.toJSON = function() {
   const values = { ...this.get() };
   delete values.lifecycleMail;
+  // The buyer may read their own subscription, but not WHO referred them: keep
+  // the code and what it was worth, drop the referrer's / rep's account ids.
+  if (values.referral) {
+    values.referral = { code: values.referral.code, discountPaise: values.referral.discountPaise };
+  }
   return values;
 };
 

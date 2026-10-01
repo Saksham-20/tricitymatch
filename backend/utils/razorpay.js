@@ -153,7 +153,15 @@ const buildReceipt = (userId) => `rcpt_${String(userId).slice(0, 8)}_${Date.now(
 const razorpayErrorText = (e) =>
   e?.error?.description || e?.message || (typeof e === 'string' ? e : JSON.stringify(e));
 
-const createOrder = async (planType, userId) => {
+/**
+ * @param {string} planType
+ * @param {string} userId
+ * @param {{ discountPaise?: number, referralCode?: string }} [opts]  a referral
+ *   discount already validated by utils/referral.quoteReferral. Applied HERE, off
+ *   the same effective plan read, so the charged amount can never drift from the
+ *   quote the member was shown.
+ */
+const createOrder = async (planType, userId, opts = {}) => {
   if (!PLANS[planType]) {
     throw new Error('Invalid plan type');
   }
@@ -175,13 +183,19 @@ const createOrder = async (planType, userId) => {
     throw new Error('Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.');
   }
 
+  const discountPaise = Number.isInteger(opts.discountPaise) && opts.discountPaise > 0 ? opts.discountPaise : 0;
+  if (discountPaise >= plan.amount) {
+    throw new Error('Invalid discount');
+  }
+
   const options = {
-    amount: plan.amount,
+    amount: plan.amount - discountPaise,
     currency: 'INR',
     receipt: buildReceipt(userId),
     notes: {
       userId: userId,
-      planType: planType
+      planType: planType,
+      ...(discountPaise ? { referralCode: opts.referralCode || '', discountPaise: String(discountPaise) } : {})
     }
   };
 

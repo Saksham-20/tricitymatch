@@ -33,7 +33,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import type { AuthStackParamList } from '../../navigation/types';
-import { sendOtp, verifyOtp } from '../../api/auth';
+import { sendOtp, verifyOtp, checkReferralCode } from '../../api/auth';
 import SmartContactInput, { parseContact } from '../../components/forms/SmartContactInput';
 import OtpInput from '../../components/forms/OtpInput';
 import { PasswordStrength } from '../../components/ui';
@@ -87,6 +87,11 @@ export default function CreateAccountScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   // Optional and unticked: promotional email is not a condition of joining.
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // Optional referral code, checked as it is typed. Advisory: an unrecognised
+  // code never blocks creating the account — it only says so before they submit.
+  const [referralOpen, setReferralOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [referralCheck, setReferralCheck] = useState<{ status: 'idle' | 'checking' | 'valid' | 'invalid'; text?: string }>({ status: 'idle' });
   // A field only shows its problem after it has been left (or submit was tried).
   const [touched, setTouched] = useState({ contact: false, password: false, terms: false });
   // idle → sending → sent (boxes shown) → verifying → verified
@@ -108,6 +113,29 @@ export default function CreateAccountScreen() {
   const busy = useRef(false);
   const contactRef = useRef<TextInput>(null);
   const refocusContact = useRef(false);
+
+  useEffect(() => {
+    const code = referralCode.trim();
+    if (code.length < 3) { setReferralCheck({ status: 'idle' }); return undefined; }
+    setReferralCheck({ status: 'checking' });
+    let live = true;
+    const timer = setTimeout(async () => {
+      try {
+        const r = await checkReferralCode(code);
+        if (!live) return;
+        if (r.valid) {
+          const off = r.discountPaise ? ` ${t('auth.signup.referralOff', { amount: Math.round((r.discountPaise ?? 0) / 100), defaultValue: '₹{{amount}} off your first plan.' })}` : '';
+          setReferralCheck({ status: 'valid', text: `${t('auth.signup.referralApplied', 'Code applied')}${r.referrerName ? ` — ${r.referrerName}` : ''}.${off}` });
+        } else {
+          setReferralCheck({ status: 'invalid', text: t('auth.signup.referralInvalid', 'We could not find that code. Check it, or continue without one.') });
+        }
+      } catch {
+        // Offline or rate-limited: say nothing rather than call a real code wrong.
+        if (live) setReferralCheck({ status: 'idle' });
+      }
+    }, 500);
+    return () => { live = false; clearTimeout(timer); };
+  }, [referralCode, t]);
 
   const parsed = parseContact(contact);
   const contactProblem = !contact.trim()
@@ -247,6 +275,7 @@ export default function CreateAccountScreen() {
       password,
       proof: otpProof,
       marketing: marketingOptIn,
+      referralCode: referralCode.trim() || undefined,
     });
   };
 
@@ -408,6 +437,34 @@ export default function CreateAccountScreen() {
             />
             {password.length > 0 && <PasswordStrength password={password} />}
           </View>
+
+          {referralOpen ? (
+            <View style={st.pwGroup}>
+              <Input
+                label={t('auth.signup.referralLabel', 'Referral code (optional)')}
+                value={referralCode}
+                onChangeText={(v) => setReferralCode(v.toUpperCase().replace(/\s/g, ''))}
+                placeholder={t('auth.signup.referralPlaceholder', 'Enter referral code')}
+                helper={referralCheck.status === 'checking' ? t('auth.signup.referralChecking', 'Checking…') : referralCheck.text}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={32}
+                accessibilityLabel={t('auth.signup.referralLabel', 'Referral code (optional)')}
+                style={fieldHeight}
+                testID="referral-input"
+              />
+            </View>
+          ) : (
+            <PressableScale
+              style={[st.termsRow, { minHeight: hit }]}
+              onPress={() => setReferralOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.signup.referralPrompt', 'Have a referral code?')}
+              testID="referral-open"
+            >
+              <Text variant="subhead" color="primary">{t('auth.signup.referralPrompt', 'Have a referral code?')}</Text>
+            </PressableScale>
+          )}
 
           <PressableScale
             haptic

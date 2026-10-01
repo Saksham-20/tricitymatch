@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Tag, Save, RefreshCw, AlertCircle, Crown, Clock } from 'lucide-react';
+import { Tag, Save, RefreshCw, AlertCircle, Crown, Clock, Gift } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
 /**
@@ -87,6 +87,12 @@ export default function AdminLaunchOffer() {
           grantDays: offer.founding?.grantDays ?? 30,
           contactUnlocks: offer.founding?.contactUnlocks ?? 3,
         },
+        // Edited in rupees; stored in paise.
+        referral: {
+          enabled: res.data.referral?.enabled ?? true,
+          discount: rupees(res.data.referral?.discountPaise ?? 10000),
+          referrerUnlocks: res.data.referral?.referrerUnlocks ?? 5,
+        },
       });
     } catch (e) {
       setError(e.response?.data?.error?.message || 'Failed to load launch offer');
@@ -103,6 +109,8 @@ export default function AdminLaunchOffer() {
     setForm((f) => ({ ...f, bundles: { ...f.bundles, [key]: { ...f.bundles[key], [field]: value } } }));
   const setFounding = (field, value) =>
     setForm((f) => ({ ...f, founding: { ...f.founding, [field]: value } }));
+  const setReferral = (field, value) =>
+    setForm((f) => ({ ...f, referral: { ...f.referral, [field]: value } }));
 
   // Cards the member-facing pricing page will render. Free always shows, so the
   // page total is this + 1 — the number the admin is actually reasoning about.
@@ -149,6 +157,11 @@ export default function AdminLaunchOffer() {
           memberCap: Number(form.founding.memberCap),
           grantDays: Number(form.founding.grantDays),
           contactUnlocks: Number(form.founding.contactUnlocks),
+        },
+        referral: {
+          enabled: form.referral.enabled,
+          discountPaise: Math.round(Number(form.referral.discount) * 100),
+          referrerUnlocks: Number(form.referral.referrerUnlocks),
         },
       };
       const res = await apiClient.put('/admin/launch-offer', payload);
@@ -395,6 +408,37 @@ export default function AdminLaunchOffer() {
             {data?.founding?.open
               ? `Currently OPEN · ${data.founding.grantDays} days · ${data.founding.contactUnlocks} unlocks · cap ${data.founding.memberCap || 'none'}`
               : 'Currently CLOSED — no grants are issued at signup.'}
+          </p>
+        </section>
+
+        {/* Referral codes */}
+        <section className="bg-white border border-neutral-200 rounded-xl p-5">
+          <h2 className="font-semibold text-neutral-900 mb-1 flex items-center gap-2">
+            <Gift className="w-4 h-4 text-primary-600" /> Referral codes
+          </h2>
+          <p className="text-xs text-neutral-500 mb-4">
+            A buyer who enters a code at checkout takes this much off their first plan (capped at 30% of the plan price).
+            A marketing rep is paid commission on the payment; a member who shared their code earns the unlocks below once
+            the buyer has actually paid.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <label className="flex items-center gap-2 text-neutral-700 col-span-2 md:col-span-1">
+              <input type="checkbox" checked={form.referral.enabled} onChange={(e) => setReferral('enabled', e.target.checked)} />
+              Enabled
+            </label>
+            <label className="text-neutral-700">
+              Buyer discount (₹)
+              <input type="number" min="0" max="1000" step="1" value={form.referral.discount} onChange={(e) => setReferral('discount', e.target.value)}
+                className="mt-1 w-full border border-neutral-200 rounded-lg px-2 py-1.5" />
+            </label>
+            <label className="text-neutral-700">
+              Referrer unlocks (members)
+              <input type="number" min="0" max="100" value={form.referral.referrerUnlocks} onChange={(e) => setReferral('referrerUnlocks', e.target.value)}
+                className="mt-1 w-full border border-neutral-200 rounded-lg px-2 py-1.5" />
+            </label>
+          </div>
+          <p className="text-xs text-neutral-400 mt-3">
+            Marketing commission rate is set separately on Marketing Users. Each member's reward is capped at 20 paid referrals.
           </p>
         </section>
 

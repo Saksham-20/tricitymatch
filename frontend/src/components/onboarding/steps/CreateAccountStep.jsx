@@ -8,6 +8,7 @@ import OtpBoxes from '../../ui/OtpBoxes';
 import SmartContactField, { detectContactType, phoneDigits } from '../SmartContactField';
 import { validateEmail, validatePassword, IDENTIFIER_ERROR } from '../../../utils/validators';
 import PasswordRequirements from '../../common/PasswordRequirements';
+import ReferralCodeField from '../ReferralCodeField';
 import api from '../../../api/axios';
 import { FiEye, FiEyeOff, FiUser, FiUsers, FiCheck, FiCheckCircle, FiEdit2, FiShield } from 'react-icons/fi';
 import { staggerContainer, fadeRise, fade } from '../../../utils/animations';
@@ -19,7 +20,6 @@ const CreateAccountStep = () => {
   const isGuardian = mode === 'create_for_other';
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showReferralInput, setShowReferralInput] = useState(false);
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
 
@@ -38,10 +38,6 @@ const CreateAccountStep = () => {
   const idType = detectContactType(formData.identifier);
   const verified = idType === 'email' ? !!formData.emailVerification
     : idType === 'phone' ? !!formData.phoneVerification : false;
-
-  useEffect(() => {
-    if (formData.referralCode) setShowReferralInput(true);
-  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -310,31 +306,11 @@ const CreateAccountStep = () => {
               )}
             </div>
 
-            {/* Referral (collapsed) */}
-            <div>
-              {!showReferralInput ? (
-                <button type="button" onClick={() => setShowReferralInput(true)} className="text-xs text-neutral-400 hover:text-primary-600 underline underline-offset-2">
-                  Have a referral code?
-                </button>
-              ) : (
-                <div>
-                  <label htmlFor="signup-referral-code" className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">
-                    Referral code
-                  </label>
-                  <input
-                    id="signup-referral-code"
-                    type="text"
-                    name="referralCode"
-                    autoComplete="off"
-                    placeholder="Enter referral code"
-                    value={formData.referralCode || ''}
-                    onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())}
-                    autoFocus
-                    className="w-full px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-sm"
-                  />
-                </div>
-              )}
-            </div>
+            {/* Referral — checked live, never blocks signup */}
+            <ReferralCodeField
+              value={formData.referralCode}
+              onChange={(v) => updateFormData('referralCode', v)}
+            />
 
             {/* DPDP consent notice (Legal Review B-1) — itemised, in plain text,
                 presented with the request rather than behind a policy link. */}
@@ -453,13 +429,11 @@ const CreateAccountStep = () => {
           {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
           {formData.password ? <PasswordRequirements password={formData.password} /> : !errors.password && <p id="guardian-password-hint" className="text-xs text-neutral-500 mt-1">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>}
         </div>
-        <div className="space-y-1">
-          {!showReferralInput ? (
-            <button type="button" onClick={() => setShowReferralInput(true)} className="text-xs text-neutral-400 hover:text-primary-600 transition-colors underline underline-offset-2">Have a referral code?</button>
-          ) : (
-            <input type="text" name="referralCode" autoComplete="off" placeholder="Enter referral code" value={formData.referralCode || ''} onChange={(e) => updateFormData('referralCode', e.target.value.toUpperCase())} autoFocus className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase tracking-wider text-sm" />
-          )}
-        </div>
+        <ReferralCodeField
+          id="guardian-referral-code"
+          value={formData.referralCode}
+          onChange={(v) => updateFormData('referralCode', v)}
+        />
         <div className="pt-2">
           <CheckBox checked={!!formData.account_agree} onChange={(checked) => updateFormData('account_agree', checked)} size="md"
             label={<span className="text-sm text-neutral-600">I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.</span>} />

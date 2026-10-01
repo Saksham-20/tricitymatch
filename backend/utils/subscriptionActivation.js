@@ -7,6 +7,7 @@ const { UNLIMITED_PLANS } = require('../constants/plans');
 const { applyPendingCredits } = require('./inviteReward');
 const { getPlanDetails } = require('./razorpay');
 const { log, logAudit } = require('../middlewares/logger');
+const { settleReferral } = require('./referral');
 
 /**
  * Activate the subscription for a CAPTURED Razorpay payment. Shared by the
@@ -15,6 +16,7 @@ const { log, logAudit } = require('../middlewares/logger');
  * drift. Idempotent: an order that is already active is a no-op.
  */
 async function activateCapturedPayment(order_id, payment_id) {
+  let activatedWithReferral = null;
   await sequelize.transaction(async (t) => {
     // Check idempotency first
     const existingActive = await Subscription.findOne({
@@ -93,6 +95,8 @@ async function activateCapturedPayment(order_id, payment_id) {
         );
       }
 
+      if (subscription.referral) activatedWithReferral = subscription.id;
+
       logAudit('subscription_activated_webhook', subscription.userId, {
         subscriptionId: subscription.id,
         orderId: order_id,
@@ -105,6 +109,9 @@ async function activateCapturedPayment(order_id, payment_id) {
       });
     }
   });
+
+  // After the commit: a reward that fails must not unwind a taken payment.
+  if (activatedWithReferral) await settleReferral(activatedWithReferral);
 }
 
 module.exports = { activateCapturedPayment };

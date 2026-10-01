@@ -276,7 +276,28 @@ exports.signup = asyncHandler(async (req, res) => {
   // (unknown token, inactive inviter, DB hiccup) resolves to null and the signup
   // proceeds normally — a forged invite is silently ignored, never an error.
   let invitedBy = null;
-  if (inviteFromRequest) {
+
+  // A MEMBER's referral code (utils/referral.js) typed in the same box as a
+  // marketing code. Marketing codes resolve first (above); only when none
+  // matched do we look for a member, and it then behaves exactly like that
+  // member's invite link — same `invitedBy`, same signup reward.
+  if (codeToUse && !referralData) {
+    try {
+      const { normaliseCode } = require('../utils/referral');
+      const memberCode = normaliseCode(String(codeToUse));
+      if (memberCode) {
+        const referrer = await User.findOne({
+          where: { referralCode: memberCode, status: 'active' },
+          attributes: ['id'],
+        });
+        if (referrer) invitedBy = referrer.id;
+      }
+    } catch (err) {
+      log.warn('Member referral lookup failed at signup (ignored)', { error: err.message });
+    }
+  }
+
+  if (inviteFromRequest && !invitedBy) {
     try {
       const token = String(inviteFromRequest).trim();
       if (/^[0-9a-f]{16,128}$/i.test(token)) {
@@ -1148,6 +1169,34 @@ exports.exportMyData = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/send-otp
 // @desc    Send real OTP via SMS (Fast2SMS/MSG91) or log in dev mode
 // @access  Public
+// @route   POST /api/v1/auth/referral-check
+// @desc    Is this referral code real? Lets the signup form say so BEFORE the
+//          person commits, instead of the server silently ignoring a typo.
+// @access  Public (rate-limited)
+// Reveals only what the code's own link already would: a member's first name
+// (as GET /invite/:token does) and the configured discount. Marketing codes
+// reveal nothing about the rep.
+exports.checkReferralCode = asyncHandler(async (req, res) => {
+  const { resolveCode, ReferralError } = require('../utils/referral');
+  const { getReferralState } = require('../utils/launchOffer');
+  try {
+    const resolved = await resolveCode(req.body.code, null);
+    const cfg = getReferralState();
+    return res.json({
+      success: true,
+      valid: true,
+      kind: resolved.kind,
+      referrerName: resolved.referrerName || null,
+      discountPaise: cfg.enabled ? cfg.discountPaise : 0,
+    });
+  } catch (err) {
+    if (err instanceof ReferralError) {
+      return res.json({ success: true, valid: false, message: err.message });
+    }
+    throw err;
+  }
+});
+
 exports.sendOtp = asyncHandler(async (req, res) => {
   const { type, target } = req.body;
   if (!target) throw createError.badRequest('target is required');

@@ -227,6 +227,7 @@ export default function BasicsScreen() {
         // previous one; the server needs it stated in the request.
         termsAccepted: true,
         marketingConsent: Boolean(route.params.marketing),
+        ...(route.params.referralCode ? { referralCode: route.params.referralCode } : {}),
         creatingFor: registeringFor === 'self' ? 'self' : 'other',
         ...(registeringFor === 'self' ? {} : {
           relationshipToProfile: registeringFor === 'son' || registeringFor === 'daughter' ? 'child' : registeringFor,

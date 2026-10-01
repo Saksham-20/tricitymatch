@@ -28,7 +28,7 @@ const SHARE_TEXT = 'I’m on TricityMatch — a verified, Tricity-only matrimoni
 const rewardLine = (n) =>
   `You both get ${n} contact unlock${n === 1 ? '' : 's'} when they join.`;
 
-const copyToClipboard = async (text) => {
+export const copyToClipboard = async (text) => {
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);

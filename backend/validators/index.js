@@ -621,6 +621,11 @@ const createOrderValidation = [
   body('planType')
     .isIn(PURCHASABLE_PLANS)
     .withMessage(`Plan type must be one of: ${PURCHASABLE_PLANS.join(', ')}`),
+  body('referralCode')
+    .optional({ checkFalsy: true })
+    .isString()
+    .isLength({ max: 32 })
+    .withMessage('Invalid referral code'),
 ];
 
 const verifyPaymentValidation = [

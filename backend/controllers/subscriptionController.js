@@ -37,12 +37,18 @@ const { notify } = require('../utils/notifyUser');
 const { recordRefund, recordDispute } = require('../utils/paymentRefunds');
 const { activateCapturedPayment } = require('../utils/subscriptionActivation');
 const { invoiceBlocker } = require('../utils/invoiceEligibility');
+const {
+  ReferralError,
+  quoteReferral,
+  settleReferral,
+  getReferralSummary,
+} = require('../utils/referral');
 
 // @route   POST /api/subscription/create-order
 // @desc    Create Razorpay order
 // @access  Private
 exports.createOrder = asyncHandler(async (req, res) => {
-  const { planType } = req.body;
+  const { planType, referralCode } = req.body;
   const userId = req.user.id;
 
   // Check if Razorpay is configured
@@ -64,6 +70,20 @@ exports.createOrder = asyncHandler(async (req, res) => {
   // clean 400 before a transaction is opened.
   if (!isPlanPurchasable(planType)) {
     throw createError.badRequest('That plan is not available right now');
+  }
+
+  // A referral code is validated BEFORE the transaction and BEFORE the gateway
+  // call: a bad code is the member's to fix, and must not cost them an order.
+  // The discount is computed from the same effective plan `razorpayCreateOrder`
+  // charges, then handed to it, so the quote and the charge cannot disagree.
+  let quote = null;
+  if (typeof referralCode === 'string' && referralCode.trim()) {
+    try {
+      quote = await quoteReferral(referralCode, getPlanDetails(planType), userId);
+    } catch (err) {
+      if (err instanceof ReferralError) throw createError.badRequest(err.message, { code: err.code });
+      throw err;
+    }
   }
 
   // Tier rank — a paid member can only move UP a tier while their plan is active.
@@ -109,7 +129,10 @@ exports.createOrder = asyncHandler(async (req, res) => {
     );
 
     // Create Razorpay order
-    const order = await razorpayCreateOrder(planType, userId);
+    const order = await razorpayCreateOrder(planType, userId, {
+      discountPaise: quote?.discountPaise || 0,
+      referralCode: quote?.referral.code,
+    });
 
     // Create subscription record
     const subscription = await Subscription.create({
@@ -117,7 +140,8 @@ exports.createOrder = asyncHandler(async (req, res) => {
       planType,
       razorpayOrderId: order.orderId,
       status: 'pending',
-      amount: order.amount / 100 // Convert from paise to rupees
+      amount: order.amount / 100, // Convert from paise to rupees
+      referral: quote ? quote.referral : null,
     }, { transaction: t });
 
     return { order, subscription };
@@ -126,7 +150,8 @@ exports.createOrder = asyncHandler(async (req, res) => {
   logAudit('subscription_order_created', req.user.id, {
     planType,
     orderId: result.order.orderId,
-    amount: result.order.amount
+    amount: result.order.amount,
+    ...(quote ? { referralCode: quote.referral.code, discountPaise: quote.discountPaise } : {}),
   });
 
   res.json({
@@ -136,8 +161,47 @@ exports.createOrder = asyncHandler(async (req, res) => {
       amount: result.order.amount,
       currency: result.order.currency
     },
+    discount: quote ? { code: quote.referral.code, amount: quote.discountPaise / 100 } : null,
     subscription: result.subscription
   });
+});
+
+// @route   GET /api/subscription/referral
+// @desc    The caller's referral panel: their code + share link, what it pays,
+//          how it is doing, and a code to pre-fill at checkout
+// @access  Private
+exports.getReferral = asyncHandler(async (req, res) => {
+  res.json({ success: true, referral: await getReferralSummary(req.user.id) });
+});
+
+// @route   POST /api/subscription/referral/check
+// @desc    Preview a referral code against a plan WITHOUT creating an order
+// @access  Private
+// The same `quoteReferral` createOrder runs, so the preview cannot promise a
+// discount the order then refuses (or the reverse).
+exports.checkReferral = asyncHandler(async (req, res) => {
+  const { code, planType } = req.body;
+  if (!PURCHASABLE_PLANS.includes(planType) || !isPlanPurchasable(planType)) {
+    throw createError.badRequest('That plan is not available right now');
+  }
+  try {
+    const quote = await quoteReferral(code, getPlanDetails(planType), req.user.id);
+    res.json({
+      success: true,
+      valid: true,
+      code: quote.referral.code,
+      kind: quote.referral.kind,
+      referrerName: quote.referrerName,
+      discount: quote.discountPaise / 100,
+      price: getPlanDetails(planType).amount / 100,
+      finalPrice: quote.finalPaise / 100,
+    });
+  } catch (err) {
+    if (err instanceof ReferralError) {
+      return res.status(200).json({ success: true, valid: false, reason: err.code, message: err.message });
+    }
+    throw err;
+  }
 });
 
 // @route   POST /api/subscription/cancel-order
@@ -300,6 +364,11 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     paymentId: razorpayPaymentId,
     endDate: subscription.endDate
   });
+
+  // Release the referral reward / marketing attribution for a code used at
+  // checkout. Never throws; the webhook leg calls the same function, and a
+  // conditional claim inside makes whichever runs second a no-op.
+  if (subscription.referral) await settleReferral(subscription.id);
 
   // Update marketing lead if user was referred via referral code
   const lead = await MarketingLead.findOne({

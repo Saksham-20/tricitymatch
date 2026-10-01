@@ -20,6 +20,8 @@ const {
   verifyBundlePayment,
   verifyGooglePlay,
   claimFounding,
+  getReferral,
+  checkReferral,
 } = require('../controllers/subscriptionController');
 const { auth, requirePremium } = require('../middlewares/auth');
 const { handleValidationErrors, createError } = require('../middlewares/errorHandler');
@@ -90,6 +92,18 @@ router.get('/my-subscription', auth, getMySubscription);
 // read-then-insert count, so an unthrottled endpoint is the one way to make
 // the cap overshoot meaningfully.
 router.post('/claim-founding', auth, paymentLimiter, claimFounding);
+
+// Referral panel (own code, stats, prefill) and a code preview. The preview is a
+// guessing surface for codes, so it rides the payment limiter too.
+router.get('/referral', auth, getReferral);
+router.post('/referral/check',
+  auth,
+  paymentLimiter,
+  evBody('code').isString().trim().isLength({ min: 3, max: 32 }).withMessage('Enter a referral code'),
+  evBody('planType').isString().isLength({ max: 32 }),
+  handleValidationErrors,
+  checkReferral
+);
 
 // Create payment order
 router.post('/create-order', 

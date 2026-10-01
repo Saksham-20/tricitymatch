@@ -115,6 +115,17 @@ const DEFAULT_FOUNDING = {
   endsAt: null, // seeded to the offer deadline on first boot
 };
 
+// Referral code at checkout. The buyer takes `discountPaise` off their first plan
+// purchase; when the code is a MEMBER's, that member earns `referrerUnlocks`
+// contact unlocks once the payment lands (a marketing rep's reward is the
+// commission instead). Reads fall back to these when the saved blob predates the
+// referral block, so no data migration is needed to turn it on.
+const DEFAULT_REFERRAL = {
+  enabled: true,
+  discountPaise: 10000,  // ₹100 off
+  referrerUnlocks: 5,
+};
+
 const buildDefaults = (now = new Date()) => {
   const endsAt = new Date(now.getTime() + DEFAULT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   return {
@@ -125,6 +136,7 @@ const buildDefaults = (now = new Date()) => {
     plans: JSON.parse(JSON.stringify(DEFAULT_PLAN_OFFERS)),
     bundles: JSON.parse(JSON.stringify(DEFAULT_BUNDLE_OFFERS)),
     founding: { ...DEFAULT_FOUNDING, endsAt },
+    referral: { ...DEFAULT_REFERRAL },
   };
 };
 
@@ -335,6 +347,36 @@ const getFoundingState = () => {
 };
 
 // ---------------------------------------------------------------------------
+// Referral
+// ---------------------------------------------------------------------------
+
+// ₹1,000 — a ceiling on the discount a typo can configure. Checkout also caps
+// the discount to a share of the plan price (utils/referral.js); this is the
+// admin-input guard.
+const MAX_REFERRAL_DISCOUNT_PAISE = 100000;
+
+/**
+ * Effective referral settings. Always returns a complete object: an unset or
+ * malformed field falls back to its default rather than to 0, so a bad save can
+ * never silently turn a ₹100 discount into a free plan or an unlimited reward.
+ * `enabled` is separate from the launch-offer window on purpose — the referral
+ * programme can outlive the pricing banner.
+ */
+const getReferralState = () => {
+  const r = getOffer()?.referral;
+  if (!r || typeof r !== 'object') return { ...DEFAULT_REFERRAL };
+  return {
+    enabled: r.enabled === undefined ? DEFAULT_REFERRAL.enabled : Boolean(r.enabled),
+    discountPaise: Number.isInteger(r.discountPaise) && r.discountPaise >= 0 && r.discountPaise <= MAX_REFERRAL_DISCOUNT_PAISE
+      ? r.discountPaise
+      : DEFAULT_REFERRAL.discountPaise,
+    referrerUnlocks: Number.isInteger(r.referrerUnlocks) && r.referrerUnlocks >= 0 && r.referrerUnlocks <= 100
+      ? r.referrerUnlocks
+      : DEFAULT_REFERRAL.referrerUnlocks,
+  };
+};
+
+// ---------------------------------------------------------------------------
 // Admin write path
 // ---------------------------------------------------------------------------
 
@@ -463,6 +505,21 @@ const saveOffer = async (patch, adminId) => {
     contactUnlocks: unlocks,
   };
 
+  const rIn = patch.referral && typeof patch.referral === 'object' ? patch.referral : (current.referral || {});
+  const discountPaise = Number(rIn.discountPaise ?? DEFAULT_REFERRAL.discountPaise);
+  const referrerUnlocks = Number(rIn.referrerUnlocks ?? DEFAULT_REFERRAL.referrerUnlocks);
+  if (!Number.isInteger(discountPaise) || discountPaise < 0 || discountPaise > MAX_REFERRAL_DISCOUNT_PAISE) {
+    throw new OfferValidationError('referral.discountPaise must be between ₹0 and ₹1,000');
+  }
+  if (!Number.isInteger(referrerUnlocks) || referrerUnlocks < 0 || referrerUnlocks > 100) {
+    throw new OfferValidationError('referral.referrerUnlocks must be an integer 0–100');
+  }
+  next.referral = {
+    enabled: rIn.enabled === undefined ? Boolean(current.referral?.enabled ?? DEFAULT_REFERRAL.enabled) : Boolean(rIn.enabled),
+    discountPaise,
+    referrerUnlocks,
+  };
+
   const { AppSetting } = require('../models');
   await AppSetting.upsert({ key: SETTINGS_KEY, value: next, updatedBy: adminId || null });
 
@@ -488,6 +545,7 @@ module.exports = {
   MAX_VISIBLE_PAID_PLANS,
   DEFAULT_BUNDLE_OFFERS,
   DEFAULT_FOUNDING,
+  DEFAULT_REFERRAL,
   buildDefaults,
   initLaunchOffer,
   getOffer,
@@ -496,6 +554,7 @@ module.exports = {
   overlayPlan,
   overlayBundle,
   getFoundingState,
+  getReferralState,
   saveOffer,
   OfferValidationError,
   durationLabel,

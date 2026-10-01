@@ -2021,7 +2021,7 @@ exports.updateContactMessage = asyncHandler(async (req, res) => {
 // prices needs to see what each tier reverts to when the window closes, and
 // the effective (charged) price so there is no doubt what a member pays today.
 exports.getLaunchOffer = asyncHandler(async (req, res) => {
-  const { getOffer, buildDefaults, getOfferState, getFoundingState } = require('../utils/launchOffer');
+  const { getOffer, buildDefaults, getOfferState, getFoundingState, getReferralState } = require('../utils/launchOffer');
   const { PLANS, UNLOCK_BUNDLES, getPlanDetails, getBundleDetails } = require('../utils/razorpay');
 
   const offer = getOffer() || buildDefaults();
@@ -2066,6 +2066,7 @@ exports.getLaunchOffer = asyncHandler(async (req, res) => {
     offer,
     state: getOfferState(),
     founding: getFoundingState(),
+    referral: getReferralState(),
     regular,
     effective,
     bundles,
@@ -2078,7 +2079,7 @@ exports.getLaunchOffer = asyncHandler(async (req, res) => {
 // Validation lives in utils/launchOffer.saveOffer (one place, so the HTTP path
 // and any future script path cannot diverge on what a legal price is).
 exports.updateLaunchOffer = asyncHandler(async (req, res) => {
-  const { saveOffer, OfferValidationError, getOfferState, getFoundingState } = require('../utils/launchOffer');
+  const { saveOffer, OfferValidationError, getOfferState, getFoundingState, getReferralState } = require('../utils/launchOffer');
 
   let saved;
   try {
@@ -2100,6 +2101,7 @@ exports.updateLaunchOffer = asyncHandler(async (req, res) => {
     offer: saved,
     state: getOfferState(),
     founding: getFoundingState(),
+    referral: getReferralState(),
   });
 });
 
