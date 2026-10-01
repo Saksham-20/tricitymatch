@@ -94,11 +94,18 @@ router.get('/my-subscription', auth, getMySubscription);
 router.post('/claim-founding', auth, paymentLimiter, claimFounding);
 
 // Referral panel (own code, stats, prefill) and a code preview. The preview is a
-// guessing surface for codes, so it rides the payment limiter too.
+// guessing surface for codes, so it is limited — but on its OWN budget: sharing
+// the 10/hr payment limiter meant a few mistyped codes could lock a buyer out of
+// the payment itself.
+const referralCheckLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 40,
+  message: 'Too many referral code checks, please try again later',
+});
 router.get('/referral', auth, getReferral);
 router.post('/referral/check',
   auth,
-  paymentLimiter,
+  referralCheckLimiter,
   evBody('code').isString().trim().isLength({ min: 3, max: 32 }).withMessage('Enter a referral code'),
   evBody('planType').isString().isLength({ max: 32 }),
   handleValidationErrors,
