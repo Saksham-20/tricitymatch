@@ -414,6 +414,27 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   }
 
+  // No code typed: a partner who added this person as a lead by hand still
+  // gets the attribution (first touch, recent lead, active partner). No boost —
+  // that is the code's reward for a member who chose to use it.
+  let manualLead = null;
+  if (!referralData) {
+    try {
+      const { findManualLeadForSignup } = require('../utils/manualLeads');
+      manualLead = await findManualLeadForSignup({ phone: phoneToStore, email: emailToStore });
+      if (manualLead) {
+        referralData = {
+          referralCodeUsed: null,
+          referredByMarketingUserId: manualLead.assignedToMarketingUserId,
+          isBoosted: false,
+          boostExpiresAt: null,
+        };
+      }
+    } catch (err) {
+      log.warn('Manual lead lookup failed at signup (ignored)', { error: err.message });
+    }
+  }
+
   if (inviteFromRequest && !invitedBy) {
     try {
       const token = String(inviteFromRequest).trim();
@@ -468,8 +489,14 @@ exports.signup = asyncHandler(async (req, res) => {
         onboardingComplete: onboardedAtSignup
       }, { transaction: t });
 
-      // If referral code used, increment usage count and create marketing lead
-      if (referralData) {
+      if (manualLead) {
+        // `convertedUserId IS NULL` guard: two near-simultaneous signups
+        // matching the same lead cannot both convert it.
+        await MarketingLead.update(
+          { convertedUserId: user.id, status: 'contacted' },
+          { where: { id: manualLead.id, convertedUserId: null }, transaction: t }
+        );
+      } else if (referralData) {
         await ReferralCode.update(
           // Quote the column: Postgres folds an unquoted identifier to lower
           // case, so `usageCount + 1` resolved to a non-existent `usagecount`

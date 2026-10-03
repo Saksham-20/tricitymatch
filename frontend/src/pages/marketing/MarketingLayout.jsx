@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Zap, LogOut, Globe, Search, Moon, Sun } from 'lucide-react';
+import { BarChart3, Users, Zap, BookOpen, LogOut, Globe, Search, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import useDarkMode from '../../hooks/useDarkMode';
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/marketing/dashboard', label: 'Dashboard', icon: BarChart3 },
   { to: '/marketing/leads', label: 'My Members', icon: Users },
   { to: '/marketing/referral-codes', label: 'Referral Codes', icon: Zap },
+  { to: '/marketing/guide', label: 'Partner Guide', icon: BookOpen },
 ];
 
 const siteItems = [

@@ -11,7 +11,8 @@ const { asyncHandler, createError, handleValidationErrors } = require('../middle
 const { MarketingLead, ReferralCode, User } = require('../models');
 const { buildMarketingReport, getRepRevenue } = require('../utils/marketingReport');
 const { getPayoutLedger } = require('../utils/marketingPayouts');
-const { param } = require('express-validator');
+const { createManualLead } = require('../utils/manualLeads');
+const { param, body } = require('express-validator');
 
 // All marketing routes require authentication and marketing role
 router.use(auth, marketingAuth);
@@ -106,6 +107,25 @@ router.get('/leads', asyncHandler(async (req, res) => {
     }
   });
 }));
+
+// @route   POST /api/marketing/leads
+// @desc    Add a person the partner already knows, before they sign up. When
+//          that person creates an account without a code, the signup is
+//          credited to this partner (see utils/manualLeads).
+// @access  Private/Marketing
+router.post('/leads',
+  // Shape only; the specific, user-readable checks live in createManualLead so
+  // the message survives production (validation details are dev-only).
+  body('name').isString().trim().isLength({ min: 1, max: 100 }),
+  body('phone').isString().trim().isLength({ min: 1, max: 20 }),
+  body('email').optional({ values: 'falsy' }).isString().trim().isLength({ max: 254 }),
+  body('city').optional({ values: 'falsy' }).isString().trim().isLength({ max: 100 }),
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const { name, phone, email, city } = req.body;
+    const lead = await createManualLead({ marketingUserId: req.user.id, name, phone, email, city });
+    res.status(201).json({ success: true, lead });
+  }));
 
 // @route   PUT /api/marketing/leads/:leadId/status
 // @desc    Update lead status (only own leads, only status field)

@@ -103,6 +103,7 @@ const MarketingLayout = lazy(() => import('./pages/marketing/MarketingLayout'));
 const MarketingDashboard = lazy(() => import('./pages/marketing/MarketingDashboard'));
 const MarketingLeads = lazy(() => import('./pages/marketing/MarketingLeads'));
 const MarketingReferralCodes = lazy(() => import('./pages/marketing/MarketingReferralCodes'));
+const MarketingGuide = lazy(() => import('./pages/marketing/MarketingGuide'));
 const MarketingProtectedRoute = lazy(() => import('./pages/marketing/MarketingProtectedRoute'));
 
 // Protected pages (load on demand)
@@ -469,6 +470,7 @@ const AnimatedRoutes = () => {
             <Route path="dashboard"     element={<MarketingDashboard />} />
             <Route path="leads"         element={<MarketingLeads />} />
             <Route path="referral-codes" element={<MarketingReferralCodes />} />
+            <Route path="guide"         element={<MarketingGuide />} />
           </Route>
 
           {/* Admin Routes - bypass Navbar/BottomNav via AppContent check */}

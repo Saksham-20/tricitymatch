@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Filter, RefreshCw, CheckCircle2, Clock } from 'lucide-react';
+import { Filter, RefreshCw, CheckCircle2, Clock, UserPlus, X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
@@ -14,6 +14,11 @@ export default function MarketingLeads() {
   const [updating, setUpdating] = useState(null);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ name: '', phone: '', email: '', city: '' });
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [addedName, setAddedName] = useState('');
 
   const fetchReport = useCallback(async (opts = {}) => {
     const { quiet = false } = opts;
@@ -55,6 +60,29 @@ export default function MarketingLeads() {
     }
   };
 
+  const handleAddLead = async (e) => {
+    e.preventDefault();
+    setAddError('');
+    setAdding(true);
+    try {
+      await apiClient.post('/marketing/leads', {
+        name: addForm.name.trim(),
+        phone: addForm.phone.trim(),
+        email: addForm.email.trim() || undefined,
+        city: addForm.city.trim() || undefined,
+      });
+      setAddedName(addForm.name.trim());
+      setAddForm({ name: '', phone: '', email: '', city: '' });
+      setPage(1);
+      fetchReport({ quiet: true });
+    } catch (err) {
+      const data = err.response?.data;
+      setAddError(data?.error?.details?.[0]?.message || data?.error?.message || data?.message || 'Could not add this lead');
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setPage(1);
@@ -72,16 +100,47 @@ export default function MarketingLeads() {
             Everyone who joined through your referral links — who signed up, and who paid.
           </p>
         </div>
-        <button
-          onClick={() => fetchReport({ quiet: true })}
-          className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
-        >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-          {lastUpdated
-            ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
-            : 'Refresh'}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => fetchReport({ quiet: true })}
+            className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            {lastUpdated
+              ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Refresh'}
+          </button>
+          <button
+            onClick={() => { setShowAdd((v) => !v); setAddedName(''); setAddError(''); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+          >
+            {showAdd ? <X size={16} /> : <UserPlus size={16} />}
+            {showAdd ? 'Close' : 'Add a lead'}
+          </button>
+        </div>
       </div>
+
+      {showAdd && (
+        <form onSubmit={handleAddLead} className="bg-white dark:bg-neutral-900 border border-primary-200 dark:border-primary-900 p-4 rounded-xl mb-6">
+          <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Someone you already know</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 mb-4">
+            When they sign up with this number or email within 60 days, they are credited to you — even without a code.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input required value={addForm.name} onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))} placeholder="Full name *" className={selectCls} />
+            <input required value={addForm.phone} onChange={(e) => setAddForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Mobile number *" inputMode="numeric" className={selectCls} />
+            <input type="email" value={addForm.email} onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email (optional)" className={selectCls} />
+            <input value={addForm.city} onChange={(e) => setAddForm((f) => ({ ...f, city: e.target.value }))} placeholder="City (optional)" className={selectCls} />
+          </div>
+          {addError && <p className="text-sm text-red-600 dark:text-red-400 mt-3">{addError}</p>}
+          {addedName && !addError && <p className="text-sm text-green-700 dark:text-green-400 mt-3">Added {addedName}. Add another, or close.</p>}
+          <div className="flex justify-end mt-4">
+            <button type="submit" disabled={adding} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60 transition-colors">
+              {adding ? 'Adding…' : 'Add lead'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {report?.summary && <ReportSummary summary={report.summary} className="mb-6" />}
 
