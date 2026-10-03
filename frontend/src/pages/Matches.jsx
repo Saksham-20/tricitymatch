@@ -9,6 +9,7 @@ import { FaCrown } from 'react-icons/fa';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { ProfileCard } from '../components/cards';
+import { useMatchCelebration } from '../context/MatchCelebrationContext';
 import InviteLink from '../components/common/InviteLink';
 import SectionHeader from '../components/common/SectionHeader';
 import { Skeleton, EmptyState, ErrorState } from '../components/ui';
@@ -98,6 +99,7 @@ const CardSkeleton = ({ compact = false }) => (
 );
 
 export default function Matches() {
+  const { celebrate } = useMatchCelebration();
   // ?tab= lets other surfaces deep-link a specific list — notification taps in
   // particular. An unknown value falls back to Saved rather than rendering an
   // empty shell for a tab that doesn't exist.
@@ -135,20 +137,29 @@ export default function Matches() {
   useEffect(() => { load(active); }, [active, load]);
 
   // Match actions on the cards — optimistic, then reconcile.
-  const handleAction = async (userId, action) => {
+  // `want` is the state the member asked for (true = like / save, false = take it
+  // back, sent as 'undo'). Returns whether the server accepted it so the card
+  // icon can revert on failure.
+  const handleAction = async (userId, action, want = true) => {
     try {
-      await api.post(`/match/${userId}`, { action });
-      if (action === 'like') toast.success('Interest expressed!');
-      // On the Saved tab, un-shortlisting should drop the card.
-      if (active === 'shortlist' && action === 'shortlist') {
+      const res = await api.post(`/match/${userId}`, { action: want ? action : 'undo' });
+      if (want && action === 'like') toast.success('Interest expressed!');
+      if (!want) toast.success(action === 'like' ? 'Interest withdrawn' : 'Removed from your shortlist');
+      if (res.data?.newMatch) celebrate(profiles.find((p) => (p.userId || p.id) === userId));
+      // Taking a row back drops the card from the tab that lists exactly that row
+      // (Saved = shortlist, Sent = like).
+      const dropsHere = !want && ((active === 'shortlist' && action === 'shortlist') || (active === 'sent' && action === 'like'));
+      if (dropsHere) {
         setProfiles((prev) => {
           const next = prev.filter((p) => (p.userId || p.id) !== userId);
           if (!next.length) setState('empty');
           return next;
         });
       }
+      return true;
     } catch {
       toast.error('Could not perform that action');
+      return false;
     }
   };
 
@@ -300,8 +311,8 @@ export default function Matches() {
                         userId={pid}
                         index={i}
                         primaryCta={active === 'mutual' ? 'message' : 'interest'}
-                        onLike={() => handleAction(pid, 'like')}
-                        onShortlist={() => handleAction(pid, 'shortlist')}
+                        onLike={(want) => handleAction(pid, 'like', want)}
+                        onShortlist={(want) => handleAction(pid, 'shortlist', want)}
                       />
                     </div>
                   </div>

@@ -132,7 +132,7 @@ const ForgotPassword = () => {
               {[
                 { n: '2 min', l: 'To Reset' },
                 { n: '100%', l: 'Secure' },
-                { n: '24hr', l: 'Link Valid' },
+                { n: '1 hr', l: 'Link Valid' },
               ].map(({ n, l }) => (
                 <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
                   <span className="text-lg font-bold text-white leading-none">{n}</span>

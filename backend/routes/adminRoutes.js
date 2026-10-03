@@ -79,6 +79,7 @@ const {
   updateUserStatusValidation, 
   adminCreateUserValidation,
   adminCreateAdminValidation,
+  adminCreateMarketingUserValidation,
   updateVerificationValidation, 
   adminSearchValidation 
 } = require('../validators');
@@ -138,6 +139,10 @@ router.delete('/users/:userId/subscription',
 router.put('/users/:userId/subscription', requireAdminScope('subscriptions'),
   param('userId').isUUID(4),
   body('planType').isIn(ALL_PLANS),
+  body('startDate').optional({ values: 'falsy' }).isISO8601().withMessage('startDate must be an ISO date'),
+  body('endDate').optional({ values: 'falsy' }).isISO8601().withMessage('endDate must be an ISO date'),
+  body('status').optional().isIn(['active', 'pending']).withMessage('status must be active or pending'),
+  body('reason').optional({ values: 'falsy' }).isString().isLength({ max: 500 }),
   handleValidationErrors,
   updateSubscription
 );
@@ -210,7 +215,7 @@ router.post('/subscriptions/:subscriptionId/refund', requireAdminScope('subscrip
 // ==================== MARKETING USERS ====================
 
 router.get('/marketing-users', requireAdminScope('marketing'), getMarketingUsers);
-router.post('/marketing-users', requireAdminScope('marketing'), createMarketingUser);
+router.post('/marketing-users', requireAdminScope('marketing'), adminCreateMarketingUserValidation, handleValidationErrors, createMarketingUser);
 router.put('/marketing-users/:userId/status', requireAdminScope('marketing'),
   param('userId').isUUID(4),
   body('status').isIn(['active', 'inactive']),
@@ -218,7 +223,10 @@ router.put('/marketing-users/:userId/status', requireAdminScope('marketing'),
   updateMarketingUserStatus
 );
 router.get('/marketing-commission', requireAdminScope('marketing'), getMarketingCommission);
-router.put('/marketing-commission', requireAdminScope('marketing'),
+// Money levers (commission rate, payout writes) sit behind their own 'payouts'
+// scope: the 'marketing' scope is for running the channel (reps, codes, leads),
+// and holding it must not also mean being able to move a rep's earnings.
+router.put('/marketing-commission', requireAdminScope('payouts'),
   body('rate').optional().isFloat({ min: 0, max: 100 }),
   handleValidationErrors,
   updateMarketingCommission
@@ -228,21 +236,22 @@ router.get('/marketing-users/:userId/payouts', requireAdminScope('marketing'),
   handleValidationErrors,
   getMarketingPayouts
 );
-router.post('/marketing-users/:userId/payouts', requireAdminScope('marketing'),
+router.post('/marketing-users/:userId/payouts', requireAdminScope('payouts'),
   param('userId').isUUID(4),
   body('amount').isFloat({ gt: 0 }),
   body('status').optional().isIn(['pending', 'paid']),
   handleValidationErrors,
   createMarketingPayout
 );
-router.put('/marketing-payouts/:payoutId', requireAdminScope('marketing'),
+router.put('/marketing-payouts/:payoutId', requireAdminScope('payouts'),
   param('payoutId').isUUID(4),
   body('status').isIn(['pending', 'paid']),
   handleValidationErrors,
   updateMarketingPayout
 );
-router.delete('/marketing-payouts/:payoutId', requireAdminScope('marketing'),
+router.delete('/marketing-payouts/:payoutId', requireAdminScope('payouts'),
   param('payoutId').isUUID(4),
+  body('reason').isString().trim().isLength({ min: 5, max: 300 }).withMessage('A reason (5-300 characters) is required to void a payout'),
   handleValidationErrors,
   deleteMarketingPayout
 );
@@ -260,7 +269,12 @@ router.get('/marketing-users/:userId/stats', requireAdminScope('marketing'),
 // ==================== REFERRAL CODES ====================
 
 router.get('/referral-codes', requireAdminScope('marketing'), getReferralCodes);
-router.post('/referral-codes', requireAdminScope('marketing'), createReferralCode);
+router.post('/referral-codes', requireAdminScope('marketing'),
+  body('code').isString().trim().isLength({ min: 3, max: 32 }).withMessage('Code must be 3-32 characters'),
+  body('marketingUserId').isUUID(4),
+  handleValidationErrors,
+  createReferralCode
+);
 router.put('/referral-codes/:id/toggle', requireAdminScope('marketing'),
   param('id').isUUID(4),
   handleValidationErrors,

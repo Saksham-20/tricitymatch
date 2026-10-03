@@ -15,7 +15,7 @@ jest.mock('../../middlewares/logger', () => ({
   logAudit: jest.fn(),
 }));
 jest.mock('../../models', () => ({
-  Block: {}, Report: { create: jest.fn(), findAll: jest.fn() }, User: { findByPk: jest.fn(), findOne: jest.fn(), update: jest.fn() },
+  Block: {}, Report: { create: jest.fn(), findAll: jest.fn(), findOne: jest.fn(), count: jest.fn() }, User: { findByPk: jest.fn(), findOne: jest.fn(), update: jest.fn() },
   Profile: { findAll: jest.fn() }, Match: {}, ChatGrant: {}, CallSession: {},
   Message: { findAll: jest.fn() }, EvidenceArchive: { create: jest.fn(), destroy: jest.fn() },
   Appeal: { findOne: jest.fn(), create: jest.fn(), findByPk: jest.fn() },
@@ -42,6 +42,11 @@ describe('report escalation', () => {
   beforeEach(() => {
     models.User.findByPk.mockResolvedValue({ id: 'bad' });
     models.Report.create.mockImplementation(async (v) => ({ id: 'r1', ...v }));
+    // No open report from this reporter, no recent urgent report against the
+    // target, and no conversation to snapshot.
+    models.Report.findOne.mockResolvedValue(null);
+    models.Report.count.mockResolvedValue(0);
+    models.Message.findAll.mockResolvedValue([]);
   });
   const file = (reason) => run(reportUser, { user: { id: 'me' }, params: { userId: 'bad' }, body: { reason } });
 
@@ -137,6 +142,7 @@ describe('appeals', () => {
   it('overturning reactivates only a suspended account, records who decided, and emails the member', async () => {
     const appeal = { id: 'a1', userId: 'u1', email: 'm@example.com', status: 'pending', save: jest.fn() };
     models.Appeal.findByPk.mockResolvedValue(appeal);
+    models.User.findByPk.mockResolvedValue({ id: 'u1', role: 'user' });
     const { error } = await run(decideAppeal, { params: { id: 'a1' }, body: { decision: 'overturned', note: 'Reviewed the chat; no breach found.' } });
     expect(error).toBeUndefined();
     expect(appeal).toMatchObject({ status: 'overturned', decidedBy: 'admin-1' });

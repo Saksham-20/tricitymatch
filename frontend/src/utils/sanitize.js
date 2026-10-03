@@ -28,7 +28,21 @@ const richTextConfig = {
  */
 export const sanitizeText = (text) => {
   if (!text || typeof text !== 'string') return '';
-  return DOMPurify.sanitize(text, purifyConfig);
+  // DOMPurify answers with an HTML STRING, so a bare "&" comes back as "&amp;".
+  // Every caller renders this as a React text child, which escapes on its own,
+  // so the entities would be shown literally ("Tom &amp; Jerry"). Decode back to
+  // the text that was typed. The result is for text nodes only; never feed it to
+  // innerHTML.
+  return decodeEntities(DOMPurify.sanitize(text, purifyConfig));
+};
+
+// A textarea's content is RCDATA: the parser decodes entities and never builds
+// elements or runs script, and (unlike DOMParser) it keeps leading whitespace.
+const decodeEntities = (html) => {
+  if (typeof document === 'undefined' || !html.includes('&')) return html;
+  const el = document.createElement('textarea');
+  el.innerHTML = html;
+  return el.value;
 };
 
 /**

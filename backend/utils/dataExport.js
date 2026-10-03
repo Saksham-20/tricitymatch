@@ -48,6 +48,8 @@ const buildMemberExport = async (userId) => {
       id: user.id,
       email: user.email,
       phone: user.phone,
+      // The separately verified number members call after an unlock, if any.
+      contactPhone: user.contactPhone || null,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
       role: user.role,

@@ -54,4 +54,28 @@ describe('ForgotPasswordPhone', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/8\+ characters/);
     expect(api.post).toHaveBeenCalledTimes(1);
   });
+
+  it('offers a resend (after a cooldown) and an email route on the code step', async () => {
+    api.post.mockResolvedValue({ data: { success: true } });
+    render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '9876543210' } });
+    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    await screen.findByLabelText('New password');
+
+    // Cooling down right after the first send: the resend control is disabled.
+    expect(screen.getByRole('button', { name: /resend in \d+s/i })).toBeDisabled();
+    expect(screen.getByRole('link', { name: /reset by email instead/i })).toHaveAttribute('href', '/forgot-password');
+  });
+
+  it('accepts a password whose only symbol is outside the old @$!%*?& set', async () => {
+    api.post.mockResolvedValue({ data: { success: true } });
+    render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '9876543210' } });
+    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    await screen.findByLabelText('New password');
+    typeCode('4821');
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'Hello#1234' } });
+    fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/reset-password/phone', expect.objectContaining({ password: 'Hello#1234' })));
+  });
 });

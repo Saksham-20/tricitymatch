@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 const { CallSession, User, Profile, Match, AstrologerBooking } = require('../models');
 const { generateRtcToken } = require('../utils/agoraToken');
 const { getIO } = require('../utils/socket');
+const { assertActorAgeVerifiable } = require('../utils/ageVerifiable');
 const { notify } = require('../utils/notifyUser');
 const { asyncHandler, createError } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
@@ -92,6 +93,7 @@ exports.initiateCall = asyncHandler(async (req, res) => {
   if (!callee) throw createError.notFound('User not found');
 
   await assertNotBlocked(req.user.id, calleeId);
+  await assertActorAgeVerifiable(req.user.id);
 
   // Only mutual matches may call each other — mirrors the chat gate. Without
   // this, any premium member could ring any user by ID (unsolicited calls /

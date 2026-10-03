@@ -34,6 +34,7 @@ jest.mock('../../config/database', () => ({
   col: jest.fn(),
 }));
 
+jest.mock('../../utils/blockTargets', () => ({ mayBlock: jest.fn().mockResolvedValue(true) }));
 jest.mock('../../utils/emailService', () => ({ sendMessageNotification: jest.fn() }));
 jest.mock('../../utils/notifyUser', () => ({ notify: jest.fn() }));
 jest.mock('../../utils/agoraToken', () => ({ generateRtcToken: jest.fn(() => null) }));

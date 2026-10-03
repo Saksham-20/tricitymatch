@@ -5,12 +5,16 @@
 const { Block, Report, User, Profile, MediaReview } = require('../models');
 const { Op } = require('sequelize');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
+
+const MAX_REPORTS_PER_DAY = 10;
 const { logAudit, log } = require('../middlewares/logger');
 const sequelize = require('../config/database');
 const { severRelationshipRows, evictChatRoom } = require('../utils/relationship');
 const { REPORT_REASONS, HIGH_RISK_REASONS } = require('../constants/reportReasons');
 const { sendEmail } = require('../utils/email');
 const config = require('../config/env');
+const { mayBlock } = require('../utils/blockTargets');
+const { snapshotReportEvidence } = require('../utils/evidencePreservation');
 
 // Blocking used to insert a Block row and nothing else, so an existing mutual
 // match kept its chat, its calls and its live socket room. The row alone is
@@ -42,8 +46,13 @@ exports.blockUser = asyncHandler(async (req, res) => {
     throw createError.badRequest('You cannot block yourself');
   }
 
-  const targetUser = await User.findByPk(blockedUserId);
-  if (!targetUser) throw createError.notFound('User not found');
+  // A repeat request on an existing block always goes through (it repairs a
+  // half-severed relationship). A NEW block needs a reason to exist: see
+  // utils/blockTargets. A refusal reads exactly like an unknown id.
+  const alreadyBlocked = await Block.findOne({ where: { blockerId, blockedUserId }, attributes: ['id'] });
+  if (!alreadyBlocked && !(await mayBlock(blockerId, blockedUserId))) {
+    throw createError.notFound('User not found');
+  }
 
   // findOrCreate prevents duplicate errors
   const [, created] = await Block.findOrCreate({
@@ -89,7 +98,10 @@ exports.getBlockedUsers = asyncHandler(async (req, res) => {
     include: [{
       model: User,
       as: 'BlockedUser',
-      attributes: ['id', 'email'],
+      // No email: this list is the blocker's own, but the target may be a member
+      // whose contact details are theirs to withhold (the unlock paywall and the
+      // owner's sharing level exist for exactly that).
+      attributes: ['id'],
       include: [{ model: Profile, attributes: ['firstName', 'lastName', 'profilePhoto', 'city'] }],
     }],
     order: [['createdAt', 'DESC']],
@@ -121,6 +133,44 @@ exports.reportUser = asyncHandler(async (req, res) => {
   // queue and staff are mailed immediately rather than finding them later.
   const urgent = HIGH_RISK_REASONS.includes(reason);
 
+  // One open report per reporter and target. Without this, a single account could
+  // file the same report over and over: each row jumped the queue, and each urgent
+  // one mailed staff, so one member could bury real urgent cases under thousands.
+  // A repeat adds what the member wrote to the open report instead (and returns
+  // the same id), except an urgent reason on an open NON-urgent report, which is
+  // a genuine escalation and becomes its own urgent report.
+  const open = await Report.findOne({
+    where: {
+      reporterId,
+      reportedUserId,
+      status: { [Op.in]: ['pending', 'reviewing'] },
+    },
+    order: [['createdAt', 'DESC']],
+  });
+  if (open && !(urgent && open.priority !== 'urgent')) {
+    const extra = typeof description === 'string' ? description.trim() : '';
+    if (extra && !(open.description || '').includes(extra)) {
+      const merged = [open.description, extra].filter(Boolean).join('\n---\n').substring(0, 2000);
+      await open.update({ description: merged });
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'You have already reported this member. We have added your note to that report.',
+      reportId: open.id,
+      duplicate: true,
+    });
+  }
+
+  // A daily ceiling on NEW reports per member: the one-open-report rule stops
+  // repeats against one person, this stops one account carpet-bombing the queue
+  // with reports against many.
+  const filedToday = await Report.count({
+    where: { reporterId, createdAt: { [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+  });
+  if (filedToday >= MAX_REPORTS_PER_DAY) {
+    throw createError.rateLimit('You have filed a lot of reports today. Please try again tomorrow.');
+  }
+
   const report = await Report.create({
     reporterId,
     reportedUserId,
@@ -139,7 +189,12 @@ exports.reportUser = asyncHandler(async (req, res) => {
     try {
       const reported = await Profile.findOne({ where: { userId: reportedUserId }, attributes: ['photos', 'profilePhoto'] });
       const urls = [...new Set([...(reported?.photos || []), reported?.profilePhoto].filter(Boolean))];
-      for (const url of urls) {
+      // A photo already waiting on the desk is not queued a second time.
+      const waiting = new Set((await MediaReview.findAll({
+        where: { userId: reportedUserId, status: 'pending', url: { [Op.in]: urls } },
+        attributes: ['url'],
+      })).map((m) => m.url));
+      for (const url of urls.filter((u) => !waiting.has(u))) {
         await MediaReview.create({
           userId: reportedUserId, url, source: 'report', status: 'pending',
           provider: 'report', labels: ['stolen_photos'], reportId: report.id,
@@ -152,9 +207,29 @@ exports.reportUser = asyncHandler(async (req, res) => {
     }
   }
 
+  // Copy the recent conversation into the evidence archive now, while it exists.
+  try {
+    await snapshotReportEvidence(report, require('../models'));
+  } catch (err) {
+    log.warn('Could not snapshot report evidence (report still stored)', { error: err.message, reportId: report.id });
+  }
+
   logAudit('user_reported', reporterId, { reportedUserId, reason, reportId: report.id, priority: report.priority });
 
-  if (urgent) {
+  // At most one urgent mail per reported member per hour: the first one tells
+  // staff to open the queue; further ones add nothing but noise.
+  const recentUrgent = urgent
+    ? await Report.count({
+        where: {
+          reportedUserId,
+          priority: 'urgent',
+          id: { [Op.ne]: report.id },
+          createdAt: { [Op.gte]: new Date(Date.now() - 60 * 60 * 1000) },
+        },
+      })
+    : 0;
+
+  if (urgent && recentUrgent === 0) {
     // Best-effort: the report is already stored; a mail failure must not fail it.
     sendEmail({
       to: config.email.support,

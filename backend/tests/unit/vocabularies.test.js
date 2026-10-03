@@ -16,6 +16,16 @@ describe('education levels', () => {
     expect(normalizeEducation(input)).toBe(level);
   });
 
+  // PROF-08: branch names and 2-letter abbreviations must not outrank the degree.
+  it.each([
+    ['B.Tech (ME)', 'bachelor'], ['Diploma in ME', 'diploma'], ['B.Tech CS', 'bachelor'],
+    ['Bachelor of Science in CS', 'bachelor'], ['B.Pharma', 'bachelor'], ['M.Pharma', 'master'], ['D.Pharma', 'diploma'],
+    ['ME', 'master'], ['M.S.', 'master'], ['CS', 'professional'], ['MD', 'professional'],
+    ['MS Office certified', null],
+  ])('ambiguous: %s -> %s', (input, level) => {
+    expect(normalizeEducation(input)).toBe(level);
+  });
+
   it('returns null for blank or unrecognised input rather than guessing', () => {
     expect(normalizeEducation('')).toBeNull();
     expect(normalizeEducation('   ')).toBeNull();
@@ -25,6 +35,12 @@ describe('education levels', () => {
 });
 
 describe('profession groups', () => {
+  it('a medical or sales representative is business, not a clinician', () => {
+    expect(normalizeProfession('Medical Representative')).toBe('Business / Management');
+    expect(normalizeProfession('Sales Executive')).toBe('Business / Management');
+    expect(normalizeProfession('Medical Officer')).toBe('Doctor / Healthcare');
+  });
+
   it.each([
     ['Software Engineer', 'Software / IT'], ['Engineer (Software)', 'Software / IT'], ['IT Professional', 'Software / IT'],
     ['Engineer', 'Engineer'], ['Engineer (Other)', 'Engineer'],

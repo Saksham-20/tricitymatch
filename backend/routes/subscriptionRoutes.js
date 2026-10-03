@@ -38,6 +38,19 @@ const paymentLimiter = createRateLimiter({
   message: 'Too many payment attempts, please try again later',
 });
 
+// Confirming or closing an order that already exists is not an attempt to buy
+// anything. verify-payment is signature-gated and idempotent, and cancel-order
+// only ever closes the caller's own order, so neither needs the tight budget
+// that exists to stop order minting. Sharing it made two abandoned checkouts
+// cost four of the ten hourly hits (create + cancel each), leaving a member
+// who finally paid with no budget left to confirm it.
+const confirmLimiter = createRateLimiter({
+  name: 'paymentConfirmLimiter',
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  message: 'Too many payment confirmations, please try again later',
+});
+
 // ==================== PUBLIC ROUTES ====================
 
 // Get available plans (public)
@@ -125,7 +138,7 @@ router.post('/create-order',
 // does not sit in `pending`. Idempotent; see controller for the rules.
 router.post('/cancel-order',
   auth,
-  paymentLimiter,
+  confirmLimiter,
   evBody('razorpayOrderId').isString().trim().notEmpty().isLength({ max: 64 })
     .withMessage('Invalid order'),
   handleValidationErrors,
@@ -135,7 +148,7 @@ router.post('/cancel-order',
 // Verify payment
 router.post('/verify-payment',
   auth,
-  paymentLimiter,
+  confirmLimiter,
   verifyPaymentValidation,
   handleValidationErrors,
   verifyPayment
@@ -163,7 +176,7 @@ router.post('/unlock-bundle/create-order',
 
 router.post('/unlock-bundle/verify-payment',
   auth,
-  paymentLimiter,
+  confirmLimiter,
   requirePremium,
   verifyPaymentValidation,
   handleValidationErrors,

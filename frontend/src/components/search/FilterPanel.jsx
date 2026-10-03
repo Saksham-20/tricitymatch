@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SavedSearches from './SavedSearches';
+import { CASTE_OPTIONS, PROFESSION_GROUPS } from '../../constants/profileOptions';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiFilter, FiX, FiMapPin, FiBriefcase, FiBook, FiCalendar,
@@ -132,7 +133,7 @@ const FilterContent = ({ filters, onChange }) => {
             <StyledInput
               id="ageMin" name="ageMin" type="number"
               value={filters.ageMin || ''} onChange={onChange}
-              placeholder="21" min="18" max="100"
+              placeholder="21" min="18" max="99"
               aria-label="Minimum age"
             />
           </div>
@@ -142,7 +143,7 @@ const FilterContent = ({ filters, onChange }) => {
             <StyledInput
               id="ageMax" name="ageMax" type="number"
               value={filters.ageMax || ''} onChange={onChange}
-              placeholder="40" min="18" max="100"
+              placeholder="40" min="18" max="99"
               aria-label="Maximum age"
             />
           </div>
@@ -192,11 +193,12 @@ const FilterContent = ({ filters, onChange }) => {
           </div>
           <div>
             <FieldLabel htmlFor="caste">Caste / Community</FieldLabel>
-            <StyledInput
-              id="caste" name="caste"
-              value={filters.caste || ''} onChange={onChange}
-              placeholder="e.g. Jatt, Khatri, Brahmin"
-            />
+            <StyledSelect id="caste" name="caste" value={filters.caste || ''} onChange={onChange}>
+              <option value="">Any</option>
+              {CASTE_OPTIONS.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </StyledSelect>
           </div>
           <div>
             <FieldLabel htmlFor="motherTongue">Mother Tongue</FieldLabel>
@@ -243,11 +245,12 @@ const FilterContent = ({ filters, onChange }) => {
           </div>
           <div>
             <FieldLabel htmlFor="profession">Profession</FieldLabel>
-            <StyledInput
-              id="profession" name="profession"
-              value={filters.profession || ''} onChange={onChange}
-              placeholder="e.g. Engineer, Doctor"
-            />
+            <StyledSelect id="profession" name="profession" value={filters.profession || ''} onChange={onChange}>
+              <option value="">Any profession</option>
+              {PROFESSION_GROUPS.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </StyledSelect>
           </div>
           <div>
             <FieldLabel htmlFor="incomeMin">Min Annual Income (₹)</FieldLabel>
@@ -284,7 +287,6 @@ const FilterContent = ({ filters, onChange }) => {
               <option value="non-vegetarian">Non-Vegetarian</option>
               <option value="vegan">Vegan</option>
               <option value="jain">Jain</option>
-              <option value="eggetarian">Eggetarian</option>
             </StyledSelect>
           </div>
           <div>
@@ -302,7 +304,6 @@ const FilterContent = ({ filters, onChange }) => {
               <option value="">Any</option>
               <option value="never">Never</option>
               <option value="occasionally">Occasionally</option>
-              <option value="socially">Socially</option>
               <option value="regularly">Regularly</option>
             </StyledSelect>
           </div>

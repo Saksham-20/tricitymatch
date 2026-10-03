@@ -206,7 +206,7 @@ describeDb('guardian invites and hand-over', (t) => {
 
   t('hand-over: the owner takes the account, the manager is locked out, the link works once', async () => {
     const { User } = require('../../../models');
-    const manager = await member({ phone: `98${String(Date.now()).slice(-8)}`, phoneVerified: true });
+    const manager = await member({ phone: `98${String(Date.now()).slice(-8)}`, phoneVerified: true, contactPhone: '9123450000' });
     await RefreshToken.create({
       userId: manager.id, tokenHash: `h${uniq()}${uniq()}${uniq()}${uniq()}`.padEnd(64, '0').slice(0, 64),
       family: '00000000-0000-4000-8000-000000000001', expiresAt: new Date(Date.now() + DAY),
@@ -230,6 +230,7 @@ describeDb('guardian invites and hand-over', (t) => {
     expect(fresh.emailVerified).toBe(true);
     expect(fresh.phone).toBeNull();
     expect(fresh.phoneVerified).toBe(false);
+    expect(fresh.contactPhone).toBeNull();
     expect(await fresh.comparePassword(newPassword)).toBe(true);
     expect(await fresh.comparePassword(PASSWORD)).toBe(false);
     expect(await RefreshToken.count({ where: { userId: manager.id, isRevoked: false } })).toBe(0);

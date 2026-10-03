@@ -287,6 +287,17 @@ const ModernOnboardingContent = () => {
         if (!signupData.email) delete signupData.email; // phone-only signup
         const result = await signup(signupData);
         if (!result.success) {
+          // The 30-minute proof of the verified contact lapsed while they filled
+          // in the rest. The page still showed the contact as verified and hid
+          // the code panel, leaving no way to resend: clear the stale flags and
+          // send them back to the first step to verify again.
+          if (mode === 'signup' && /verify your email or mobile/i.test(result.error || '')) {
+            ['emailVerification', 'phoneVerification'].forEach((k) => updateFormData(k, false));
+            ['emailProof', 'phoneProof'].forEach((k) => updateFormData(k, ''));
+            goToStep(0);
+            setSubmitError('Your verification expired. Please verify your email or mobile number again.');
+            return;
+          }
           // Toast already fired in AuthContext; keep a persistent inline copy
           // next to the CTA so the failure can't be missed.
           setSubmitError(result.error || 'Could not create your account. Please try again.');

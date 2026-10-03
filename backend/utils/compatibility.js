@@ -2,39 +2,60 @@
  * Compatibility Calculator — Vedic Ashtakoot Guna Milan + lifestyle scoring
  */
 
-// ─── Vedic Ashtakoot System ──────────────────────────────────────────────────
-// 27 Nakshatras mapped to their Varna, Vashya, Tara, Yoni, Graha Maitri, Gana,
-// Bhakoot (Rashi), and Nadi values for all 8 Gunas.
+const { normalizeEducation } = require('../constants/vocabularies');
+const { EDUCATION_RANK } = require('./preferenceFit');
 
+// ─── Vedic Ashtakoot System ──────────────────────────────────────────────────
+// Guna Milan scores eight "kootas" out of 36:
+//   varna 1 · vashya 2 · tara 3 · yoni 4 · graha maitri 5 · gana 6 · bhakoot 7 · nadi 8
+//
+// Four are read from the MOON SIGN (varna, vashya, graha maitri, bhakoot) and
+// four from the BIRTH STAR / nakshatra (tara, yoni, gana, nadi). A member's
+// stored rashi is used for the first group when both sides have one; otherwise
+// it is derived from the nakshatra (majority-pada sign, see NAKSHATRA_DATA).
+//
+// Three kootas are DIRECTIONAL (varna, vashya, gana): the table is read with
+// the groom on one axis and the bride on the other. Callers that know gender
+// should go through getKundliMatch(), which orders the pair for them.
+//
+// Traditions differ on several half-point cells (vashya, graha maitri, the
+// gana Deva/Rakshasa cell) and on cancellation rules. This module applies one
+// widely published set and every figure is INDICATIVE — a family pandit may
+// read a pair differently.
+
+// Order matters: index = position in the 27-star cycle (used by Tara).
+// nadi follows the standard zig-zag Adi, Madhya, Antya, Antya, Madhya, Adi.
+// rashi = the sign holding most of the star's four padas (0 = Mesha).
 const NAKSHATRA_DATA = {
-  ashwini:      { varna: 4, vashya: 2, yoni: 'horse', gana: 'deva',  nadi: 'anta',  rashi: 0  },
-  bharani:      { varna: 1, vashya: 2, yoni: 'elephant', gana: 'manushya', nadi: 'madhya', rashi: 0 },
-  krittika:     { varna: 2, vashya: 2, yoni: 'goat', gana: 'rakshasa', nadi: 'aadi', rashi: 0 },
-  rohini:       { varna: 4, vashya: 4, yoni: 'serpent', gana: 'manushya', nadi: 'anta', rashi: 1 },
-  mrigashira:   { varna: 4, vashya: 4, yoni: 'serpent', gana: 'deva', nadi: 'madhya', rashi: 1 },
-  ardra:        { varna: 1, vashya: 3, yoni: 'dog', gana: 'manushya', nadi: 'aadi', rashi: 2 },
-  punarvasu:    { varna: 4, vashya: 3, yoni: 'cat', gana: 'deva', nadi: 'anta', rashi: 2 },
-  pushya:       { varna: 2, vashya: 3, yoni: 'goat', gana: 'deva', nadi: 'madhya', rashi: 3 },
-  ashlesha:     { varna: 1, vashya: 3, yoni: 'cat', gana: 'rakshasa', nadi: 'aadi', rashi: 3 },
-  magha:        { varna: 1, vashya: 4, yoni: 'rat', gana: 'rakshasa', nadi: 'anta', rashi: 4 },
-  purva_phalguni: { varna: 4, vashya: 4, yoni: 'rat', gana: 'manushya', nadi: 'madhya', rashi: 4 },
-  uttara_phalguni: { varna: 2, vashya: 4, yoni: 'cow', gana: 'manushya', nadi: 'aadi', rashi: 4 },
-  hasta:        { varna: 4, vashya: 4, yoni: 'buffalo', gana: 'deva', nadi: 'anta', rashi: 5 },
-  chitra:       { varna: 3, vashya: 4, yoni: 'tiger', gana: 'rakshasa', nadi: 'madhya', rashi: 5 },
-  swati:        { varna: 4, vashya: 3, yoni: 'buffalo', gana: 'deva', nadi: 'aadi', rashi: 6 },
-  vishakha:     { varna: 2, vashya: 3, yoni: 'tiger', gana: 'rakshasa', nadi: 'anta', rashi: 6 },
-  anuradha:     { varna: 4, vashya: 3, yoni: 'rabbit', gana: 'deva', nadi: 'madhya', rashi: 7 },
-  jyeshtha:     { varna: 2, vashya: 3, yoni: 'rabbit', gana: 'rakshasa', nadi: 'aadi', rashi: 7 },
-  moola:        { varna: 1, vashya: 3, yoni: 'dog', gana: 'rakshasa', nadi: 'anta', rashi: 8 },
-  purva_ashadha: { varna: 4, vashya: 3, yoni: 'monkey', gana: 'manushya', nadi: 'madhya', rashi: 8 },
-  uttara_ashadha: { varna: 2, vashya: 3, yoni: 'mongoose', gana: 'manushya', nadi: 'aadi', rashi: 8 },
-  shravana:     { varna: 4, vashya: 4, yoni: 'monkey', gana: 'deva', nadi: 'anta', rashi: 9 },
-  dhanistha:    { varna: 3, vashya: 4, yoni: 'lion', gana: 'rakshasa', nadi: 'madhya', rashi: 9 },
-  shatabhisha:  { varna: 1, vashya: 1, yoni: 'horse', gana: 'rakshasa', nadi: 'aadi', rashi: 10 },
-  purva_bhadrapada: { varna: 2, vashya: 1, yoni: 'lion', gana: 'manushya', nadi: 'anta', rashi: 10 },
-  uttara_bhadrapada: { varna: 2, vashya: 1, yoni: 'cow', gana: 'deva', nadi: 'madhya', rashi: 11 },
-  revati:       { varna: 4, vashya: 1, yoni: 'elephant', gana: 'deva', nadi: 'aadi', rashi: 11 },
+  ashwini:           { yoni: 'horse',    gana: 'deva',     nadi: 'adi',    rashi: 0 },
+  bharani:           { yoni: 'elephant', gana: 'manushya', nadi: 'madhya', rashi: 0 },
+  krittika:          { yoni: 'goat',     gana: 'rakshasa', nadi: 'antya',  rashi: 1 },
+  rohini:            { yoni: 'serpent',  gana: 'manushya', nadi: 'antya',  rashi: 1 },
+  mrigashira:        { yoni: 'serpent',  gana: 'deva',     nadi: 'madhya', rashi: 1 },
+  ardra:             { yoni: 'dog',      gana: 'manushya', nadi: 'adi',    rashi: 2 },
+  punarvasu:         { yoni: 'cat',      gana: 'deva',     nadi: 'adi',    rashi: 2 },
+  pushya:            { yoni: 'goat',     gana: 'deva',     nadi: 'madhya', rashi: 3 },
+  ashlesha:          { yoni: 'cat',      gana: 'rakshasa', nadi: 'antya',  rashi: 3 },
+  magha:             { yoni: 'rat',      gana: 'rakshasa', nadi: 'antya',  rashi: 4 },
+  purva_phalguni:    { yoni: 'rat',      gana: 'manushya', nadi: 'madhya', rashi: 4 },
+  uttara_phalguni:   { yoni: 'cow',      gana: 'manushya', nadi: 'adi',    rashi: 5 },
+  hasta:             { yoni: 'buffalo',  gana: 'deva',     nadi: 'adi',    rashi: 5 },
+  chitra:            { yoni: 'tiger',    gana: 'rakshasa', nadi: 'madhya', rashi: 5 },
+  swati:             { yoni: 'buffalo',  gana: 'deva',     nadi: 'antya',  rashi: 6 },
+  vishakha:          { yoni: 'tiger',    gana: 'rakshasa', nadi: 'antya',  rashi: 6 },
+  anuradha:          { yoni: 'rabbit',   gana: 'deva',     nadi: 'madhya', rashi: 7 },
+  jyeshtha:          { yoni: 'rabbit',   gana: 'rakshasa', nadi: 'adi',    rashi: 7 },
+  moola:             { yoni: 'dog',      gana: 'rakshasa', nadi: 'adi',    rashi: 8 },
+  purva_ashadha:     { yoni: 'monkey',   gana: 'manushya', nadi: 'madhya', rashi: 8 },
+  uttara_ashadha:    { yoni: 'mongoose', gana: 'manushya', nadi: 'antya',  rashi: 9 },
+  shravana:          { yoni: 'monkey',   gana: 'deva',     nadi: 'antya',  rashi: 9 },
+  dhanistha:         { yoni: 'lion',     gana: 'rakshasa', nadi: 'madhya', rashi: 9 },
+  shatabhisha:       { yoni: 'horse',    gana: 'rakshasa', nadi: 'adi',    rashi: 10 },
+  purva_bhadrapada:  { yoni: 'lion',     gana: 'manushya', nadi: 'adi',    rashi: 10 },
+  uttara_bhadrapada: { yoni: 'cow',      gana: 'deva',     nadi: 'madhya', rashi: 11 },
+  revati:            { yoni: 'elephant', gana: 'deva',     nadi: 'antya',  rashi: 11 },
 };
+const NAKSHATRA_ORDER = Object.keys(NAKSHATRA_DATA);
 
 // Nakshatra aliases (common alternate spellings)
 const NAKSHATRA_ALIASES = {
@@ -60,191 +81,245 @@ const NAKSHATRA_ALIASES = {
   'purva_ashadha': 'purva_ashadha', 'purva ashadha': 'purva_ashadha', 'poorvashadha': 'purva_ashadha',
   'uttara_ashadha': 'uttara_ashadha', 'uttara ashadha': 'uttara_ashadha',
   'shravana': 'shravana', 'sravana': 'shravana', 'shravan': 'shravana',
-  'dhanistha': 'dhanistha', 'dhanishtha': 'dhanistha', 'dhanista': 'dhanistha',
+  'dhanistha': 'dhanistha', 'dhanishtha': 'dhanistha', 'dhanista': 'dhanistha', 'dhanishta': 'dhanistha',
   'shatabhisha': 'shatabhisha', 'satabhisha': 'shatabhisha', 'sadayam': 'shatabhisha',
   'purva_bhadrapada': 'purva_bhadrapada', 'purva bhadrapada': 'purva_bhadrapada',
   'uttara_bhadrapada': 'uttara_bhadrapada', 'uttara bhadrapada': 'uttara_bhadrapada',
   'revati': 'revati',
 };
 
-const resolveNakshatra = (name) => {
-  if (!name) return null;
+const nakshatraKey = (name) => {
+  if (!name || typeof name !== 'string') return null;
   const key = name.toLowerCase().trim();
   const canonical = NAKSHATRA_ALIASES[key] || key;
-  return NAKSHATRA_DATA[canonical] || null;
+  return NAKSHATRA_DATA[canonical] ? canonical : null;
 };
 
-// ─── Guna 1: Varna (1 point max) ─────────────────────────────────────────────
-// Brahmin(4) > Kshatriya(3) > Vaishya(2) > Shudra(1)
-// Groom varna >= Bride varna → full point
-const getVarnaScore = (n1, n2) => {
-  if (!n1 || !n2) return null;
-  // Traditional: groom (n1) varna >= bride (n2) varna
-  return n1.varna >= n2.varna ? 1 : 0;
+const resolveNakshatra = (name) => {
+  const key = nakshatraKey(name);
+  return key ? NAKSHATRA_DATA[key] : null;
 };
 
-// ─── Guna 2: Vashya (2 points max) ───────────────────────────────────────────
-// Compatibility categories: manav(1), vanchar(2), chatushpad(3), jalchar(4), keet(5)
-// Simplified: matching vashya = 2, complementary = 1, else 0
-const getVashyaScore = (n1, n2) => {
-  if (!n1 || !n2) return null;
-  if (n1.vashya === n2.vashya) return 2;
-  // Complementary pairs (simplified)
-  const complementary = new Set([`${n1.vashya}_${n2.vashya}`, `${n2.vashya}_${n1.vashya}`]);
-  if (complementary.has('1_2') || complementary.has('3_4')) return 1;
-  return 0;
+// ─── Rashi (moon sign) parsing ───────────────────────────────────────────────
+// Accepts what the editor stores ("Mesha", "Vrishchika") and the English names
+// ("Aries", "Mesha (Aries)", "Mesh").
+const RASHI_PREFIXES = [
+  ['mesh', 0], ['aries', 0],
+  ['vrishabh', 1], ['taurus', 1], ['vrishab', 1],
+  ['mithun', 2], ['gemini', 2],
+  ['kark', 3], ['cancer', 3],
+  ['simh', 4], ['leo', 4],
+  ['kany', 5], ['virgo', 5],
+  ['tula', 6], ['libra', 6],
+  ['vrishchik', 7], ['scorpio', 7], ['vrischik', 7],
+  ['dhan', 8], ['sagittarius', 8],
+  ['makar', 9], ['capricorn', 9],
+  ['kumbh', 10], ['aquarius', 10],
+  ['meen', 11], ['pisces', 11],
+];
+
+const resolveRashi = (name) => {
+  if (!name || typeof name !== 'string') return null;
+  const first = name.toLowerCase().trim().split(/[\s(]/)[0];
+  if (!first) return null;
+  for (const [prefix, idx] of RASHI_PREFIXES) {
+    if (first.startsWith(prefix)) return idx;
+  }
+  return null;
 };
 
-// ─── Guna 3: Tara (3 points max) ─────────────────────────────────────────────
-// Birth star counted from bride's to groom's. Count / 9 remainder must be 1,3,5,7.
-const NAKSHATRA_ORDER = Object.keys(NAKSHATRA_DATA);
+// ─── Guna 1: Varna (1 point) ─────────────────────────────────────────────────
+// Brahmin 4 (Karka, Vrishchika, Meena) · Kshatriya 3 (Mesha, Simha, Dhanu)
+// Vaishya 2 (Vrishabha, Kanya, Makara) · Shudra 1 (Mithuna, Tula, Kumbha)
+// Full point when the groom's varna is equal to or higher than the bride's.
+const RASHI_VARNA = [3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4];
+const getVarnaScore = (groomRashi, brideRashi) =>
+  (RASHI_VARNA[groomRashi] >= RASHI_VARNA[brideRashi] ? 1 : 0);
 
-const getTaraScore = (n1Key, n2Key) => {
-  const i1 = NAKSHATRA_ORDER.indexOf(n1Key);
-  const i2 = NAKSHATRA_ORDER.indexOf(n2Key);
-  if (i1 < 0 || i2 < 0) return null;
-  // Count from n2 to n1
-  const diff = ((i1 - i2 + 27) % 27) + 1;
-  const remainder = diff % 9;
-  const auspicious = new Set([1, 3, 5, 7]);
-  return auspicious.has(remainder) ? 3 : 0;
+// ─── Guna 2: Vashya (2 points) ───────────────────────────────────────────────
+// Sign categories: Chatushpada (quadruped), Manava (human), Jalachara
+// (water), Vanachara (wild), Keeta (insect). Dhanu and Makara are split by
+// pada in some texts; the majority category is used for each.
+const VASHYA_GROUP = [0, 0, 1, 2, 3, 1, 1, 4, 1, 0, 1, 2];
+// [bride row][groom column], order Chatushpada, Manava, Jalachara, Vanachara, Keeta
+const VASHYA_MATRIX = [
+  [2, 1, 1, 1.5, 1],
+  [1, 2, 1.5, 0, 1],
+  [1, 1.5, 2, 1, 1],
+  [0, 0, 0, 2, 0],
+  [1, 1, 1, 0, 2],
+];
+const getVashyaScore = (groomRashi, brideRashi) =>
+  VASHYA_MATRIX[VASHYA_GROUP[brideRashi]][VASHYA_GROUP[groomRashi]];
+
+// ─── Guna 3: Tara (3 points) ─────────────────────────────────────────────────
+// Count from the bride's star to the groom's and back, each count taken
+// mod 9. A remainder of 3, 5 or 7 (Vipat, Pratyak, Vadha) is inauspicious.
+// Both directions good = 3, one = 1.5, neither = 0.
+const BAD_TARA = new Set([3, 5, 7]);
+const getTaraScore = (groomKey, brideKey) => {
+  const g = NAKSHATRA_ORDER.indexOf(groomKey);
+  const b = NAKSHATRA_ORDER.indexOf(brideKey);
+  if (g < 0 || b < 0) return null;
+  const brideToGroom = ((g - b + 27) % 27) + 1;
+  const groomToBride = ((b - g + 27) % 27) + 1;
+  const good = [brideToGroom, groomToBride].filter((c) => !BAD_TARA.has(c % 9)).length;
+  return good * 1.5;
 };
 
-// ─── Guna 4: Yoni (4 points max) ─────────────────────────────────────────────
-// Same yoni = 4, friendly = 3, neutral = 2, enemy = 1, hostile = 0
-const YONI_ENEMIES = {
-  horse: 'buffalo', buffalo: 'horse',
-  elephant: 'lion', lion: 'elephant',
-  goat: 'monkey', monkey: 'goat',
-  rat: 'cat', cat: 'rat',
-  cow: 'tiger', tiger: 'cow',
-  dog: 'rabbit', rabbit: 'dog',
-  serpent: 'mongoose', mongoose: 'serpent',
-};
-
+// ─── Guna 4: Yoni (4 points) ─────────────────────────────────────────────────
+const YONI_ORDER = [
+  'horse', 'elephant', 'goat', 'serpent', 'dog', 'cat', 'rat',
+  'cow', 'buffalo', 'tiger', 'rabbit', 'monkey', 'mongoose', 'lion',
+];
+const YONI_MATRIX = [
+  [4, 2, 3, 2, 2, 3, 3, 2, 0, 1, 3, 2, 2, 1],
+  [2, 4, 3, 2, 2, 3, 2, 3, 3, 1, 3, 2, 2, 0],
+  [3, 3, 4, 2, 2, 3, 2, 3, 3, 1, 3, 0, 2, 1],
+  [2, 2, 2, 4, 2, 1, 1, 2, 2, 2, 2, 1, 0, 2],
+  [2, 2, 2, 2, 4, 1, 1, 2, 2, 2, 0, 2, 2, 2],
+  [3, 3, 3, 1, 1, 4, 0, 3, 3, 2, 3, 2, 2, 2],
+  [3, 2, 2, 1, 1, 0, 4, 3, 3, 2, 3, 2, 1, 2],
+  [2, 3, 3, 2, 2, 3, 3, 4, 3, 0, 3, 2, 2, 1],
+  [0, 3, 3, 2, 2, 3, 3, 3, 4, 1, 3, 2, 2, 1],
+  [1, 1, 1, 2, 2, 2, 2, 0, 1, 4, 1, 2, 2, 3],
+  [3, 3, 3, 2, 0, 3, 3, 3, 3, 1, 4, 2, 2, 1],
+  [2, 2, 0, 1, 2, 2, 2, 2, 2, 2, 2, 4, 2, 2],
+  [2, 2, 2, 0, 2, 2, 1, 2, 2, 2, 2, 2, 4, 2],
+  [1, 0, 1, 2, 2, 2, 2, 1, 1, 3, 1, 2, 2, 4],
+];
 const getYoniScore = (n1, n2) => {
   if (!n1 || !n2) return null;
-  if (n1.yoni === n2.yoni) return 4;
-  if (YONI_ENEMIES[n1.yoni] === n2.yoni) return 0;
-  return 2; // neutral
+  const a = YONI_ORDER.indexOf(n1.yoni);
+  const b = YONI_ORDER.indexOf(n2.yoni);
+  if (a < 0 || b < 0) return null;
+  return YONI_MATRIX[a][b];
 };
 
-// ─── Guna 5: Graha Maitri (5 points max) ─────────────────────────────────────
-// Based on rashi lords. Simplified: same rashi = 5, adjacent = 4, else 2-3
-const getRashiLord = (rashiIdx) => {
-  // Rashi lords: Mesh=Mars,Vrishabh=Venus,Mithun=Mercury,Kark=Moon,Simha=Sun,
-  //   Kanya=Mercury,Tula=Venus,Vrishchik=Mars,Dhanu=Jupiter,Makar=Saturn,Kumbh=Saturn,Meen=Jupiter
-  const lords = ['mars','venus','mercury','moon','sun','mercury','venus','mars','jupiter','saturn','saturn','jupiter'];
-  return lords[rashiIdx] || null;
-};
-
+// ─── Guna 5: Graha Maitri (5 points) ─────────────────────────────────────────
+// Friendship between the two moon-sign lords (Parashari natural friendship).
+const RASHI_LORD = [
+  'mars', 'venus', 'mercury', 'moon', 'sun', 'mercury',
+  'venus', 'mars', 'jupiter', 'saturn', 'saturn', 'jupiter',
+];
 const PLANET_FRIENDS = {
-  sun:     ['moon','mars','jupiter'],
-  moon:    ['sun','mercury'],
-  mars:    ['sun','moon','jupiter'],
-  mercury: ['sun','venus'],
-  jupiter: ['sun','moon','mars'],
-  venus:   ['mercury','saturn'],
-  saturn:  ['mercury','venus'],
+  sun:     { friend: ['moon', 'mars', 'jupiter'], enemy: ['venus', 'saturn'] },
+  moon:    { friend: ['sun', 'mercury'], enemy: [] },
+  mars:    { friend: ['sun', 'moon', 'jupiter'], enemy: ['mercury'] },
+  mercury: { friend: ['sun', 'venus'], enemy: ['moon'] },
+  jupiter: { friend: ['sun', 'moon', 'mars'], enemy: ['mercury', 'venus'] },
+  venus:   { friend: ['mercury', 'saturn'], enemy: ['sun', 'moon'] },
+  saturn:  { friend: ['mercury', 'venus'], enemy: ['sun', 'moon', 'mars'] },
 };
-
-const getPlanetRelation = (p1, p2) => {
-  if (p1 === p2) return 'same';
-  if (PLANET_FRIENDS[p1]?.includes(p2)) return 'friend';
-  return 'neutral';
+const relationOf = (from, to) => {
+  const row = PLANET_FRIENDS[from];
+  if (row.friend.includes(to)) return 'F';
+  if (row.enemy.includes(to)) return 'E';
+  return 'N';
 };
-
-const getGrahaMaitriScore = (n1, n2) => {
-  if (!n1 || !n2) return null;
-  const l1 = getRashiLord(n1.rashi);
-  const l2 = getRashiLord(n2.rashi);
+const getGrahaMaitriScore = (r1, r2) => {
+  const l1 = RASHI_LORD[r1];
+  const l2 = RASHI_LORD[r2];
   if (!l1 || !l2) return null;
-  const rel = getPlanetRelation(l1, l2);
-  if (rel === 'same') return 5;
-  if (rel === 'friend') return 4;
-  const rel2 = getPlanetRelation(l2, l1);
-  if (rel2 === 'friend') return 3;
-  return 2;
+  if (l1 === l2) return 5;
+  const rel = [relationOf(l1, l2), relationOf(l2, l1)].sort().join('');
+  // sorted pairs: EE, EF, EN, FF, FN, NN
+  const table = { FF: 5, FN: 4, NN: 3, EF: 1, EN: 0.5, EE: 0 };
+  return table[rel];
 };
 
-// ─── Guna 6: Gana (6 points max) ─────────────────────────────────────────────
-// Deva+Deva=6, Manushya+Manushya=6, Rakshasa+Rakshasa=6
-// Deva+Manushya=5, Manushya+Deva=5, Rakshasa+Manushya=1, Manushya+Rakshasa=0
-// Deva+Rakshasa=0, Rakshasa+Deva=0
-const GANA_SCORE = {
-  deva_deva: 6, manushya_manushya: 6, rakshasa_rakshasa: 6,
-  deva_manushya: 5, manushya_deva: 5,
-  deva_rakshasa: 0, rakshasa_deva: 0,
-  manushya_rakshasa: 0, rakshasa_manushya: 1,
+// ─── Guna 6: Gana (6 points) ─────────────────────────────────────────────────
+// [bride row][groom column], order Deva, Manushya, Rakshasa
+const GANA_ORDER = ['deva', 'manushya', 'rakshasa'];
+const GANA_MATRIX = [
+  [6, 5, 1],
+  [6, 6, 0],
+  [0, 0, 6],
+];
+const getGanaScore = (groom, bride) => {
+  if (!groom || !bride) return null;
+  const g = GANA_ORDER.indexOf(groom.gana);
+  const b = GANA_ORDER.indexOf(bride.gana);
+  if (g < 0 || b < 0) return null;
+  return GANA_MATRIX[b][g];
 };
 
-const getGanaScore = (n1, n2) => {
-  if (!n1 || !n2) return null;
-  const key = `${n1.gana}_${n2.gana}`;
-  return GANA_SCORE[key] ?? null;
-};
+// ─── Guna 7: Bhakoot / Rashi (7 points) ──────────────────────────────────────
+// The distance between the two moon signs is counted forward from each one to
+// the other (the two counts always add up to 14). The pairs 2/12, 5/9 and 6/8
+// are Bhakoot dosha and score 0; every other pair, including the same sign,
+// scores the full 7.
+//
+// One cancellation is applied because every school agrees on it: when both
+// signs are ruled by the same planet (Mesha/Vrishchika, Vrishabha/Tula,
+// Makara/Kumbha) the dosha does not stand. Other parihara (friendly lords,
+// nakshatra-based exceptions) differ between traditions and are NOT applied.
+const BHAKOOT_DOSHA_PAIRS = new Set(['2/12', '5/9', '6/8']);
 
-// ─── Guna 7: Bhakoot / Rashi (7 points max) ──────────────────────────────────
-// Certain rashi pair differences are inauspicious: 2/12, 6/8, 5/9
 const getBhakootScore = (n1, n2) => {
   if (!n1 || !n2) return null;
-  const r1 = n1.rashi + 1; // 1-indexed
-  const r2 = n2.rashi + 1;
-  const diff = Math.abs(r1 - r2);
-  const largeDiff = 12 - diff;
-  const pair = [Math.min(diff, largeDiff), Math.max(diff, largeDiff)];
-  const inauspicious = [[1,11],[2,10],[3,9],[4,8],[5,7],[6,6]];
-  // Specifically bad: 6/8 and 2/12 (represented as diff=6 or diff=2 with complement=10)
-  if ((diff === 6) || (diff === 2 && largeDiff === 10) || (diff === 5 && largeDiff === 7)) {
-    return 0;
-  }
-  if (r1 === r2) return 7; // same rashi
-  return 7; // all other combinations = full marks (simplified — full Bhakoot requires more detail)
+  const from1 = ((n2.rashi - n1.rashi + 12) % 12) + 1; // counting r1 -> r2
+  const from2 = ((n1.rashi - n2.rashi + 12) % 12) + 1; // counting r2 -> r1
+  const pair = `${Math.min(from1, from2)}/${Math.max(from1, from2)}`;
+  if (!BHAKOOT_DOSHA_PAIRS.has(pair)) return 7;
+  return RASHI_LORD[n1.rashi] === RASHI_LORD[n2.rashi] ? 7 : 0;
 };
 
-// ─── Guna 8: Nadi (8 points max) ─────────────────────────────────────────────
-// Same nadi = 0 (nadi dosha — most critical), different = 8
+// ─── Guna 8: Nadi (8 points) ─────────────────────────────────────────────────
+// Same nadi = 0 (nadi dosha — the heaviest), different = 8
 const getNadiScore = (n1, n2) => {
   if (!n1 || !n2) return null;
   return n1.nadi === n2.nadi ? 0 : 8;
 };
 
 // ─── Full Ashtakoot Score (out of 36) ────────────────────────────────────────
-const getAshtakootScore = (nakshatra1Name, nakshatra2Name) => {
-  const n1 = resolveNakshatra(nakshatra1Name);
-  const n2 = resolveNakshatra(nakshatra2Name);
+// A side is either a nakshatra name or { nakshatra, rashi }. The FIRST side is
+// read as the groom, the second as the bride (matters for varna, vashya, gana).
+const sideOf = (input) => {
+  const nakshatra = typeof input === 'object' && input !== null ? input.nakshatra : input;
+  const rashi = typeof input === 'object' && input !== null ? input.rashi : null;
+  const key = nakshatraKey(nakshatra);
+  const star = key ? NAKSHATRA_DATA[key] : null;
+  return { key, star, rashi: resolveRashi(rashi) };
+};
 
-  if (!n1 || !n2) return null;
+const MAXES = { varna: 1, vashya: 2, tara: 3, yoni: 4, maitri: 5, gana: 6, bhakoot: 7, nadi: 8 };
 
-  const n1Key = NAKSHATRA_ALIASES[nakshatra1Name?.toLowerCase().trim()] || nakshatra1Name?.toLowerCase().trim();
-  const n2Key = NAKSHATRA_ALIASES[nakshatra2Name?.toLowerCase().trim()] || nakshatra2Name?.toLowerCase().trim();
+const getAshtakootScore = (groomInput, brideInput) => {
+  const g = sideOf(groomInput);
+  const b = sideOf(brideInput);
+  if (!g.star || !b.star) return null;
 
-  const varna  = getVarnaScore(n1, n2);
-  const vashya = getVashyaScore(n1, n2);
-  const tara   = getTaraScore(n1Key, n2Key);
-  const yoni   = getYoniScore(n1, n2);
-  const maitri = getGrahaMaitriScore(n1, n2);
-  const gana   = getGanaScore(n1, n2);
-  const bhakoot = getBhakootScore(n1, n2);
-  const nadi   = getNadiScore(n1, n2);
+  // Moon signs: the stored rashi when BOTH sides gave one (so neither is
+  // compared with a guessed sign), otherwise each star's own sign.
+  const useStored = g.rashi !== null && b.rashi !== null;
+  const gr = useStored ? g.rashi : g.star.rashi;
+  const br = useStored ? b.rashi : b.star.rashi;
+
+  const varna = getVarnaScore(gr, br);
+  const vashya = getVashyaScore(gr, br);
+  const tara = getTaraScore(g.key, b.key);
+  const yoni = getYoniScore(g.star, b.star);
+  const maitri = getGrahaMaitriScore(gr, br);
+  const gana = getGanaScore(g.star, b.star);
+  const bhakoot = getBhakootScore({ rashi: gr }, { rashi: br });
+  const nadi = getNadiScore(g.star, b.star);
 
   const gunas = { varna, vashya, tara, yoni, maitri, gana, bhakoot, nadi };
-  const maxes = { varna: 1, vashya: 2, tara: 3, yoni: 4, maitri: 5, gana: 6, bhakoot: 7, nadi: 8 };
 
   let totalScore = 0;
   let totalMax = 0;
-
   for (const [key, val] of Object.entries(gunas)) {
     if (val !== null) {
       totalScore += val;
-      totalMax += maxes[key];
+      totalMax += MAXES[key];
     }
   }
 
   const percentageScore = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : null;
 
-  // Traditional interpretation thresholds
-  const rawOut36 = totalMax > 0 ? Math.round((totalScore / totalMax) * 36) : null;
+  // Scores can end in .5 — keep the half rather than rounding it away
+  const rawOut36 = totalMax > 0 ? Math.round((totalScore / totalMax) * 36 * 2) / 2 : null;
   let interpretation = 'Unknown';
   if (rawOut36 !== null) {
     if (rawOut36 >= 32) interpretation = 'Excellent';
@@ -254,20 +329,15 @@ const getAshtakootScore = (nakshatra1Name, nakshatra2Name) => {
     else interpretation = 'Poor';
   }
 
-  // Check critical doshas
-  const hasNadiDosha = nadi === 0;
-  const hasBhakootDosha = bhakoot === 0;
-  const hasGanaDosha = gana === 0;
-
   return {
     totalScore,
     totalMax,
     rawOut36,
     percentageScore,
     interpretation,
-    hasNadiDosha,
-    hasBhakootDosha,
-    hasGanaDosha,
+    hasNadiDosha: nadi === 0,
+    hasBhakootDosha: bhakoot === 0,
+    hasGanaDosha: gana === 0,
     gunas: {
       varna:   { score: varna,   max: 1, name: 'Varna',        detail: 'Spiritual compatibility' },
       vashya:  { score: vashya,  max: 2, name: 'Vashya',       detail: 'Mutual attraction & control' },
@@ -281,26 +351,74 @@ const getAshtakootScore = (nakshatra1Name, nakshatra2Name) => {
   };
 };
 
-// ─── Rashi fallback (when only rashi known, not nakshatra) ────────────────────
-const RASHI_MAP = {
-  mesh: 0, aries: 0,
-  vrishabh: 1, taurus: 1,
-  mithun: 2, gemini: 2,
-  kark: 3, cancer: 3,
-  simha: 4, leo: 4,
-  kanya: 5, virgo: 5,
-  tula: 6, libra: 6,
-  vrishchik: 7, scorpio: 7,
-  dhanu: 8, sagittarius: 8,
-  makar: 9, capricorn: 9,
-  kumbh: 10, aquarius: 10,
-  meen: 11, pisces: 11,
+// ─── Gender-aware match ──────────────────────────────────────────────────────
+// Orders the two profiles groom/bride by gender. When the pair is not one
+// man + one woman (same gender, missing gender) there is no right answer, so
+// the viewer is read as the groom and the reverse reading is returned as
+// `alternate` (and `directionKnown` is false) so a caller can show both.
+const isMale = (g) => /^(male|m|man|groom)$/i.test(String(g || ''));
+const isFemale = (g) => /^(female|f|woman|bride)$/i.test(String(g || ''));
+
+const getKundliMatch = (viewerProfile, otherProfile) => {
+  const v = { nakshatra: viewerProfile?.nakshatra, rashi: viewerProfile?.rashi };
+  const o = { nakshatra: otherProfile?.nakshatra, rashi: otherProfile?.rashi };
+
+  let groom = v;
+  let bride = o;
+  let directionKnown = false;
+  if (isMale(viewerProfile?.gender) && isFemale(otherProfile?.gender)) {
+    directionKnown = true;
+  } else if (isFemale(viewerProfile?.gender) && isMale(otherProfile?.gender)) {
+    groom = o;
+    bride = v;
+    directionKnown = true;
+  }
+
+  const primary = getAshtakootScore(groom, bride);
+  if (!primary) return null;
+  const reverse = directionKnown ? null : getAshtakootScore(bride, groom);
+  return {
+    ...primary,
+    directionKnown,
+    // Only worth showing when the reading actually depends on direction
+    alternate: reverse && reverse.totalScore !== primary.totalScore
+      ? { totalScore: reverse.totalScore, rawOut36: reverse.rawOut36, interpretation: reverse.interpretation }
+      : null,
+  };
 };
 
+// ─── One summary for the match endpoint and the PDF ──────────────────────────
+// Never calls a pair "excellent for marriage" while a major dosha stands, and
+// always says the figure is indicative.
+const buildKundliSummary = ({ ashtakoot, manglikCompatible, manglikDetail, rashiScore, plain = false }) => {
+  const warn = plain ? '' : '⚠️ ';
+  if (!ashtakoot) {
+    if (rashiScore !== null && rashiScore !== undefined) {
+      return `Rashi compatibility: ${rashiScore}%. ${manglikDetail}. Indicative only.`;
+    }
+    return 'Insufficient horoscope data for full analysis. Please complete nakshatra and birth details.';
+  }
+  const score = ashtakoot.rawOut36 ?? 0;
+  const parts = [`Guna Milan: ${score}/36 (${ashtakoot.interpretation}).`];
+  const doshas = [];
+  if (ashtakoot.hasNadiDosha) doshas.push('Nadi');
+  if (ashtakoot.hasBhakootDosha) doshas.push('Bhakoot');
+  if (ashtakoot.hasGanaDosha) doshas.push('Gana');
+  if (doshas.length) parts.push(`${warn}${doshas.join(', ')} Dosha present.`);
+  if (!manglikCompatible) parts.push(`${warn}Manglik incompatibility.`);
+  if (!doshas.length && manglikCompatible && score >= 28) {
+    parts.push('Strong match on the traditional Guna Milan.');
+  }
+  parts.push('Indicative only — please consult your family pandit.');
+  return parts.join(' ');
+};
+
+
+// ─── Rashi fallback (when only rashi known, not nakshatra) ────────────────────
 const getRashiCompatibility = (rashi1, rashi2) => {
-  const r1 = RASHI_MAP[rashi1?.toLowerCase()];
-  const r2 = RASHI_MAP[rashi2?.toLowerCase()];
-  if (r1 === undefined || r2 === undefined) return null;
+  const r1 = resolveRashi(rashi1);
+  const r2 = resolveRashi(rashi2);
+  if (r1 === null || r2 === null) return null;
   const diff = Math.min(Math.abs(r1 - r2), 12 - Math.abs(r1 - r2));
   if (diff === 0) return 100;
   if (diff === 1) return 80;
@@ -327,6 +445,14 @@ const calculateAge = (dateOfBirth) => {
   const monthDiff = today.getMonth() - birthDate.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
   return age;
+};
+
+// Education ladder position from the stored canonical level, falling back to
+// classifying the typed text for objects that never went through the Profile
+// hook. Null when nothing is known (or the text cannot be classified).
+const educationRank = (profile) => {
+  const level = profile.educationLevel || normalizeEducation(profile.education);
+  return EDUCATION_RANK[level] || null;
 };
 
 // ─── Main compatibility score (0-100) ────────────────────────────────────────
@@ -372,16 +498,14 @@ const calculateCompatibility = (profile1, profile2) => {
     if (profile1.religion.toLowerCase() === profile2.religion.toLowerCase()) score += 10;
   }
 
-  // EDUCATION (15 pts)
+  // EDUCATION (15 pts) — on the canonical level (constants/vocabularies), the
+  // same definition search and must-haves use, so "M.Tech" and "MBA" are
+  // recognised and "Postgraduate" is not mistaken for a bachelor's.
   maxScore += 15;
-  if (profile1.education && profile2.education) {
-    const levels = { 'high school': 1, 'diploma': 2, 'bachelor': 3, 'graduate': 3, 'master': 4, 'postgraduate': 4, 'doctorate': 5, 'phd': 5 };
-    const getLevel = (edu) => {
-      const e = edu.toLowerCase();
-      for (const [k, v] of Object.entries(levels)) { if (e.includes(k)) return v; }
-      return 2;
-    };
-    const diff = Math.abs(getLevel(profile1.education) - getLevel(profile2.education));
+  const eduRank1 = educationRank(profile1);
+  const eduRank2 = educationRank(profile2);
+  if (eduRank1 && eduRank2) {
+    const diff = Math.abs(eduRank1 - eduRank2);
     if (diff === 0) score += 15;
     else if (diff === 1) score += 12;
     else if (diff === 2) score += 8;
@@ -410,7 +534,7 @@ const calculateCompatibility = (profile1, profile2) => {
 
   // HOROSCOPE (20 pts) — Ashtakoot preferred, rashi fallback
   maxScore += 20;
-  const ashtakoot = getAshtakootScore(profile1.nakshatra, profile2.nakshatra);
+  const ashtakoot = getKundliMatch(profile1, profile2);
   if (ashtakoot && ashtakoot.percentageScore !== null) {
     score += Math.round((ashtakoot.percentageScore / 100) * 16);
     score += isManglikCompatible(profile1.manglikStatus, profile2.manglikStatus) ? 4 : 0;
@@ -480,18 +604,26 @@ const getCompatibilityBreakdown = (profile1, profile2) => {
     };
   }
 
-  // Lifestyle
-  const matches = [];
-  if (profile1.diet === profile2.diet) matches.push('diet');
-  if (profile1.smoking === profile2.smoking) matches.push('smoking habits');
-  if (profile1.drinking === profile2.drinking) matches.push('drinking habits');
-  breakdown.categories.lifestyle = {
-    score: Math.round((matches.length / 3) * 100),
-    detail: matches.length > 0 ? `Matching: ${matches.join(', ')}` : 'Different lifestyle preferences',
-  };
+  // Lifestyle — a habit counts only when BOTH members stated it. Comparing
+  // blanks (null === null) used to score two empty profiles as a 100% lifestyle
+  // match, shown as a "Lifestyle match" chip next to a 12% overall score. With
+  // fewer than two habits comparable there is nothing honest to say, so the
+  // category is left out.
+  const habits = [
+    ['diet', 'diet'],
+    ['smoking', 'smoking habits'],
+    ['drinking', 'drinking habits'],
+  ].filter(([key]) => profile1[key] && profile2[key]);
+  if (habits.length >= 2) {
+    const matches = habits.filter(([key]) => profile1[key] === profile2[key]).map(([, label]) => label);
+    breakdown.categories.lifestyle = {
+      score: Math.round((matches.length / habits.length) * 100),
+      detail: matches.length > 0 ? `Matching: ${matches.join(', ')}` : 'Different lifestyle preferences',
+    };
+  }
 
   // Horoscope — full Ashtakoot breakdown
-  const ashtakoot = getAshtakootScore(profile1.nakshatra, profile2.nakshatra);
+  const ashtakoot = getKundliMatch(profile1, profile2);
   const manglikOk = isManglikCompatible(profile1.manglikStatus, profile2.manglikStatus);
 
   if (ashtakoot) {
@@ -582,6 +714,10 @@ module.exports = {
   getCompatibilityBreakdown,
   deriveReasons,
   getAshtakootScore,
+  getKundliMatch,
+  buildKundliSummary,
+  resolveRashi,
+  getBhakootScore,
   calculateAge,
   isManglikCompatible,
   getRashiCompatibility,

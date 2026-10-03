@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, deleteUsers } from '../../api/adminApi';
 import usePlanOptions from '../../hooks/usePlanOptions';
+import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
 import toast from 'react-hot-toast';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
@@ -92,6 +93,8 @@ export default function AdminUserDetail() {
   const [loading, setLoading] = useState(true);
   const [planModal, setPlanModal] = useState(false);
   const [newPlan, setNewPlan]     = useState('');
+  const [reason, setReason]       = useState('');
+  const [saving, setSaving]       = useState(false);
   const { options: planOptions } = usePlanOptions();
 
   const fetchUser = async () => {
@@ -109,10 +112,12 @@ export default function AdminUserDetail() {
   useEffect(() => { fetchUser(); }, [userId]);
 
   const handleUpdateSubscription = async () => {
+    setSaving(true);
     try {
-      await updateSubscription(userId, { planType: newPlan });
+      await updateSubscription(userId, { planType: newPlan, reason: reason.trim() });
       toast.success('Subscription updated');
       setPlanModal(false);
+      setReason('');
       fetchUser();
     } catch (err) {
       // Surface what the server said. A generic "Update failed" is how the
@@ -120,6 +125,8 @@ export default function AdminUserDetail() {
       // "planType: Invalid value" and the panel showed nothing useful.
       const e = err?.response?.data?.error;
       toast.error(e?.details?.[0]?.message ? `${e.message}: ${e.details[0].message}` : (e?.message || 'Update failed'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -228,7 +235,7 @@ export default function AdminUserDetail() {
             </button>
           )}
           <button
-            onClick={() => { setNewPlan(subscription?.planType || 'free'); setPlanModal(true); }}
+            onClick={() => { setNewPlan(subscription?.planType || 'free'); setReason(''); setPlanModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-medium transition-colors"
           >
             <FaCrown className="w-3.5 h-3.5" /> Override Plan
@@ -254,7 +261,7 @@ export default function AdminUserDetail() {
           <InfoRow label="Role"          value={user.role} />
           <InfoRow label="Status"        value={user.status} />
           <InfoRow label="Joined"        value={user.createdAt ? new Date(user.createdAt).toLocaleString('en-IN') : null} />
-          <InfoRow label="Last Login"    value={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('en-IN') : null} />
+          <InfoRow label="Last Login"    value={user.lastLogin ? new Date(user.lastLogin).toLocaleString('en-IN') : null} />
           {/* DPDP consent record. NULL = account predates the record (mig 000062) — not a refusal. */}
           <InfoRow
             label="Terms Accepted"
@@ -412,9 +419,16 @@ export default function AdminUserDetail() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-gray-400 mb-3">
               Term and unlocks follow the plan as currently priced in Pricing &amp; Offers.
             </p>
+            <PlanOverrideNotice
+              options={planOptions}
+              currentPlan={subscription?.planType}
+              nextPlan={newPlan}
+              reason={reason}
+              onReason={setReason}
+            />
             <div className="flex gap-3">
               <button
                 onClick={() => setPlanModal(false)}
@@ -424,9 +438,10 @@ export default function AdminUserDetail() {
               </button>
               <button
                 onClick={handleUpdateSubscription}
-                className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium transition-colors"
+                disabled={saving || Boolean(overrideProblem({ currentPlan: subscription?.planType, nextPlan: newPlan, reason }))}
+                className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
               >
-                Update Plan
+                {saving ? 'Saving…' : 'Update Plan'}
               </button>
             </div>
           </div>

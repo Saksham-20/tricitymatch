@@ -35,6 +35,7 @@ import { SocketProvider } from './context/SocketContext';
 import { CallProvider } from './context/CallContext';
 import CallOverlay from './components/calls/CallOverlay';
 import ContactNumberPrompt from './components/common/ContactNumberPrompt';
+import { MatchCelebrationProvider } from './context/MatchCelebrationContext';
 import TermsReconsentPrompt from './components/common/TermsReconsentPrompt';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
@@ -461,8 +462,10 @@ const AnimatedRoutes = () => {
               </MarketingProtectedRoute>
             }
           >
-            <Route index element={<AdminIndexRedirect />} />
-            <Route path="no-access" element={<AdminScopeRoute scope="__none__"><div /></AdminScopeRoute>} />
+            {/* A marketing rep always lands on their own dashboard. (This slot held
+                the admin scope redirect, which sent a rep to /admin/dashboard and
+                from there to /login.) */}
+            <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard"     element={<MarketingDashboard />} />
             <Route path="leads"         element={<MarketingLeads />} />
             <Route path="referral-codes" element={<MarketingReferralCodes />} />
@@ -478,7 +481,10 @@ const AnimatedRoutes = () => {
               </AdminProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="dashboard" replace />} />
+            {/* Send a scoped sub-admin to the first section they may open instead
+                of a 'Not your section' card on every sign-in. */}
+            <Route index element={<AdminIndexRedirect />} />
+            <Route path="no-access" element={<AdminScopeRoute scope="__none__"><div /></AdminScopeRoute>} />
             <Route path="dashboard"     element={<AdminScopeRoute scope="users"><AdminDashboard /></AdminScopeRoute>} />
             <Route path="users"         element={<AdminScopeRoute scope="users"><AdminUsers /></AdminScopeRoute>} />
             <Route path="users/create"  element={<AdminScopeRoute scope="users"><AdminCreateUser /></AdminScopeRoute>} />
@@ -617,12 +623,14 @@ function App() {
             <SocketProvider>
               <CallProvider>
                 <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                  <div className="min-h-screen bg-background">
-                    <AppContent />
-                    <CallOverlay />
-                    <ContactNumberPrompt />
-                    <TermsReconsentPrompt />
-                  </div>
+                  <MatchCelebrationProvider>
+                    <div className="min-h-screen bg-background">
+                      <AppContent />
+                      <CallOverlay />
+                      <ContactNumberPrompt />
+                      <TermsReconsentPrompt />
+                    </div>
+                  </MatchCelebrationProvider>
                 </Router>
               </CallProvider>
             </SocketProvider>

@@ -176,16 +176,17 @@ const generateBiodataPDF = (res, data) => {
   detailRow('Height', cmToFeet(profile.height));
   detailRow('Marital Status', cap(profile.maritalStatus));
   detailRow('Mother Tongue', cap(profile.motherTongue));
+  detailRow('Nationality', cap(profile.nationality));
   detailRow('City', [cap(profile.city), cap(profile.state)].filter(Boolean).join(', '));
 
   // ── Horoscope ───────────────────────────────────────────
-  if (profile.rashi || profile.nakshatra || profile.manglikStatus || profile.gotra || profile.timeOfBirth || profile.placeOfBirth) {
+  if (profile.rashi || profile.nakshatra || profile.manglikStatus || profile.gotra || profile.birthTime || profile.placeOfBirth) {
     sectionTitle('Horoscope Details');
     detailRow('Rashi', cap(profile.rashi));
     detailRow('Nakshatra', cap(profile.nakshatra));
     detailRow('Manglik', cap(profile.manglikStatus));
     detailRow('Gotra', cap(profile.gotra));
-    detailRow('Time of Birth', profile.timeOfBirth || null);
+    detailRow('Time of Birth', profile.birthTime || null);
     detailRow('Place of Birth', cap(profile.placeOfBirth));
   }
 
@@ -200,21 +201,28 @@ const generateBiodataPDF = (res, data) => {
   // ── Education & career ──────────────────────────────────
   sectionTitle('Education & Career');
   detailRow('Education', profile.education || null);
+  detailRow('Institution', profile.institution || null);
   detailRow('Profession', profile.profession || null);
-  detailRow('Company', profile.company || null);
+  detailRow('Industry', profile.industry || null);
   detailRow('Annual Income', fmtIncome(profile.income));
 
   // ── Family ──────────────────────────────────────────────
-  const fam = profile.familyDetails || {};
-  if (Object.keys(fam).length || profile.familyType || profile.familyValues) {
+  // Family fields are flat columns on the profile (there is no familyDetails object).
+  const hasSiblings = profile.brothers != null || profile.sisters != null;
+  if (
+    profile.familyType || profile.familyValues || profile.familyStatus || profile.fatherOccupation ||
+    profile.motherOccupation || profile.familyLocation || hasSiblings
+  ) {
     sectionTitle('Family Details');
     detailRow('Family Type', cap(profile.familyType));
     detailRow('Family Values', cap(profile.familyValues));
-    detailRow("Father's Occupation", fam.fatherOccupation || null);
-    detailRow("Mother's Occupation", fam.motherOccupation || null);
-    detailRow('Brothers', fam.brothers != null ? String(fam.brothers) : null);
-    detailRow('Sisters', fam.sisters != null ? String(fam.sisters) : null);
-    detailRow('Family Location', fam.familyLocation || null);
+    detailRow('Family Status', cap(profile.familyStatus));
+    detailRow("Father's Occupation", profile.fatherOccupation || null);
+    detailRow("Mother's Occupation", profile.motherOccupation || null);
+    // 0 is an answer ("no brothers"), so test for null, not falsy.
+    detailRow('Brothers', profile.brothers != null ? String(profile.brothers) : null);
+    detailRow('Sisters', profile.sisters != null ? String(profile.sisters) : null);
+    detailRow('Family Location', profile.familyLocation || null);
   }
 
   // ── Lifestyle ───────────────────────────────────────────
@@ -226,16 +234,16 @@ const generateBiodataPDF = (res, data) => {
   }
 
   // ── NRI (conditional) ───────────────────────────────────
-  if (profile.nriStatus || profile.countryOfResidence) {
+  if (profile.isNri || profile.residenceCountry) {
     sectionTitle('NRI Details');
-    detailRow('Residing In', cap(profile.countryOfResidence));
-    detailRow('Visa Status', cap(profile.visaStatus));
+    detailRow('Residing In', cap(profile.residenceCountry));
+    detailRow('Residency Status', cap(profile.residenceStatus));
   }
 
   // ── About ───────────────────────────────────────────────
-  if (profile.aboutMe) {
+  if (profile.bio) {
     sectionTitle('About');
-    paragraph(profile.aboutMe);
+    paragraph(profile.bio);
   }
 
   // ── Footer (every page gets one via the range loop) ─────

@@ -120,7 +120,7 @@ export default function SuccessStories() {
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             Real Tricity couples found their forever here. Yours could be next.
           </p>
-          <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-800 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">
+          <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">
             Create free profile <FiArrowRight />
           </Link>
         </div>

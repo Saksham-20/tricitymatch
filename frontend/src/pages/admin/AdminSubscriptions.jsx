@@ -5,6 +5,7 @@ import blobErrorMessage from '../../utils/blobError';
 import { FiSearch, FiEdit2, FiDownload } from 'react-icons/fi';
 import { adminGetInvoice } from '../../api/adminApi';
 import usePlanOptions from '../../hooks/usePlanOptions';
+import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
 
 // Plan keys MUST match the backend enum (constants/plans.js ALL_PLANS): the old
 // ['free','basic','premium','gold'] values did not exist server-side, so every
@@ -42,6 +43,7 @@ export default function AdminSubscriptions() {
   const [totalPages, setTotal]    = useState(1);
   const [overrideModal, setModal] = useState(null);
   const [newPlan, setNewPlan]     = useState('');
+  const [reason, setReason]       = useState('');
   const [submitting, setSubmit]   = useState(false);
   // Options come from the API so they track what Pricing & Offers has on sale
   // AND the backend enum — a hardcoded list has drifted from the enum before.
@@ -65,13 +67,14 @@ export default function AdminSubscriptions() {
   const openOverride = (user) => {
     setModal(user);
     setNewPlan(user.activePlan || 'free');
+    setReason('');
   };
 
   const handleOverride = async () => {
     if (!overrideModal) return;
     setSubmit(true);
     try {
-      await updateSubscription(overrideModal.id, { planType: newPlan });
+      await updateSubscription(overrideModal.id, { planType: newPlan, reason: reason.trim() });
       toast.success('Plan updated');
       setModal(null);
       fetchData();
@@ -229,7 +232,7 @@ export default function AdminSubscriptions() {
             <select
               value={newPlan}
               onChange={(e) => setNewPlan(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
             >
               {planOptions.map((p) => (
                 <option key={p.planType} value={p.planType}>
@@ -240,9 +243,16 @@ export default function AdminSubscriptions() {
                 </option>
               ))}
             </select>
+            <PlanOverrideNotice
+              options={planOptions}
+              currentPlan={overrideModal.activePlan}
+              nextPlan={newPlan}
+              reason={reason}
+              onReason={setReason}
+            />
             <div className="flex gap-3">
               <button onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium">Cancel</button>
-              <button onClick={handleOverride} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60">
+              <button onClick={handleOverride} disabled={submitting || Boolean(overrideProblem({ currentPlan: overrideModal.activePlan, nextPlan: newPlan, reason }))} className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60">
                 {submitting ? 'Saving…' : 'Update'}
               </button>
             </div>

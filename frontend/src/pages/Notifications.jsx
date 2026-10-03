@@ -106,6 +106,9 @@ export default function Notifications() {
   const [error, setError]          = useState(false);
   const [page, setPage]            = useState(1);
   const [hasMore, setHasMore]      = useState(false);
+  // The server's count covers every page; counting only the loaded rows
+  // under-reports as soon as there is more than one page.
+  const [serverUnread, setServerUnread] = useState(null);
   const limit = 20;
 
   // A failed page-1 fetch must never fall through to the empty state — an
@@ -119,8 +122,16 @@ export default function Notifications() {
       const res = await api.get('/notifications', { params: { page: p, limit } });
       const data = res.data;
       const list = data.notifications || data || [];
-      setNotifs((prev) => append ? [...prev, ...list] : list);
-      setHasMore(list.length === limit && (data.totalPages ? p < data.totalPages : false));
+      setNotifs((prev) => {
+        if (!append) return list;
+        // Offset paging can repeat a row when something was deleted meanwhile.
+        const seen = new Set(prev.map((n) => n.id));
+        return [...prev, ...list.filter((n) => !seen.has(n.id))];
+      });
+      // The API answers `pagination.pages`; fall back to "a full page came back".
+      const pages = data.pagination?.pages ?? data.totalPages;
+      setHasMore(pages != null ? p < pages : list.length === limit);
+      if (typeof data.unreadCount === 'number') setServerUnread(data.unreadCount);
     } catch {
       if (append) toast.error('Failed to load notifications');
       else setError(true);
@@ -134,6 +145,8 @@ export default function Notifications() {
   const markRead = async (id) => {
     try {
       await api.put(`/notifications/${id}/read`);
+      const wasUnread = notifications.some((n) => n.id === id && !n.isRead);
+      if (wasUnread) setServerUnread((c) => (c == null ? c : Math.max(0, c - 1)));
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
     } catch {
       // Marking-as-read fires as a side effect of opening a notification. A
@@ -146,6 +159,7 @@ export default function Notifications() {
     try {
       await api.put('/notifications/read-all');
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setServerUnread(0);
       toast.success('All notifications marked as read');
     } catch {
       toast.error('Failed to mark all as read');
@@ -155,6 +169,7 @@ export default function Notifications() {
   const deleteNotif = async (id) => {
     try {
       await api.delete(`/notifications/${id}`);
+      if (notifications.some((n) => n.id === id && !n.isRead)) setServerUnread((c) => (c == null ? c : Math.max(0, c - 1)));
       setNotifs((prev) => prev.filter((n) => n.id !== id));
     } catch {
       // Delete is an explicit, destructive tap — silence made it look dead.
@@ -174,7 +189,7 @@ export default function Notifications() {
     if (to) navigate(to);
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const unreadCount = serverUnread ?? notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-24 md:pb-8 px-4">

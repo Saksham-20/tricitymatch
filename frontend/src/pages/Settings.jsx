@@ -431,19 +431,35 @@ const RecentSignIns = () => {
 
 const ContactNumberCard = () => {
   const { user, updateUser } = useAuth();
-  const [phone, setPhone] = useState(user?.phone || '');
-  const verified = !!user?.phoneVerified && phone === user?.phone;
+  // The number members call: a separately verified contact number if there is
+  // one, otherwise the login number.
+  const saved = user?.contactPhone || user?.phone || '';
+  const [phone, setPhone] = useState(saved);
+  const verified = !!(user?.contactPhone || user?.phoneVerified) && phone === saved;
+  const hasLoginNumber = !!(user?.phoneVerified && user?.phone);
   return (
     <div>
       <GroupHeader title="Contact number" desc="The number members call after they unlock your contact" />
-      <div className="px-4 max-w-xl">
+      <div className="px-4 max-w-xl space-y-2">
         <ContactNumberVerify
           flow="account"
           value={phone}
           verified={verified}
           onChange={setPhone}
-          onVerified={(d) => { setPhone(d); updateUser({ phone: d, phoneVerified: true }); toast.success('Number verified'); }}
+          onVerified={(d) => {
+            setPhone(d);
+            // Mirror the server: with a verified login number, a different number
+            // is a separate contact number; otherwise it becomes the login number.
+            const separate = hasLoginNumber && d !== user.phone;
+            updateUser(separate ? { contactPhone: d } : { phone: d, phoneVerified: true, contactPhone: null });
+            toast.success('Number verified');
+          }}
         />
+        {hasLoginNumber && (
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            You sign in with +91 {user.phone}. A different contact number here does not change how you sign in. Each new number is verified by a code.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -628,7 +644,8 @@ const PrivacyTab = () => {
     profileVisibility: 'everyone',
     showOnlineStatus: true,
     showLastSeen: true,
-    fieldVisibility: { income: 'everyone', birthDetails: 'everyone' },
+    incognitoMode: false,
+    fieldVisibility: { income: 'everyone', birthDetails: 'everyone', contact: 'everyone' },
   });
   // CRITICAL fix: this used to render the hardcoded defaults above
   // immediately and swallow a failed GET (`.catch(() => {})`), with no
@@ -653,9 +670,11 @@ const PrivacyTab = () => {
           profileVisibility: p.profileVisibility || 'everyone',
           showOnlineStatus: p.showOnlineStatus ?? true,
           showLastSeen: p.showLastSeen ?? true,
+          incognitoMode: Boolean(p.incognitoMode),
           fieldVisibility: {
             income: p.fieldVisibility?.income || 'everyone',
             birthDetails: p.fieldVisibility?.birthDetails || 'everyone',
+            contact: p.fieldVisibility?.contact || 'everyone',
           },
         });
       }
@@ -730,13 +749,25 @@ const PrivacyTab = () => {
             <option value="everyone">Everyone</option>
             <option value="matches_only">Matches Only</option>
           </select>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+            With "Matches Only", only members you have already liked can send you an interest, and only your matches can open your profile.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 overflow-hidden max-w-xl mt-5">
+          <Toggle
+            value={settings.incognitoMode}
+            onChange={(v) => setSettings((s) => ({ ...s, incognitoMode: v }))}
+            label="Incognito mode"
+            desc="Browse without leaving a trace: your visits are not recorded, and you stay out of search and daily matches until you switch it off."
+          />
         </div>
       </div>
 
       <div>
-        <GroupHeader title="Details you share" desc="Show income and birth details to everyone, only to your matches, or to no one" />
+        <GroupHeader title="Details you share" desc="Choose who sees your contact details, income and birth details: everyone, only your matches, or no one" />
         <div className="max-w-xl space-y-4">
           {[
+            ['contact', 'Phone number and email', 'Who can use an unlock to see them. "Only me" means nobody, even a paid member.'],
             ['income', 'Income', 'Also stops people finding you with an income filter'],
             ['birthDetails', 'Birth time and place', 'Used for horoscope reports; your star sign match still works'],
           ].map(([key, label, hint]) => (
@@ -1051,8 +1082,9 @@ const VerificationTab = () => {
 };
 
 // ─── Danger Zone tab ──────────────────────────────────────────────────────────
-const DangerTab = () => {
+const DangerTab = ({ goToTab }) => {
   const { logout, user, updateUser } = useAuth();
+  const hasPaidPlan = Boolean(user?.subscriptionPlan && user.subscriptionPlan !== 'free');
   // Delete after a grace period by default; immediate erasure is an explicit choice.
   const [deleteNow, setDeleteNow] = useState(false);
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
@@ -1248,8 +1280,25 @@ const DangerTab = () => {
       <div className="rounded-2xl bg-destructive/5 p-5 max-w-xl">
         <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Delete Account</h4>
         <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
-          Removes your profile, matches, messages, and all data. Your profile is hidden straight away and the deletion happens after 30 days, so you can change your mind by signing in and cancelling. After that it cannot be undone.
+          Erases your profile, photos, matches and messages. Your profile is hidden straight away and the deletion happens after 30 days, so you can change your mind by signing in and cancelling. After that it cannot be undone. Payment records and any safety reports about you are kept as the law and our{' '}
+          <Link to="/refund-policy" className="underline underline-offset-2">policies</Link> require.
         </p>
+        {hasPaidPlan && (
+          <p className="text-sm text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 mb-4 leading-relaxed">
+            You have an active membership. Deleting your account ends it straight away and the remaining time is not refunded. See the{' '}
+            <Link to="/refund-policy" className="underline underline-offset-2">refund policy</Link>{' '}
+            first if you think you are owed a refund.
+          </p>
+        )}
+        {typeof goToTab === 'function' && (
+          <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4">
+            Want a copy of your information?{' '}
+            <button type="button" onClick={() => goToTab('account')} className="underline underline-offset-2 text-primary-700 dark:text-primary-300 cursor-pointer">
+              Download my data first
+            </button>
+            .
+          </p>
+        )}
         <button
           onClick={() => setShowModal(true)}
           disabled={Boolean(scheduledFor)}
@@ -1347,7 +1396,7 @@ export default function Settings() {
       case 'privacy':       return <PrivacyTab />;
       case 'notifications': return <NotificationsTab />;
       case 'verification':  return <VerificationTab />;
-      case 'danger':        return <DangerTab />;
+      case 'danger':        return <DangerTab goToTab={setActiveTab} />;
       default:              return null;
     }
   };

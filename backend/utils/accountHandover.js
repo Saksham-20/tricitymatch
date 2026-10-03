@@ -84,6 +84,9 @@ const completeHandover = async ({ token, password }) => {
       // The manager's number must not stay on the owner's account.
       phone: null,
       phoneVerified: false,
+      // ...and neither may a separately verified contact number: it is what
+      // unlockers are handed in preference to the login number.
+      contactPhone: null,
       // Two-step secrets are personal; the owner enrols their own.
       mfaSecret: null,
       mfaEnabledAt: null,

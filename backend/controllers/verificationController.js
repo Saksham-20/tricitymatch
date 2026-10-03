@@ -64,6 +64,12 @@ exports.submitVerification = asyncHandler(async (req, res) => {
     throw createError.conflict('You are already verified');
   }
 
+  // A flagged row is with staff for a closer look. Resubmitting would reset it
+  // to pending and wipe the flag, so the member could undo it themselves.
+  if (verification && verification.status === 'flagged') {
+    throw createError.conflict('Your verification is under review by our team');
+  }
+
   // Cloudinary returns the full URL in file.path. Any documentFront/Back files
   // a stale client still sends are deliberately ignored — never stored.
   const selfiePhoto = req.files?.selfiePhoto?.[0]?.path || null;

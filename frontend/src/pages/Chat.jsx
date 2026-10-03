@@ -19,6 +19,7 @@ import FirstReplyUpsell, { upsellSeenKey } from '../components/chat/FirstReplyUp
 import RetryImage from '../components/ui/RetryImage';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { listRow } from '../utils/animations';
+import apiErrorMessage from '../utils/apiError';
 
 // Mouse-only hover lift (doctrine §4.7) — computed once so a touch tap never
 // leaves a button visually "raised" with no un-hover event to release it.
@@ -337,7 +338,7 @@ const Chat = () => {
         if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
           if (chatEverWorked.current) {
             setRevoked(true);
-            toast.error(error.response?.data?.message || 'Premium subscription required');
+            toast.error(apiErrorMessage(error, 'Premium subscription required'));
           } else {
             setAccessDenied(true);
           }
@@ -471,7 +472,7 @@ const Chat = () => {
       toast.success('Message updated');
     } catch (error) {
       if (isDev) console.error('Failed to edit message:', error.response?.data || error.message);
-      toast.error(error.response?.data?.message || 'Failed to edit message');
+      toast.error(apiErrorMessage(error, 'Failed to edit message'));
     }
   };
 
@@ -484,7 +485,7 @@ const Chat = () => {
       toast.success('Message deleted');
     } catch (error) {
       if (isDev) console.error('Failed to delete message:', error.response?.data || error.message);
-      toast.error(error.response?.data?.message || 'Failed to delete message');
+      toast.error(apiErrorMessage(error, 'Failed to delete message'));
     }
   };
 

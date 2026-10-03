@@ -34,11 +34,21 @@ const EDUCATION_LEVEL_LABELS = {
 // Checked in this order; the first level with a matching token wins.
 const EDUCATION_TOKENS = [
   ['doctorate', ['phd', 'doctorate', 'dphil', 'dsc']],
-  ['professional', ['mbbs', 'bds', 'bams', 'bhms', 'bpt', 'ca', 'cs', 'icwa', 'cma', 'llb', 'llm', 'md', 'professional']],
-  ['master', ['master', 'masters', 'mtech', 'msc', 'mcom', 'ma', 'me', 'ms', 'med', 'mphil', 'mba', 'pgdm', 'mca', 'march', 'mpharm', 'postgraduate', 'pg']],
-  ['bachelor', ['bachelor', 'bachelors', 'btech', 'be', 'bsc', 'bcom', 'ba', 'bba', 'bca', 'bed', 'barch', 'bpharm', 'graduate', 'graduation', 'ug']],
-  ['diploma', ['diploma', 'polytechnic', 'iti']],
+  ['professional', ['mbbs', 'bds', 'bams', 'bhms', 'bpt', 'icwa', 'cma', 'llb', 'llm', 'professional']],
+  ['master', ['master', 'masters', 'mtech', 'msc', 'mcom', 'ma', 'med', 'mphil', 'mba', 'pgdm', 'mca', 'march', 'mpharm', 'mpharma', 'postgraduate', 'pg']],
+  ['bachelor', ['bachelor', 'bachelors', 'btech', 'be', 'bsc', 'bcom', 'ba', 'bba', 'bca', 'bed', 'barch', 'bpharm', 'bpharma', 'graduate', 'graduation', 'ug']],
+  ['diploma', ['diploma', 'polytechnic', 'iti', 'dpharm', 'dpharma']],
   ['school', ['12th', '10th', 'hsc', 'ssc', 'intermediate', 'matric', 'matriculation', 'highschool', 'school']],
+];
+
+// Two-letter abbreviations that collide with branch names and common words:
+// 'ME' is Mechanical Engineering as often as Master of Engineering, 'CS' is
+// Computer Science, 'MS' is "MS Office". They only decide the level when they
+// are the whole answer ("CA", "MD"); beside a degree ("B.Tech CS") the degree
+// decides. (PROF-08)
+const AMBIGUOUS_EDUCATION = [
+  ['professional', 'ca'], ['professional', 'cs'], ['professional', 'md'],
+  ['master', 'me'], ['master', 'ms'],
 ];
 
 const tokens = (text) => String(text || '')
@@ -55,6 +65,11 @@ const normalizeEducation = (text) => {
   const set = new Set(tokens(text));
   for (const [level, words] of EDUCATION_TOKENS) {
     if (words.some((w) => set.has(w))) return level;
+  }
+  if (set.size === 1) {
+    const [only] = [...set];
+    const hit = AMBIGUOUS_EDUCATION.find(([, w]) => w === only);
+    if (hit) return hit[0];
   }
   return null;
 };
@@ -81,6 +96,8 @@ const PROFESSION_GROUPS = [
 const PROFESSION_RULES = [
   ['Student', ['student'], []],
   ['Software / IT', ['software', 'developer', 'programmer', 'data scien', 'devops', 'it professional', 'information technology'], ['it', 'sde', 'swe']],
+  // Sales and marketing roles in a medical or software field are business, not clinical.
+  ['Business / Management', ['representative', 'sales', 'marketing'], []],
   ['Doctor / Healthcare', ['doctor', 'physician', 'dentist', 'surgeon', 'nurse', 'paramedic', 'pharmacist', 'medical', 'healthcare'], ['dr', 'md', 'mbbs']],
   ['Lawyer / Legal', ['lawyer', 'advocate', 'attorney', 'judge', 'legal'], []],
   ['Armed Forces / Police', ['army', 'navy', 'air force', 'armed', 'police', 'defence', 'defense', 'soldier'], ['ips', 'crpf', 'bsf']],
@@ -153,6 +170,23 @@ const normalizeCaste = (text) => {
   return CASTE_BY_KEY.get(key) || CASTE_ALIASES[key] || String(text).replace(/\s+/g, ' ').trim();
 };
 
+/**
+ * Every lower-case spelling a caste filter should match: the canonical name plus
+ * each alias that maps to it. Legacy rows written before spellings were
+ * canonicalised ('Jat', 'Jat Sikh') are found by a search for 'Jatt' and the
+ * other way round. Text that is not a known caste matches only itself.
+ */
+const casteFilterKeys = (text) => {
+  const canonical = normalizeCaste(text);
+  const key = casteKey(canonical);
+  if (!key) return [];
+  const keys = new Set([key, casteKey(text)]);
+  for (const [alias, target] of Object.entries(CASTE_ALIASES)) {
+    if (casteKey(target) === key) keys.add(alias);
+  }
+  return [...keys];
+};
+
 module.exports = {
   EDUCATION_LEVELS,
   EDUCATION_LEVEL_LABELS,
@@ -162,4 +196,5 @@ module.exports = {
   normalizeProfession,
   professionGroupFromFilter,
   normalizeCaste,
+  casteFilterKeys,
 };

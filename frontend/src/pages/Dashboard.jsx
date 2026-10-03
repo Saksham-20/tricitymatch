@@ -13,6 +13,7 @@ import { FaCrown } from 'react-icons/fa';
 import { staggerContainer, fadeInUp, staggerIndex, DUR, EASE_OUT } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useMatchCelebration } from '../context/MatchCelebrationContext';
 import { MatchCard } from '../components/cards';
 import ProfileCompletionMeter, { getCompletionData } from '../components/profile/ProfileCompletionMeter';
 import { getImageUrl } from '../utils/cloudinary';
@@ -59,6 +60,7 @@ const CardSkeleton = () => (
 
 // ─── Suggestion card — premium inline component ────────────────────────────
 const SuggestionCard = ({ profile, index }) => {
+  const { celebrate } = useMatchCelebration();
   const [isLiked, setIsLiked] = useState(profile.matchStatus === 'like');
   const [likeBusy, setLikeBusy] = useState(false);
 
@@ -71,8 +73,11 @@ const SuggestionCard = ({ profile, index }) => {
     setIsLiked(next);
     setLikeBusy(true);
     try {
-      await api.post(`/match/${profile.userId}`, { action: next ? 'like' : 'pass' });
-      toast.success(next ? 'Interest expressed' : 'Removed from your interests');
+      // Taking an interest back is 'undo' (the row goes away). 'pass' would
+      // record a rejection and hide this member from future suggestions.
+      const res = await api.post(`/match/${profile.userId}`, { action: next ? 'like' : 'undo' });
+      toast.success(next ? 'Interest expressed' : 'Interest withdrawn');
+      if (res.data?.newMatch) celebrate(profile);
     } catch (err) {
       setIsLiked(!next); // revert optimistic update
       toast.error(err.response?.data?.message || 'Could not update. Please try again');
@@ -583,7 +588,7 @@ const Dashboard = () => {
     (Date.now() - new Date(userProfile.createdAt).getTime()) < 48 * 3600 * 1000;
   const isFirstRun = !loadError && (completionPercent < 60 || accountIsNew);
   const setupChecklist = [
-    { id: 'photo', label: 'Add your photo', desc: 'Profiles with photos get 8x more views', done: !!profileForMeter.profilePhoto, icon: FiCamera },
+    { id: 'photo', label: 'Add your photo', desc: 'A clear photo helps families recognise and trust your profile', done: !!profileForMeter.profilePhoto, icon: FiCamera },
     { id: 'bio',   label: 'Write about yourself', desc: 'A short bio helps families connect', done: !!(profileForMeter.bio && String(profileForMeter.bio).trim().length >= 20), icon: FiUser },
     { id: 'prefs', label: 'Set partner preferences', desc: 'Sharpen who we match you with', done: !!(profileForMeter.preferredAgeMin || profileForMeter.preferredCity || profileForMeter.preferredEducation), icon: FiSliders },
   ];

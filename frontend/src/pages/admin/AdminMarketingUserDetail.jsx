@@ -7,10 +7,13 @@ import ReportSummary from '../../components/marketing/ReportSummary';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
 import PayoutSection from '../../components/marketing/PayoutSection';
 import RecordPayoutForm from '../../components/admin/RecordPayoutForm';
+import { useAdminScopes } from '../../components/admin/AdminLayout';
 
 export default function AdminMarketingUserDetail() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const scopes = useAdminScopes();
+  const canPayouts = !scopes || scopes.includes('payouts');
   const [user, setUser] = useState(null);
   const [report, setReport] = useState(null);
   const [codes, setCodes] = useState([]);
@@ -56,9 +59,24 @@ export default function AdminMarketingUserDetail() {
     setLedger({ summary: res.data.summary, payouts: res.data.payouts });
   };
 
-  const handlePayoutDelete = async (payoutId) => {
-    const res = await apiClient.delete(`/admin/marketing-payouts/${payoutId}`);
-    setLedger({ summary: res.data.summary, payouts: res.data.payouts });
+  // Voiding keeps the row (it is the record that money left) and needs a reason.
+  // One click used to destroy a paid payout with nothing recorded.
+  const handlePayoutVoid = async (payout) => {
+    const amount = `₹${Number(payout.amount).toLocaleString('en-IN')}`;
+    const reason = window.prompt(
+      `Void this ${payout.status === 'paid' ? 'PAID ' : ''}payout of ${amount}?\n\nIt stays in the history, marked voided, and stops counting toward the balance. Enter the reason (min 5 characters):`
+    );
+    if (reason === null) return;
+    if (reason.trim().length < 5) {
+      setError('A reason of at least 5 characters is required to void a payout');
+      return;
+    }
+    try {
+      const res = await apiClient.delete(`/admin/marketing-payouts/${payout.id}`, { data: { reason: reason.trim() } });
+      setLedger({ summary: res.data.summary, payouts: res.data.payouts });
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not void the payout');
+    }
   };
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -106,7 +124,7 @@ export default function AdminMarketingUserDetail() {
           <PayoutSection
             ledger={ledger}
             title="Payouts to this rep"
-            actions={(p) => (
+            actions={canPayouts ? (p) => (
               <div className="flex items-center justify-end gap-3">
                 {p.status === 'pending' ? (
                   <button
@@ -124,15 +142,15 @@ export default function AdminMarketingUserDetail() {
                   </button>
                 )}
                 <button
-                  onClick={() => handlePayoutDelete(p.id)}
+                  onClick={() => handlePayoutVoid(p)}
                   className="text-xs font-medium text-red-600 hover:underline"
                 >
-                  Remove
+                  Void
                 </button>
               </div>
-            )}
+            ) : undefined}
           >
-            <RecordPayoutForm outstanding={ledger.summary.outstanding} onSubmit={handleRecordPayout} />
+            {canPayouts && <RecordPayoutForm outstanding={ledger.summary.outstanding} onSubmit={handleRecordPayout} />}
           </PayoutSection>
         </div>
       )}

@@ -77,6 +77,15 @@ const ModernProfileEditorContent = () => {
   // stable, so selecting a photo still flips dirty. Reset after a save.
   const baselineRef = useRef(null);
   if (baselineRef.current === null) baselineRef.current = JSON.stringify(formData);
+  // The hydrated values themselves: buildProfileFormData diffs against these so a
+  // field the member emptied is sent as '' and cleared on the server (PROF-04).
+  // Photos from the last save that a reviewer must look at before they go live.
+  const heldPhotosRef = useRef(0);
+  const savedMessage = (base) => (heldPhotosRef.current > 0
+    ? `${base} ${heldPhotosRef.current === 1 ? 'One photo is' : `${heldPhotosRef.current} photos are`} being reviewed and will appear once approved.`
+    : base);
+  const baselineDataRef = useRef(null);
+  if (baselineDataRef.current === null) baselineDataRef.current = { ...formData };
   const isDirty = useMemo(
     () => !saveSuccess && JSON.stringify(formData) !== baselineRef.current,
     [formData, saveSuccess]
@@ -137,12 +146,14 @@ const ModernProfileEditorContent = () => {
     setIsLoading(true);
     try {
       // Whitelisted multipart build (never sends password/identifier/email/flags)
-      const submitData = buildProfileFormData(formData);
+      const submitData = buildProfileFormData(formData, { baseline: baselineDataRef.current });
       const response = await api.put('/profile/me', submitData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.data.success) {
+        heldPhotosRef.current = Number(response.data.photosUnderReview) || 0;
         baselineRef.current = JSON.stringify(formData); // clean → disarm guard
+        baselineDataRef.current = { ...formData };
         return true;
       }
       return false;
@@ -164,7 +175,7 @@ const ModernProfileEditorContent = () => {
     const ok = await saveProfile();
     if (ok) {
       setSaveSuccess(true);
-      toast.success('Profile updated successfully!');
+      toast.success(savedMessage('Profile updated successfully!'), { duration: heldPhotosRef.current > 0 ? 6000 : 4000 });
       setTimeout(() => navigate('/profile'), 2000);
     }
   };
@@ -180,7 +191,7 @@ const ModernProfileEditorContent = () => {
   const saveAndLeave = async () => {
     const dest = resolveDest(leaveTo);
     const ok = await saveProfile();
-    if (ok) { setLeaveTo(null); toast.success('Profile updated'); navigate(dest); }
+    if (ok) { setLeaveTo(null); toast.success(savedMessage('Profile updated.'), { duration: heldPhotosRef.current > 0 ? 6000 : 4000 }); navigate(dest); }
   };
 
   const CurrentStepComponent = stepComponents[currentStep];

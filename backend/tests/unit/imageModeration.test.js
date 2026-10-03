@@ -125,13 +125,16 @@ describe('decideMediaReview', () => {
     expect(state.notified[0][2]).toBe('Your photo is live');
   });
 
-  it('approving does not exceed the gallery cap', async () => {
+  it('approving into a full gallery is refused, not silently dropped', async () => {
     const review = mkReview({ wasProfilePhoto: false });
     const profile = mkProfile({ photos: ['a', 'b', 'c'] });
-    const { ctl } = load({ review, profile });
-    await call(ctl, { decision: 'approve' });
+    const { ctl, state } = load({ review, profile });
+    const { next } = await call(ctl, { decision: 'approve' });
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0].code).toBe('GALLERY_FULL');
     expect(profile.photos).toEqual(['a', 'b', 'c']);
-    expect(review.status).toBe('approved');
+    expect(review.status).toBe('pending');
+    expect(state.notified).toEqual([]);
   });
 
   it('rejecting a held photo deletes the asset and tells the member', async () => {

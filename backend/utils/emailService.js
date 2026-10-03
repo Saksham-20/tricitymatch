@@ -11,19 +11,13 @@ const sendEmail = async (to, subject, html, text) => {
   });
 };
 
-const sendMatchNotification = async (userEmail, matchedUserName, profileUrl) => {
-  const subject = 'New Match Found! ❤️';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #e91e63;">You have a new match!</h2>
-      <p>Hi there,</p>
-      <p>Great news! <strong>${matchedUserName}</strong> has liked your profile.</p>
-      <p>Check out their profile and start a conversation!</p>
-      <a href="${profileUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e91e63; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">View Profile</a>
-      <p>Best regards,<br>TricityMatch Team</p>
-    </div>
-  `;
-  return await sendEmail(userEmail, subject, html);
+// Mutual-match mail. Uses the branded, escaped template in utils/email.js (the
+// old inline pink one interpolated the name unescaped and carried no footer).
+// `profileUrl` is kept for call-site compatibility; the template links to /matches.
+const sendMatchNotification = async (userEmail, matchedUserName, profileUrl, recipientName) => {
+  if (!userEmail) return false;
+  const { sendMatchNotification: send } = require('./email');
+  return send(userEmail, recipientName || 'there', matchedUserName);
 };
 
 // messageNotice is a safe, non-private string like "You have a new message" — never pass raw message content here.

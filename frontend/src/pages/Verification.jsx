@@ -12,6 +12,8 @@ import { fadeRise, staggerContainer, DUR, EASE_OUT } from '../utils/animations';
 const STATUS_META = {
   approved:      { icon: FiCheckCircle, cls: 'text-success bg-success-50 border border-success-100',         key: 'statusApproved', ringCls: 'text-success' },
   pending:       { icon: FiClock,       cls: 'text-warning bg-warning-light border border-warning/20',       key: 'statusPending',  ringCls: 'text-warning' },
+  // Staff flagged it for a closer look: neutral wording, no resubmit form.
+  flagged:       { icon: FiClock,       cls: 'text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700', key: 'statusInReview', ringCls: 'text-neutral-400' },
   rejected:      { icon: FiXCircle,     cls: 'text-destructive bg-destructive-light border border-destructive/20', key: 'statusRejected', ringCls: 'text-destructive' },
 };
 const NOT_STARTED_META = { icon: FiClock, cls: 'text-neutral-500 bg-neutral-100 border border-neutral-200', key: 'statusNotStarted', ringCls: 'text-neutral-400' };
@@ -111,7 +113,7 @@ export default function Verification() {
 
   // Trust score from selfie verification — real, derived state; never a
   // fabricated number.
-  const trustScore = selfieStatus === 'approved' ? 100 : selfieStatus === 'pending' ? 50 : 0;
+  const trustScore = selfieStatus === 'approved' ? 100 : (selfieStatus === 'pending' || selfieStatus === 'flagged') ? 50 : 0;
   const ringMeta = STATUS_META[selfieStatus] || NOT_STARTED_META;
   const ringC = 2 * Math.PI * 30;
 
@@ -189,8 +191,13 @@ export default function Verification() {
             <span className="text-neutral-700 dark:text-neutral-300">{t('verification.tierSelfie')}</span>
             <StatusPill status={selfieStatus === 'not_submitted' ? undefined : selfieStatus} />
           </div>
-          {adminNotes && (
+          {adminNotes && selfieStatus === 'rejected' && (
             <p className="mt-4 text-sm text-destructive bg-destructive-light border border-destructive/20 rounded-lg p-3">{adminNotes}</p>
+          )}
+          {/* A re-check after a photo or name change carries a system note on a
+              pending row: informational, not a rejection. */}
+          {adminNotes && selfieStatus === 'pending' && (
+            <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">{adminNotes}</p>
           )}
         </motion.div>
 
@@ -240,6 +247,10 @@ export default function Verification() {
           ) : selfieStatus === 'pending' ? (
             <div className="flex items-center gap-2 text-warning bg-warning-light border border-warning/20 rounded-xl p-4 text-sm font-medium">
               <FiClock className="w-5 h-5" /> Your selfie is with our team for review. We'll notify you once it's done.
+            </div>
+          ) : selfieStatus === 'flagged' ? (
+            <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4 text-sm font-medium">
+              <FiClock className="w-5 h-5" /> Your verification is in review with our team. We'll notify you once it's done.
             </div>
           ) : (
             <form onSubmit={submitSelfie} noValidate>

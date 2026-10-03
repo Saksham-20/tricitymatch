@@ -58,7 +58,14 @@ exports.decideMediaReview = asyncHandler(async (req, res) => {
       // A HELD photo now goes live. (A reported photo never left the profile.)
       if (review.source === 'auto' && profile) {
         const photos = profile.photos || [];
-        if (!photos.includes(review.url) && photos.length < maxPhotos) {
+        if (!photos.includes(review.url) && photos.length >= maxPhotos) {
+          // Approving would silently drop the photo yet tell the member it is live.
+          throw createError.conflict(
+            'This member\'s gallery is full, so the photo cannot go live. Reject it (they can re-upload after removing one) or wait for them to free a slot.',
+            'GALLERY_FULL'
+          );
+        }
+        if (!photos.includes(review.url)) {
           profile.photos = [...photos, review.url];
           if (review.wasProfilePhoto || !profile.profilePhoto) profile.profilePhoto = review.url;
           await profile.save({ transaction: t });
@@ -78,11 +85,11 @@ exports.decideMediaReview = asyncHandler(async (req, res) => {
     return review;
   });
 
-  if (decision === 'reject') {
-    // Removing a member's main photo changes what their verification vouched for.
-    revalidateVerification(result.userId, { Verification, Profile, notify, log })
-      .catch((err) => log.error('Verification re-check failed', { error: err.message, reviewId: result.id }));
-  }
+  // Removing a member's main photo changes what their verification vouched for,
+  // and so does approving a held photo that becomes the main one (PROF-20).
+  // A no-op when the fingerprint still matches.
+  revalidateVerification(result.userId, { Verification, Profile, notify, log })
+    .catch((err) => log.error('Verification re-check failed', { error: err.message, reviewId: result.id }));
 
   if (decision === 'reject') {
     // Outside the transaction: a Cloudinary hiccup must not undo the decision.

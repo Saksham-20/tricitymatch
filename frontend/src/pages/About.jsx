@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FiArrowRight, FiCheck, FiShield, FiMapPin, FiHeart, FiLock, FiUsers } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
+import useFoundingWindow from '../hooks/useFoundingWindow';
 
 /* The `Eyebrow` chip that used to sit above every heading on this page is
    removed (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
@@ -10,8 +11,12 @@ const STATS = [
   { value: 'Live selfie', label: 'Verification, never uploads' },
   { value: 'Tricity only', label: 'Chandigarh · Mohali · Panchkula' },
   { value: 'Family-first', label: 'Guardians participate gracefully' },
-  { value: 'Founding', label: 'Members join free' },
 ];
+
+// Only while the server says the founding window is open (useFoundingWindow
+// fails closed); otherwise the slot states something that is always true.
+const FOUNDING_STAT = { value: 'Founding', label: 'Members join free' };
+const ALWAYS_STAT = { value: 'Human-reviewed', label: 'Every selfie and every report' };
 
 const VALUES = [
   { icon: FiShield, n: '01', t: 'Verified profiles', d: 'The verified badge is earned with a live selfie matched by human review — never a file upload.' },
@@ -23,6 +28,8 @@ const VALUES = [
 ];
 
 export default function About() {
+  const founding = useFoundingWindow();
+  const stats = [...STATS, founding.open ? FOUNDING_STAT : ALWAYS_STAT];
   return (
     <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
@@ -49,7 +56,7 @@ export default function About() {
       {/* Stats band */}
       <section className="bg-primary-800 text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STATS.map((s) => (
+          {stats.map((s) => (
             <div key={s.label} className="text-center md:text-left">
               <div className="font-display text-4xl md:text-5xl font-bold text-[#D4B048]">{s.value}</div>
               <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#FDF8F2]/55 mt-2">{s.label}</div>
@@ -110,7 +117,7 @@ export default function About() {
             <a href="mailto:support@tricitymatch.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricitymatch.com</a>
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-800 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">
+            <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">
               Create free profile <FiArrowRight />
             </Link>
             <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-[#FDF8F2]/40 text-[#FDF8F2] font-semibold px-7 py-3.5 rounded-full hover:bg-[#FDF8F2]/10 transition-colors">

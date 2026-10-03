@@ -82,6 +82,7 @@ User.hasMany(Report, { foreignKey: 'reportedUserId', as: 'ReportsReceived', onDe
 Report.belongsTo(User, { foreignKey: 'reporterId', as: 'Reporter' });
 Report.belongsTo(User, { foreignKey: 'reportedUserId', as: 'ReportedUser' });
 Report.belongsTo(User, { foreignKey: 'reviewedBy', as: 'Reviewer' });
+Report.belongsTo(User, { foreignKey: 'assignedTo', as: 'Assignee' });
 
 // Notification relationships
 User.hasMany(Notification, { foreignKey: 'userId', onDelete: 'CASCADE' });

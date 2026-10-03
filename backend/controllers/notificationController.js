@@ -4,6 +4,7 @@
 
 const { Notification, User } = require('../models');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { resolvePrefs, validatePrefsUpdate } = require('../utils/notificationPrefs');
 
@@ -106,6 +107,15 @@ exports.registerFcmToken = asyncHandler(async (req, res) => {
   ) {
     throw createError.badRequest('Valid FCM token required');
   }
+
+  // A device token belongs to ONE account: whoever signs in on the device now.
+  // Logout deregistration is best-effort (needs a session and a network), so a
+  // token left on the previous account would keep delivering that account's
+  // pushes (full names included) to a phone now signed in as someone else.
+  await sequelize.query(
+    'UPDATE "Users" SET "fcmTokens" = array_remove("fcmTokens", :token) WHERE id <> :id AND :token = ANY("fcmTokens")',
+    { replacements: { token, id: req.user.id } }
+  );
 
   const user = await User.findByPk(req.user.id, { attributes: ['id', 'fcmTokens'] });
   const existing = user.fcmTokens || [];

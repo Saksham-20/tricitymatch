@@ -4,6 +4,11 @@ const { log } = require('../middlewares/logger');
 const { sendEmail } = require('../utils/email');
 const config = require('../config/env');
 
+// Enquiry text is stored as typed; escape it where it is placed into HTML.
+const esc = (v) => String(v ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 // POST /api/v1/contact  (public, rate-limited)
 // Stores the enquiry durably, then best-effort emails support (no-ops cleanly
 // when SMTP is unconfigured — see utils/email.sendEmail).
@@ -29,12 +34,12 @@ const submitContact = asyncHandler(async (req, res) => {
       subject: safeSubject,
       html: `
         <h2>New contact enquiry</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ''}
-        ${subject ? `<p><strong>Subject:</strong> ${subject}</p>` : ''}
+        <p><strong>Name:</strong> ${esc(name)}</p>
+        <p><strong>Email:</strong> ${esc(email)}</p>
+        ${phone ? `<p><strong>Phone:</strong> ${esc(phone)}</p>` : ''}
+        ${subject ? `<p><strong>Subject:</strong> ${esc(subject)}</p>` : ''}
         <p><strong>Message:</strong></p>
-        <p>${String(message).replace(/\n/g, '<br>')}</p>
+        <p>${esc(message).replace(/\n/g, '<br>')}</p>
       `,
       text: `New contact enquiry\nName: ${name}\nEmail: ${email}${phone ? `\nPhone: ${phone}` : ''}${subject ? `\nSubject: ${subject}` : ''}\n\n${message}`,
     });

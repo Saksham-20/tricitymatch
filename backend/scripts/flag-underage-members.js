@@ -10,13 +10,16 @@
  *
  * Reports need a reporter; by default the oldest admin/super_admin account is
  * used, so the queue shows the source as "system review". A member who already
- * has an open underage report is skipped, so re-running is safe.
+ * has an open underage report is skipped, so re-running is safe. The reports are
+ * urgent (like a member-filed underage report) and marked as system reviews, so
+ * working them does not notify the stand-in reporter.
  */
 
 const { Op } = require('sequelize');
 const { User, Profile, Report } = require('../models');
 const sequelize = require('../config/database');
 const { ageOn, minAgeFor } = require('../constants/marriageableAge');
+const { fileUnderageReports } = require('../utils/underageFlag');
 
 const args = process.argv.slice(2);
 const execute = args.includes('--execute');
@@ -53,21 +56,7 @@ const reporterArg = (() => {
     : await User.findOne({ where: { role: { [Op.in]: ['admin', 'super_admin'] } }, order: [['createdAt', 'ASC']], attributes: ['id', 'role'] });
   if (!reporter) throw new Error('No admin account found to file the reports from; pass --reporter <userId>');
 
-  let filed = 0;
-  for (const { p, age, min } of under) {
-    const open = await Report.findOne({
-      where: { reportedUserId: p.userId, reason: 'underage', status: { [Op.in]: ['pending', 'reviewing'] } },
-      attributes: ['id'],
-    });
-    if (open) continue;
-    await Report.create({
-      reporterId: reporter.id,
-      reportedUserId: p.userId,
-      reason: 'underage',
-      description: `System review: date of birth on file gives age ${age}, below the ${min}-year minimum for gender "${p.gender || 'unknown'}".`,
-    });
-    filed += 1;
-  }
+  const filed = await fileUnderageReports({ reporter, under, Report });
   console.log(`\nFiled ${filed} report(s) (${under.length - filed} already had one open).`);
   await sequelize.close();
 })().catch(async (err) => {

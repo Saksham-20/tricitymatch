@@ -9,7 +9,7 @@ const { cleanName } = require('../constants/names');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { eraseAccount } = require('../utils/accountErasure');
-const { createError, asyncHandler } = require('../middlewares/errorHandler');
+const { createError, asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
 const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
 const { issueProof, consumeProof } = require('../utils/otpProof');
@@ -24,6 +24,8 @@ const { TERMS_VERSION, needsReconsent } = require('../constants/legal');
 const { trackEvent } = require('../utils/trackEvent');
 const { grantFoundingIfOpen } = require('../utils/foundingGrant');
 const { getActiveSubscription } = require('../utils/entitlements');
+const { spendEmailBudget } = require('../utils/emailBudget');
+const { markSessionsRevoked } = require('../utils/sessionRevocation');
 
 // Cookie configuration: Secure is UNCONDITIONAL in production. This used to be
 // gated on FRONTEND_URL starting with 'https', with a `|| ''` fallback — so an
@@ -219,6 +221,82 @@ const findUserByEmail = async (email, options = {}) => {
   return null;
 };
 
+// Login answers "unknown account" and "wrong password" with one message, but a
+// real account ran a ~200ms bcrypt compare while an unknown / Google-only
+// identifier returned in ~1ms: the clock told an attacker which accounts exist.
+// Spend the same work on the miss branches against a throwaway hash.
+let dummyHash = null;
+const burnPasswordCheck = async (candidate) => {
+  const bcrypt = require('bcryptjs');
+  if (!dummyHash) dummyHash = await bcrypt.hash('timing-equaliser-not-a-password', config.auth.bcryptRounds);
+  await bcrypt.compare(typeof candidate === 'string' ? candidate : '', dummyHash);
+};
+
+/**
+ * Revoke every refresh token except the session making this request. The access
+ * token's `sid` claim identifies it directly; the cookie (web) or an explicitly
+ * posted refresh token are the fallbacks for tokens minted before the claim
+ * existed. If none of the three resolve we revoke nothing rather than
+ * everything -- signing the member out of the device they are standing on is a
+ * worse failure than leaving a stale session, and they can still use "log out
+ * everywhere".
+ */
+const revokeOtherSessions = async (req, userId, reason) => {
+  const Op = require('sequelize').Op;
+  let keep = null;
+  if (req.sessionId) {
+    keep = { id: { [Op.ne]: req.sessionId } };
+  } else {
+    const currentRefreshToken = req.cookies?.refreshToken || req.body.currentRefreshToken;
+    if (currentRefreshToken) {
+      keep = { tokenHash: { [Op.ne]: RefreshToken.hashToken(currentRefreshToken) } };
+    }
+  }
+  if (keep) {
+    const live = await RefreshToken.findAll({ where: { userId, isRevoked: false, ...keep }, attributes: ['id', 'family'] });
+    await RefreshToken.update(
+      { isRevoked: true, revokedAt: new Date(), revokedReason: reason },
+      { where: { userId, ...keep } }
+    );
+    // Their access tokens die with them (AUTH-05); the session making this
+    // request is not in `live`, so it carries on.
+    await markSessionsRevoked(await RefreshToken.sessionIdsOfFamilies([...new Set(live.map((r) => r.family))], live.map((r) => r.id)));
+  }
+};
+
+// Security notice by mail. Never throws, never blocks.
+const notifySecurityChange = (user, title, detail, toEmail = user.email) => {
+  setImmediate(async () => {
+    try {
+      if (toEmail) await sendSecurityAlert(toEmail, user.firstName || '', title, detail, new Date().toUTCString());
+    } catch (error) {
+      log.warn('Security notice not sent', { userId: user.id, error: error.message });
+    }
+  });
+};
+
+// A reset link is bound to the address it was mailed to: once the member's
+// email changes, links already sitting in the OLD inbox stop working.
+const emailFingerprint = (email) => require('crypto')
+  .createHash('sha256').update(String(email || '').toLowerCase()).digest('hex').substring(0, 16);
+
+/**
+ * Forget every failed-login counter for this member, under each key a login
+ * could have been recorded against (the mailbox identity, and the phone as
+ * typed in any of its common forms). Called after a successful password reset:
+ * the member has just proved ownership, so a lockout earned with the OLD
+ * password must not keep refusing the new, correct one.
+ */
+const clearAllLoginLocks = async (user) => {
+  const keys = new Set();
+  if (user.email) keys.add(loginLookupKey({ identifier: user.email }));
+  if (user.phone) {
+    keys.add(String(user.phone));
+    phoneVariants(toPhone10(user.phone)).forEach((v) => keys.add(v));
+  }
+  await Promise.all([...keys].filter(Boolean).map((k) => clearLoginAttempts(k).catch(() => {})));
+};
+
 // @route   POST /api/auth/signup
 // @desc    Register a new user
 // @access  Public
@@ -245,22 +323,61 @@ exports.signup = asyncHandler(async (req, res) => {
     throw createError.badRequest('Please confirm the person this profile is for is of legal age and agrees to it');
   }
 
-  // Check if user already exists (by whichever identifier was provided)
-  if (normalizedEmail) {
-    const existingByEmail = await findUserByEmail(normalizedEmail, { attributes: ['id'] });
+  // Proof FIRST, existence second (AUTH-01). This used to answer 409 "account
+  // already exists" before looking at any proof, so an anonymous caller could
+  // ask about any email or number for free, bypassing send-otp's limits. Now an
+  // unproven caller only ever sees the same generic 400; the 409 is for someone
+  // who demonstrated they control the contact. A contact counts as verified only when the caller presents the single-use
+  // proof verify-otp handed back for it (bound to whoever entered the code).
+  // No client is exempt: every account starts with at least one proven contact,
+  // so nobody can register an address or number they do not control.
+  let emailWasVerified = false;
+  let phoneWasVerified = false;
+  try {
+    if (normalizedEmail) {
+      emailWasVerified = await consumeProof('email', normalizedEmail, req.body.emailProof);
+    }
+    if (normalizedPhone) {
+      phoneWasVerified = await consumeProof('phone', smsService.normalizePhone(normalizedPhone), req.body.phoneProof);
+    }
+  } catch (err) {
+    log.warn('Signup proof check failed', { error: err.message });
+  }
+
+  if (!emailWasVerified && !phoneWasVerified) {
+    throw createError.badRequest('Please verify your email or mobile number to create your account.');
+  }
+
+  // Only a contact the caller PROVED is stored (AUTH-03). A typed-but-unproved
+  // email or number is dropped: stored, it would lock the real owner out of
+  // signing up (the send-otp "already exists" gate), receive our mail, and be
+  // usable for password reset by whoever typed it. It can be added later
+  // through the verified change-email / contact-number flows. Existence is
+  // likewise answered only for what was proved, so this cannot be probed.
+  const emailToStore = emailWasVerified ? normalizedEmail : null;
+  const phoneToStore = phoneWasVerified ? normalizedPhone : null;
+
+  // Check if user already exists (by whichever identifier was proved)
+  if (emailToStore) {
+    const existingByEmail = await findUserByEmail(emailToStore, { attributes: ['id'] });
     if (existingByEmail) throw createError.conflict('An account already exists with this email');
   }
-  if (normalizedPhone) {
-    const existingByPhone = await User.findOne({ where: { phone: normalizedPhone } });
+  if (phoneToStore) {
+    const existingByPhone = await User.findOne({ where: { phone: phoneToStore } });
     if (existingByPhone) throw createError.conflict('An account already exists with this phone number');
   }
 
   // Validate and process referral code
   let referralData = null;
   const codeToUse = referralCode || codeFromQuery;
-  if (codeToUse) {
-    const code = await ReferralCode.findOne({ where: { code: codeToUse.toUpperCase(), isActive: true } });
-    if (code) {
+  if (codeToUse && typeof codeToUse === 'string') {
+    const code = await ReferralCode.findOne({ where: { code: codeToUse.trim().toUpperCase(), isActive: true } });
+    // Same rule as checkout (utils/referral.js resolveCode): a code whose rep
+    // has been deactivated must not keep creating leads and boosting members.
+    const rep = code
+      ? await User.findByPk(code.marketingUserId, { attributes: ['id', 'status'] })
+      : null;
+    if (code && rep && rep.status === 'active') {
       referralData = {
         referralCodeUsed: code.code,
         referredByMarketingUserId: code.marketingUserId,
@@ -312,35 +429,14 @@ exports.signup = asyncHandler(async (req, res) => {
     }
   }
 
-  // A contact counts as verified only when the caller presents the single-use
-  // proof verify-otp handed back for it (bound to whoever entered the code).
-  // No client is exempt: every account starts with at least one proven contact,
-  // so nobody can register an address or number they do not control.
-  let emailWasVerified = false;
-  let phoneWasVerified = false;
-  try {
-    if (normalizedEmail) {
-      emailWasVerified = await consumeProof('email', normalizedEmail, req.body.emailProof);
-    }
-    if (normalizedPhone) {
-      phoneWasVerified = await consumeProof('phone', smsService.normalizePhone(normalizedPhone), req.body.phoneProof);
-    }
-  } catch (err) {
-    log.warn('Signup proof check failed', { error: err.message });
-  }
-
-  if (!emailWasVerified && !phoneWasVerified) {
-    throw createError.badRequest('Please verify your email or mobile number to create your account.');
-  }
-
   const sequelize = require('../config/database');
   let result;
   try {
     result = await sequelize.transaction(async (t) => {
       const user = await User.create({
-        email: normalizedEmail,
+        email: emailToStore,
         password,
-        phone: normalizedPhone,
+        phone: phoneToStore,
         status: 'active',
         emailVerified: emailWasVerified,
         phoneVerified: phoneWasVerified,
@@ -385,9 +481,9 @@ exports.signup = asyncHandler(async (req, res) => {
         );
 
         await MarketingLead.create({
-          name: `${firstName} ${lastName}`,
-          phone: normalizedPhone || 'N/A',
-          email: normalizedEmail || 'N/A',
+          name: [firstName, lastName].filter(Boolean).join(' ').trim() || 'New member',
+          phone: phoneToStore || 'N/A',
+          email: emailToStore || 'N/A',
           assignedToMarketingUserId: referralData.referredByMarketingUserId,
           referralCode: referralData.referralCodeUsed,
           convertedUserId: user.id,
@@ -495,6 +591,7 @@ exports.login = asyncHandler(async (req, res) => {
     ? await findUserByEmail(rawIdentifier)
     : await User.findOne({ where: { phone: lookupKey } });
   if (!user) {
+    await burnPasswordCheck(password);
     await recordFailedLogin(lookupKey);
     throw createError.unauthorized('Invalid credentials');
   }
@@ -510,6 +607,7 @@ exports.login = asyncHandler(async (req, res) => {
   // sees a generic failure and must use the Google button, which is present on
   // the login page.)
   if (!user.password) {
+    await burnPasswordCheck(password);
     await recordFailedLogin(lookupKey);
     throw createError.unauthorized('Invalid credentials');
   }
@@ -588,56 +686,59 @@ exports.login = asyncHandler(async (req, res) => {
   });
 });
 
-// @route   POST /api/auth/refresh
-// @desc    Refresh access token using refresh token
-// @access  Public (with valid refresh token)
-exports.refreshToken = asyncHandler(async (req, res) => {
-  // Get refresh token from cookie or body
-  const refreshTokenValue = req.cookies?.refreshToken || req.body.refreshToken;
-  
-  if (!refreshTokenValue) {
-    throw createError.unauthorized('Refresh token required');
-  }
+// How long after a rotation the OLD refresh token is still honoured as an
+// idempotent replay rather than treated as theft. Two tabs, a retried request
+// after a dropped response, or a phone that was killed between receiving the
+// new token and persisting it all present the old token a moment after it was
+// rotated; treating that as reuse signed the legitimate member out of every
+// device. Past this window a presented rotated token IS reuse and kills the
+// family, exactly as before.
+const REFRESH_REUSE_GRACE_MS = 30 * 1000;
 
-  // Find the token
-  const tokenHash = RefreshToken.hashToken(refreshTokenValue);
-  const storedToken = await RefreshToken.findValidToken(tokenHash);
+/**
+ * The successor of a rotated refresh token is DERIVED (HMAC of the old token's
+ * hash under the server secret), not random. That makes rotation idempotent:
+ * however many times, and in whatever order, the old token is presented inside
+ * the grace window, every caller is handed the same successor and one live row
+ * exists — no forked family, no second live token per device. Without the
+ * server secret it is as unguessable as a random token.
+ */
+const successorTokenFor = (oldTokenHash) => require('crypto')
+  .createHmac('sha512', config.auth.jwtSecret)
+  .update(`refresh-successor:${oldTokenHash}`)
+  .digest('hex'); // 128 hex chars, same shape as RefreshToken.generateToken()
 
-  if (!storedToken) {
-    // Token not found or invalid - could be token reuse attack
-    // Revoke all tokens in the family as a precaution
-    const possibleToken = await RefreshToken.findOne({ where: { tokenHash } });
-    if (possibleToken) {
-      await RefreshToken.revokeFamily(possibleToken.family, 'token_reuse_detected');
-      log.security('token_reuse_detected', { userId: possibleToken.userId, family: possibleToken.family });
+const ensureSuccessor = async (old, req) => {
+  const token = successorTokenFor(old.tokenHash);
+  const tokenHash = RefreshToken.hashToken(token);
+  let row = await RefreshToken.findOne({ where: { tokenHash } });
+  if (!row) {
+    try {
+      row = await RefreshToken.create({
+        userId: old.userId,
+        tokenHash,
+        family: old.family,
+        expiresAt: new Date(Date.now() + parseDuration(config.auth.refreshTokenExpiry)),
+        userAgent: req.headers['user-agent']?.substring(0, 500),
+        ipAddress: req.clientIp || req.ip,
+        // Stamped on the row that is actually live (it used to land on the
+        // already-revoked old row, so a session list never showed activity).
+        lastUsedAt: new Date(),
+      });
+    } catch (err) {
+      // The concurrent winner/loser created it first: same token, same row.
+      if (err.name !== 'SequelizeUniqueConstraintError') throw err;
+      row = await RefreshToken.findOne({ where: { tokenHash } });
     }
-    clearAuthCookies(res);
-    throw createError.unauthorized('Invalid refresh token');
   }
+  return { token, row };
+};
 
-  // Check if user is still active
-  const user = await User.findByPk(storedToken.userId);
-  if (!user || user.status !== 'active') {
-    await storedToken.revoke('user_inactive');
-    clearAuthCookies(res);
-    throw createError.unauthorized('User account is not active');
-  }
-
-  // Rotate refresh token (invalidate old, create new)
-  await storedToken.revoke('rotated');
-  
-  // Generate new tokens — the refresh row first, so the access token can carry its id.
-  const { token: newRefreshToken, sessionId } = await generateRefreshToken(
-    user.id,
-    req.headers['user-agent'],
-    req.clientIp || req.ip,
-    storedToken.family // Keep the same family for tracking
-  );
-  const newAccessToken = generateAccessToken(user.id, sessionId);
-
-  // Update last used
-  storedToken.lastUsedAt = new Date();
-  await storedToken.save();
+// Mint (or re-read) the successor of `old` and answer with it. Shared by the
+// winning rotation and by an in-grace replay so both return an identical body.
+const respondWithSuccessor = async (req, res, user, old) => {
+  const { token: newRefreshToken, row } = await ensureSuccessor(old, req);
+  const newAccessToken = generateAccessToken(user.id, row.id);
 
   // Set cookies
   setAuthCookies(res, newAccessToken, newRefreshToken);
@@ -659,6 +760,79 @@ exports.refreshToken = asyncHandler(async (req, res) => {
       expiresIn: config.auth.jwtExpiry
     }
   });
+};
+
+// @route   POST /api/auth/refresh
+// @desc    Refresh access token using refresh token
+// @access  Public (with valid refresh token)
+exports.refreshToken = asyncHandler(async (req, res) => {
+  // Get refresh token from cookie or body
+  const refreshTokenValue = req.cookies?.refreshToken || req.body.refreshToken;
+  
+  if (!refreshTokenValue) {
+    throw createError.unauthorized('Refresh token required');
+  }
+
+  const tokenHash = RefreshToken.hashToken(refreshTokenValue);
+  let storedToken = await RefreshToken.findOne({ where: { tokenHash } });
+
+  if (!storedToken) {
+    clearAuthCookies(res);
+    throw createError.unauthorized('Invalid refresh token');
+  }
+
+  const now = new Date();
+  const isLive = !storedToken.isRevoked && storedToken.expiresAt > now;
+
+  if (isLive) {
+    // Check if user is still active
+    const user = await User.findByPk(storedToken.userId);
+    if (!user || user.status !== 'active') {
+      await storedToken.revoke('user_inactive');
+      clearAuthCookies(res);
+      throw createError.unauthorized('User account is not active');
+    }
+
+    // Rotate: the claim is ONE conditional UPDATE, so of any number of
+    // simultaneous refreshes with this token exactly one changes the row. The
+    // old read-then-write let all of them through and forked the family.
+    const [claimed] = await RefreshToken.update(
+      { isRevoked: true, revokedAt: now, revokedReason: 'rotated' },
+      { where: { id: storedToken.id, isRevoked: false } }
+    );
+    if (claimed === 1) {
+      return respondWithSuccessor(req, res, user, storedToken);
+    }
+    // Lost the race: someone rotated it between our read and our claim. Fall
+    // through with the fresh row and let the replay rules decide.
+    storedToken = await RefreshToken.findOne({ where: { tokenHash } });
+  }
+
+  const justRotated = storedToken.revokedReason === 'rotated'
+    && storedToken.revokedAt
+    && now - new Date(storedToken.revokedAt) <= REFRESH_REUSE_GRACE_MS;
+  if (justRotated) {
+    // Idempotent replay inside the grace window: hand back the SAME successor.
+    const user = await User.findByPk(storedToken.userId);
+    if (!user || user.status !== 'active') {
+      throw createError.unauthorized('User account is not active');
+    }
+    const { row } = await ensureSuccessor(storedToken, req);
+    if (!row || row.isRevoked || row.expiresAt <= now) {
+      // The session already moved on (rotated again, or signed out). The
+      // holder of this stale token has nothing to resume, but this is not
+      // theft and the live session's cookies must not be wiped.
+      throw createError.unauthorized('Invalid refresh token');
+    }
+    return respondWithSuccessor(req, res, user, storedToken);
+  }
+
+  // A revoked/expired token presented outside the grace window: could be token
+  // reuse. Revoke the whole family as a precaution.
+  await RefreshToken.revokeFamily(storedToken.family, 'token_reuse_detected');
+  log.security('token_reuse_detected', { userId: storedToken.userId, family: storedToken.family });
+  clearAuthCookies(res);
+  throw createError.unauthorized('Invalid refresh token');
 });
 
 // @route   POST /api/auth/logout
@@ -674,6 +848,9 @@ exports.logout = asyncHandler(async (req, res) => {
       await storedToken.revoke('logout');
     }
   }
+  // Also end this request's own access token (a client may log out without the
+  // refresh token to hand, e.g. after the cookie expired).
+  if (req.sessionId) await markSessionsRevoked([req.sessionId]);
 
   clearAuthCookies(res);
 
@@ -727,43 +904,56 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
 
   const user = await findUserByEmail(normalizedEmail);
 
-  // A member with no password (Google-only) has nothing to reset: same generic
-  // answer as an unknown address, so this cannot be used to tell them apart.
-  if (!user || !user.password) {
-    // Simulate processing time to prevent timing attacks
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
-    return res.json({ success: true, message: genericMessage });
-  }
+  // A member with no password (Google-only), or whose address was never proved
+  // while their PHONE was (the address was typed at signup beside the verified
+  // number and could belong to anyone), has nothing to reset by mail: same generic answer as an unknown
+  // address, so this cannot be used to tell them apart.
+  // Legacy accounts that have no verified phone either keep their (only) mail
+  // route, so nobody is locked out by this rule.
+  const eligible = Boolean(user && user.password && (user.emailVerified || !user.phoneVerified));
 
+  // Both outcomes do the same synchronous work (sign a token) and neither waits
+  // on mail delivery, so response time does not distinguish them either.
   // Generate reset token (short-lived, tied to current password so it's single-use)
   // Including a fingerprint of the current password hash invalidates the token
   // automatically once the password is changed.
   const pwdFingerprint = require('crypto')
     .createHash('sha256')
-    .update(user.password)
+    .update(eligible ? user.password : 'no-such-account')
     .digest('hex')
     .substring(0, 16);
   const resetToken = jwt.sign(
-    { userId: user.id, type: 'password_reset', pwdFp: pwdFingerprint },
+    { userId: eligible ? user.id : '00000000-0000-0000-0000-000000000000', type: 'password_reset', pwdFp: pwdFingerprint, em: emailFingerprint(eligible ? user.email : '') },
     config.auth.jwtSecret,
     { expiresIn: config.auth.resetTokenExpiry }
   );
 
-  const resetUrl = `${config.server.frontendUrl}/reset-password?token=${resetToken}`;
-
-  // Send email (don't fail the request if email fails)
-  try {
-    await sendPasswordResetEmail(user.email, user.firstName || 'User', resetUrl);
-  } catch (error) {
-    log.error('Failed to send password reset email', { error: error.message, userId: user.id });
-    // Don't expose email failures to client
+  if (eligible) {
+    const resetUrl = `${config.server.frontendUrl}/reset-password?token=${resetToken}`;
+    // Off the request path. A per-member budget (3/hour, shared machinery with
+    // OTP mail) and the global daily ceiling both fail SILENTLY: the caller
+    // gets the same generic answer, but cannot make us mail one inbox a
+    // hundred times or drain the shared provider quota.
+    setImmediate(async () => {
+      try {
+        await otpStore.spendSend('reset', user.id);
+        if (!(await spendEmailBudget())) {
+          log.warn('Password reset mail skipped: daily account-mail budget spent', { userId: user.id });
+          return;
+        }
+        await sendPasswordResetEmail(user.email, user.firstName || 'User', resetUrl);
+      } catch (error) {
+        // Includes the 429 from an exhausted per-member budget.
+        log.warn('Password reset email not sent', { error: error.message, userId: user.id });
+      }
+    });
   }
 
   res.json({
     success: true,
     message: genericMessage,
     // Include token in development for testing
-    ...(config.isDevelopment ? { resetToken } : {})
+    ...(config.isDevelopment && eligible ? { resetToken } : {})
   });
 });
 
@@ -813,12 +1003,19 @@ exports.resetPassword = asyncHandler(async (req, res) => {
     throw createError.badRequest('Reset token has already been used or is no longer valid');
   }
 
+  // Tokens minted before this claim existed (<= 1h old) carry no `em` and are
+  // still honoured; a token that has one must match the CURRENT address.
+  if (decoded.em && decoded.em !== emailFingerprint(user.email)) {
+    throw createError.badRequest('Reset token has already been used or is no longer valid');
+  }
+
   // Update password (will be hashed by model hook)
   user.password = password;
   await user.save();
 
   // Revoke all refresh tokens for security
   await RefreshToken.revokeAllUserTokens(user.id, 'password_reset');
+  await clearAllLoginLocks(user);
 
   // Send security alert (password changed)
   try {
@@ -909,7 +1106,7 @@ exports.resetPasswordPhone = asyncHandler(async (req, res) => {
   user.password = password;
   await user.save();
   await RefreshToken.revokeAllUserTokens(user.id, 'password_reset');
-  await clearLoginAttempts(phone10);
+  await clearAllLoginLocks(user);
 
   logSecurityEvent('password_reset_by_phone', req, { userId: user.id });
   if (user.email) {
@@ -954,29 +1151,11 @@ exports.changePassword = asyncHandler(async (req, res) => {
   user.password = newPassword;
   await user.save();
 
-  // Revoke every other refresh token, keeping the session that made this
-  // request. The access token's `sid` claim identifies it directly; the cookie
-  // (web) or an explicitly posted refresh token are the fallbacks for tokens
-  // minted before the claim existed. If none of the three resolve we revoke
-  // nothing rather than everything — signing the member out of the device they
-  // are standing on is a worse failure than leaving a stale session, and they
-  // can still use "log out everywhere".
-  const Op = require('sequelize').Op;
-  let keep = null;
-  if (req.sessionId) {
-    keep = { id: { [Op.ne]: req.sessionId } };
-  } else {
-    const currentRefreshToken = req.cookies?.refreshToken || req.body.currentRefreshToken;
-    if (currentRefreshToken) {
-      keep = { tokenHash: { [Op.ne]: RefreshToken.hashToken(currentRefreshToken) } };
-    }
-  }
-  if (keep) {
-    await RefreshToken.update(
-      { isRevoked: true, revokedAt: new Date(), revokedReason: 'password_change' },
-      { where: { userId: user.id, ...keep } }
-    );
-  }
+  await revokeOtherSessions(req, user.id, 'password_change');
+
+  // Tell the member (best effort, off the request path): a changed password is
+  // exactly what an account takeover looks like from the inside.
+  notifySecurityChange(user, 'Your password was changed', 'Your TricityMatch account password was just changed. If this was not you, reset your password now and contact support.');
 
   res.json({
     success: true,
@@ -995,7 +1174,8 @@ exports.getSessions = asyncHandler(async (req, res) => {
       expiresAt: { [require('sequelize').Op.gt]: new Date() }
     },
     attributes: ['id', 'userAgent', 'ipAddress', 'createdAt', 'lastUsedAt'],
-    order: [['lastUsedAt', 'DESC']]
+    // NULLs sort FIRST under DESC in Postgres; fall back to when it was created.
+    order: [[require('sequelize').literal('COALESCE("lastUsedAt", "createdAt")'), 'DESC']]
   });
 
   // Identify the current session. The access token carries its session id
@@ -1225,6 +1405,9 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     // Email OTP: same store, budget and hashing as the phone path, delivered by email.
     const otpEmail = canonicalEmail(target);
     await otpStore.spendSend('email', otpEmail);
+    if (!(await spendEmailBudget())) {
+      throw new AppError('We cannot send verification codes right now. Please try again later.', 503);
+    }
     const code = await otpStore.issue('email', otpEmail, { digits: 6 });
     try {
       await sendOtpEmail(otpEmail, code, 'verify your email');
@@ -1308,6 +1491,21 @@ const assertPhoneFree = async (phone10, userId) => {
   if (taken) throw createError.conflict('This number is already linked to another account.');
 };
 
+// Where a verified contact number is stored.
+//  - No verified login number yet: the number becomes the account's login number
+//    (`phone`), which must be unique.
+//  - A verified login number already exists: a different contact number goes in
+//    `contactPhone` and the login number is left alone. That column is not an
+//    identity, so a parent may give the same number on a sibling's profile.
+const contactNumberState = (user, phone10) => {
+  const loginVerified = Boolean(user.phoneVerified && user.phone);
+  const isLogin = loginVerified && toPhone10(user.phone) === phone10;
+  const isContact = Boolean(user.contactPhone) && toPhone10(user.contactPhone) === phone10;
+  return { loginVerified, isLogin, isContact, alreadyVerified: isLogin || isContact };
+};
+
+const CONTACT_USER_ATTRS = ['id', 'phone', 'phoneVerified', 'contactPhone'];
+
 // @route   POST /api/auth/contact-number/request
 // @desc    Start verifying a contact number (skips the OTP when already verified)
 // @access  Private
@@ -1315,11 +1513,13 @@ exports.requestContactNumber = asyncHandler(async (req, res) => {
   const phone10 = toPhone10(req.body.phone);
   if (!/^[6-9]\d{9}$/.test(phone10)) throw createError.badRequest('Enter a valid 10-digit Indian mobile number');
 
-  const user = await User.findByPk(req.user.id, { attributes: ['id', 'phone', 'phoneVerified'] });
-  if (user.phoneVerified && toPhone10(user.phone) === phone10) {
+  const user = await User.findByPk(req.user.id, { attributes: CONTACT_USER_ATTRS });
+  const state = contactNumberState(user, phone10);
+  if (state.alreadyVerified) {
     return res.json({ success: true, alreadyVerified: true, phone: phone10 });
   }
-  await assertPhoneFree(phone10, user.id);
+  // A number that will become the login number must not belong to someone else.
+  if (!state.loginVerified) await assertPhoneFree(phone10, user.id);
   const result = await smsService.sendOtp(phone10);
   res.json({ ...result, alreadyVerified: false, phone: phone10 });
 });
@@ -1331,16 +1531,30 @@ exports.verifyContactNumber = asyncHandler(async (req, res) => {
   const phone10 = toPhone10(req.body.phone);
   if (!/^[6-9]\d{9}$/.test(phone10)) throw createError.badRequest('Enter a valid 10-digit Indian mobile number');
 
-  const user = await User.findByPk(req.user.id, { attributes: ['id', 'phone', 'phoneVerified'] });
-  const alreadyVerified = user.phoneVerified && toPhone10(user.phone) === phone10;
-  if (!alreadyVerified) {
+  const user = await User.findByPk(req.user.id, { attributes: CONTACT_USER_ATTRS });
+  const state = contactNumberState(user, phone10);
+  let contactPhone = user.contactPhone || null;
+
+  if (!state.alreadyVerified) {
     if (!req.body.code) throw createError.badRequest('Enter the code we sent');
-    await assertPhoneFree(phone10, user.id);
+    if (!state.loginVerified) await assertPhoneFree(phone10, user.id);
     await smsService.verifyOtp(phone10, String(req.body.code));
-    await User.update({ phone: phone10, phoneVerified: true }, { where: { id: user.id } });
-    log.info('Contact number verified', { userId: user.id });
+    if (state.loginVerified) {
+      contactPhone = phone10;
+      await User.update({ contactPhone }, { where: { id: user.id } });
+    } else {
+      contactPhone = null;
+      await User.update({ phone: phone10, phoneVerified: true, contactPhone: null }, { where: { id: user.id } });
+    }
+    log.info('Contact number verified', { userId: user.id, separateFromLogin: state.loginVerified });
+  } else if (state.isLogin && user.contactPhone) {
+    // Choosing the login number again drops the separate contact number.
+    contactPhone = null;
+    await User.update({ contactPhone: null }, { where: { id: user.id } });
   }
-  res.json({ success: true, phone: phone10, phoneVerified: true });
+  // `isLoginNumber` tells the client which field to refresh: the account's own
+  // phone, or the separate contact number.
+  res.json({ success: true, phone: phone10, phoneVerified: true, isLoginNumber: contactPhone === null, contactPhone });
 });
 
 // Verify a Google ID token and return its payload. Shared by sign-in and by
@@ -1516,6 +1730,9 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
   // many addresses; the code itself is bound to member + address, so nobody else
   // can burn its attempts or redeem it.
   await otpStore.spendSend('email-change', user.id);
+  if (!(await spendEmailBudget())) {
+    throw new AppError('We cannot send verification codes right now. Please try again later.', 503);
+  }
   const changeTarget = `${user.id}:${normalized}`;
   const code = await otpStore.issue('email-change', changeTarget, { digits: 6 });
   try {
@@ -1548,9 +1765,23 @@ exports.verifyEmailChange = asyncHandler(async (req, res) => {
   if (taken && taken.id !== req.user.id) throw createError.conflict('That email is already in use');
 
   const user = await User.findByPk(req.user.id);
+  const previousEmail = user.email;
   user.email = normalized;
   user.emailVerified = true;
   await user.save();
+
+  // The address is the recovery channel: tell the OLD one it moved (so the
+  // real owner of an account whose email was swapped learns of it), and sign
+  // out every other device -- whoever changed it may not be the member.
+  await revokeOtherSessions(req, user.id, 'email_change');
+  if (previousEmail && previousEmail.toLowerCase() !== normalized) {
+    notifySecurityChange(
+      user,
+      'Your account email was changed',
+      `The email address on your TricityMatch account was changed to ${normalized.replace(/^(.).*(@.*)$/, '$1***$2')}. If this was not you, contact support immediately.`,
+      previousEmail
+    );
+  }
 
   const fullUser = await User.findByPk(user.id, {
     attributes: { exclude: ['password'] },

@@ -40,6 +40,7 @@ const initializeSocket = require('./socket/socketHandler');
 const { initRedis, close: closeCache } = require('./utils/cache');
 const { attachRedisAdapter } = require('./utils/socketAdapter');
 const { initQueues, scheduleCleanupJobs, closeQueues } = require('./utils/queue');
+const { createShutdown } = require('./utils/shutdown');
 const { metricsMiddleware, setGauge } = require('./utils/metrics');
 const { requestPerformanceMiddleware } = require('./utils/performance');
 
@@ -425,52 +426,8 @@ const startServer = async () => {
 
 // ==================== GRACEFUL SHUTDOWN ====================
 
-const gracefulShutdown = async (signal) => {
-  console.log(`\n${signal} received: starting graceful shutdown`);
-
-  // Close server to stop accepting new connections
-  server.close(async () => {
-    console.log('✓ HTTP server closed');
-
-    // Close socket connections
-    io.close(() => {
-      console.log('✓ Socket.io connections closed');
-    });
-
-    // Close background job queues
-    try {
-      await closeQueues();
-      console.log('✓ Job queues closed');
-    } catch (error) {
-      console.error('✗ Error closing job queues:', error);
-    }
-
-    // Close Redis cache
-    try {
-      await closeCache();
-      console.log('✓ Cache connections closed');
-    } catch (error) {
-      console.error('✗ Error closing cache:', error);
-    }
-
-    // Close database connection
-    try {
-      await sequelize.close();
-      console.log('✓ Database connection closed');
-    } catch (error) {
-      console.error('✗ Error closing database:', error);
-    }
-
-    console.log('Graceful shutdown completed');
-    process.exit(0);
-  });
-
-  // Force shutdown after 30 seconds
-  setTimeout(() => {
-    console.error('Forced shutdown after timeout');
-    process.exit(1);
-  }, 30000);
-};
+const shutdown = createShutdown({ server, io, closeQueues, closeCache, sequelize });
+const gracefulShutdown = (signal, opts) => shutdown(signal, opts);
 
 // Handle shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
@@ -479,14 +436,17 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  gracefulShutdown('uncaughtException');
+  // The process state is unknown after this: leave, and exit non-zero so the
+  // container restarts it.
+  gracefulShutdown('uncaughtException', { exitCode: 1 });
 });
 
 // Handle unhandled promise rejections.
-// ERR-4: only the known multer-storage-cloudinary rejection is safe to swallow
-// (it can't be caught at the call site). Any other unhandled rejection leaves the
-// process in an undefined state, so treat it like uncaughtException and shut down.
-process.on('unhandledRejection', (reason, promise) => {
+// A rejected promise nobody awaited (a fire-and-forget notification, a stray
+// Cloudinary call) does not corrupt the process, and exiting on it dropped every
+// member's socket for one failed side-effect (SITE-12). Log it loudly and keep
+// serving; a genuinely corrupt state surfaces as an uncaughtException above.
+process.on('unhandledRejection', (reason) => {
   const msg = (reason?.message || String(reason)).toLowerCase();
   const isKnownCloudinaryRejection =
     msg.includes('invalid cloud_name') || (reason?.http_code === 401 && msg.includes('cloud'));
@@ -494,10 +454,9 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error(
       'Unhandled Rejection (Cloudinary): Invalid cloud name. Set CLOUDINARY_CLOUD_NAME to the exact cloud name from your Cloudinary dashboard (Dashboard URL or API keys), not a placeholder like "tricitymatch-prod".'
     );
-    return; // recoverable — keep running
+    return;
   }
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  gracefulShutdown('unhandledRejection');
+  console.error('Unhandled Rejection:', reason);
 });
 
 // Start the server

@@ -32,14 +32,14 @@ export const COMMUNITIES = {
     body:
       'Most families we hear from are looking within a fairly tight set of expectations: a comparable land or professional background, a family the elders can place, and gotra kept clear on both sides. Many keep ties to a home village in Ludhiana, Moga, Sangrur or Patiala district even after two generations in the city, and that village connection is often the first thing checked.',
     points: [
-      'Gotra is recorded on the profile and can be excluded from matches on both sides — set it once and it applies to every search.',
+      'Gotra is recorded on the profile, and you can choose to leave out matches who share it. Set it once and it applies to every search, daily match and suggestion, for you and for them.',
       'Families frequently want a match who has stayed close to the faith and to the village connection; both are things you can state plainly on a profile rather than discover on a call.',
       'Punjabi as a first language is common, and the site is fully usable in Punjabi.',
       'NRI matches — Canada, the UK and Australia especially — are ordinary here rather than exceptional, and a profile can declare it up front.',
     ],
     faq: {
       q: 'Can we exclude our own gotra from matches?',
-      a: 'Yes. Gotra is a field on the profile and a filter in search, and it can be set to exclude — so matches sharing your gotra simply do not appear, for you or for them.',
+      a: 'Yes. Gotra is a field on the profile with a switch to leave out matches who share it. Once it is on, members with your gotra do not appear in your searches, daily matches or suggestions, and you do not appear in theirs. Members who have not entered a gotra are still shown.',
     },
   },
 

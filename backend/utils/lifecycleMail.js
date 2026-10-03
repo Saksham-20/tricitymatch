@@ -87,6 +87,11 @@ const delivered = (result) => !result || result.success !== false;
 
 const optedOut = (user) => Boolean(user?.lifecycleMail?.emailOptOut);
 
+// An address typed at signup beside a verified phone was never proved to be
+// theirs; it must not be sold to. (Legacy accounts with no verified phone keep
+// getting mail: the address is their only contact.)
+const nudgeAddressUnproved = (user) => user?.emailVerified === false && user?.phoneVerified === true;
+
 const memberQuiet = (user, nowMs) => {
   const last = user?.lifecycleMail?.lastSentAt;
   return !last || nowMs - ms(last) >= CADENCE.memberGapMs;
@@ -151,8 +156,8 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
 
   const withUser = {
     model: User,
-    attributes: ['id', 'email', 'lifecycleMail'],
-    include: [{ model: Profile, attributes: ['firstName'] }],
+    attributes: ['id', 'email', 'lifecycleMail', 'deletionScheduledFor', 'emailVerified', 'phoneVerified'],
+    include: [{ model: Profile, attributes: ['firstName', 'pausedAt'] }],
   };
   const nameOf = (sub) => sub.User?.Profile?.firstName || 'there';
   const labelOf = (planType) => getPlanDetails(planType)?.name || planType;
@@ -178,7 +183,14 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
   const mayMail = (sub, { notice = false } = {}) => {
     const user = sub.User;
     if (!user?.email || mailedThisRun.has(user.id)) return false;
+    // Erasure is scheduled: nothing, not even a notice, from now until they
+    // cancel it. (Sending "your plan renews soon" to someone who just asked
+    // to be deleted is the wrong kind of memorable.)
+    if (user.deletionScheduledFor) return false;
     if (notice) return true;
+    // Paused by choice: no sales mail. Notices about money still go (above).
+    if (user.Profile?.pausedAt) return false;
+    if (nudgeAddressUnproved(user)) return false;
     return !optedOut(user) && memberQuiet(user, nowMs);
   };
 
@@ -367,6 +379,9 @@ const runPhotoNudge = async (now = new Date()) => {
       [Op.and]: [
         literal('"User"."lifecycleMail"->>\'photoNudge2\' IS NULL'),
         literal('"User"."lifecycleMail"->>\'emailOptOut\' IS NULL'),
+        // Not a member who scheduled deletion, and not an address nobody proved.
+        literal('"User"."deletionScheduledFor" IS NULL'),
+        literal('NOT ("User"."emailVerified" = false AND "User"."phoneVerified" = true)'),
       ],
     },
     include: [{
@@ -375,6 +390,7 @@ const runPhotoNudge = async (now = new Date()) => {
       // Postgres: an empty array is not NULL, so both cases have to be named.
       where: {
         onboardingComplete: true,
+        pausedAt: null,
         [Op.or]: [{ photos: null }, { photos: { [Op.eq]: [] } }],
       },
       attributes: ['firstName', 'photos'],

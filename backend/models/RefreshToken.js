@@ -114,10 +114,27 @@ RefreshToken.prototype.revoke = async function(reason = 'manual') {
   this.revokedAt = new Date();
   this.revokedReason = reason;
   await this.save();
+  // End the access token issued with this session too, not just its refresh
+  // token. (Rotation does not come through here: the old access token keeps
+  // working for its remaining life, as it must.)
+  if (reason !== 'rotated') {
+    await require('../utils/sessionRevocation').markSessionsRevoked(await RefreshToken.sessionIdsOfFamilies([this.family], [this.id]));
+  }
+};
+
+// Every row id in these families. An access token carries the id of the row it
+// was issued with, which may be several rotations old, so revoking a session
+// has to cover the whole family or a recently-rotated device keeps its token.
+RefreshToken.sessionIdsOfFamilies = async function(families, alsoIds = []) {
+  const rows = families.length
+    ? await this.findAll({ where: { family: families }, attributes: ['id'] })
+    : [];
+  return [...alsoIds, ...rows.map((r) => r.id)];
 };
 
 // Revoke all tokens in a family (for rotation theft detection)
 RefreshToken.revokeFamily = async function(family, reason = 'token_reuse_detected') {
+  await require('../utils/sessionRevocation').markSessionsRevoked(await this.sessionIdsOfFamilies([family]));
   await this.update(
     {
       isRevoked: true,
@@ -138,6 +155,8 @@ RefreshToken.revokeAllUserTokens = async function(userId, reason = 'logout_all')
     },
     { where: { userId } }
   );
+  // Every access token issued before now is cut off as well.
+  await require('../utils/sessionRevocation').markUserRevoked(userId);
 };
 
 // Cleanup expired tokens

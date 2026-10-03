@@ -66,4 +66,32 @@ const evictChatRoom = (a, b) => {
   }
 };
 
-module.exports = { severRelationshipRows, evictChatRoom };
+/**
+ * Group socket rooms are membership-checked once, at join time, so a member who
+ * is removed (or leaves) keeps receiving the room's events until they
+ * disconnect. Call AFTER the membership row is destroyed. Never throws.
+ *
+ * With a userId only that member's sockets leave; without one the whole room is
+ * emptied (group deleted). Returns the number of sockets evicted.
+ */
+const evictGroupRoom = async (groupId, userId = null) => {
+  try {
+    const io = getIO();
+    if (!io) return 0;
+    const room = `group_${groupId}`;
+    const sockets = await io.in(room).fetchSockets();
+    let evicted = 0;
+    for (const s of sockets) {
+      // `rooms` exists on local sockets and on RemoteSocket (redis adapter) alike.
+      if (userId && !(s.rooms && s.rooms.has(`user_${userId}`))) continue;
+      s.leave(room);
+      evicted += 1;
+    }
+    return evicted;
+  } catch (err) {
+    log.error('Group room eviction failed', { groupId, userId, error: err.message });
+    return 0;
+  }
+};
+
+module.exports = { severRelationshipRows, evictChatRoom, evictGroupRoom };

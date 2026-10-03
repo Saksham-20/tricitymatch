@@ -101,6 +101,15 @@ const Subscription = sequelize.define('Subscription', {
     type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: null
+  },
+  // Terms agreed at create-order: { duration (days), contactUnlocks (null =
+  // unlimited) } — migration 000086. Activation prefers this over re-resolving
+  // the live plan, so an offer edit between order and payment cannot change
+  // what the buyer receives. Null on rows created before the snapshot existed.
+  orderTerms: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null
   }
 }, {
   validate: {
@@ -132,6 +141,7 @@ const Subscription = sequelize.define('Subscription', {
 Subscription.prototype.toJSON = function() {
   const values = { ...this.get() };
   delete values.lifecycleMail;
+  delete values.orderTerms;
   // The buyer may read their own subscription, but not WHO referred them: keep
   // the code and what it was worth, drop the referrer's / rep's account ids.
   if (values.referral) {

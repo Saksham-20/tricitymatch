@@ -13,6 +13,7 @@ import {
 import { FaCrown } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useCall } from '../context/CallContext';
+import { useMatchCelebration } from '../context/MatchCelebrationContext';
 import { agora as agoraConfig } from '../config';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
@@ -176,6 +177,7 @@ const ProfileDetailSkeleton = () => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 const ProfileDetail = () => {
+  const { celebrate } = useMatchCelebration();
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user: me } = useAuth();
@@ -186,6 +188,10 @@ const ProfileDetail = () => {
   const [premiumAccess, setPremiumAccess] = useState(false);
   const [isContactUnlocked, setIsContactUnlocked] = useState(false);
   const [contactUnlocksRemaining, setContactUnlocksRemaining] = useState(0);
+  // The owner's choice about who may unlock their contact details.
+  const [contactShare, setContactShare] = useState({ level: 'everyone', allowed: true });
+  // Both of you recorded a gotra and it is the same one.
+  const [sameGotra, setSameGotra] = useState(false);
   const [unlockedContact, setUnlockedContact] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
   // D3 like-with-note: {type:'photo', photoUrl} | {type:'prompt', promptText}
@@ -206,9 +212,13 @@ const ProfileDetail = () => {
 
   useEffect(() => { loadProfile(); }, [userId]);
 
-  const loadProfile = async () => {
+  // `quiet` refreshes in place (no skeleton flash): used after a mutual match,
+  // when the server starts returning the photos and intro media it withheld
+  // until the match.
+  const loadProfile = async (opts) => {
+    const quiet = opts && opts.quiet === true;
     try {
-      setLoading(true);
+      if (!quiet) setLoading(true);
       setLoadError(false);
       const res = await api.get(`/profile/${userId}`);
       setProfile(res.data.profile);
@@ -216,9 +226,11 @@ const ProfileDetail = () => {
       setPremiumAccess(res.data.hasPremiumAccess);
       setIsContactUnlocked(res.data.isContactUnlocked || false);
       setContactUnlocksRemaining(res.data.contactUnlocksRemaining || 0);
+      setContactShare(res.data.contactShare || { level: 'everyone', allowed: true });
+      setSameGotra(Boolean(res.data.sameGotra));
       setIsLiked(res.data.isLiked || false);
       setIsShortlisted(res.data.isShortlisted || false);
-      if (res.data.isContactUnlocked && res.data.profile?.User) {
+      if (res.data.isContactUnlocked && res.data.contactShare?.allowed !== false && res.data.profile?.User) {
         setUnlockedContact({
           phone: res.data.profile.User.phone,
           email: res.data.profile.User.email,
@@ -302,6 +314,14 @@ const ProfileDetail = () => {
       } else if (code === 'PREMIUM_REQUIRED') {
         setUpgradeFeature('View Contact Details');
         setShowUpgradeModal(true);
+      } else if (code === 'CONTACT_NOT_SHARED' || code === 'CONTACT_MATCHES_ONLY') {
+        // The owner's setting changed since this page loaded. Nothing was spent.
+        setContactShare({ level: code === 'CONTACT_NOT_SHARED' ? 'hidden' : 'matches', allowed: false });
+        setIsContactUnlocked(false);
+        setUnlockedContact(null);
+        toast.error(err.response?.data?.error?.message || 'This member is not sharing contact details.');
+      } else if (err.response?.status === 409) {
+        toast.error(err.response?.data?.error?.message || 'This member has not verified a number yet.');
       } else {
         toast.error('Failed to unlock contact');
       }
@@ -344,13 +364,18 @@ const ProfileDetail = () => {
   // one-tap like below is unchanged.
   const sendLikeWithNote = async (note) => {
     try {
-      await api.post(`/match/${userId}`, {
+      const res = await api.post(`/match/${userId}`, {
         action: 'like',
         ...(note ? { note } : {}),
         likedItem: likeNoteTarget,
       });
       setIsLiked(true);
-      toast.success('Like sent');
+      if (res.data?.newMatch) {
+        celebrate(profile);
+        loadProfile({ quiet: true });
+      } else {
+        toast.success('Like sent');
+      }
     } catch {
       toast.error('Failed to send like');
       throw new Error('like failed');
@@ -359,10 +384,21 @@ const ProfileDetail = () => {
 
   const handleAction = async (action) => {
     try {
-      await api.post(`/match/${userId}`, { action });
+      // Saving is a toggle: tapping "Saved" takes it back ('undo', which removes
+      // the row). It used to post 'shortlist' again, which the server treats as
+      // "keep it shortlisted", so the screen said "Removed" and nothing changed.
+      const sending = action === 'shortlist' && isShortlisted ? 'undo' : action;
+      const res = await api.post(`/match/${userId}`, { action: sending });
       if (action === 'like') {
         setIsLiked(true);
-        toast.success('Interest expressed');
+        if (res.data?.newMatch) {
+          // It's a match: celebrate once, and refresh so the message CTA and the
+          // photos withheld until a match appear without a reload.
+          celebrate(profile);
+          loadProfile({ quiet: true });
+        } else {
+          toast.success('Interest expressed');
+        }
       } else if (action === 'shortlist') {
         setIsShortlisted(!isShortlisted);
         toast.success(isShortlisted ? 'Removed from shortlist' : 'Saved to shortlist');
@@ -715,6 +751,11 @@ const ProfileDetail = () => {
 
               {/* Core details — full table up top so the page is dense (no side void) */}
               <Card title="Details" icon={FiUser}>
+                {sameGotra && (
+                  <p role="note" className="mb-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200">
+                    You and {profile.firstName || 'this member'} have the same gotra. Many families do not marry within a gotra, so you may want to check with your elders.
+                  </p>
+                )}
                 <div>
                   {age && <DetailRow label="Age" value={`${age} years`} />}
                   {profile.height && <DetailRow label="Height" value={formatHeight(profile.height)} />}
@@ -1051,7 +1092,21 @@ const ProfileDetail = () => {
             <div className="space-y-4 mt-4 lg:mt-0 lg:sticky lg:top-24">
               {/* Contact unlock */}
               <Card title="Contact Details" icon={FiPhone}>
-                {isContactUnlocked && unlockedContact ? (
+                {!contactShare.allowed ? (
+                  <div className="text-center py-3">
+                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-3">
+                      <FiLock className="w-5 h-5 text-neutral-400" />
+                    </div>
+                    <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200 mb-1">
+                      {contactShare.level === 'matches' ? 'Shared with matches only' : 'Contact is not shared'}
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                      {contactShare.level === 'matches'
+                        ? 'This member shares phone and email only with people they match with. Send an interest to connect. No unlock is used.'
+                        : 'This member has chosen not to share phone or email. You can still send an interest and chat once you match.'}
+                    </p>
+                  </div>
+                ) : isContactUnlocked && unlockedContact ? (
                   <div className="space-y-2.5">
                     {unlockedContact.phone && (
                       <a href={`tel:${unlockedContact.phone}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-xl hover:bg-success-100 dark:hover:bg-success-500/20 transition-colors cursor-pointer">

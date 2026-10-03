@@ -11,6 +11,7 @@ const { createError, asyncHandler } = require('./errorHandler');
 const { PAID_PLANS, UNLIMITED_PLANS } = require('../constants/plans');
 const { ADMIN_ROLES, hasScope } = require('../constants/adminScopes');
 const { hasChatAccess } = require('../utils/entitlements');
+const { isAccessRevoked } = require('../utils/sessionRevocation');
 
 /**
  * Extract token from request
@@ -58,6 +59,11 @@ const auth = asyncHandler(async (req, res, next) => {
     // Verify token type
     if (decoded.type !== 'access') {
       throw createError.unauthorized('Invalid token type');
+    }
+
+    // Signed out (this session, or everywhere) since this token was issued.
+    if (await isAccessRevoked(decoded)) {
+      throw createError.unauthorized('Session ended. Please sign in again.');
     }
 
     // Load user (minimal data for performance). `adminPermissions` rides along
@@ -117,7 +123,7 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, config.auth.jwtSecret);
 
-    if (decoded.type === 'access') {
+    if (decoded.type === 'access' && !(await isAccessRevoked(decoded))) {
       const user = await User.findByPk(decoded.userId, {
         attributes: ['id', 'email', 'role', 'status']
       });
@@ -227,7 +233,9 @@ const requirePremium = asyncHandler(async (req, res, next) => {
         { endDate: null },
         { endDate: { [Op.gt]: new Date() } }
       ]
-    }
+    },
+    // Deterministic when more than one row is live: the newest plan wins.
+    order: [['createdAt', 'DESC']],
   });
 
   if (!subscription) {

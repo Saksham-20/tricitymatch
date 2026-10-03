@@ -15,6 +15,7 @@ const { log, logAudit } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
 const { matchActionLimiter, sensitiveActionLimiter, passwordResetSubmitLimiter } = require('../middlewares/security');
 const { canonicalEmail } = require('../utils/emailAddress');
+const { passwordField } = require('../utils/passwordPolicy');
 const invites = require('../utils/guardianInvites');
 const { issueHandover, completeHandover } = require('../utils/accountHandover');
 const { sendGuardianInvite, sendAccountHandover, sendSecurityAlert } = require('../utils/email');
@@ -85,6 +86,10 @@ router.post('/invite', auth, matchActionLimiter, asyncHandler(async (req, res) =
     where: { candidateId: req.user.id, inviteEmail: email, ...invites.liveLinks() },
   });
   if (existing) throw new AppError('This email is already a guardian or has a pending invite', 409);
+
+  // Abuse of outbound mail: revoked/expired invites count here, open ones do not.
+  const wait = await invites.inviteCooldown({ candidateId: req.user.id, email });
+  if (wait) throw new AppError(wait, 429);
 
   const guardianUser = await invites.findMemberByEmail(email);
 
@@ -182,7 +187,7 @@ router.post('/:linkId/decline', ...respondToInvite('decline'));
 // who had been linked to someone else's profile — which happens automatically
 // when the invited email already belongs to a user, with no accept step — had
 // no way to detach themselves from it.
-router.delete('/:linkId', auth, uuidParam('linkId'), asyncHandler(async (req, res) => {
+router.delete('/:linkId', auth, matchActionLimiter, uuidParam('linkId'), asyncHandler(async (req, res) => {
   const link = await GuardianLink.findOne({
     where: {
       id: req.params.linkId,
@@ -355,9 +360,7 @@ router.post('/handover', auth, sensitiveActionLimiter,
 // session: they do not have an account yet) and chooses their own password.
 router.post('/handover/complete', passwordResetSubmitLimiter,
   body('token').isString().isLength({ min: 32, max: 128 }),
-  body('password')
-    .isString().isLength({ min: 8, max: 100 }).withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/).withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  passwordField('password'),
   handleValidationErrors,
   asyncHandler(async (req, res) => {
     const result = await completeHandover({ token: req.body.token, password: req.body.password });

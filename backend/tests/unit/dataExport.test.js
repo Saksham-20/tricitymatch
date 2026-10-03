@@ -78,6 +78,14 @@ describe('buildMemberExport', () => {
     expect(json).not.toMatch(/tokenHash|mfaSecret|razorpaySignature|fcmTokens/);
   });
 
+  it('includes the separate contact number the member verified', async () => {
+    models.User.findByPk.mockResolvedValue(member({ phone: '9876543210', contactPhone: '9123456789' }));
+    const out = await buildMemberExport('me');
+    expect(out.account).toMatchObject({ phone: '9876543210', contactPhone: '9123456789' });
+    models.User.findByPk.mockResolvedValue(member());
+    expect((await buildMemberExport('me')).account.contactPhone).toBeNull();
+  });
+
   it('asks the database to leave secrets out of the columns it reads', async () => {
     models.User.findByPk.mockResolvedValue(member());
     await buildMemberExport('me');

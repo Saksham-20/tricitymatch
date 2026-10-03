@@ -112,7 +112,7 @@ export default function Safety() {
                 Our team responds within 24 hours.
               </p>
             </div>
-            <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-800 font-semibold px-6 py-3.5 rounded-full hover:bg-white transition-colors flex-shrink-0">
+            <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-6 py-3.5 rounded-full hover:bg-white transition-colors flex-shrink-0">
               Contact us <FiArrowRight />
             </Link>
           </div>

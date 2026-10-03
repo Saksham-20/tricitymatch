@@ -78,7 +78,7 @@ const getFields = (p) => [
     points: 10,
     done: !!(p.profilePhoto),
     icon: FiCamera,
-    tip: 'Profiles with photos get 8x more views',
+    tip: 'A clear photo helps families recognise and trust your profile',
   },
   {
     id: 'bio',

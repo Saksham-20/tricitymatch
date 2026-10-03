@@ -3,7 +3,7 @@
  * Handles payment processing with Razorpay
  */
 
-const { Subscription, User, Profile, MarketingLead, UnlockPurchase } = require('../models');
+const { Subscription, User, Profile, UnlockPurchase } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const {
@@ -35,7 +35,7 @@ const { generateInvoicePDF } = require('../utils/invoice');
 const { getOfferState, getFoundingState } = require('../utils/launchOffer');
 const { notify } = require('../utils/notifyUser');
 const { recordRefund, recordDispute } = require('../utils/paymentRefunds');
-const { activateCapturedPayment } = require('../utils/subscriptionActivation');
+const { activateCapturedPayment, markLeadPaid, termsForActivation } = require('../utils/subscriptionActivation');
 const { invoiceBlocker } = require('../utils/invoiceEligibility');
 const {
   ReferralError,
@@ -134,7 +134,10 @@ exports.createOrder = asyncHandler(async (req, res) => {
       referralCode: quote?.referral.code,
     });
 
-    // Create subscription record
+    // Create subscription record. `orderTerms` freezes what the buyer agreed
+    // to: the amount is fixed by the gateway order, so duration and unlocks
+    // must not drift with a later offer edit before the payment lands.
+    const soldPlan = getPlanDetails(planType);
     const subscription = await Subscription.create({
       userId,
       planType,
@@ -142,6 +145,7 @@ exports.createOrder = asyncHandler(async (req, res) => {
       status: 'pending',
       amount: order.amount / 100, // Convert from paise to rupees
       referral: quote ? quote.referral : null,
+      orderTerms: { duration: soldPlan.duration, contactUnlocks: soldPlan.contactUnlocks },
     }, { transaction: t });
 
     return { order, subscription };
@@ -310,11 +314,25 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
     });
 
     if (!sub) {
+      // The captured-payment webhook (or reconciler) can commit between the
+      // idempotency pre-check above and this lock. The plan is then already
+      // active for THIS payment, so answer with it instead of telling a member
+      // who has paid that verification failed.
+      const racedActivation = await Subscription.findOne({
+        where: { userId, razorpayOrderId, razorpayPaymentId, status: 'active' },
+        transaction: t,
+      });
+      if (racedActivation) {
+        log.info('Payment already activated by the webhook (idempotent)', {
+          userId, paymentId: razorpayPaymentId, subscriptionId: racedActivation.id,
+        });
+        return racedActivation;
+      }
       throw createError.notFound('Subscription not found or already processed');
     }
 
-    // Get plan details
-    const planDetails = getPlanDetails(sub.planType);
+    // Terms agreed at create-order win over the live plan (PAY-07).
+    const planDetails = termsForActivation(sub);
     if (!planDetails) {
       throw createError.badRequest('Invalid plan type');
     }
@@ -370,17 +388,9 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
   // conditional claim inside makes whichever runs second a no-op.
   if (subscription.referral) await settleReferral(subscription.id);
 
-  // Update marketing lead if user was referred via referral code
-  const lead = await MarketingLead.findOne({
-    where: { convertedUserId: userId }
-  });
-  if (lead) {
-    lead.paymentStatus = 'paid';
-    lead.amountPaid = subscription.amount;
-    lead.paymentId = razorpayPaymentId;
-    lead.status = 'converted';
-    await lead.save();
-  }
+  // Mark the referring rep's lead as paid — the same helper the webhook and
+  // reconciler legs call, so which leg activated the plan cannot decide it.
+  await markLeadPaid(subscription);
 
   // Unlimited plans (VIP / NRI): activate profile boost for the plan term
   if (UNLIMITED_PLANS.includes(subscription.planType)) {
@@ -571,6 +581,8 @@ exports.verifyGooglePlay = asyncHandler(async (req, res) => {
     productId,
     endDate: subscription.endDate,
   });
+
+  await markLeadPaid(subscription);
 
   if (UNLIMITED_PLANS.includes(subscription.planType)) {
     await User.update(
@@ -875,7 +887,7 @@ exports.getPaymentHistory = asyncHandler(async (req, res) => {
     },
     order: [['createdAt', 'DESC']],
     attributes: [
-      'id', 'planType', 'status', 'amount',
+      'id', 'planType', 'status', 'amount', 'refundedAmount', 'refundedAt',
       'startDate', 'endDate', 'razorpayPaymentId', 'razorpayOrderId', 'createdAt',
     ],
   });
@@ -1134,27 +1146,40 @@ exports.claimFounding = asyncHandler(async (req, res) => {
     throw createError.badRequest('The founding offer has closed');
   }
 
-  const user = await User.findByPk(userId, { attributes: ['id', 'isFoundingMember'] });
-  if (!user) {
-    throw createError.notFound('User not found');
-  }
-  if (user.isFoundingMember) {
-    throw createError.conflict('You have already claimed the founding offer', 'FOUNDING_ALREADY_CLAIMED');
-  }
+  // Check-then-act under a row lock. Four concurrent claims for one member
+  // each passed the isFoundingMember / no-active-plan checks and each minted a
+  // founding_premium row. Locking the USER row serialises a member's own claims:
+  // the second waits, re-reads isFoundingMember (now true, set in the same
+  // transaction by the grant) and is refused.
+  const outcome = await sequelize.transaction(async (t) => {
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'isFoundingMember'],
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!user) {
+      throw createError.notFound('User not found');
+    }
+    if (user.isFoundingMember) {
+      throw createError.conflict('You have already claimed the founding offer', 'FOUNDING_ALREADY_CLAIMED');
+    }
 
-  const active = await Subscription.findOne({
-    where: {
-      userId,
-      status: 'active',
-      endDate: { [Op.gt]: new Date() },
-    },
+    const active = await Subscription.findOne({
+      where: {
+        userId,
+        status: 'active',
+        endDate: { [Op.gt]: new Date() },
+      },
+      transaction: t,
+    });
+    if (active) {
+      throw createError.conflict('You already have an active plan', 'SUBSCRIPTION_ACTIVE');
+    }
+
+    return grantFoundingIfOpen(userId, { transaction: t });
   });
-  if (active) {
-    throw createError.conflict('You already have an active plan', 'SUBSCRIPTION_ACTIVE');
-  }
 
-  const granted = await grantFoundingIfOpen(userId);
-  if (!granted) {
+  if (!outcome) {
     // grantFoundingIfOpen swallows its own failures by contract, so the only
     // thing distinguishable here is "no place left" versus an internal fault.
     throw createError.conflict(

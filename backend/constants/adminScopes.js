@@ -30,6 +30,7 @@ const ADMIN_SCOPES = {
   reports: 'Work the abuse/report queue',
   support: 'Read and reply to the support inbox',
   marketing: 'Marketing users, referral codes and leads',
+  payouts: 'Set marketing commission rates and record or void rep payouts',
   stories: 'Publish and edit success stories',
   team: 'Manage admins: create, promote, set scopes, revoke',
 };

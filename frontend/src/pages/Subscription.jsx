@@ -892,7 +892,10 @@ const Subscription = () => {
       setPlans(plansRes.data.plans || {});
       setPlansLoaded(true);
       const liveBundles = plansRes.data.bundles;
-      if (liveBundles && Object.keys(liveBundles).length) {
+      // An object — even an empty one — is the server's answer. Only a response
+      // with no `bundles` key at all (an old API) keeps the static fallback;
+      // otherwise withdrawing every bundle resurrected cards the server refuses.
+      if (liveBundles && typeof liveBundles === 'object') {
         setBundles(Object.values(liveBundles));
       }
       setLaunchOffer(plansRes.data.launchOffer || { active: false });
@@ -925,7 +928,12 @@ const Subscription = () => {
             toast.success('Payment successful');
             await loadData();
           } catch {
-            toast.error('Payment verification failed');
+            // Razorpay only calls this handler after the payment went through, so
+            // a failed verify is a hiccup on OUR side (or the webhook beat us to
+            // activating it), not a failed payment. Say so, and refresh: the plan
+            // is often already active.
+            toast.error('We received your payment and are confirming it. Your plan will appear shortly — if it does not, contact support with your payment receipt.', { duration: 8000 });
+            try { await loadData(); } catch { /* the page shows its own error state */ }
           } finally {
             onSettle();
             resolve();

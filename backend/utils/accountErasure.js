@@ -201,6 +201,7 @@ const eraseAccount = async (userId) => {
       `UPDATE "Users"
           SET "email" = :email,
               "phone" = NULL,
+              "contactPhone" = NULL,
               "googleId" = NULL,
               "fcmTokens" = ARRAY[]::text[],
               "password" = :password,

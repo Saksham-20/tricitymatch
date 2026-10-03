@@ -84,6 +84,15 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // The API answers { success:false, error:{ code, message } }. About 45 call
+    // sites read response.data.message, which was always undefined, so members
+    // saw a generic fallback instead of the real reason (e.g. a rate-limit
+    // "try again later"). Mirror the message to the top level once, here.
+    const body = error.response?.data;
+    if (body && typeof body === 'object' && !Array.isArray(body) && !body.message && typeof body.error?.message === 'string') {
+      body.message = body.error.message;
+    }
+
     const isRefresh = originalRequest.url?.includes('/auth/refresh');
 
     // Unauthenticated auth entrypoints: a 401/4xx here is a DOMAIN response

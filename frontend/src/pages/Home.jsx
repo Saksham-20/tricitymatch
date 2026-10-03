@@ -72,6 +72,10 @@ const FontLoader = () => (
       --burgundy: #8B2346;
       --burgundy-dk: #6B1D3A;
       --burgundy-lt: #D66E8E;
+      /* Burgundy used as TEXT/glyph on the reactive canvas. #8B2346 on the dark
+         canvas is ~2:1; html.dark uses the same light burgundy index.css maps
+         .text-primary-* to (~7:1). Backgrounds and borders keep --burgundy. */
+      --burgundy-text: #8B2346;
       --gold: #C9A227;
       --gold-lt: #F2D88A;
       --gold-text: #E8C34A; /* gold-400 — the same "bright gold, ~9:1 on dark" value index.css already uses for html.dark .text-gold-600 */
@@ -95,6 +99,8 @@ const FontLoader = () => (
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
       --mono: 'Inter', -apple-system, system-ui, sans-serif; /* was a real monospace family — doctrine bans both the third font family and monospace-as-costume on marketing labels; the uppercase+tracking treatment carries the "label" read on its own */
     }
+
+    html.dark { --burgundy-text: #E0A6B8; }
 
     /* Doctrine §3.5: elder mode's hit targets are >=48px. These four sat at
        or under the 44px floor — the rest of the page's controls (CTA
@@ -576,7 +582,7 @@ const Home = () => {
             {[
               { text: 'From match',                                                   style: { color: 'var(--ink)', animationDelay: '.25s' } },
               { text: 'to mandap,',                                                  style: { color: 'var(--ink)', animationDelay: '.4s' } },
-              { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>all in the Tricity.</em>, style: { animationDelay: '.55s' } },
+              { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>all in the Tricity.</em>, style: { animationDelay: '.55s' } },
             ].map((line, i) => (
               <span key={i} style={{
                 display: 'inline-block',
@@ -606,7 +612,7 @@ const Home = () => {
             animation: 'rise 1.2s 0.9s both',
           }}>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
-              Chandigarh, Mohali and Panchkula only: live selfie verification, private conversations, and every family close enough to meet this week. Founding members join free while we build Tricity's most carefully verified community.
+              Chandigarh, Mohali and Panchkula only: live selfie verification, private conversations, and every family close enough to meet this week.{founding.open ? " Founding members join free while we build Tricity's most carefully verified community." : ''}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <Link to="/onboarding" style={{
@@ -831,7 +837,7 @@ const Home = () => {
         <div style={{ position: 'sticky', top: 80, padding: '0 28px 0 40px' }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
-              Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>isn't</em><br />another app.
+              Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>isn't</em><br />another app.
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
               Scroll right to read. Each principle shapes a real product decision, not just marketing copy.
@@ -887,17 +893,17 @@ const Home = () => {
                 el.style.color = '';
                 el.style.transform = '';
                 el.style.boxShadow = '';
-                el.querySelector('.wt-glyph').style.color = 'var(--burgundy)';
+                el.querySelector('.wt-glyph').style.color = 'var(--burgundy-text)';
                 el.querySelector('.wt-tag').style.color = 'var(--mute)';
                 el.querySelector('.wt-body').style.color = 'var(--ink-soft)';
-                el.querySelector('.wt-foot').style.color = 'var(--burgundy)';
+                el.querySelector('.wt-foot').style.color = 'var(--burgundy-text)';
               }}
             >
-              <div className="wt-glyph" style={{ fontSize: 36, color: 'var(--burgundy)', marginBottom: 20, lineHeight: 1, transition: 'color 200ms ease' }}>{c.glyph}</div>
+              <div className="wt-glyph" style={{ fontSize: 36, color: 'var(--burgundy-text)', marginBottom: 20, lineHeight: 1, transition: 'color 200ms ease' }}>{c.glyph}</div>
               <div className="wt-tag" style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--mute)', marginBottom: 10, transition: 'color 200ms ease' }}>{c.tag}</div>
               <div style={{ fontFamily: 'var(--display)', fontSize: 22, lineHeight: 1.05, letterSpacing: '-.01em', marginBottom: 10 }}>{c.title}</div>
               <div className="wt-body" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-soft)', marginBottom: 'auto', transition: 'color 200ms ease' }}>{c.body}</div>
-              <div className="wt-foot" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--burgundy)', paddingTop: 24, transition: 'color 200ms ease' }}>Learn more</div>
+              <div className="wt-foot" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--burgundy-text)', paddingTop: 24, transition: 'color 200ms ease' }}>Learn more</div>
             </motion.div>
           ))}
         </div>
@@ -1037,16 +1043,16 @@ const Home = () => {
       <div className="process-steps-list" style={{ display: 'none' }}>
         <div style={{ padding: '0 0 24px', background: 'var(--cream-3)' }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,6vw,36px)', lineHeight: .96, letterSpacing: '-.025em' }}>
-            From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>forever.</em>
+            From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>forever.</em>
           </h2>
         </div>
         {processSteps.map((s, i) => (
           <div key={i} className="process-step-card">
-            <div style={{ fontFamily: 'var(--display)', fontSize: 48, lineHeight: .8, color: 'var(--burgundy)', fontStyle: 'italic', marginBottom: 8 }}>{s.n}</div>
+            <div style={{ fontFamily: 'var(--display)', fontSize: 48, lineHeight: .8, color: 'var(--burgundy-text)', fontStyle: 'italic', marginBottom: 8 }}>{s.n}</div>
             <div style={{ fontFamily: 'var(--display)', fontSize: 22, lineHeight: 1.1, marginBottom: 8 }}>{s.t}</div>
             <div style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--ink-soft)', marginBottom: 12 }}>{s.b}</div>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>
-              {s.meta.map((m, j) => <span key={j} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--burgundy)', fontSize: 7 }}>◆</span>{m}</span>)}
+              {s.meta.map((m, j) => <span key={j} style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--burgundy-text)', fontSize: 7 }}>◆</span>{m}</span>)}
             </div>
           </div>
         ))}
@@ -1070,7 +1076,7 @@ const Home = () => {
           {/* Left */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
-              From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>forever.</em>
+              From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>forever.</em>
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>
               Four steps, designed with intentionality, because finding a partner deserves more than an algorithm.
@@ -1098,7 +1104,7 @@ const Home = () => {
                   );
                 })}
               </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontSize: 52, lineHeight: 1, color: 'var(--burgundy)', fontStyle: 'italic' }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontSize: 52, lineHeight: 1, color: 'var(--burgundy-text)', fontStyle: 'italic' }}>
                 <AnimatePresence mode="wait">
                   <motion.span key={processActive} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .8 }}>
                     {curStep.n}
@@ -1113,13 +1119,13 @@ const Home = () => {
           <div style={{ padding: 24, background: 'var(--cream)', borderRadius: 4, border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 14, minHeight: 300 }}>
             <AnimatePresence mode="wait">
               <motion.div key={processActive} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ display: 'contents' }}>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,4vw,64px)', lineHeight: .8, letterSpacing: '-.05em', color: 'var(--burgundy)', fontStyle: 'italic' }}>{curStep.n}</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(36px,4vw,64px)', lineHeight: .8, letterSpacing: '-.05em', color: 'var(--burgundy-text)', fontStyle: 'italic' }}>{curStep.n}</div>
                 <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,40px)', lineHeight: 1.05, letterSpacing: '-.02em' }}>{curStep.t}</div>
                 <div style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 480, fontFamily: 'var(--sans)' }}>{curStep.b}</div>
                 <div style={{ display: 'flex', gap: 24, padding: '16px 0', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-soft)', flexWrap: 'wrap' }}>
                   {curStep.meta.map((m, i) => (
                     <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ color: 'var(--burgundy)', fontSize: 8 }}>◆</span>{m}
+                      <span style={{ color: 'var(--burgundy-text)', fontSize: 8 }}>◆</span>{m}
                     </span>
                   ))}
                 </div>
@@ -1238,20 +1244,20 @@ const Home = () => {
         <span style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-55%)',
           fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 'clamp(160px,22vw,320px)', lineHeight: .7,
-          color: 'var(--burgundy)', opacity: .06, userSelect: 'none', pointerEvents: 'none',
+          color: 'var(--burgundy-text)', opacity: .06, userSelect: 'none', pointerEvents: 'none',
         }}>"</span>
         <motion.div {...revealOnce} style={{ position: 'relative' }}>
           <p style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,4vw,62px)', lineHeight: 1.05, letterSpacing: '-.02em', maxWidth: 1100, margin: '0 auto 56px' }}>
-            The right match isn't a number<br />away. <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>They're a neighbourhood</em><br />
+            The right match isn't a number<br />away. <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>They're a neighbourhood</em><br />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 24 }}>
               <span style={{ display: 'inline-block', width: 80, height: 2, background: 'var(--gold)' }} />away.
             </span>
           </p>
           <p className="quote-attribution" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)', display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>Founders, TricityMatch</span>
-            <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
+            <span className="dot" style={{ color: 'var(--burgundy-text)' }}>·</span>
             <span>Chandigarh</span>
-            <span className="dot" style={{ color: 'var(--burgundy)' }}>·</span>
+            <span className="dot" style={{ color: 'var(--burgundy-text)' }}>·</span>
             <span>2026</span>
           </p>
         </motion.div>
@@ -1309,7 +1315,7 @@ const Home = () => {
         <div className="refund-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 56, alignItems: 'center', maxWidth: 1280, margin: '0 auto' }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 20 }}>
-              Try it. If it's not right,<br /><em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>get your money back.</em>
+              Try it. If it's not right,<br /><em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>get your money back.</em>
             </h2>
             <p style={{ maxWidth: 480, fontSize: 14, lineHeight: 1.55, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 24 }}>
               Ask within seven days of paying and we refund the membership in full, no justification needed. If you've already unlocked a few contacts, we deduct only what those unlocks cost.
@@ -1355,7 +1361,7 @@ const Home = () => {
       <section className="testi-section" style={{ background: 'var(--cream)', padding: '56px 40px', overflow: 'hidden' }}>
         <div style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em' }}>
-            Stories that<br />began <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>here.</em>
+            Stories that<br />began <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>here.</em>
           </h2>
         </div>
         <div className="testi-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
@@ -1382,7 +1388,7 @@ const Home = () => {
                          named, consenting couple (docs/LEGAL_REVIEW_2026-09-17.md
                          A-19, doctrine ruling 15). */
                       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream-2)' }}>
-                        <span style={{ fontFamily: 'var(--display)', fontSize: 40, fontStyle: 'italic', color: 'var(--burgundy)' }}>
+                        <span style={{ fontFamily: 'var(--display)', fontSize: 40, fontStyle: 'italic', color: 'var(--burgundy-text)' }}>
                           {s.who ? s.who.split(/\s|&/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('') : ''}
                         </span>
                       </div>
@@ -1401,7 +1407,7 @@ const Home = () => {
 
           {/* Quote pane */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <span style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 80, lineHeight: .5, color: 'var(--burgundy)' }}>&ldquo;</span>
+            <span style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 80, lineHeight: .5, color: 'var(--burgundy-text)' }}>&ldquo;</span>
             <AnimatePresence mode="wait">
               <motion.p key={storyIdx} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
                 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.6vw,48px)', lineHeight: 1.15, letterSpacing: '-.015em', color: 'var(--ink)' }}>
@@ -1438,7 +1444,7 @@ const Home = () => {
         <div style={{ position: 'sticky', top: 80 }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
-              Questions?<br />We've got <em style={{ fontStyle: 'italic', color: 'var(--burgundy)' }}>answers.</em>
+              Questions?<br />We've got <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>answers.</em>
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
               If you don't find what you need, reach out. We respond within 24 hours, in English, Hindi or Punjabi.
@@ -1472,7 +1478,7 @@ const Home = () => {
               onMouseEnter={e => { if (!canHover() || faqOpen === i) return; e.currentTarget.style.paddingLeft = '8px'; }}
               onMouseLeave={e => { if (!canHover() || faqOpen === i) return; e.currentTarget.style.paddingLeft = '0'; }}
             >
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', color: 'var(--burgundy)', paddingTop: 6 }}>0{i + 1}</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', color: 'var(--burgundy-text)', paddingTop: 6 }}>0{i + 1}</span>
               <div>
                 <div style={{ fontFamily: 'var(--display)', fontSize: 20, lineHeight: 1.15, letterSpacing: '-.01em' }}>{it.q}</div>
                 <div id={`faq-answer-${i}`} className="faq-a" style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>{it.a}</div>

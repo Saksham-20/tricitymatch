@@ -13,7 +13,7 @@ const RULES = [
   { key: 'upper', label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
   { key: 'lower', label: 'One lowercase letter', test: (p) => /[a-z]/.test(p) },
   { key: 'num', label: 'One number', test: (p) => /[0-9]/.test(p) },
-  { key: 'sym', label: 'One symbol (!@#$…)', test: (p) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
+  { key: 'sym', label: 'One symbol (!@#$…)', test: (p) => /[^A-Za-z0-9\s]/.test(p) },
 ];
 
 const STRENGTH = [

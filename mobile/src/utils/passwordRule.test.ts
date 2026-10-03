@@ -12,22 +12,17 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { isAcceptablePassword, MIN_PASSWORD_LENGTH, SERVER_PASSWORD_PATTERN } from './passwordRule';
 
-const ROUTES = join(__dirname, '..', '..', '..', 'backend', 'routes', 'authRoutes.js');
+const POLICY = join(__dirname, '..', '..', '..', 'backend', 'utils', 'passwordPolicy.js');
 
-/** Pull the newPassword validator's regex + min length straight out of the route. */
+/** Pull the shared policy's min length + complexity regex straight out of the module. */
 const readServerRule = () => {
-  const src = readFileSync(ROUTES, 'utf8');
-  const block = src.slice(src.indexOf("router.post('/change-password'"));
-  const end = block.indexOf('changePassword\n');
-  const scope = end === -1 ? block.slice(0, 1200) : block.slice(0, end);
-
-  const min = scope.match(/isLength\(\{\s*min:\s*(\d+)/);
-  const pattern = scope.match(/\.matches\((\/.+?\/)\)/);
+  const src = readFileSync(POLICY, 'utf8');
+  const min = src.match(/MIN_LENGTH\s*=\s*(\d+)/);
+  const pattern = src.match(/COMPLEXITY\s*=\s*(\/.+\/);/);
   if (!min || !pattern) {
-    throw new Error('Could not read the server password rule from authRoutes.js — update this test with it.');
+    throw new Error('Could not read the server password rule from utils/passwordPolicy.js — update this test with it.');
   }
-  const body = pattern[1].slice(1, -1);
-  return { min: Number(min[1]), regex: new RegExp(body) };
+  return { min: Number(min[1]), regex: new RegExp(pattern[1].slice(1, -1)) };
 };
 
 const CORPUS = [
@@ -41,7 +36,8 @@ const CORPUS = [
   'Pw0rd!',         // too short
   'Aa1@aaaa',       // exactly the minimum length
   '@Passw0rd',      // allowed symbol first
-  '#Passw0rd!',     // disallowed symbol FIRST — the server's unanchored pattern rejects this
+  '#Passw0rd!',     // symbol first: valid under the shared policy
+  'Hello#1234',     // the historical false reject
   '',
 ];
 

@@ -6,6 +6,7 @@
 const { body, param, query } = require('express-validator');
 const { NAME_PATTERN } = require('../constants/names');
 const { canonicalEmail } = require('../utils/emailAddress');
+const { passwordField } = require('../utils/passwordPolicy');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const { PROFILE_STRIPPER_ALLOWLIST } = require('../constants/profileFields');
 const { PURCHASABLE_PLANS } = require('../constants/plans');
@@ -79,11 +80,7 @@ const signupValidation = [
     .isString()
     .isLength({ max: 128 })
     .withMessage('Invalid verification proof'),
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  passwordField('password'),
   // firstName/lastName are OPTIONAL at signup: the web flow collects them on the
   // CreateAccount step and sends them here, but the mobile app creates the account
   // first and collects the name during onboarding Step 1 (PUT /profile/me). When
@@ -187,11 +184,7 @@ const resetPasswordValidation = [
     .withMessage('Reset token is required')
     .isJWT()
     .withMessage('Invalid reset token format'),
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  passwordField('password'),
 ];
 
 // Phone-OTP password reset (accounts that have no verified email to receive a link).
@@ -202,10 +195,7 @@ const phoneResetRequestValidation = [
 const phoneResetSubmitValidation = [
   body('phone').isString().isLength({ min: 10, max: 16 }).withMessage('Enter a valid mobile number'),
   body('code').isString().isNumeric().isLength({ min: 4, max: 6 }).withMessage('Enter the code we sent'),
-  body('password')
-    .isString().isLength({ min: 8, max: 100 }).withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/)
-    .withMessage('Password must contain uppercase, lowercase, number, and special character'),
+  passwordField('password'),
 ];
 
 const refreshTokenValidation = [
@@ -305,6 +295,23 @@ const updateProfileValidation = [
     .trim()
     .isLength({ max: 1000 })
     .withMessage('Bio must not exceed 1000 characters'),
+  body('preferredHeightMin')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 100, max: 250 })
+    .withMessage('Preferred minimum height must be between 100-250 cm'),
+  body('preferredHeightMax')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 100, max: 250 })
+    .withMessage('Preferred maximum height must be between 100-250 cm')
+    .custom((value, { req }) => {
+      const min = req.body?.preferredHeightMin;
+      if (min !== undefined && min !== '' && Number(min) > Number(value)) {
+        throw new Error('Preferred minimum height cannot exceed the maximum');
+      }
+      return true;
+    }),
+  body('spotifyPlaylist').optional().trim().isLength({ max: 255 }).withMessage('Spotify link is too long (255 characters max)'),
+  body('personalityType').optional().trim().isLength({ max: 255 }).withMessage('Personality type is too long (255 characters max)'),
   body('preferredAgeMin')
     .optional({ checkFalsy: true })
     .isInt({ min: 18, max: 99 })
@@ -344,6 +351,7 @@ const updateProfileValidation = [
     .withMessage('Desired children must be between 0 and 20'),
   // NRI / living abroad
   body('isNri').optional().isBoolean().withMessage('isNri must be a boolean'),
+  body('excludeSameGotra').optional().isBoolean().withMessage('excludeSameGotra must be a boolean'),
   body('residenceCountry').optional().trim().isLength({ max: 60 }).withMessage('Residence country too long'),
   body('residenceStatus').optional().trim().isLength({ max: 60 }).withMessage('Residence status too long'),
   body('familyLocation').optional().trim().isLength({ max: 120 }).withMessage('Family location too long'),
@@ -427,8 +435,8 @@ const getProfileValidation = [
 const matchActionValidation = [
   isUUID('userId', 'param'),
   body('action')
-    .isIn(['like', 'shortlist', 'pass'])
-    .withMessage('Action must be like, shortlist, or pass'),
+    .isIn(['like', 'shortlist', 'pass', 'undo'])
+    .withMessage('Action must be like, shortlist, pass, or undo'),
   // D3 like-with-note (optional; only honoured with action 'like' — the
   // controller sanitizes the note and validates likedItem against the target
   // profile, storing a content snapshot, never an index)
@@ -546,11 +554,17 @@ const searchValidation = [
     .trim()
     .isLength({ max: 100 })
     .escape(),
+  // Not escaped: the value goes to a parameterised query, and HTML-escaping
+  // turned the group labels the filter offers ("Software / IT") into
+  // "Software &#x2F; IT", which then matched nothing exact.
   query('profession')
     .optional()
     .trim()
-    .isLength({ max: 100 })
-    .escape(),
+    .isLength({ max: 100 }),
+  query('showPassed')
+    .optional()
+    .isIn(['true', 'false'])
+    .withMessage('showPassed must be true or false'),
   query('diet')
     .optional()
     .isIn(['vegetarian', 'non-vegetarian', 'vegan', 'jain']),
@@ -656,11 +670,7 @@ const updateUserStatusValidation = [
 // controllers only checked the fields were present, so "a" was an acceptable
 // password for a member AND for an admin. Members get the signup rule; staff
 // accounts (whose compromise is far worse) also need 12 characters.
-const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])/;
-const strongPassword = (minLength) => body('password')
-  .isString().withMessage('Password is required')
-  .isLength({ min: minLength, max: 100 }).withMessage(`Password must be at least ${minLength} characters`)
-  .matches(STRONG_PASSWORD).withMessage('Password must contain uppercase, lowercase, number, and special character');
+const strongPassword = (minLength) => passwordField('password', { minLength });
 
 const adminCreateUserValidation = [
   body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
@@ -670,6 +680,17 @@ const adminCreateUserValidation = [
 const adminCreateAdminValidation = [
   body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
   strongPassword(12),
+];
+
+// Marketing staff see leads' contact details and commission figures, so they get
+// the admin-grade 12-character rule, not the 8-character member one — and the
+// same canonical email as every other account.
+const adminCreateMarketingUserValidation = [
+  body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
+  strongPassword(12),
+  body('firstName').isString().trim().isLength({ min: 1, max: 50 }).withMessage('firstName is required'),
+  body('lastName').isString().trim().isLength({ min: 1, max: 50 }).withMessage('lastName is required'),
+  body('role').optional().isIn(['marketing', 'marketing_manager']).withMessage('role must be marketing or marketing_manager'),
 ];
 
 const updateVerificationValidation = [
@@ -722,31 +743,30 @@ const deletePhotoValidation = [
 ];
 
 // ==================== CONTACT VALIDATOR ====================
-// Public contact form. Sanitize free-text (escape) since the message is stored
-// and surfaced to admins / emailed — prevents stored XSS.
-// Public success-story submission. This endpoint had NO validator at all, so
-// coupleNames/quote/location were stored raw and `quote` was entirely
-// unbounded. Rows land as status:'draft' for admin review, so the escaping here
-// is defence-in-depth for whatever renders them later.
+// Public contact form and success-story submission. Free text is stored AS TYPED
+// and escaped where it is rendered (React, the email templates, the support
+// notification in contactController). Escaping on write stored entities
+// ("it&#x27;s", "R&amp;D") that every renderer then escaped a second time (SITE-07).
+// Length bounds still apply; success stories land as status:'draft' for review.
 const successStoryValidation = [
   body('coupleNames')
     .optional({ checkFalsy: true })
-    .trim().isLength({ max: 255 }).withMessage('Couple names are too long').escape(),
+    .trim().isLength({ max: 255 }).withMessage('Couple names are too long'),
   body('groomName')
     .optional({ checkFalsy: true })
-    .trim().isLength({ max: 120 }).withMessage('Name is too long').escape(),
+    .trim().isLength({ max: 120 }).withMessage('Name is too long'),
   body('brideName')
     .optional({ checkFalsy: true })
-    .trim().isLength({ max: 120 }).withMessage('Name is too long').escape(),
+    .trim().isLength({ max: 120 }).withMessage('Name is too long'),
   body('quote')
     .optional({ checkFalsy: true })
-    .trim().isLength({ max: 5000 }).withMessage('Story must be at most 5000 characters').escape(),
+    .trim().isLength({ max: 5000 }).withMessage('Story must be at most 5000 characters'),
   body('story')
     .optional({ checkFalsy: true })
-    .trim().isLength({ max: 5000 }).withMessage('Story must be at most 5000 characters').escape(),
+    .trim().isLength({ max: 5000 }).withMessage('Story must be at most 5000 characters'),
   body('location')
     .optional({ checkFalsy: true })
-    .trim().isLength({ max: 255 }).withMessage('Location is too long').escape(),
+    .trim().isLength({ max: 255 }).withMessage('Location is too long'),
   body('marriedOn')
     .optional({ checkFalsy: true })
     .isISO8601().withMessage('Wedding date must be a valid date').toDate(),
@@ -759,26 +779,22 @@ const contactValidation = [
   body('name')
     .trim()
     .notEmpty().withMessage('Name is required')
-    .isLength({ min: 2, max: 100 }).withMessage('Name must be 2–100 characters')
-    .escape(),
+    .isLength({ min: 2, max: 100 }).withMessage('Name must be 2–100 characters'),
   body('email')
     .isEmail().withMessage('Please provide a valid email')
     .customSanitizer(canonicalEmail),
   body('phone')
     .optional({ checkFalsy: true })
     .trim()
-    .isLength({ max: 20 }).withMessage('Phone is too long')
-    .escape(),
+    .isLength({ max: 20 }).withMessage('Phone is too long'),
   body('subject')
     .optional({ checkFalsy: true })
     .trim()
-    .isLength({ max: 150 }).withMessage('Subject is too long')
-    .escape(),
+    .isLength({ max: 150 }).withMessage('Subject is too long'),
   body('message')
     .trim()
     .notEmpty().withMessage('Message is required')
-    .isLength({ min: 10, max: 2000 }).withMessage('Message must be 10–2000 characters')
-    .escape(),
+    .isLength({ min: 10, max: 2000 }).withMessage('Message must be 10–2000 characters'),
 ];
 
 module.exports = {
@@ -816,6 +832,7 @@ module.exports = {
   updateUserStatusValidation,
   adminCreateUserValidation,
   adminCreateAdminValidation,
+  adminCreateMarketingUserValidation,
   updateVerificationValidation,
   adminSearchValidation,
   // Verification

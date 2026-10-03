@@ -24,6 +24,11 @@ export default function AdminReports() {
   const [loading, setLoading]     = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
   const [search, setSearch]       = useState('');
+  const [query, setQuery]         = useState('');   // debounced `search`
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [page, setPage]           = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [loadError, setLoadError] = useState(false);
   const [modal, setModal]         = useState(null);
   const [notes, setNotes]         = useState('');
   const [submitting, setSubmit]   = useState(false);
@@ -31,19 +36,31 @@ export default function AdminReports() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      setLoadError(false);
+      const params = { page, limit: 20 };
       if (activeTab !== 'all') params.status = activeTab;
-      if (search) params.search = search;
+      if (query) params.search = query;
+      if (urgentOnly) params.priority = 'urgent';
       const res = await getReports(params);
       setReports(res.data.reports || res.data || []);
+      if (res.data.pagination) setPagination(res.data.pagination);
     } catch {
+      setLoadError(true);
       toast.error('Failed to load reports');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, search]);
+  }, [activeTab, query, urgentOnly, page]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Typing in the box waits a moment before it hits the API, and a new filter
+  // always starts from page 1.
+  useEffect(() => {
+    const id = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 300);
+    return () => clearTimeout(id);
+  }, [search]);
+  useEffect(() => { setPage(1); }, [activeTab, urgentOnly]);
 
   const openModal = (r) => {
     setModal(r);
@@ -87,6 +104,10 @@ export default function AdminReports() {
             </button>
           ))}
         </div>
+        <label className="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer select-none">
+          <input type="checkbox" checked={urgentOnly} onChange={(e) => setUrgentOnly(e.target.checked)} className="rounded border-gray-300" />
+          Urgent only
+        </label>
         <div className="relative flex-1 min-w-[180px]">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -109,6 +130,7 @@ export default function AdminReports() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Reported</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Reason</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>
               </tr>
@@ -116,7 +138,7 @@ export default function AdminReports() {
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12">
+                  <td colSpan={7} className="text-center py-12">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
                     </div>
@@ -124,7 +146,11 @@ export default function AdminReports() {
                 </tr>
               ) : reports.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-400 text-sm">No reports found</td>
+                  <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">
+                    {loadError ? (
+                      <>Could not load reports. <button onClick={fetchData} className="text-primary-700 underline">Try again</button></>
+                    ) : 'No reports found'}
+                  </td>
                 </tr>
               ) : (
                 reports.map((r) => (
@@ -144,6 +170,12 @@ export default function AdminReports() {
                       {r.reason?.replace(/_/g, ' ')}
                     </td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                    <td className="px-4 py-3 text-xs text-gray-600">
+                      {r.Assignee
+                        ? ([r.Assignee.Profile?.firstName, r.Assignee.Profile?.lastName].filter(Boolean).join(' ') || r.Assignee.email)
+                        : <span className="text-gray-400">Unassigned</span>}
+                      {r.escalatedAt && <span className="ml-1.5 text-[10px] font-semibold text-red-700">Escalated</span>}
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString('en-IN')}</td>
                     <td className="px-4 py-3 text-right">
                       <button
@@ -160,6 +192,16 @@ export default function AdminReports() {
           </table>
         </div>
       </div>
+
+      {pagination.pages > 1 && (
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Page {pagination.page} of {pagination.pages} ({pagination.total} reports)</span>
+          <div className="flex gap-2">
+            <button disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))} className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 disabled:opacity-50">Previous</button>
+            <button disabled={page >= pagination.pages || loading} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 disabled:opacity-50">Next</button>
+          </div>
+        </div>
+      )}
 
       {/* Review Modal */}
       {modal && (

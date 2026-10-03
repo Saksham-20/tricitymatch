@@ -76,19 +76,23 @@ export default function AdminVerifications() {
   const [notes, setNotes]                 = useState('');
   const [submitting, setSubmitting]       = useState(false);
   const [zoomUrl, setZoomUrl]             = useState(null);
+  const [page, setPage]                   = useState(1);
+  const [pagination, setPagination]       = useState({ page: 1, pages: 1, total: 0 });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = activeTab !== 'all' ? { status: activeTab } : {};
-      const res = await getVerifications(params);
+      // `all` is a real value the server understands; omitting it fell back to
+      // the pending queue, so the All tab never showed anything else.
+      const res = await getVerifications({ status: activeTab, page, limit: 50 });
       setVerifications(res.data.verifications || res.data || []);
+      if (res.data.pagination) setPagination(res.data.pagination);
     } catch {
       toast.error('Failed to load verifications');
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, [activeTab, page]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -131,7 +135,7 @@ export default function AdminVerifications() {
         {TAB_OPTIONS.map((t) => (
           <button
             key={t}
-            onClick={() => setActiveTab(t)}
+            onClick={() => { setActiveTab(t); setPage(1); }}
             className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
               activeTab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
             }`}
@@ -189,6 +193,28 @@ export default function AdminVerifications() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {!loading && pagination.pages > 1 && (
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <span>Page {pagination.page} of {pagination.pages} · {pagination.total} total</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-700 font-medium"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+              disabled={page >= pagination.pages}
+              className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-700 font-medium"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 

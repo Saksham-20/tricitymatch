@@ -28,6 +28,13 @@ const config = require('../config/env');
 const MAX_GUARDIANS = 3;
 const INVITE_TTL_MS = 7 * 24 * 3600 * 1000;
 
+// Outbound-mail abuse limits. The live-link checks only count open links, so
+// invite -> revoke -> invite could mail the same address again and again; these
+// count every invite created in the window whatever became of it.
+const INVITE_WINDOW_MS = 24 * 3600 * 1000;
+const MAX_INVITES_PER_CANDIDATE_PER_DAY = 6;
+const MAX_INVITES_PER_ADDRESS_PER_DAY = 2;    // across all candidates (siblings share a parent)
+
 /** Where-fragment: active links plus pending links that have not expired. */
 const liveLinks = (now = new Date()) => ({
   [Op.or]: [
@@ -35,6 +42,24 @@ const liveLinks = (now = new Date()) => ({
     { status: 'pending', inviteExpiresAt: { [Op.gt]: now } },
   ],
 });
+
+/**
+ * Throws-by-return: the reason an invite to `email` must wait, or null. Counts
+ * revoked and expired rows too. The wording never says whether the address is a
+ * member or who else invited it.
+ */
+const inviteCooldown = async ({ candidateId, email, now = new Date() }) => {
+  const since = new Date(now.getTime() - INVITE_WINDOW_MS);
+  const [sameCandidateAddress, byCandidate, byAddress] = await Promise.all([
+    GuardianLink.count({ where: { candidateId, inviteEmail: email, createdAt: { [Op.gt]: since } } }),
+    GuardianLink.count({ where: { candidateId, createdAt: { [Op.gt]: since } } }),
+    GuardianLink.count({ where: { inviteEmail: email, createdAt: { [Op.gt]: since } } }),
+  ]);
+  if (sameCandidateAddress > 0) return 'You already invited this address in the last day. Please wait before sending another invite to it.';
+  if (byCandidate >= MAX_INVITES_PER_CANDIDATE_PER_DAY) return 'You have sent several invites today. Please try again tomorrow.';
+  if (byAddress >= MAX_INVITES_PER_ADDRESS_PER_DAY) return 'This address was invited recently. Please try again tomorrow.';
+  return null;
+};
 
 /** Pending links whose window has passed. */
 const staleLinks = (now = new Date()) => ({
@@ -135,6 +160,7 @@ module.exports = {
   liveLinks,
   staleLinks,
   expireStaleInvites,
+  inviteCooldown,
   newInviteToken,
   hashInviteToken,
   findMemberByEmail,

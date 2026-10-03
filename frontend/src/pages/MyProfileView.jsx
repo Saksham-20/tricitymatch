@@ -17,6 +17,7 @@ import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
 import { toProfileCode } from '../utils/profileCode';
 import VideoIntroManager from '../components/profile/VideoIntroManager';
 import BiodataCard from '../components/profile/BiodataCard';
+import PhotoManager from '../components/profile/PhotoManager';
 import FoundingBadge from '../components/common/FoundingBadge';
 import { useAuth } from '../context/AuthContext';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
@@ -398,6 +399,11 @@ const MyProfileView = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Photo gallery: add, make main, delete */}
+            <div className="bg-white dark:bg-surface-dark-2 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-5">
+              <PhotoManager profile={profile} onChange={(next) => setProfile((p) => ({ ...p, ...next }))} />
             </div>
 
             {/* D5 flagship: shareable marriage-biodata PDF */}

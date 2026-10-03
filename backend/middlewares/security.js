@@ -616,11 +616,18 @@ const checkAccountLockout = asyncHandler(async (req, res, next) => {
   if (data && data.count >= config.auth.maxLoginAttempts) {
     const timeSinceLock = Date.now() - data.lockTime;
     if (timeSinceLock < lockoutMs) {
+      // Say how long, so a member is not left guessing (and the web does not
+      // have to invent a client-side wait). Rounded UP: never promise sooner
+      // than the lock really lifts.
+      const retryAfterSeconds = Math.max(1, Math.ceil((lockoutMs - timeSinceLock) / 1000));
+      const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+      res.set('Retry-After', String(retryAfterSeconds));
       return res.status(429).json({
         success: false,
         error: {
           code: 'ACCOUNT_LOCKED',
-          message: 'Account temporarily locked due to too many attempts. Please try again later.',
+          message: `Account temporarily locked due to too many attempts. Please try again in about ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+          retryAfterSeconds,
         },
       });
     }

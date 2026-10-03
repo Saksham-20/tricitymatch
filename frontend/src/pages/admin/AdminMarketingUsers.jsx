@@ -3,8 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Plus, Edit2, Power } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import CommissionSettingsCard from '../../components/admin/CommissionSettingsCard';
+import { useAdminScopes } from '../../components/admin/AdminLayout';
 
 export default function AdminMarketingUsers() {
+  // null = full-access role. Commission is a money lever with its own scope.
+  const scopes = useAdminScopes();
+  const canPayouts = !scopes || scopes.includes('payouts');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -50,7 +54,8 @@ export default function AdminMarketingUsers() {
       setPage(1);
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create user');
+      const e2 = err.response?.data?.error;
+      setError(e2?.details?.[0]?.message || e2?.message || err.response?.data?.message || 'Failed to create user');
     }
   };
 
@@ -81,7 +86,7 @@ export default function AdminMarketingUsers() {
         </button>
       </div>
 
-      <CommissionSettingsCard />
+      {canPayouts && <CommissionSettingsCard />}
 
       {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
       {success && <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">{success}</div>}
@@ -163,7 +168,9 @@ export default function AdminMarketingUsers() {
               />
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="Password (12+ characters, upper, lower, number, symbol)"
+                minLength={12}
+                autoComplete="new-password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full border px-3 py-2 rounded"

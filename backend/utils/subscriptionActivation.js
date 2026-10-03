@@ -1,6 +1,6 @@
 'use strict';
 
-const { Subscription, User } = require('../models');
+const { Subscription, User, MarketingLead } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { UNLIMITED_PLANS } = require('../constants/plans');
@@ -8,6 +8,52 @@ const { applyPendingCredits } = require('./inviteReward');
 const { getPlanDetails } = require('./razorpay');
 const { log, logAudit } = require('../middlewares/logger');
 const { settleReferral } = require('./referral');
+
+
+/**
+ * The terms to activate a pending order with: the snapshot taken at
+ * create-order when there is one (the buyer paid for THOSE terms), otherwise
+ * the live plan — orders opened before the snapshot existed behave as before.
+ * `contactUnlocks: null` means unlimited, so presence is checked by key.
+ */
+function termsForActivation(subscription) {
+  const live = getPlanDetails(subscription.planType);
+  if (!live) return null;
+  const t = subscription.orderTerms;
+  if (!t || typeof t !== 'object') return live;
+  const duration = Number(t.duration);
+  return {
+    ...live,
+    duration: Number.isFinite(duration) && duration > 0 ? duration : live.duration,
+    contactUnlocks: Object.prototype.hasOwnProperty.call(t, 'contactUnlocks')
+      ? t.contactUnlocks
+      : live.contactUnlocks,
+  };
+}
+
+/**
+ * Mark the referring rep's lead as paid. ONE helper for every activation leg
+ * (browser verify, webhook/reconciler, Google Play): when only the browser leg
+ * wrote it, a webhook-won activation left the lead unpaid and the rep's
+ * dashboards disagreed with their report. Never throws — a lead write must not
+ * unwind a payment that has already been taken.
+ */
+async function markLeadPaid(subscription) {
+  try {
+    if (!subscription || !subscription.razorpayPaymentId) return;
+    const lead = await MarketingLead.findOne({ where: { convertedUserId: subscription.userId } });
+    if (!lead) return;
+    lead.paymentStatus = 'paid';
+    lead.amountPaid = subscription.amount;
+    lead.paymentId = subscription.razorpayPaymentId;
+    lead.status = 'converted';
+    await lead.save();
+  } catch (err) {
+    log.warn('Marketing lead update failed (payment unaffected)', {
+      subscriptionId: subscription && subscription.id, error: err.message,
+    });
+  }
+}
 
 /**
  * Activate the subscription for a CAPTURED Razorpay payment. Shared by the
@@ -17,6 +63,7 @@ const { settleReferral } = require('./referral');
  */
 async function activateCapturedPayment(order_id, payment_id) {
   let activatedWithReferral = null;
+  let activatedSub = null;
   await sequelize.transaction(async (t) => {
     // Check idempotency first
     const existingActive = await Subscription.findOne({
@@ -45,7 +92,7 @@ async function activateCapturedPayment(order_id, payment_id) {
       && (subscription.status === 'pending'
         || (subscription.status === 'cancelled' && !subscription.razorpayPaymentId));
     if (activatable) {
-      const planDetails = getPlanDetails(subscription.planType);
+      const planDetails = termsForActivation(subscription);
       if (!planDetails) {
         log.warn('Webhook: unknown planType, skipping activation', { planType: subscription.planType, orderId: order_id });
         return;
@@ -96,6 +143,7 @@ async function activateCapturedPayment(order_id, payment_id) {
       }
 
       if (subscription.referral) activatedWithReferral = subscription.id;
+      activatedSub = subscription;
 
       logAudit('subscription_activated_webhook', subscription.userId, {
         subscriptionId: subscription.id,
@@ -112,6 +160,7 @@ async function activateCapturedPayment(order_id, payment_id) {
 
   // After the commit: a reward that fails must not unwind a taken payment.
   if (activatedWithReferral) await settleReferral(activatedWithReferral);
+  if (activatedSub) await markLeadPaid(activatedSub);
 }
 
-module.exports = { activateCapturedPayment };
+module.exports = { activateCapturedPayment, markLeadPaid, termsForActivation };

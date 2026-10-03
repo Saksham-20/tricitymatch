@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { FiArrowLeft, FiCheck } from 'react-icons/fi';
@@ -8,6 +8,7 @@ import Logo from '../components/common/Logo';
 import Seo from '../components/common/Seo';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
+const RESEND_SECONDS = 60;
 const toTen = (v) => String(v || '').replace(/\D/g, '').slice(-10);
 
 /**
@@ -23,6 +24,14 @@ export default function ForgotPasswordPhone() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [resent, setResent] = useState(false);
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const id = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
 
   const sendCode = async (e) => {
     e.preventDefault();
@@ -31,6 +40,25 @@ export default function ForgotPasswordPhone() {
     try {
       await api.post('/auth/forgot-password/phone', { phone: toTen(phone) });
       setStep('code');
+      setCooldown(RESEND_SECONDS);
+      setResent(false);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not send the code. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // The server answers identically whether or not a code went out, so a member
+  // whose account is not eligible (it has a verified email, say) would wait for
+  // a text that never comes. Offer a resend and the email route.
+  const resend = async () => {
+    if (cooldown > 0 || busy) return;
+    setError(''); setBusy(true);
+    try {
+      await api.post('/auth/forgot-password/phone', { phone: toTen(phone) });
+      setCooldown(RESEND_SECONDS);
+      setResent(true);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not send the code. Try again.');
     } finally {
@@ -105,9 +133,21 @@ export default function ForgotPasswordPhone() {
             </button>
 
             {step === 'code' && (
-              <button type="button" onClick={() => { setStep('phone'); setCode(''); setError(''); }} className="block mx-auto text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 font-medium">
-                Use a different number
-              </button>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-neutral-500 dark:text-neutral-400" aria-live="polite">
+                  {resent ? 'We sent another code. ' : ''}No code yet?{' '}
+                  <button type="button" onClick={resend} disabled={cooldown > 0 || busy}
+                    className="font-medium text-primary-600 dark:text-primary-300 disabled:text-neutral-400 disabled:dark:text-neutral-500 disabled:cursor-not-allowed">
+                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend the code'}
+                  </button>
+                </p>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Accounts that have an email address are reset by email, not text. Use the email link below if no code arrives.
+                </p>
+                <button type="button" onClick={() => { setStep('phone'); setCode(''); setError(''); setCooldown(0); }} className="block mx-auto text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 font-medium">
+                  Use a different number
+                </button>
+              </div>
             )}
 
             <div className="text-center">

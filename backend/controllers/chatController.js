@@ -8,6 +8,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { sendMessageNotification } = require('../utils/emailService');
 const config = require('../config/env');
+const { cleanMessageText } = require('../utils/messageText');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { assessMessage, recordHighSignal } = require('../utils/chatSafety');
 const { log, logAudit } = require('../middlewares/logger');
@@ -15,6 +16,8 @@ const { sendEmail } = require('../utils/email');
 const { assertNotBlocked, blockedIdsFor, isBlockedBetween } = require('../utils/blocks');
 const { getActiveSubscription, grantWindowState } = require('../utils/entitlements');
 const { REACTION_EMOJIS, VOICE_MESSAGE_MAX_DURATION_MS } = require('../constants/chat');
+const { assertActorAgeVerifiable } = require('../utils/ageVerifiable');
+const { keepMessageIfReported } = require('../utils/evidencePreservation');
 
 // D2: the standard include for returning a message to clients — sender card
 // plus a minimal quote of the replied-to message (null once that message is
@@ -40,20 +43,51 @@ const MESSAGE_INCLUDE = [
 const MAX_MESSAGE_LENGTH = config.chat.maxMessageLength;
 const MESSAGE_EDIT_TIME_LIMIT = config.chat.messageEditTimeLimit * 60 * 1000;
 
-// Sanitize message content to prevent XSS
-const sanitizeMessage = (content) => {
-  if (typeof content !== 'string') return '';
+// Messages are stored as typed (see utils/messageText); the clients render text safely.
+const sanitizeMessage = cleanMessageText;
 
-  return content
-    .replace(/<[^>]*>/g, '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim();
+// D1 grant creation. findOrCreate + the unique pair index make this idempotent;
+// counters never reset in v1. Skipped when freeChatForMutuals already gives
+// mutuals full chat (grants moot). Shared by the text and voice send paths so a
+// voice note opens the same reply window a text message does. Never throws.
+const ensureReplyGrant = async (senderId, receiverId) => {
+  if (!config.features.freeReplyWindow || config.features.freeChatForMutuals) return;
+  try {
+    const receiverSub = await getActiveSubscription(receiverId);
+    if (!receiverSub) {
+      await ChatGrant.findOrCreate({
+        where: { premiumUserId: senderId, freeUserId: receiverId },
+        defaults: { messagesUsed: 0, firstReplyAt: null },
+      });
+      log.info('Chat grant ensured', { premiumUserId: senderId, freeUserId: receiverId });
+    }
+  } catch (error) {
+    // Grant creation must never fail the send itself.
+    log.error('Chat grant creation failed', { senderId, receiverId, error: error.message });
+  }
+};
+
+// Non-blocking "you have a new message" email. Never passes message content, to
+// keep PII out of email previews and logs.
+const notifyReceiverByEmail = (senderId, receiverId) => {
+  setImmediate(async () => {
+    try {
+      const [receiver, senderProfile] = await Promise.all([
+        User.findByPk(receiverId, { attributes: ['id', 'email'], include: [{ model: Profile, attributes: ['firstName'] }] }),
+        Profile.findOne({ where: { userId: senderId }, attributes: ['firstName', 'lastName'] })
+      ]);
+
+      if (receiver?.email && senderProfile) {
+        await sendMessageNotification(
+          receiver.email,
+          `${senderProfile.firstName} ${senderProfile.lastName}`,
+          'You have a new message'
+        );
+      }
+    } catch (error) {
+      log.error('Failed to send message notification', { error: error.message, receiverId });
+    }
+  });
 };
 
 // Emit a chat event to the pair room and the receiver's personal room.
@@ -358,6 +392,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   }
 
   await assertNotBlocked(senderId, receiverId);
+  await assertActorAgeVerifiable(senderId);
 
   // Scam/phishing signals. Never blocks: the flags ride on the message so the
   // recipient sees a warning, and a repeat pattern reaches staff.
@@ -447,28 +482,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     });
 
     // D1 grant creation: a PAID member's message to a FREE member opens (or
-    // keeps) that member's reply window. findOrCreate + the unique pair index
-    // make this idempotent; counters never reset in v1. Skipped when
-    // freeChatForMutuals already gives mutuals full chat (grants moot).
-    if (
-      accessReason === 'paid' &&
-      config.features.freeReplyWindow &&
-      !config.features.freeChatForMutuals
-    ) {
-      try {
-        const receiverSub = await getActiveSubscription(receiverId);
-        if (!receiverSub) {
-          await ChatGrant.findOrCreate({
-            where: { premiumUserId: senderId, freeUserId: receiverId },
-            defaults: { messagesUsed: 0, firstReplyAt: null },
-          });
-          log.info('Chat grant ensured', { premiumUserId: senderId, freeUserId: receiverId });
-        }
-      } catch (error) {
-        // Grant creation must never fail the send itself.
-        log.error('Chat grant creation failed', { senderId, receiverId, error: error.message });
-      }
-    }
+    // keeps) that member's reply window.
+    if (accessReason === 'paid') await ensureReplyGrant(senderId, receiverId);
   }
 
   if (safety.high) {
@@ -485,25 +500,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     ['message:new', { message: messageWithSender }]
   ]);
 
-  // Send email notification (non-blocking). Never pass message content to avoid PII in logs/email previews.
-  setImmediate(async () => {
-    try {
-      const [receiver, senderProfile] = await Promise.all([
-        User.findByPk(receiverId, { attributes: ['id', 'email'], include: [{ model: Profile, attributes: ['firstName'] }] }),
-        Profile.findOne({ where: { userId: senderId }, attributes: ['firstName', 'lastName'] })
-      ]);
-
-      if (receiver?.email && senderProfile) {
-        await sendMessageNotification(
-          receiver.email,
-          `${senderProfile.firstName} ${senderProfile.lastName}`,
-          'You have a new message' // no content preview — avoids PII in email logs
-        );
-      }
-    } catch (error) {
-      log.error('Failed to send message notification', { error: error.message, receiverId });
-    }
-  });
+  // Email notification (non-blocking; no content preview).
+  notifyReceiverByEmail(senderId, receiverId);
 
   res.json({
     success: true,
@@ -562,6 +560,11 @@ exports.editMessage = asyncHandler(async (req, res) => {
     throw createError.badRequest('Voice messages cannot be edited');
   }
 
+  // While a report between these two is open, what the message said before the
+  // edit is kept: editing must not be a way to rewrite evidence.
+  await keepMessageIfReported(message, 'edited', require('../models')).catch((err) =>
+    log.warn('Could not keep message evidence before edit', { messageId, error: err.message }));
+
   // Update message
   message.content = sanitizedContent;
   // Re-read the signals on the NEW text: sending something harmless and editing
@@ -611,6 +614,12 @@ exports.deleteMessage = asyncHandler(async (req, res) => {
 
   const deletedMessageId = message.id;
   const receiverId = message.receiverId;
+
+  // While a report between these two is open the message is archived first, so
+  // the sender cannot remove the evidence by deleting it. Ordinary deletes (no
+  // open report) still really delete.
+  await keepMessageIfReported(message, 'deleted', require('../models')).catch((err) =>
+    log.warn('Could not keep message evidence before delete', { messageId, error: err.message }));
 
   await message.destroy();
 
@@ -663,6 +672,7 @@ exports.sendVoiceMessage = asyncHandler(async (req, res) => {
   }
 
   await assertNotBlocked(senderId, receiverId);
+  await assertActorAgeVerifiable(senderId);
 
   const isMutual = await verifyMutualMatch(senderId, receiverId);
   if (!isMutual) {
@@ -687,6 +697,12 @@ exports.sendVoiceMessage = asyncHandler(async (req, res) => {
   emitToConversation(req, senderId, receiverId, [
     ['message:new', { message: messageWithSender }]
   ]);
+
+  // A voice note from a paid member to a free one opens the same reply window as
+  // text (without it the free recipient could not even open the conversation to
+  // hear it), and the recipient is told by email that something arrived.
+  await ensureReplyGrant(senderId, receiverId);
+  notifyReceiverByEmail(senderId, receiverId);
 
   res.json({
     success: true,

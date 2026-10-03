@@ -15,23 +15,33 @@
  */
 
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 const { User, Profile, Subscription, MarketingLead, ReferralCode } = require('../models');
 const { getRateForUser, commissionOn } = require('./marketingCommission');
+const { PAID_SUBSCRIPTION_WHERE, PAID_SUBSCRIPTION_SQL, netPaid, money } = require('./paidRevenue');
 
-// A subscription only counts as revenue when a payment reference exists. An
-// admin grant is written with the plan's list price and no payment id, so
-// summing on amount alone would report comped plans as money taken. The column
-// also carries the Google Play purchase token, so store purchases still count.
-const PAID_SUBSCRIPTION_WHERE = {
-  status: { [Op.in]: ['active', 'expired'] },
-  razorpayPaymentId: { [Op.ne]: null },
-};
+// What counts as money taken lives in utils/paidRevenue.js, shared with every
+// admin revenue read: a payment reference and no full refund, whatever the
+// row's status (an upgraded-from, cancelled or expired plan was still paid
+// for). Commission follows the NET of partial refunds, never the gross.
 
-const money = (v) => (v == null ? 0 : Number(v));
-// What a paid subscription actually kept: a partial refund reduces it, and a full
-// refund never reaches here (the plan is cancelled, so PAID_SUBSCRIPTION_WHERE
-// excludes it). Commission follows the net, not the gross.
-const netPaid = (sub) => Math.max(0, money(sub.amount) - money(sub.refundedAmount));
+/**
+ * Total collected from the members a rep invited, from Subscriptions. The
+ * dashboards used to sum `MarketingLeads.amountPaid`, a denormalised copy that
+ * only one activation leg wrote — so they disagreed with this report.
+ */
+async function getRepRevenue(marketingUserId) {
+  const [row] = await sequelize.query(
+    `SELECT COALESCE(SUM(GREATEST(amount - "refundedAmount", 0)), 0)::float AS total
+       FROM "Subscriptions"
+      WHERE ${PAID_SUBSCRIPTION_SQL}
+        AND "userId" IN (
+              SELECT "convertedUserId" FROM "MarketingLeads"
+               WHERE "assignedToMarketingUserId" = :marketingUserId AND "convertedUserId" IS NOT NULL)`,
+    { replacements: { marketingUserId }, type: sequelize.QueryTypes.SELECT }
+  );
+  return Number(row?.total) || 0;
+}
 
 /**
  * @param {string} marketingUserId
@@ -74,11 +84,14 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
 
   const members = rows.map((lead) => {
     const u = lead.ConvertedUser;
-    const subs = (u && u.Subscriptions) || [];
-    // Newest paid subscription is the one to show; upgrades supersede.
+    // Every payment the member kept money for: an upgrade leaves the first
+    // payment on a superseded (cancelled) row, and it is still money taken.
+    const subs = ((u && u.Subscriptions) || []).filter((x) => netPaid(x) > 0);
+    // Newest paid subscription is the plan to show; upgrades supersede.
     const sub = subs
       .slice()
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || null;
+    const memberNet = subs.reduce((sum, x) => sum + netPaid(x), 0);
     const profileName = u && u.Profile
       ? [u.Profile.firstName, u.Profile.lastName].filter(Boolean).join(' ').trim()
       : '';
@@ -102,13 +115,13 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
       paid: Boolean(sub),
       planType: sub ? sub.planType : null,
       planStatus: sub ? sub.status : null,
-      amountPaid: sub ? netPaid(sub) : money(lead.paymentStatus === 'paid' ? lead.amountPaid : 0),
+      amountPaid: sub ? memberNet : money(lead.paymentStatus === 'paid' ? lead.amountPaid : 0),
       paidAt: sub ? sub.startDate : null,
       planEndsAt: sub ? sub.endDate : null,
       paymentId: sub ? sub.razorpayPaymentId : lead.paymentId || null,
       // Shown per row so the rep can check the total against its parts rather
       // than being handed one number to trust.
-      commission: commissionOn(sub ? netPaid(sub) : 0, commissionRate),
+      commission: commissionOn(sub ? memberNet : 0, commissionRate),
       createdAt: lead.createdAt,
     };
   });
@@ -146,7 +159,7 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
   let paidMembers = 0;
   let revenue = 0;
   paidRows.forEach((lead) => {
-    const subs = (lead.ConvertedUser && lead.ConvertedUser.Subscriptions) || [];
+    const subs = ((lead.ConvertedUser && lead.ConvertedUser.Subscriptions) || []).filter((x) => netPaid(x) > 0);
     if (!subs.length) return;
     paidMembers += 1;
     subs.forEach((s) => { revenue += netPaid(s); });
@@ -173,4 +186,4 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
   };
 }
 
-module.exports = { buildMarketingReport, PAID_SUBSCRIPTION_WHERE };
+module.exports = { buildMarketingReport, getRepRevenue, PAID_SUBSCRIPTION_WHERE };

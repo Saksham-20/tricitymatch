@@ -4,8 +4,7 @@
  */
 
 const { Profile, User, Match, Subscription, Verification } = require('../models');
-const { Op, fn, col, where: seqWhere } = require('sequelize');
-const Sequelize = require('sequelize');
+const { Op } = require('sequelize');
 const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, isManglikCompatible } = require('../utils/compatibility');
 const { toProfileCode, parseProfileCode } = require('../utils/profileCode');
@@ -15,23 +14,18 @@ const {
   listingScope,
   viewerHasPaidAccess,
   redactForViewer,
+  toCardProfile,
 } = require('../utils/profileVisibility');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { rankBreakdown } = require('../utils/rankingWeights');
 const { weightsFor } = require('../utils/rankingExperiment');
+const { buildSearchWhere } = require('../utils/searchFilters');
 const { mustHaveClauses } = require('../utils/preferenceFit');
-const { normalizeEducation, professionGroupFromFilter } = require('../constants/vocabularies');
 
 // Ranked search scores the newest CANDIDATE_CAP matching profiles together, so the
 // order is global rather than per page. Past the cap the directory is larger than
 // one ranked pool; the response says so (pagination.capped).
 const CANDIDATE_CAP = 500;
-
-// Escape special characters for LIKE patterns to prevent injection
-const escapeLikePattern = (str) => {
-  if (!str) return str;
-  return str.replace(/[%_\\]/g, '\\$&');
-};
 
 // @route   GET /api/search
 // @desc    Search profiles with filters
@@ -58,13 +52,15 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     manglikFilter,  // 'manglik_only' | 'non_manglik_only' | 'exclude_incompatible'
     verifiedOnly,   // 'true' → only photo-verified members
     sortBy = 'compatibility',
-    mustHaves       // 'off' → ignore the searcher's own must-have preferences
+    mustHaves,      // 'off' → ignore the searcher's own must-have preferences
+    showPassed      // 'true' → include profiles the member already passed on
   } = req.query;
 
   const userId = req.user.id;
   // Enforce hard limits — do not trust validator alone
   const page = Math.max(parseInt(req.query.page) || 1, 1);
-  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+  // 50, not 100: no client asks for more than 20, and a larger page is a larger scrape per request.
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 50);
   const offset = (page - 1) * limit;
 
   // Get current user's profile for compatibility calculation
@@ -73,164 +69,20 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
     throw createError.badRequest('Please complete your profile first');
   }
 
-  // Who may appear (blocked, incognito, matches-only unless mutual, self) is one
-  // shared rule for every listing — see utils/profileVisibility.
+  // Who may appear, the gender default, must-haves and every filter live in one
+  // shared builder (utils/searchFilters) that the saved-search alert also uses.
   const viewerCtx = await loadViewerContext(userId);
-  const where = listingScope(viewerCtx);
-
-  // Gender filter: opposite gender when set; otherwise both so results aren't empty
-  const gender = (currentProfile.gender || '').toLowerCase();
-  if (gender === 'male') where.gender = 'female';
-  else if (gender === 'female') where.gender = 'male';
-  else where.gender = { [Op.in]: ['male', 'female'] };
-
-  // The searcher's own must-have partner preferences are hard filters. A
-  // must-have with no value behind it, and candidates whose own field is blank,
-  // are never excluded (utils/preferenceFit).
-  const mustHave = mustHaves === 'off' ? { clauses: [], applied: [] } : mustHaveClauses(currentProfile);
-  if (mustHave.clauses.length) {
-    if (!where[Op.and]) where[Op.and] = [];
-    where[Op.and].push(...mustHave.clauses);
-  }
-
-  // Age filter: dateOfBirth in [now - (ageMax+1) years exclusive, now - ageMin years inclusive]
-  // "Age in [25, 35]" → born between 1991-01-01 (exclusive, >25 not >=26) and 2001-01-01 (inclusive, <=35)
-  if (ageMin || ageMax) {
-    const now = new Date();
-    const age_clause = {};
-
-    // Older boundary (youngest in age range): dateOfBirth <= now - ageMin years
-    if (ageMin) {
-      age_clause[Op.lte] = new Date(now.getFullYear() - ageMin, now.getMonth(), now.getDate());
-    }
-
-    // Younger boundary (oldest in age range): dateOfBirth > now - (ageMax+1) years
-    if (ageMax) {
-      age_clause[Op.gt] = new Date(now.getFullYear() - ageMax - 1, now.getMonth(), now.getDate());
-    }
-
-    where.dateOfBirth = age_clause;
-  }
-
-  // Height filter
-  if (heightMin || heightMax) {
-    where.height = {};
-    if (heightMin) where.height[Op.gte] = parseInt(heightMin);
-    if (heightMax) where.height[Op.lte] = parseInt(heightMax);
-  }
-
-  // City filter
-  if (city) {
-    where.city = { [Op.iLike]: `%${escapeLikePattern(city)}%` };
-  }
-
-  // Education filter: matches the canonical level, so "Master" also finds
-  // "Masters", "M.Tech" and "MBA". Text we cannot classify keeps the exact match.
-  if (education) {
-    const level = normalizeEducation(education);
-    if (level) where.educationLevel = level;
-    else where.education = education;
-  }
-
-  // Profession filter: the canonical group ("Software / IT" finds "Software
-  // Engineer" and "Engineer (Software)"); unclassifiable text falls back to a
-  // contains match with special characters escaped.
-  if (profession) {
-    const group = professionGroupFromFilter(profession);
-    if (group && group !== 'Other') where.professionGroup = group;
-    else where.profession = { [Op.iLike]: `%${escapeLikePattern(profession)}%` };
-  }
-
-  // Lifestyle filters
-  if (diet) where.diet = diet;
-  if (smoking) where.smoking = smoking;
-  if (drinking) where.drinking = drinking;
-
-  // Interest tags filter
-  if (interestTags) {
-    const tags = Array.isArray(interestTags) ? interestTags : [interestTags];
-    where.interestTags = {
-      [Op.overlap]: tags
-    };
-  }
-
-  // Religion filter (exact case-insensitive match to use LOWER() index)
-  if (religion) {
-    if (!where[Op.and]) where[Op.and] = [];
-    where[Op.and].push(
-      Sequelize.where(fn('LOWER', col('religion')), Op.eq, religion.toLowerCase())
-    );
-  }
-
-  // Caste filter
-  if (caste) {
-    where.caste = { [Op.iLike]: `%${escapeLikePattern(caste)}%` };
-  }
-
-  // Marital status filter
-  const validMaritalStatuses = ['never_married', 'divorced', 'widowed', 'awaiting_divorce'];
-  if (maritalStatus && validMaritalStatuses.includes(maritalStatus)) {
-    where.maritalStatus = maritalStatus;
-  }
-
-  // Income filter — parse and validate to prevent NaN being passed to the DB query
-  const parsedIncomeMin = incomeMin !== undefined ? parseInt(incomeMin, 10) : NaN;
-  const parsedIncomeMax = incomeMax !== undefined ? parseInt(incomeMax, 10) : NaN;
-  if (!isNaN(parsedIncomeMin) && parsedIncomeMin >= 0) {
-    where.income = { ...(where.income || {}), [Op.gte]: parsedIncomeMin };
-  }
-  if (!isNaN(parsedIncomeMax) && parsedIncomeMax >= 0) {
-    where.income = { ...(where.income || {}), [Op.lte]: parsedIncomeMax };
-  }
-  if (where.income) {
-    // A member who hides their income must not be findable by it: a range
-    // filter would reveal exactly what they chose not to show.
-    if (!where[Op.and]) where[Op.and] = [];
-    where[Op.and].push(Sequelize.literal(`COALESCE("Profile"."fieldVisibility"->>'income', 'everyone') = 'everyone'`));
-  }
-
-  // Mother tongue filter (exact case-insensitive match to use LOWER() index)
-  if (motherTongue) {
-    if (!where[Op.and]) where[Op.and] = [];
-    where[Op.and].push(
-      Sequelize.where(fn('LOWER', col('motherTongue')), Op.eq, motherTongue.toLowerCase())
-    );
-  }
-
-  // Manglik filter
-  if (manglikFilter === 'manglik_only') {
-    where.manglikStatus = { [Op.in]: ['manglik', 'anshik_manglik'] };
-  } else if (manglikFilter === 'non_manglik_only') {
-    where.manglikStatus = 'non_manglik';
-  } else if (manglikFilter === 'exclude_incompatible' && currentProfile.manglikStatus) {
-    // Exclude profiles that would be incompatible with the current user's manglik status
-    if (currentProfile.manglikStatus === 'non_manglik') {
-      where.manglikStatus = { [Op.ne]: 'manglik' };
-    } else if (currentProfile.manglikStatus === 'manglik') {
-      where.manglikStatus = { [Op.in]: ['manglik', 'anshik_manglik', 'not_sure'] };
-    }
-  }
-
-  // Verified-only filter: restrict to members with an approved photo
-  // verification. Pre-fetch the approved set and constrain the DB query so the
-  // page counts stay correct (post-query filtering would break pagination).
-  if (verifiedOnly === 'true' || verifiedOnly === true) {
-    // This used to SELECT every approved verification in the system and splice
-    // the result into an IN (...) list. That grows linearly with the user base
-    // and is reachable by any authenticated member at 30 requests/minute, which
-    // made it the most DoS-able query in the codebase.
-    //
-    // A correlated EXISTS keeps pagination exact (the reason the original
-    // pre-fetched rather than post-filtering) without ever materialising the
-    // approved set in application memory.
-    if (!where[Op.and]) where[Op.and] = [];
-    where[Op.and].push(
-      Sequelize.literal(`EXISTS (
-        SELECT 1 FROM "Verifications" v
-        WHERE v."userId" = "Profile"."userId" AND v."status" = 'approved'
-      )`)
-    );
-  }
+  const { where, mustHave } = buildSearchWhere({
+    filters: {
+      ageMin, ageMax, heightMin, heightMax, city, education, profession,
+      diet, smoking, drinking, interestTags, religion, caste, maritalStatus,
+      incomeMin, incomeMax, motherTongue, manglikFilter, verifiedOnly,
+    },
+    currentProfile,
+    viewerCtx,
+    mustHavesOff: mustHaves === 'off',
+    showPassed: showPassed === 'true' || showPassed === true,
+  });
 
   const rankedSearch = sortBy === 'compatibility';
 
@@ -380,12 +232,8 @@ exports.searchProfiles = asyncHandler(async (req, res) => {
       rankFactors: rank.factors,
     };
 
-    // Remove nested User object
-    if (profileData.User) {
-      delete profileData.User;
-    }
-
-    return profileData;
+    // A list card, not the whole profile row (see utils/profileVisibility).
+    return toCardProfile(profileData);
   });
 
   // Get total count — must apply the SAME User join as the rows query above.
@@ -448,6 +296,9 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
   const excludedIds = [...new Set([...interactedUserIds, ...viewerCtx.blockedIds])];
   const scope = listingScope(viewerCtx);
   scope.userId = { [Op.ne]: userId, [Op.notIn]: excludedIds };
+  // Must-have partner preferences are hard filters here as in Search.
+  const mustHave = mustHaveClauses(currentProfile);
+  if (mustHave.clauses.length) scope[Op.and] = [...(scope[Op.and] || []), ...mustHave.clauses];
   const viewerPaid = await viewerHasPaidAccess(userId);
 
   const profiles = await Profile.findAll({
@@ -540,11 +391,7 @@ exports.getSuggestions = asyncHandler(async (req, res) => {
         isVerified: verifiedSuggestionIds.has(raw.userId || item.profile.userId),
       };
 
-      if (profileData.User) {
-        delete profileData.User;
-      }
-
-      return profileData;
+      return toCardProfile(profileData);
     });
 
   res.json({
@@ -579,7 +426,7 @@ exports.getProfileByCode = asyncHandler(async (req, res) => {
   const viewerCtx = await loadViewerContext(userId);
   const scope = isSelfCode
     ? { isActive: true }
-    : listingScope(viewerCtx, { includeIncognito: true });
+    : listingScope(viewerCtx, { includeIncognito: true, applyGotra: false });
 
   // Fetch up to 2 to detect (extremely rare) prefix collisions instead of silently
   // returning an arbitrary row, as the old findOne did.

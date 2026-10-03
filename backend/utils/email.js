@@ -310,7 +310,7 @@ const templates = {
       preheader: `You and ${escapeHtml(matchName)} liked each other.`,
       bodyHtml: `
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
-        <p>Good news — you and <strong>${escapeHtml(matchName)}</strong> have both expressed interest. You can now start a conversation.</p>`,
+        <p>Good news — you and <strong>${escapeHtml(matchName)}</strong> liked each other. You can now start a conversation.</p>`,
       cta: { href: `${config.server.frontendUrl}/matches`, label: 'View Match' },
     }),
     text: `Hi ${name}, you and ${matchName} matched on TricityMatch. Start a conversation: ${config.server.frontendUrl}/matches`,

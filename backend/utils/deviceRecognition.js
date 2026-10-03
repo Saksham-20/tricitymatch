@@ -100,7 +100,10 @@ const loginHistory = async (RefreshToken, userId, { limit = 20 } = {}) => {
   const rows = await RefreshToken.findAll({
     where: { userId },
     attributes: ['id', 'family', 'userAgent', 'ipAddress', 'createdAt', 'lastUsedAt', 'isRevoked', 'revokedReason', 'expiresAt'],
-    order: [['createdAt', 'ASC']],
+    // Newest first, so the row cap drops the OLDEST history. (It used to read
+    // oldest-first, so a member who rotates a token every 15 minutes hit the cap
+    // within days and the list silently stopped showing recent sign-ins.)
+    order: [['createdAt', 'DESC']],
     limit: 1000,
     raw: true,
   });
@@ -110,7 +113,7 @@ const loginHistory = async (RefreshToken, userId, { limit = 20 } = {}) => {
     if (!entry) {
       byFamily.set(r.family, { first: r, last: r });
     } else {
-      entry.last = r;
+      entry.first = r; // an older row of the same sign-in
     }
   }
   const now = Date.now();

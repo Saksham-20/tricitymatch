@@ -4,7 +4,9 @@
  */
 
 const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory, ContactMessage } = require('../models');
-const { buildMarketingReport } = require('../utils/marketingReport');
+const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
+const { buildMarketingReport, getRepRevenue } = require('../utils/marketingReport');
+const { PAID_SUBSCRIPTION_WHERE, PAID_SUBSCRIPTION_SQL } = require('../utils/paidRevenue');
 const {
   getCommissionSettings,
   saveCommissionSettings,
@@ -14,17 +16,19 @@ const {
   getPayoutLedger,
   recordPayout,
   updatePayoutStatus,
-  deletePayout,
+  voidPayout,
   PayoutValidationError,
 } = require('../utils/marketingPayouts');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const { hasScope } = require('../constants/adminScopes');
 const { PAID_PLANS, ALL_PLANS, UNLIMITED_PLANS, FOUNDING_PLAN, FOUNDING_CONTACT_UNLOCKS } = require('../constants/plans');
 const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { buildModerationHistory } = require('../utils/moderationHistory');
 const { csvCell } = require('../utils/csv');
+const { isSystemReview } = require('../utils/underageFlag');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
@@ -324,14 +328,19 @@ exports.changeMemberIdentity = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 exports.getVerifications = asyncHandler(async (req, res) => {
   const rawStatus = req.query.status;
-  const VALID_VERIFICATION_STATUSES = ['pending', 'approved', 'rejected'];
+  // The page offers tabs for every status including `flagged` and `all`; the
+  // allowlist stopped at three, so both of those tabs silently showed the
+  // pending queue and a flagged verification vanished from every list.
+  // No `status` param still means the pending queue (what existing callers get).
+  const VALID_VERIFICATION_STATUSES = ['pending', 'approved', 'rejected', 'flagged'];
   const status = rawStatus && VALID_VERIFICATION_STATUSES.includes(rawStatus) ? rawStatus : 'pending';
+  const statusWhere = rawStatus === 'all' ? {} : { status };
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 200);
   const offset = (page - 1) * limit;
 
   const { count, rows: verifications } = await Verification.findAndCountAll({
-    where: { status },
+    where: statusWhere,
     include: [
       {
         model: User,
@@ -458,6 +467,11 @@ exports.updateVerification = asyncHandler(async (req, res) => {
 // @desc    Get analytics data
 // @access  Private/Admin
 exports.getAnalytics = asyncHandler(async (req, res) => {
+  // This route sits behind the `users` scope, but half of what it returns is
+  // money. A support sub-admin saw revenue and plan mix that /admin/revenue
+  // refuses them with a 403, so the figures are only computed and returned for
+  // a holder of the `revenue` scope.
+  const canSeeRevenue = hasScope(req.user, 'revenue');
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -476,6 +490,8 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     unreadSupport,
     foundingGranted,
     profilesWithoutPhoto,
+    photoVerifiedUsers,
+    foundingActive,
   ] = await Promise.all([
     // Total non-admin users
     User.count({ where: { role: 'user' } }),
@@ -502,15 +518,16 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // money that was never taken. razorpayPaymentId also carries the Google
     // Play purchase token, so store purchases still count.
     // Net of refunds: a partly refunded plan only counts what was kept.
-    Subscription.findOne({
-      attributes: [[sequelize.literal('COALESCE(SUM("amount" - "refundedAmount"), 0)'), 'total']],
-      where: {
-        status: 'active',
-        razorpayPaymentId: { [Op.ne]: null },
-        createdAt: { [Op.gte]: startOfMonth },
-      },
-      raw: true,
-    }).then((row) => Number(row?.total) || 0),
+    canSeeRevenue
+      ? Subscription.findOne({
+        attributes: [[sequelize.literal('COALESCE(SUM("amount" - "refundedAmount"), 0)'), 'total']],
+        where: {
+          ...PAID_SUBSCRIPTION_WHERE,
+          createdAt: { [Op.gte]: startOfMonth },
+        },
+        raw: true,
+      }).then((row) => Number(row?.total) || 0)
+      : Promise.resolve(null),
 
     // Pending verification requests
     Verification.count({ where: { status: 'pending' } }),
@@ -520,28 +537,30 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
 
     // Daily registrations for last 30 days
     sequelize.query(
-      `SELECT TO_CHAR("createdAt"::date, 'MM/DD') AS date, COUNT(*)::int AS count
-       FROM "Users"
-       WHERE "createdAt" >= :thirtyDaysAgo AND role = 'user'
-       GROUP BY "createdAt"::date
-       ORDER BY "createdAt"::date ASC`,
+      // generate_series + LEFT JOIN so a day with no signups is a 0 point, not a
+      // missing one (the chart used to join the gaps and overstate the trend).
+      `SELECT TO_CHAR(d.day, 'MM/DD') AS date, COUNT(u.id)::int AS count
+       FROM generate_series((:thirtyDaysAgo)::date, CURRENT_DATE, interval '1 day') AS d(day)
+       LEFT JOIN "Users" u ON u."createdAt"::date = d.day::date AND u.role = 'user'
+       GROUP BY d.day
+       ORDER BY d.day ASC`,
       { replacements: { thirtyDaysAgo }, type: sequelize.QueryTypes.SELECT }
     ),
 
     // Monthly revenue for last 6 months
-    sequelize.query(
+    !canSeeRevenue ? Promise.resolve([]) : sequelize.query(
       `SELECT TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon YY') AS month,
               SUM(amount - "refundedAmount")::float AS amount
        FROM "Subscriptions"
-       WHERE "createdAt" >= :sixMonthsAgo AND status = 'active'
-         AND "razorpayPaymentId" IS NOT NULL
+       WHERE "createdAt" >= :sixMonthsAgo
+         AND ${PAID_SUBSCRIPTION_SQL}
        GROUP BY DATE_TRUNC('month', "createdAt")
        ORDER BY DATE_TRUNC('month', "createdAt") ASC`,
       { replacements: { sixMonthsAgo }, type: sequelize.QueryTypes.SELECT }
     ),
 
     // Subscription plan distribution
-    Subscription.findAll({
+    !canSeeRevenue ? Promise.resolve([]) : Subscription.findAll({
       where: { status: 'active' },
       attributes: [
         'planType',
@@ -562,15 +581,36 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // Profiles with no photograph — the strongest predictor of a member who
     // gets nowhere, and invisible from every other admin screen.
     Profile.count({ where: { photos: { [Op.eq]: [] } } }),
+
+    // The product's verified badge is an APPROVED photo verification, not a
+    // verified email — count members who actually hold it.
+    Verification.count({ where: { status: 'approved' }, distinct: true, col: 'userId' }),
+
+    // Founding grants currently live, so "active subscribers" can be split into
+    // people who paid and people who were given a place.
+    Subscription.count({
+      where: {
+        status: 'active',
+        planType: FOUNDING_PLAN,
+        [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: now } }],
+      },
+    }),
   ]);
 
   res.json({
     success: true,
     stats: {
       totalUsers,
-      verifiedUsers,
+      // Photo-verified (approved verification). `verifiedUsers` kept as the key
+      // the dashboard already reads; the old email-verified count is below.
+      verifiedUsers: photoVerifiedUsers,
+      emailVerifiedUsers: verifiedUsers,
+      // Members holding premium entitlements = paid + founding grants.
       activeSubscribers,
-      revenueThisMonth: revenueThisMonth || 0,
+      paidSubscribers: Math.max(0, activeSubscribers - foundingActive),
+      foundingActive,
+      // null = this admin lacks the revenue scope (not "zero revenue").
+      revenueThisMonth: canSeeRevenue ? (revenueThisMonth || 0) : null,
       pendingVerifications,
       openReports,
       unreadSupport,
@@ -603,9 +643,35 @@ exports.getReports = asyncHandler(async (req, res) => {
   if (status && VALID_REPORT_STATUSES.includes(status)) where.status = status;
   if (['urgent', 'normal'].includes(req.query.priority)) where.priority = req.query.priority;
 
+  // Free-text search over the reason and either party's name / email.
+  const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
+  if (search) {
+    const like = { [Op.iLike]: `%${escapeLikePattern(search)}%` };
+    where[Op.or] = [
+      sequelize.where(sequelize.cast(sequelize.col('Report.reason'), 'text'), like),
+      { '$Reporter.email$': like },
+      { '$ReportedUser.email$': like },
+      { '$Reporter.Profile.firstName$': like },
+      { '$Reporter.Profile.lastName$': like },
+      { '$ReportedUser.Profile.firstName$': like },
+      { '$ReportedUser.Profile.lastName$': like },
+    ];
+  }
+
+  // Open work is oldest-first (whoever has waited longest is next); finished
+  // reports are newest-first. Urgent always leads.
+  const openQueue = status === 'pending' || status === 'reviewing';
   const { count, rows: reports } = await Report.findAndCountAll({
     where,
+    distinct: true,
     include: [
+      {
+        model: User,
+        as: 'Assignee',
+        attributes: ['id', 'email'],
+        required: false,
+        include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
+      },
       {
         model: User,
         as: 'Reporter',
@@ -620,7 +686,7 @@ exports.getReports = asyncHandler(async (req, res) => {
       },
     ],
     // 'urgent' sorts after 'normal', so DESC puts urgent reports first.
-    order: [['priority', 'DESC'], ['createdAt', 'DESC']],
+    order: [['priority', 'DESC'], ['createdAt', openQueue ? 'ASC' : 'DESC']],
     limit,
     offset,
   });
@@ -672,12 +738,16 @@ exports.updateReport = asyncHandler(async (req, res) => {
     reviewed: 'has been reviewed and action has been taken',
     dismissed: 'has been reviewed and dismissed',
   };
-  await notify(
-    report.reporterId,
-    'report_reviewed',
-    'Your report has been updated',
-    `Your report ${outcomeCopy[status] || 'has been reviewed'}.`
-  );
+  // A system-filed review (underage sweep) has an admin as its stand-in reporter;
+  // that admin did not report anything and must not get a notice for each case.
+  if (!isSystemReview(report)) {
+    await notify(
+      report.reporterId,
+      'report_reviewed',
+      'Your report has been updated',
+      `Your report ${outcomeCopy[status] || 'has been reviewed'}.`
+    );
+  }
 
   res.json({ success: true, report });
 });
@@ -699,12 +769,16 @@ exports.createUser = asyncHandler(async (req, res) => {
   const allowedStatuses = ['active', 'pending', 'inactive'];
   const safeStatus = allowedStatuses.includes(status) ? status : 'active';
 
-  const existing = await User.findOne({ where: { email: email.toLowerCase() } });
+  // Same canonical form as signup and login, so an address typed with mixed
+  // case is findable at sign-in; the duplicate check covers the legacy
+  // dot-stripped form older signups stored.
+  const normalisedEmail = canonicalEmail(email) || String(email).trim().toLowerCase();
+  const existing = await User.findOne({ where: { email: { [Op.in]: emailLookupCandidates(normalisedEmail) } }, attributes: ['id'] });
   if (existing) throw createError.conflict('User already exists with this email');
 
   const result = await sequelize.transaction(async (t) => {
     const user = await User.create({
-      email: email.toLowerCase(),
+      email: normalisedEmail,
       password,
       phone: phone || null,
       role,
@@ -791,10 +865,26 @@ exports.getModerationHistory = asyncHandler(async (req, res) => {
 exports.updateSubscription = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { planType, startDate, endDate, status = 'active' } = req.body;
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
 
   if (!ALL_PLANS.includes(planType)) {
     throw createError.badRequest(`planType must be one of: ${ALL_PLANS.join(', ')}`);
   }
+  // An override either grants the plan now or parks it; anything else ('expired',
+  // 'cancelled', junk) used to reach the INSERT after the member's real plan had
+  // already been cancelled, 500ing and leaving them with nothing.
+  if (!['active', 'pending'].includes(status)) {
+    throw createError.badRequest('status must be active or pending');
+  }
+
+  const parseDate = (value, field) => {
+    if (value === undefined || value === null || value === '') return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) throw createError.badRequest(`${field} is not a valid date`);
+    return d;
+  };
+  const startAt = parseDate(startDate, 'startDate');
+  const explicitEnd = parseDate(endDate, 'endDate');
 
   // Founding grants may only be minted WHILE the founding window is open. After
   // it closes the offer is retrospective ("founding families"), and an admin
@@ -810,15 +900,9 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
   const user = await User.findByPk(userId);
   if (!user) throw createError.notFound('User not found');
 
-  // Cancel existing active subscriptions
-  await Subscription.update(
-    { status: 'cancelled' },
-    { where: { userId, status: 'active' } }
-  );
-
   const { getPlanDetails } = require('../utils/razorpay');
   const planDetails = getPlanDetails(planType);
-
+  const isFree = planType === 'free';
   const isFounding = planType === FOUNDING_PLAN;
 
   // `founding_premium` has no entry in the razorpay PLANS map (it is granted,
@@ -830,49 +914,125 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
   // and the member saw a plan whose end date disagreed with the pricing page.
   // `getPlanDetails` is launch-offer aware, so a re-priced tenure follows here.
   const grantDays = planDetails?.duration || 30;
-  const subEndDate = endDate
-    ? new Date(endDate)
+  const grantStart = startAt || new Date();
+  const subEndDate = explicitEnd
+    ? explicitEnd
     : isFounding && foundingState.endsAt
       ? new Date(foundingState.endsAt)
-      : new Date(Date.now() + grantDays * 24 * 60 * 60 * 1000);
+      : new Date(grantStart.getTime() + grantDays * 24 * 60 * 60 * 1000);
 
-  const subscription = await Subscription.create({
+  if (!isFree) {
+    if (subEndDate <= grantStart) throw createError.badRequest('endDate must be after startDate');
+    // A hand-typed end date is the one number here nothing else bounds. Allow
+    // the plan's own term plus a generous extension, not an open-ended grant.
+    const maxMs = (grantDays + 365) * 24 * 60 * 60 * 1000;
+    if (subEndDate.getTime() - grantStart.getTime() > maxMs) {
+      throw createError.badRequest('endDate is too far in the future for this plan');
+    }
+  }
+
+  // Everything below is one unit. The cancel used to commit first and the
+  // create after, so any failure in between left a paying member on nothing.
+  const outcome = await sequelize.transaction(async (t) => {
+    const liveNow = await Subscription.findAll({
+      where: { userId, status: 'active' },
+      order: [['createdAt', 'DESC']],
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    const current = liveNow.find((s) => !s.endDate || new Date(s.endDate) > new Date()) || null;
+
+    // Re-granting the plan the member already holds with no new term changes
+    // nothing except resetting their used unlocks to 0 — a free re-grant.
+    if (!isFree && current && current.planType === planType && !explicitEnd && !startAt) {
+      throw createError.conflict(
+        'This member is already on that plan. Choose a different plan, or set an end date to change the term.'
+      );
+    }
+
+    const hadUnlimited = liveNow.some((s) => UNLIMITED_PLANS.includes(s.planType));
+
+    if (liveNow.length) {
+      await Subscription.update(
+        { status: 'cancelled' },
+        { where: { userId, status: 'active' }, transaction: t }
+      );
+    }
+
+    // "Free" is the absence of a plan: no row. An active planType 'free' row
+    // used to be inserted with a 30-day term and showed up as a plan in the
+    // dashboard distribution.
+    let created = null;
+    if (!isFree) {
+      created = await Subscription.create({
+        userId,
+        planType,
+        status,
+        startDate: grantStart,
+        endDate: subEndDate,
+        amount: planDetails ? planDetails.amount / 100 : 0,
+        contactUnlocksAllowed: isFounding
+          ? (foundingState.contactUnlocks ?? FOUNDING_CONTACT_UNLOCKS)
+          : (planDetails ? planDetails.contactUnlocks : null),
+        contactUnlocksUsed: 0,
+      }, { transaction: t });
+    }
+
+    // Boost follows the plan that is now live: set for an active unlimited
+    // grant, withdrawn when an unlimited plan was replaced by anything else
+    // (the cancel route already did this; the override left it on forever).
+    if (created && UNLIMITED_PLANS.includes(planType) && status === 'active') {
+      await User.update(
+        { isBoosted: true, boostExpiresAt: subEndDate },
+        { where: { id: userId }, transaction: t }
+      );
+    } else if (hadUnlimited) {
+      await User.update(
+        { isBoosted: false, boostExpiresAt: null },
+        { where: { id: userId }, transaction: t }
+      );
+    }
+
+    // Founding-ness is a User fact that outlives the row (upgrade supersedes it,
+    // the cohort expires together), so stamp it here as the grant util does.
+    if (created && isFounding && status === 'active') {
+      await User.update({ isFoundingMember: true }, { where: { id: userId }, transaction: t });
+    }
+
+    return { created, previous: current };
+  });
+
+  logAudit('subscription_overridden', req.user.id, {
     userId,
     planType,
     status,
-    startDate: startDate ? new Date(startDate) : new Date(),
-    endDate: subEndDate,
-    amount: planDetails ? planDetails.amount / 100 : 0,
-    contactUnlocksAllowed: isFounding
-      ? (foundingState.contactUnlocks ?? FOUNDING_CONTACT_UNLOCKS)
-      : (planDetails ? planDetails.contactUnlocks : null),
-    contactUnlocksUsed: 0,
+    reason: reason || null,
+    previous: outcome.previous
+      ? {
+          planType: outcome.previous.planType,
+          endDate: outcome.previous.endDate,
+          contactUnlocksUsed: outcome.previous.contactUnlocksUsed,
+          contactUnlocksAllowed: outcome.previous.contactUnlocksAllowed,
+        }
+      : null,
   });
 
-  // Unlimited-plan admin override: activate profile boost
-  if (UNLIMITED_PLANS.includes(planType) && status === 'active') {
-    await User.update(
-      { isBoosted: true, boostExpiresAt: subEndDate },
-      { where: { id: userId } }
-    );
-  }
-
-  // Founding-ness is a User fact that outlives the row (upgrade supersedes it,
-  // the cohort expires together), so stamp it here as the grant util does.
-  if (isFounding && status === 'active') {
-    await User.update({ isFoundingMember: true }, { where: { id: userId } });
-  }
-
-  logAudit('subscription_overridden', req.user.id, { userId, planType, status });
-
+  // The member reads this: the plan's name, not the enum key.
+  const label = isFree ? 'Free' : isFounding ? 'Founding Premium' : (planDetails?.name || planType);
   await notify(
     userId,
     'system',
     'Subscription updated',
-    `Your subscription has been updated to ${planType} plan by the admin.`
+    isFree
+      ? 'Your paid plan has been ended by our team. Your profile and matches are unchanged.'
+      : `Your membership has been updated to ${label} by our team.`
   );
 
-  res.json({ success: true, message: 'Subscription updated', subscription });
+  res.json({
+    success: true,
+    message: 'Subscription updated',
+    subscription: outcome.created,
+  });
 });
 
 // @route   DELETE /api/admin/users/:userId/subscription
@@ -1283,9 +1443,8 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
        COUNT(*)::int AS count,
        SUM(amount - "refundedAmount")::float AS revenue
      FROM "Subscriptions"
-     WHERE status IN ('active', 'expired')
-       AND amount > 0
-       AND "razorpayPaymentId" IS NOT NULL
+     WHERE amount > 0
+       AND ${PAID_SUBSCRIPTION_SQL}
        AND "createdAt" >= NOW() - INTERVAL '12 months'
      GROUP BY DATE_TRUNC('month', "createdAt"), "planType"
      ORDER BY DATE_TRUNC('month', "createdAt") ASC`,
@@ -1299,8 +1458,8 @@ exports.getRevenueReport = asyncHandler(async (req, res) => {
        SUM(amount - "refundedAmount")::float AS total_revenue,
        AVG(amount - "refundedAmount")::float AS avg_transaction
      FROM "Subscriptions"
-     WHERE status IN ('active', 'expired') AND amount > 0
-       AND "razorpayPaymentId" IS NOT NULL`,
+     WHERE amount > 0
+       AND ${PAID_SUBSCRIPTION_SQL}`,
     { type: sequelize.constructor.QueryTypes.SELECT }
   );
 
@@ -1525,12 +1684,16 @@ exports.createMarketingUser = asyncHandler(async (req, res) => {
     throw createError.badRequest('role must be marketing or marketing_manager');
   }
 
-  const existing = await User.findOne({ where: { email: email.toLowerCase() } });
+  // Same canonical form as signup and login, so an address typed with mixed
+  // case is findable at sign-in; the duplicate check covers the legacy
+  // dot-stripped form older signups stored.
+  const normalisedEmail = canonicalEmail(email) || String(email).trim().toLowerCase();
+  const existing = await User.findOne({ where: { email: { [Op.in]: emailLookupCandidates(normalisedEmail) } }, attributes: ['id'] });
   if (existing) throw createError.conflict('User already exists with this email');
 
   const result = await sequelize.transaction(async (t) => {
     const user = await User.create({
-      email: email.toLowerCase(),
+      email: normalisedEmail,
       password,
       phone: phone || null,
       role,
@@ -1580,10 +1743,23 @@ exports.updateMarketingUserStatus = asyncHandler(async (req, res) => {
   user.status = status;
   await user.save();
 
+  // A deactivated rep's codes must stop working everywhere, not only at login
+  // and checkout: they went on creating leads and boosting new signups.
+  // Reactivating deliberately does NOT switch codes back on — an admin may have
+  // retired individual codes, and which ones to restore is their call.
+  let codesDeactivated = 0;
+  if (status === 'inactive') {
+    [codesDeactivated] = await ReferralCode.update(
+      { isActive: false },
+      { where: { marketingUserId: userId, isActive: true } }
+    );
+  }
+
   logAudit('marketing_user_status_changed', req.user.id, {
     targetUserId: userId,
     previousStatus,
-    newStatus: status
+    newStatus: status,
+    codesDeactivated,
   });
 
   res.json({ success: true, message: 'Marketing user status updated', user });
@@ -1605,8 +1781,16 @@ exports.getMarketingCommission = asyncHandler(async (req, res) => {
 // @access  Private/Admin (marketing scope)
 exports.updateMarketingCommission = asyncHandler(async (req, res) => {
   try {
+    // Previous values go on the audit row: a quiet 20% -> 100% -> 20% change
+    // otherwise leaves no before/after.
+    const before = await getCommissionSettings();
     const settings = await saveCommissionSettings(req.body, req.user.id);
-    logAudit('marketing_commission_updated', req.user.id, { rate: settings.rate });
+    logAudit('marketing_commission_updated', req.user.id, {
+      rate: settings.rate,
+      previousRate: before.rate,
+      overrides: settings.overrides,
+      previousOverrides: before.overrides,
+    });
     res.json({ success: true, message: 'Commission updated', commission: settings });
   } catch (err) {
     if (err instanceof CommissionValidationError) throw createError.badRequest(err.message);
@@ -1643,9 +1827,13 @@ exports.createMarketingPayout = asyncHandler(async (req, res) => {
   try {
     const payout = await recordPayout(userId, req.body, req.user.id);
     logAudit('marketing_payout_recorded', req.user.id, {
+      payoutId: payout.id,
       targetUserId: userId,
       amount: payout.amount,
       status: payout.status,
+      method: payout.method,
+      reference: payout.reference,
+      overpay: Boolean(req.body.allowOverpay),
     });
     const ledger = await getPayoutLedger(userId);
     res.status(201).json({ success: true, message: 'Payout recorded', payout, ...ledger });
@@ -1660,11 +1848,19 @@ exports.createMarketingPayout = asyncHandler(async (req, res) => {
 // @access  Private/Admin (marketing scope)
 exports.updateMarketingPayout = asyncHandler(async (req, res) => {
   try {
+    const { MarketingPayout } = require('../models');
+    const before = await MarketingPayout.findByPk(req.params.payoutId);
+    const previous = before
+      ? { status: before.status, paidAt: before.paidAt, amount: before.amount }
+      : null;
     const payout = await updatePayoutStatus(req.params.payoutId, req.body.status);
     if (!payout) throw createError.notFound('Payout not found');
     logAudit('marketing_payout_updated', req.user.id, {
       payoutId: payout.id,
+      targetUserId: payout.marketingUserId,
+      amount: payout.amount,
       status: payout.status,
+      previous,
     });
     const ledger = await getPayoutLedger(payout.marketingUserId);
     res.json({ success: true, message: 'Payout updated', payout, ...ledger });
@@ -1675,17 +1871,30 @@ exports.updateMarketingPayout = asyncHandler(async (req, res) => {
 });
 
 // @route   DELETE /api/v1/admin/marketing-payouts/:payoutId
-// @desc    Remove a payout recorded in error
-// @access  Private/Admin (marketing scope)
+// @desc    Void a payout recorded in error. Soft: the row is kept (it is the
+//          record that money left) with who/when/why, and stops counting toward
+//          the rep's balance. A reason is required.
+// @access  Private/Admin (payouts scope)
 exports.deleteMarketingPayout = asyncHandler(async (req, res) => {
-  const { MarketingPayout } = require('../models');
-  const existing = await MarketingPayout.findByPk(req.params.payoutId);
-  if (!existing) throw createError.notFound('Payout not found');
-  const ownerId = existing.marketingUserId;
-  await deletePayout(req.params.payoutId);
-  logAudit('marketing_payout_deleted', req.user.id, { payoutId: req.params.payoutId, targetUserId: ownerId });
-  const ledger = await getPayoutLedger(ownerId);
-  res.json({ success: true, message: 'Payout removed', ...ledger });
+  try {
+    const payout = await voidPayout(req.params.payoutId, { reason: req.body?.reason, adminId: req.user.id });
+    if (!payout) throw createError.notFound('Payout not found');
+    logAudit('marketing_payout_voided', req.user.id, {
+      payoutId: payout.id,
+      targetUserId: payout.marketingUserId,
+      amount: payout.amount,
+      status: payout.status,
+      method: payout.method,
+      reference: payout.reference,
+      paidAt: payout.paidAt,
+      reason: payout.voidReason,
+    });
+    const ledger = await getPayoutLedger(payout.marketingUserId);
+    res.json({ success: true, message: 'Payout voided', ...ledger });
+  } catch (err) {
+    if (err instanceof PayoutValidationError) throw createError.badRequest(err.message);
+    throw err;
+  }
 });
 
 // @route   GET /api/v1/admin/marketing-users/:userId/report
@@ -1722,10 +1931,9 @@ exports.getMarketingUserStats = asyncHandler(async (req, res) => {
   const [leadsCount, convertedCount, revenueData] = await Promise.all([
     MarketingLead.count({ where: { assignedToMarketingUserId: userId } }),
     MarketingLead.count({ where: { assignedToMarketingUserId: userId, status: 'converted' } }),
-    sequelize.query(
-      `SELECT SUM("amountPaid")::float AS total FROM "MarketingLeads" WHERE "assignedToMarketingUserId" = :userId AND "paymentStatus" = 'paid'`,
-      { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
-    )
+    // From Subscriptions, the same source as the member report — the lead's
+    // denormalised amountPaid disagreed with it whenever the webhook activated.
+    getRepRevenue(userId),
   ]);
 
   res.json({
@@ -1734,7 +1942,7 @@ exports.getMarketingUserStats = asyncHandler(async (req, res) => {
     stats: {
       totalLeads: leadsCount,
       convertedLeads: convertedCount,
-      totalRevenue: revenueData[0]?.total || 0
+      totalRevenue: revenueData || 0
     }
   });
 });
@@ -1781,10 +1989,21 @@ exports.getReferralCodes = asyncHandler(async (req, res) => {
 // @desc    Create referral code
 // @access  Private/Admin
 exports.createReferralCode = asyncHandler(async (req, res) => {
-  const { code, marketingUserId, campaign, source } = req.body;
+  const { code: rawCode, marketingUserId, campaign, source } = req.body;
 
-  if (!code || !marketingUserId) {
+  if (!rawCode || !marketingUserId) {
     throw createError.badRequest('code and marketingUserId are required');
+  }
+
+  // The SAME normalisation checkout and the signup live-check use. A code the
+  // resolver cannot read (underscore, space, markup, too short) would be a code
+  // nobody could ever redeem, and a raw-value duplicate check ran before the
+  // upper-casing so 'abc' passed when 'ABC' existed and then 500ed on the
+  // unique index.
+  const { normaliseCode } = require('../utils/referral');
+  const code = normaliseCode(typeof rawCode === 'string' ? rawCode : '');
+  if (!code) {
+    throw createError.badRequest('Code must be 3-32 characters: letters, numbers and hyphens only, starting with a letter or number');
   }
 
   const user = await User.findByPk(marketingUserId);
@@ -1792,11 +2011,16 @@ exports.createReferralCode = asyncHandler(async (req, res) => {
     throw createError.badRequest('Invalid marketing user');
   }
 
-  const existing = await ReferralCode.findOne({ where: { code } });
-  if (existing) throw createError.conflict('Referral code already exists');
+  // A member code with this text would be shadowed (marketing resolves first),
+  // and two owners of one string is the ambiguity this check exists to refuse.
+  const [existing, memberOwner] = await Promise.all([
+    ReferralCode.findOne({ where: { code } }),
+    User.findOne({ where: { referralCode: code }, attributes: ['id'] }),
+  ]);
+  if (existing || memberOwner) throw createError.conflict('Referral code already exists');
 
   const referralCode = await ReferralCode.create({
-    code: code.toUpperCase(),
+    code,
     marketingUserId,
     campaign: campaign || null,
     source: source || null,

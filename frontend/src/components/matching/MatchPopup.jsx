@@ -109,17 +109,17 @@ const MatchPopup = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 50 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden"
+            className="relative bg-white dark:bg-surface-dark-2 rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden"
           >
-            <div className="absolute inset-0 bg-[#FDF8F2] pointer-events-none" />
+            <div className="absolute inset-0 bg-[#FDF8F2] dark:bg-transparent pointer-events-none" />
             
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 hover:bg-neutral-100 rounded-full transition-colors z-10"
+              className="absolute top-4 right-4 p-2 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-full transition-colors z-10"
               aria-label="Close"
             >
-              <FiX className="w-5 h-5 text-neutral-500" />
+              <FiX className="w-5 h-5 text-neutral-500 dark:text-neutral-300" />
             </button>
 
             <div className="relative z-10">
@@ -165,7 +165,7 @@ const MatchPopup = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-3xl font-bold font-display text-center mb-2 text-primary-600"
+                className="text-3xl font-bold font-display text-center mb-2 text-primary-700 dark:text-primary-200"
               >
                 It's a Match!
               </motion.h2>
@@ -174,7 +174,7 @@ const MatchPopup = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="text-neutral-600 text-center mb-8"
+                className="text-neutral-600 dark:text-neutral-300 text-center mb-8"
               >
                 You and {matchedUser?.firstName || 'someone special'} have liked each other
               </motion.p>
@@ -196,18 +196,18 @@ const MatchPopup = ({
                       <RetryImage
                         src={getImageUrl(currentUser.profilePhoto || currentUser.profile_photo, API_BASE_URL, 'profile')}
                         alt="Your profile"
-                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-surface-dark-2 shadow-lg"
                         onError={(e) => {
                           e.target.style.display = 'none';
                           if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
                         }}
                       />
-                      <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
+                      <div className="w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-200 font-display font-bold text-2xl border-4 border-white dark:border-surface-dark-2 shadow-lg hidden" aria-hidden="true">
                         {getInitials(currentUser)}
                       </div>
                     </>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg">
+                    <div className="w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-200 font-display font-bold text-2xl border-4 border-white dark:border-surface-dark-2 shadow-lg">
                       {getInitials(currentUser)}
                     </div>
                   )}
@@ -218,7 +218,7 @@ const MatchPopup = ({
                   initial={{ scale: 0.7 }}
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.4, ease: EASE_OUT, delay: 0.15 }}
-                  className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center"
+                  className="w-12 h-12 bg-white dark:bg-surface-dark-3 rounded-full shadow-lg flex items-center justify-center"
                 >
                   <FiHeart className="w-6 h-6 text-primary-500 fill-primary-500" />
                 </motion.div>
@@ -233,18 +233,18 @@ const MatchPopup = ({
                       <RetryImage
                         src={getImageUrl(matchedUser.profilePhoto || matchedUser.profile_photo, API_BASE_URL, 'profile')}
                         alt={`${matchedUser?.firstName || 'Match'}'s profile`}
-                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-surface-dark-2 shadow-lg"
                         onError={(e) => {
                           e.target.style.display = 'none';
                           if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
                         }}
                       />
-                      <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg hidden" aria-hidden="true">
+                      <div className="w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-200 font-display font-bold text-2xl border-4 border-white dark:border-surface-dark-2 shadow-lg hidden" aria-hidden="true">
                         {getInitials(matchedUser)}
                       </div>
                     </>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-display font-bold text-2xl border-4 border-white shadow-lg">
+                    <div className="w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-200 font-display font-bold text-2xl border-4 border-white dark:border-surface-dark-2 shadow-lg">
                       {getInitials(matchedUser)}
                     </div>
                   )}
@@ -270,7 +270,7 @@ const MatchPopup = ({
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={onContinue}
-                  className="w-full btn-secondary flex items-center justify-center gap-2"
+                  className="w-full btn-secondary dark:!text-primary-200 dark:!border-primary-400 flex items-center justify-center gap-2"
                 >
                   Keep Browsing
                   <FiArrowRight className="w-5 h-5" />

@@ -91,6 +91,12 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Hide same-gotra members from me, and me from them (see utils/gotra.js).
+  excludeSameGotra: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   motherTongue: {
     type: DataTypes.STRING,
     allowNull: true
@@ -259,9 +265,12 @@ const Profile = sequelize.define('Profile', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // null = the member never chose (no preference). It used to default to the
+  // three core cities, which made almost every profile state a requirement
+  // nobody wrote (migration 000088).
   preferredCity: {
     type: DataTypes.ARRAY(DataTypes.STRING),
-    defaultValue: ['Chandigarh', 'Mohali', 'Panchkula']
+    allowNull: true
   },
   // Personality Questions (for compatibility)
   personalityValues: {

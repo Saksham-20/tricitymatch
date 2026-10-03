@@ -41,7 +41,7 @@ export const validatePassword = (password) => {
   if (!/[0-9]/.test(password)) return false;
   
   // At least one special character
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return false;
+  if (!/[^A-Za-z0-9\s]/.test(password)) return false;
   
   return true;
 };
@@ -74,8 +74,8 @@ export const getPasswordErrors = (password) => {
     errors.push('One number');
   }
   
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push('One special character (!@#$%^&*(),.?":{}|<>)');
+  if (!/[^A-Za-z0-9\s]/.test(password)) {
+    errors.push('One special character (a symbol such as ! @ # $ _ -)');
   }
   
   return errors;
@@ -94,7 +94,7 @@ export const getPasswordStrength = (password) => {
   // Complexity
   if (/[A-Z]/.test(password) && /[a-z]/.test(password)) strength++;
   if (/[0-9]/.test(password)) strength++;
-  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+  if (/[^A-Za-z0-9\s]/.test(password)) strength++;
   
   return Math.min(strength, 4);
 };

@@ -21,54 +21,14 @@ const { handleValidationErrors } = require('../middlewares/errorHandler');
 // unmapped SequelizeDatabaseError -> 500 with a driver message. Validate first.
 const uuidParam = (name) => [param(name).isUUID(4).withMessage('Invalid id'), handleValidationErrors];
 
-// Seed data inserted on first request if Astrologers table is empty (dev convenience)
-const SEED_ASTROLOGERS = [
-  {
-    name: 'Pt. Rajesh Sharma',
-    speciality: ['Kundli Matching', 'Marriage Timing'],
-    experience: 18,
-    rating: 4.8,
-    reviewCount: 342,
-    pricePerMin: 25,
-    languages: ['Hindi', 'Punjabi', 'English'],
-    bio: 'Specializes in Vedic Kundli analysis and Ashtakoot Guna Milan. Certified by Bharatiya Vidya Bhavan.',
-    isOnline: true,
-  },
-  {
-    name: 'Acharya Sunita Devi',
-    speciality: ['Numerology', 'Career'],
-    experience: 12,
-    rating: 4.6,
-    reviewCount: 198,
-    pricePerMin: 18,
-    languages: ['Hindi', 'English'],
-    bio: 'Expert in numerology and career astrology with 12 years of practice.',
-    isOnline: true,
-  },
-  {
-    name: 'Pt. Vikram Joshi',
-    speciality: ['Kundli Matching', 'Vastu', 'Gemstone'],
-    experience: 25,
-    rating: 4.9,
-    reviewCount: 571,
-    pricePerMin: 35,
-    languages: ['Hindi', 'Punjabi'],
-    bio: 'Senior Jyotishi with 25 years experience in marriage compatibility and Vastu Shastra.',
-    isOnline: false,
-  },
-];
-
-const ensureSeeded = async () => {
-  const count = await Astrologer.count();
-  if (count === 0) {
-    await Astrologer.bulkCreate(SEED_ASTROLOGERS);
-    log.info('Astrologer seed data inserted');
-  }
-};
+// Astrologers come ONLY from rows an admin has created or imported. There used to
+// be an on-first-request seed here that inserted three invented practitioners
+// (names, 4.6-4.9 ratings, hundreds of reviews, a certification claim) into any
+// empty Astrologers table — in production too. The marketplace is behind the
+// ASTROLOGER_MARKETPLACE flag (default off) until a real list exists.
 
 // GET /astrologers — list active astrologers (optional ?online=true filter)
 router.get('/', auth, asyncHandler(async (req, res) => {
-  await ensureSeeded();
   const where = { isActive: true };
   if (req.query.online === 'true') where.isOnline = true;
   const astrologers = await Astrologer.findAll({ where, order: [['rating', 'DESC']] });
@@ -88,7 +48,6 @@ router.get('/my-bookings', auth, asyncHandler(async (req, res) => {
 
 // GET /astrologers/:id — single astrologer detail
 router.get('/:id', auth, uuidParam('id'), asyncHandler(async (req, res) => {
-  await ensureSeeded();
   const ast = await Astrologer.findOne({ where: { id: req.params.id, isActive: true } });
   if (!ast) throw new AppError('Astrologer not found', 404);
   res.json({ success: true, astrologer: ast });

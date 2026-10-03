@@ -57,7 +57,7 @@ export default function AdminReferralCodes() {
       setPage(1);
       fetchCodes();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create referral code');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to create referral code');
     }
   };
 
@@ -164,9 +164,11 @@ export default function AdminReferralCodes() {
             <form onSubmit={handleCreateCode} className="space-y-4">
               <input
                 type="text"
-                placeholder="Code (e.g., REFER50)"
+                placeholder="Code (e.g., REFER50) — letters, numbers, hyphens"
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                pattern="[A-Za-z0-9][A-Za-z0-9\-]{2,31}"
+                title="3-32 characters: letters, numbers and hyphens, starting with a letter or number"
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '') })}
                 className="w-full border px-3 py-2 rounded"
                 required
               />

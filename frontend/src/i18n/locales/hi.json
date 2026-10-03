@@ -75,6 +75,7 @@
     "uploadSelfie": "सेल्फी अपलोड करें",
     "startBgCheck": "पृष्ठभूमि जाँच शुरू करें",
     "statusPending": "समीक्षा लंबित",
+    "statusInReview": "समीक्षा में",
     "statusApproved": "स्वीकृत",
     "statusRejected": "अस्वीकृत",
     "statusNotStarted": "शुरू नहीं हुआ"

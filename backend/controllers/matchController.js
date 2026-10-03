@@ -17,7 +17,8 @@ const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
 const { PAID_PLANS } = require('../constants/plans');
 const { calculateCompatibility, getCompatibilityBreakdown, deriveReasons } = require('../utils/compatibility');
-const { getOrSet } = require('../utils/cache');
+const { getOrSet, del: cacheDel } = require('../utils/cache');
+const { mustHaveClauses } = require('../utils/preferenceFit');
 const { sendMatchNotification } = require('../utils/emailService');
 const { notify } = require('../utils/notifyUser');
 const { trackEvent } = require('../utils/trackEvent');
@@ -26,14 +27,54 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { severRelationshipRows, evictChatRoom } = require('../utils/relationship');
 const { isEnabled } = require('../utils/notificationPrefs');
+const { hasVerifiableAge } = require('../utils/ageVerifiable');
+
+// The member's own row for this pair goes back to "none". If the pair was a
+// mutual match this ends it exactly as leaving 'like' does (mutual flag, chat
+// grant and live calls), and the other member's like stays a one-way like.
+const undoMatchAction = async (req, res) => {
+  const { userId } = req.params;
+  const currentUserId = req.user.id;
+  if (userId === currentUserId) {
+    throw createError.badRequest('You cannot act on your own profile');
+  }
+
+  const outcome = await sequelize.transaction(async (t) => {
+    await sequelize.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended(:pairKey, 0))',
+      { replacements: { pairKey: [currentUserId, userId].sort().join(':') }, transaction: t }
+    );
+    const match = await Match.findOne({ where: { userId: currentUserId, matchedUserId: userId }, transaction: t });
+    if (!match) return { removed: false, withdrawn: false };
+    const withdrawn = Boolean(match.isMutual);
+    if (withdrawn) {
+      await severRelationshipRows(currentUserId, userId, { transaction: t, clearMutualDate: true });
+    }
+    await match.destroy({ transaction: t });
+    return { removed: true, withdrawn };
+  });
+
+  if (outcome.withdrawn) evictChatRoom(currentUserId, userId);
+
+  res.json({ success: true, match: null, isMutual: false, newMatch: false, withdrawn: outcome.withdrawn, removed: outcome.removed });
+};
 
 // @route   POST /api/match/:userId
-// @desc    Like/shortlist/pass a profile
+// @desc    Like/shortlist/pass/undo a profile
 // @access  Private
 exports.matchAction = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { action } = req.body;
   const currentUserId = req.user.id;
+
+  // 'undo' takes back the member's OWN row (un-save, withdraw an interest). It
+  // is allowed whatever the other member's state is now (hidden, paused,
+  // blocked): being unable to remove something you saved from your own list
+  // because the other person changed a setting would be a trap, and removing
+  // your own row reveals nothing about them.
+  if (action === 'undo') {
+    return undoMatchAction(req, res);
+  }
 
   // Prevent match actions between blocked users (either direction)
   const blockExists = await Block.findOne({
@@ -57,9 +98,18 @@ exports.matchAction = asyncHandler(async (req, res) => {
   }
   const [targetUser, targetProfile, actorProfile] = await Promise.all([
     User.findByPk(userId, { attributes: ['id', 'status'] }),
-    Profile.findOne({ where: { userId }, attributes: ['isActive', 'profileVisibility'] }),
-    Profile.findOne({ where: { userId: currentUserId }, attributes: ['isActive', 'pausedAt'] }),
+    Profile.findOne({ where: { userId }, attributes: ['isActive', 'profileVisibility', 'dateOfBirth', 'gender'] }),
+    Profile.findOne({ where: { userId: currentUserId }, attributes: ['isActive', 'pausedAt', 'dateOfBirth', 'gender'] }),
   ]);
+  // Interests are for members whose age can be checked, on both sides. An
+  // account that has not given a date of birth and gender yet (a mobile sign-up
+  // part-way through onboarding) is invisible to others and cannot reach them.
+  if (!hasVerifiableAge(actorProfile)) {
+    throw createError.forbidden(
+      'Add your date of birth and gender to your profile before sending interests.',
+      'PROFILE_INCOMPLETE'
+    );
+  }
   // A paused (or deletion-scheduled) member is hidden from everyone; letting
   // them keep sending interests would surface them to people while they are
   // meant to be invisible.
@@ -69,7 +119,7 @@ exports.matchAction = asyncHandler(async (req, res) => {
       'PROFILE_HIDDEN'
     );
   }
-  if (!targetUser || targetUser.status !== 'active' || !targetProfile || !targetProfile.isActive) {
+  if (!targetUser || targetUser.status !== 'active' || !targetProfile || !targetProfile.isActive || !hasVerifiableAge(targetProfile)) {
     throw createError.notFound('Profile not found');
   }
   if (targetProfile.profileVisibility === 'matches_only') {
@@ -285,8 +335,10 @@ exports.matchAction = asyncHandler(async (req, res) => {
         const profileUrl = `${config.server.frontendUrl}/profile/${userId}`;
         const matchedProfileUrl = `${config.server.frontendUrl}/profile/${currentUserId}`;
         Promise.all([
-          isEnabled(matchedUser.notificationPrefs, 'matches') ? sendMatchNotification(matchedUser.email, currentName, profileUrl) : null,
-          isEnabled(currentUser.notificationPrefs, 'matches') ? sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl) : null,
+          matchedUser.email && isEnabled(matchedUser.notificationPrefs, 'matches')
+            ? sendMatchNotification(matchedUser.email, currentName, profileUrl, result.matchedProfile?.firstName) : null,
+          currentUser.email && isEnabled(currentUser.notificationPrefs, 'matches')
+            ? sendMatchNotification(currentUser.email, matchedName, matchedProfileUrl, result.currentProfile?.firstName) : null,
         ]).catch(err => log.error('Failed to send match emails', { error: err.message }));
       } else if (result.firstLike && !result.isMutualMatch) {
         // One-way like — notify the liked user in-app only (no email, avoid spam).
@@ -359,6 +411,11 @@ const computeDailyMatches = async (userId) => {
   // blocks, inactive); the already-interacted set is layered on top.
   const scope = listingScope(viewerCtx);
   scope.userId = { [Op.ne]: userId, [Op.notIn]: excludedIds };
+
+  // The member's own must-have preferences are hard filters here exactly as in
+  // Search: onboarding promises a must-have profile "will not appear".
+  const mustHave = mustHaveClauses(currentProfile);
+  if (mustHave.clauses.length) scope[Op.and] = [...(scope[Op.and] || []), ...mustHave.clauses];
 
   const profiles = await Profile.findAll({
     where: {
@@ -457,12 +514,29 @@ exports.getDailyMatches = asyncHandler(async (req, res) => {
   // Cache the full ranked set once per IST day; recompute on Redis miss.
   const cachedSet = await getOrSet(cacheKey, () => computeDailyMatches(userId), secondsToNextISTMidnight());
 
+  // An EMPTY set is not kept for the day: a member whose first visit found no
+  // candidates (or whose profile was still sparse) would otherwise see nothing
+  // until midnight even after completing their profile or new members joined.
+  if (Array.isArray(cachedSet) && cachedSet.length === 0) {
+    try { await cacheDel(cacheKey); } catch (e) { /* the next request recomputes either way */ }
+  }
+
   // The set lives all day, but members change: one can go matches-only or
   // incognito, be blocked, banned, deactivated or erased after it was cached.
   // Re-check every candidate against current state so none of them keeps
   // appearing until midnight (this also covers an erased member's profile JSON
   // still sitting in other viewers' caches).
-  const fullSet = await stillVisible(userId, cachedSet || []);
+  const stillThere = await stillVisible(userId, cachedSet || []);
+
+  // ...and anyone the member has acted on since the set was built (a like, a
+  // save, a pass) is not a "today's match" any more: interacted ids were only
+  // excluded when the set was computed.
+  const candidateIds = stillThere.map((m) => m.userId).filter(Boolean);
+  const actedRows = candidateIds.length
+    ? await Match.findAll({ where: { userId, matchedUserId: { [Op.in]: candidateIds } }, attributes: ['matchedUserId'] })
+    : [];
+  const acted = new Set((actedRows || []).map((r) => r.matchedUserId));
+  const fullSet = acted.size ? stillThere.filter((m) => !acted.has(m.userId)) : stillThere;
 
   res.json({
     success: true,

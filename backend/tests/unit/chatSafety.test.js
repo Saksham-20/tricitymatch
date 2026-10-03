@@ -75,3 +75,43 @@ describe('assessMessage: links', () => {
     expect(r.flags).toContain('external_link');
   });
 });
+
+// CHAT-16 fixture corpus: realistic phrasings that used to slip through, and
+// honest phrasings that must stay quiet.
+describe('assessMessage: realistic scam phrasings (CHAT-16)', () => {
+  it.each([
+    'stuck at the airport please send me 20000 rupees urgently',
+    'Pay me 5000 on paytm 98765 43210',
+    'Pay me 5000 on paytm 98765-43210',
+    'send paisa on phonepe',
+    'mujhe 5000 rupaye bhej do urgent',
+    'send me m o n e y',
+    'pay me ₹5000 today',
+    'please pay the registration fee today',
+  ])('flags %j as high', (text) => {
+    expect(assessMessage(text).high).toBe(true);
+  });
+
+  it.each([
+    'we need to book the hall, registration fee will be shared by my father',
+    'the booking charges for the banquet are included',
+    'my father earns 50000 rupees monthly, I will send you the biodata',
+    'Call me on 98765 43210 after six',
+    'I will pay for the dinner when we meet',
+  ])('leaves honest chat alone: %j', (text) => {
+    expect(flagsOf(text)).toEqual([]);
+  });
+
+  it('wa.me and t.me are a medium off-platform signal, never an escalating one', () => {
+    for (const text of ['message me on wa.me/919876543210', 'join t.me/somegroup', 'add me on telegram @asha']) {
+      const r = assessMessage(text);
+      expect(r.flags).toEqual(['off_platform']);
+      expect(r.high).toBe(false);
+    }
+  });
+
+  it('orders strong, then medium, then weak', () => {
+    const r = assessMessage('send me money, then see wa.me/91999 and www.example.com');
+    expect(r.flags).toEqual(['payment_request', 'off_platform', 'external_link']);
+  });
+});

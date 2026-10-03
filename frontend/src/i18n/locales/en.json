@@ -75,6 +75,7 @@
     "uploadSelfie": "Upload selfie",
     "startBgCheck": "Start background check",
     "statusPending": "Pending review",
+    "statusInReview": "In review",
     "statusApproved": "Approved",
     "statusRejected": "Rejected",
     "statusNotStarted": "Not started"

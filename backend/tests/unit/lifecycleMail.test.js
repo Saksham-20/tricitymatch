@@ -392,3 +392,48 @@ describe('photo nudge', () => {
     expect((await runPhotoNudge(NOW)).sent).toBe(0);
   });
 });
+
+describe('paused and scheduled-for-deletion members (AUTH-15)', () => {
+  const renewal = (userOver) => makeSub({ status: 'active', endDate: new Date(NOW.getTime() + 5 * DAY), User: userOver });
+  const lapsed = (userOver) => makeSub({ status: 'expired', endDate: new Date(NOW.getTime() - 15 * DAY), User: userOver });
+
+  it('a member who scheduled deletion gets nothing, not even a renewal notice', async () => {
+    stages({ ending: [renewal({ deletionScheduledFor: new Date(NOW.getTime() + 20 * DAY) })] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendRenewalReminder).not.toHaveBeenCalled();
+  });
+
+  it('a paused member gets no win-back nudge', async () => {
+    stages({ lapsed: [lapsed({ Profile: { firstName: 'Aman', pausedAt: new Date(NOW.getTime() - DAY) } })] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendWinBack).not.toHaveBeenCalled();
+  });
+
+  it('...but a paused member still gets the renewal notice about their own money', async () => {
+    stages({ ending: [renewal({ Profile: { firstName: 'Aman', pausedAt: new Date(NOW.getTime() - DAY) } })] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendRenewalReminder).toHaveBeenCalledTimes(1);
+  });
+
+  it('an address typed beside a verified phone (never proved) is not sold to', async () => {
+    stages({ lapsed: [lapsed({ emailVerified: false, phoneVerified: true })] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendWinBack).not.toHaveBeenCalled();
+  });
+
+  it('a legacy account with no verified phone keeps its only contact', async () => {
+    stages({ lapsed: [lapsed({ emailVerified: false, phoneVerified: false })] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendWinBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('the photo-nudge query excludes scheduled deletion, paused profiles and unproved addresses in SQL', async () => {
+    User.findAll.mockResolvedValueOnce([]);
+    await runPhotoNudge(NOW);
+    const arg = User.findAll.mock.calls[0][0];
+    const sql = JSON.stringify(arg.where[Object.getOwnPropertySymbols(arg.where)[0]].map((l) => l.val));
+    expect(sql).toContain('deletionScheduledFor');
+    expect(sql).toContain('emailVerified');
+    expect(arg.include[0].where.pausedAt).toBeNull();
+  });
+});

@@ -32,6 +32,8 @@ const TARGET = 'target-id';
 const visibleProfile = (overrides = {}) => ({
   userId: TARGET,
   profileVisibility: 'everyone',
+  dateOfBirth: '1995-01-01',
+  gender: 'female',
   ...overrides,
 });
 
@@ -137,6 +139,19 @@ describe('assertProfileVisible', () => {
     await expect(
       assertProfileVisible(VIEWER, TARGET, { enforceVisibilityPreference: false })
     ).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it.each([
+    ['no date of birth', { dateOfBirth: null }],
+    ['no gender', { gender: null }],
+  ])('404s for a target with %s (age cannot be checked)', async (_l, override) => {
+    Profile.findOne.mockResolvedValue(visibleProfile(override));
+    await expect(assertProfileVisible(VIEWER, TARGET)).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it('a member can still read their OWN incomplete profile', async () => {
+    Profile.findOne.mockResolvedValue(visibleProfile({ userId: VIEWER, dateOfBirth: null, gender: null }));
+    await expect(assertProfileVisible(VIEWER, VIEWER)).resolves.toMatchObject({ isSelf: true });
   });
 
   it('returns the profile for an ordinary visible target', async () => {

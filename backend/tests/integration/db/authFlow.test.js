@@ -98,7 +98,7 @@ describeDb('auth over real routes', (t) => {
     await clearLoginAttempts(u.email.toLowerCase());
   });
 
-  t('a refresh token rotates once; replaying the old one is refused and kills the family', async () => {
+  t('a refresh token rotates once; replaying it AFTER the grace window is refused and kills the family', async () => {
     const u = await member();
     const login = await request(app).post('/api/auth/login').send({ identifier: u.email, password: PASSWORD });
     const first = cookieValue(login, 'refreshToken');
@@ -108,6 +108,13 @@ describeDb('auth over real routes', (t) => {
     const second = cookieValue(rotated, 'refreshToken');
     expect(second).toBeTruthy();
     expect(second).not.toBe(first);
+
+    // Age the rotation past the replay grace window: now it is genuine reuse.
+    const sequelize = require('../../../config/database');
+    await sequelize.query(
+      `UPDATE "RefreshTokens" SET "revokedAt" = NOW() - INTERVAL '5 minutes' WHERE "tokenHash" = :h`,
+      { replacements: { h: require('crypto').createHash('sha256').update(first).digest('hex') } }
+    );
 
     const replay = await request(app).post('/api/auth/refresh').set('Cookie', `refreshToken=${first}`);
     expect(replay.status).toBe(401);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import blobErrorMessage from '../utils/blobError';
+import { summarisePayments, isPaidRow, refundedOf } from '../utils/paymentSummary';
 import { FiDownload, FiCreditCard, FiTrendingUp, FiCalendar, FiAward } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { Skeleton, ErrorState } from '../components/ui';
@@ -95,13 +96,18 @@ export default function PaymentHistory() {
   // Summary derived from rows
   // `amount` is the column; `paymentAmount` never existed, so this read ₹0 for
   // every member regardless of what they had paid.
-  const totalSpent = subscriptions.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+  // Only rows with a payment reference count, less refunds (see paymentSummary).
+  const { totalSpent, totalRefunded } = summarisePayments(subscriptions);
   const activeSub = subscriptions.find((s) => s.status === 'active');
 
   const summary = [
-    { label: 'Total Spent', value: `₹${totalSpent.toLocaleString('en-IN')}`, icon: FiTrendingUp },
+    {
+      label: totalRefunded > 0 ? 'Total Spent (after refunds)' : 'Total Spent',
+      value: `₹${totalSpent.toLocaleString('en-IN')}`,
+      icon: FiTrendingUp,
+    },
     { label: 'Active Plan', value: activeSub ? planLabel(activeSub.planType) : 'None', icon: FiAward },
-    { label: 'Renews On', value: activeSub?.endDate ? new Date(activeSub.endDate).toLocaleDateString('en-IN') : '—', icon: FiCalendar },
+    { label: 'Valid Until', value: activeSub?.endDate ? new Date(activeSub.endDate).toLocaleDateString('en-IN') : '—', icon: FiCalendar },
   ];
 
   return (
@@ -181,7 +187,14 @@ export default function PaymentHistory() {
                       <td className="px-4 py-3"><PlanBadge plan={s.planType} /></td>
                       <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
                       <td className="px-4 py-3 font-medium text-neutral-800 dark:text-neutral-200">
-                        {s.amount != null ? `₹${Number(s.amount).toLocaleString('en-IN')}` : '—'}
+                        {isPaidRow(s)
+                          ? `₹${Number(s.amount).toLocaleString('en-IN')}`
+                          : (s.amount != null ? 'Granted' : '—')}
+                        {refundedOf(s) > 0 && (
+                          <span className="block text-xs font-normal text-neutral-500 dark:text-neutral-400">
+                            Refunded ₹{refundedOf(s).toLocaleString('en-IN')}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-xs text-neutral-500 dark:text-neutral-400">
                         {s.startDate ? new Date(s.startDate).toLocaleDateString('en-IN') : '—'}

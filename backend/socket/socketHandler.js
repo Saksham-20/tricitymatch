@@ -112,6 +112,12 @@ const authenticateSocket = async (socket, next) => {
       return next(new Error('Invalid token type'));
     }
 
+    // Signed out since this token was issued (AUTH-05): same check as REST.
+    if (await require('../utils/sessionRevocation').isAccessRevoked(decoded)) {
+      logSecurityEvent('socket_auth_failed', null, { reason: 'session_revoked', socketId: socket.id });
+      return next(new Error('Session ended'));
+    }
+
     // A valid JWT is not enough: REST's `auth` middleware re-loads the user and
     // rejects status !== 'active', but this path never did. A member who was
     // banned, suspended or self-deleted therefore kept a live socket for the

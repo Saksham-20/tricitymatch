@@ -94,6 +94,24 @@ export const CASTE_OPTIONS = [
 
 export const CASTE_OTHER = '__other__';
 
+// ─── Profession groups (search filter) ───────────────────────────────────────
+// The canonical groups the server classifies every typed profession into
+// (backend/constants/vocabularies PROFESSION_GROUPS). Keep in step with it.
+export const PROFESSION_GROUPS = [
+  'Student',
+  'Software / IT',
+  'Doctor / Healthcare',
+  'Lawyer / Legal',
+  'Armed Forces / Police',
+  'Government / Civil Services',
+  'Teacher / Academia',
+  'CA / Finance',
+  'Architecture / Design / Media',
+  'Engineer',
+  'Business / Management',
+  'Other',
+];
+
 // ─── Label lookup ────────────────────────────────────────────────────────────
 const toMap = (opts) => Object.fromEntries(opts.map((o) => [o.value, o.label]));
 

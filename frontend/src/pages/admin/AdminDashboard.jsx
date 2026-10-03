@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { getAnalytics } from '../../api/adminApi';
-import { FiUsers, FiCheckCircle, FiCreditCard, FiTrendingUp, FiFlag } from 'react-icons/fi';
+import { FiUsers, FiCheckCircle, FiCreditCard, FiTrendingUp, FiFlag, FiAlertCircle } from 'react-icons/fi';
 
 // Brand-family ramp (burgundy → gold → muted tints); no off-brand green/blue/purple.
 const COLORS = ['#8B2346', '#C9A227', '#B76E79', '#5E1730', '#D8B24A'];
@@ -32,13 +32,20 @@ const KpiCard = ({ icon: Icon, label, value, sub, color = 'rose' }) => {
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  // A failed load used to be swallowed and the page rendered em-dashes and
+  // "No data yet" as if the platform were empty. Say it failed, and offer a retry.
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     getAnalytics()
       .then((r) => setData(r.data))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
@@ -48,7 +55,22 @@ export default function AdminDashboard() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10">
+        <FiAlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Couldn't load the dashboard</h2>
+        <p className="text-sm text-gray-500 mb-5">The figures did not come back, so nothing is shown rather than showing zeros.</p>
+        <button onClick={load} className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium">
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   const stats = data?.stats || {};
+  // null = this admin lacks the revenue scope (not "no revenue").
+  const showRevenue = stats.revenueThisMonth !== null && stats.revenueThisMonth !== undefined;
   const registrations = data?.registrations || [];
   const revenue = data?.revenue || [];
   const planDist = data?.planDistribution || [];
@@ -64,9 +86,13 @@ export default function AdminDashboard() {
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard icon={FiUsers}       label="Total Users"         value={stats.totalUsers}         color="rose" />
-        <KpiCard icon={FiCheckCircle} label="Verified Users"      value={stats.verifiedUsers}      color="rose" />
-        <KpiCard icon={FiCreditCard}  label="Active Subscribers"  value={stats.activeSubscribers}  color="rose" />
-        <KpiCard icon={FiTrendingUp}  label="Revenue (This Month)" value={stats.revenueThisMonth ? `₹${stats.revenueThisMonth.toLocaleString('en-IN')}` : '—'} color="gold" />
+        <KpiCard icon={FiCheckCircle} label="Photo-verified"      value={stats.verifiedUsers}      color="rose"
+          sub={stats.emailVerifiedUsers != null ? `${stats.emailVerifiedUsers} with a verified email` : undefined} />
+        <KpiCard icon={FiCreditCard}  label="Paying Members"      value={stats.paidSubscribers ?? stats.activeSubscribers} color="rose"
+          sub={stats.foundingActive != null ? `plus ${stats.foundingActive} founding grants` : undefined} />
+        <KpiCard icon={FiTrendingUp}  label="Revenue (This Month)"
+          value={showRevenue ? `₹${Number(stats.revenueThisMonth).toLocaleString('en-IN')}` : '—'}
+          sub={showRevenue ? undefined : 'Revenue access required'} color="gold" />
       </div>
 
       {/* Charts row 1 */}
@@ -103,7 +129,7 @@ export default function AdminDashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">No data yet</div>
+            <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">{showRevenue ? 'No data yet' : 'Revenue access required'}</div>
           )}
         </div>
       </div>
@@ -126,7 +152,7 @@ export default function AdminDashboard() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[180px] flex items-center justify-center text-gray-400 text-sm">No data yet</div>
+            <div className="h-[180px] flex items-center justify-center text-gray-400 text-sm">{showRevenue ? 'No data yet' : 'Revenue access required'}</div>
           )}
         </div>
 

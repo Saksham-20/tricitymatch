@@ -68,7 +68,7 @@ jest.mock('../../config/database', () => ({
 jest.mock('../../models', () => ({
   Block: { findOne: async () => null },
   User: { findByPk: async (id) => ({ id, status: 'active', email: `${id.slice(0, 1)}@x.co` }) },
-  Profile: { findOne: async ({ where }) => ({ userId: where.userId, isActive: true, profileVisibility: 'everyone', firstName: where.userId === A ? 'Asha' : 'Bala', lastName: 'K', photos: [], profilePrompts: {} }) },
+  Profile: { findOne: async ({ where }) => ({ userId: where.userId, isActive: true, profileVisibility: 'everyone', dateOfBirth: '1995-01-01', gender: 'female', firstName: where.userId === A ? 'Asha' : 'Bala', lastName: 'K', photos: [], profilePrompts: {} }) },
   Match: {
     findOne: async ({ where }) => {
       const row = mockRows.get(mockKey(where.userId, where.matchedUserId));

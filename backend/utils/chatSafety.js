@@ -27,8 +27,10 @@ const SEVERITY = {
   bank_details: 'high',
   payment_request: 'high',
   suspicious_link: 'high',
+  off_platform: 'medium',
   external_link: 'low',
 };
+const RANK = { high: 0, medium: 1, low: 2 };
 
 // Zero-width characters are a standard way to split a keyword so a filter misses
 // it; fold them away and normalise compatibility forms before matching.
@@ -47,15 +49,26 @@ const UPI_ID = /(?<![\w.-])[a-z0-9._-]{2,64}@[a-z][a-z0-9]{1,20}\b(?!\.[a-z])/;
 const BANK_DETAILS = [
   /\b[a-z]{4}0[a-z0-9]{6}\b/,                                                   // IFSC
   /\b(?:a\/c|acct?|account)\s*(?:no\.?|number|num|#)?\s*[:-]?\s*\d{9,18}\b/,  // account number
-  /\b(?:upi|paytm|gpay|phonepe|google\s?pay|bhim)\b[^.\n]{0,25}\b[6-9]\d{9}\b/, // payment app + number
+  // payment app + number, with the separators people actually type ("98765 43210", "98765-43210")
+  /\b(?:upi|paytm|gpay|phonepe|google\s?pay|bhim)\b[^.\n]{0,25}(?<!\d)[6-9](?:[\s.-]?\d){9}(?!\d)/,
 ];
 
+// An amount of money written as rupees/Rs/INR/₹ (in either order with a number).
+const AMOUNT = String.raw`(?:(?:₹|\brs\.?|\binr\b)\s*\d[\d,.]*|\d[\d,.]*\s*(?:₹|rs\b\.?|inr\b|rupees?\b|rupay[ae]\b|rupaye\b|k\b))`;
+const ASK = String.raw`(?:send|transfer|bhej\w*|pay\s+(?:me|on|via|to|by)|de\s+do|dedo)`;
+
 const PAYMENT_PHRASES = [
-  /\bsend\s+(?:me\s+)?(?:some\s+)?(?:money|cash|funds|payment)\b/,
+  /\b(?:send|transfer)\s+(?:me\s+)?(?:some\s+)?(?:money|cash|funds|payment|paisa|paise|rupees?|rupaye|rupay[ae])\b/,
+  // "send me 20000 rupees", "pay me ₹5000", "mujhe 5000 rupaye bhej do": an amount near a transfer verb
+  new RegExp(`\\b${ASK}\\b[^.\\n]{0,14}${AMOUNT}`),
+  new RegExp(`${AMOUNT}[^.\\n]{0,14}\\b${ASK}\\b`),
   /\btransfer\s+(?:the\s+|some\s+)?(?:money|amount|funds|payment)\b/,
   /\b(?:pay|paying)\s+(?:me\s+)?(?:an?\s+)?advance\b/,
   /\badvance\s+(?:payment|amount|fee)\b/,
-  /\b(?:processing|registration|verification|customs|clearance|visa|shipping|booking|release|courier)\s+(?:fees?|charges?|amount)\b/,
+  // A registration or booking fee is ordinary for a hall or a function; it is
+  // only a signal when the sender is asking the other person to pay it.
+  /\b(?:pay|send|deposit|transfer)\s+(?:me\s+)?(?:the\s+|a\s+|an\s+|some\s+)?(?:small\s+)?(?:registration|booking)\s+(?:fees?|charges?|amount)\b/,
+  /\b(?:processing|verification|customs|clearance|visa|shipping|release|courier)\s+(?:fees?|charges?|amount)\b/,
   /\bgift\s?cards?\b/,
   /\b(?:western\s+union|moneygram)\b/,
   /\b(?:bitcoin|btc|usdt|ethereum|crypto(?:currency)?)\b/,
@@ -74,6 +87,12 @@ const SHORTENERS = new Set([
 ]);
 const RISKY_TLDS = new Set(['xyz', 'top', 'club', 'tk', 'ml', 'ga', 'cf', 'gq', 'cc', 'live', 'site', 'online', 'click', 'link', 'work', 'buzz', 'icu', 'monster', 'rest', 'fit']);
 const PHISH_WORDS = /(?:login|log-in|signin|sign-in|verify|verification|secure|account|update|kyc|wallet|bank|refund|reward|prize|claim|otp)/;
+
+// Chat apps people are steered onto to leave the platform's reach.
+const OFF_PLATFORM = /(?<![\w@.-])(?:wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com|t\.me|telegram\.(?:me|dog)|signal\.me|ig\.me)\b|\btelegram\s*(?:id|handle|username|@)|\b(?:message|msg|text|contact|add)\s+me\s+on\s+telegram\b|\bmove\s+(?:to|on)\s+(?:telegram|signal)\b/;
+
+// "m o n e y": single letters spaced apart are a standard way past a keyword filter.
+const collapseSpelledOut = (t) => t.replace(/\b(?:[a-z0-9][ .\-_]){3,}[a-z0-9]\b/g, (run) => run.replace(/[ .\-_]/g, ''));
 
 const URL_LIKE = /(?<![\w@.-])(?:https?:\/\/|www\.)[^\s<>"']+|(?<![\w@.-])[a-z0-9][a-z0-9-]{0,62}(?:\.[a-z0-9-]{1,63})*\.(?:com|in|net|org|co|io|me|xyz|top|club|online|site|link|live|app|ly|gl|cc|tk|ml|ga|cf|gq|click|work|buzz|icu|info|biz|us|uk|ru|cn)(?:\/[^\s<>"']*)?/g;
 
@@ -99,18 +118,28 @@ const classifyUrl = (raw) => {
  * @returns {{ flags: string[], high: boolean }} flags are unique codes, strongest first.
  */
 const assessMessage = (text) => {
-  const t = normalise(text);
-  if (!t.trim()) return { flags: [], high: false };
+  const normal = normalise(text);
+  if (!normal.trim()) return { flags: [], high: false };
+  // Match against the text as typed AND with spelled-out words closed up.
+  const squashed = collapseSpelledOut(normal);
+  const t = normal;
   const found = new Set();
 
+  const both = (re) => re.test(t) || (squashed !== t && re.test(squashed));
   if (UPI_ID.test(t)) found.add('upi_id');
-  if (BANK_DETAILS.some((re) => re.test(t))) found.add('bank_details');
-  if (PAYMENT_PHRASES.some((re) => re.test(t))) found.add('payment_request');
+  if (BANK_DETAILS.some(both)) found.add('bank_details');
+  if (PAYMENT_PHRASES.some(both)) found.add('payment_request');
+  if (OFF_PLATFORM.test(t)) found.add('off_platform');
 
   const urls = t.match(URL_LIKE) || [];
-  for (const raw of urls) found.add(classifyUrl(raw.replace(/[).,;:!?]+$/, '')));
+  for (const raw of urls) {
+    const kind = classifyUrl(raw.replace(/[).,;:!?]+$/, ''));
+    // wa.me / t.me are already reported as off_platform, which says more.
+    if (kind === 'external_link' && OFF_PLATFORM.test(raw)) continue;
+    found.add(kind);
+  }
 
-  const flags = [...found].sort((a, b) => (SEVERITY[a] === 'high' ? 0 : 1) - (SEVERITY[b] === 'high' ? 0 : 1));
+  const flags = [...found].sort((a, b) => RANK[SEVERITY[a]] - RANK[SEVERITY[b]]);
   return { flags, high: flags.some((f) => SEVERITY[f] === 'high') };
 };
 

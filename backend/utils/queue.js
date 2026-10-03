@@ -368,6 +368,8 @@ const setupCleanupProcessor = (queue) => {
     const { Op } = require('sequelize');
     const { get: cacheGet, set: cacheSet } = require('./cache');
     const { notify } = require('./notifyUser');
+    const { buildSearchWhere } = require('./searchFilters');
+    const { loadViewerContext } = require('./profileVisibility');
 
     // Fetch all users who have saved searches stored (as MMKV on device)
     // Backend-side: we use profile.lifestylePreferences.savedSearches (stored during save-search API call)
@@ -383,7 +385,8 @@ const setupCleanupProcessor = (queue) => {
         model: Profile,
         where: { isActive: true, gender: { [Op.in]: ['male', 'female'] } },
         attributes: ['gender', 'city', 'state', 'religion', 'caste', 'preferredAgeMin', 'preferredAgeMax',
-                     'preferredEducation', 'preferredProfession', 'lifestylePreferences', 'firstName'],
+                     'preferredEducation', 'preferredProfession', 'preferredHeightMin', 'preferredHeightMax',
+                     'preferredCity', 'mustHavePreferences', 'manglikStatus', 'lifestylePreferences', 'firstName'],
       }],
       attributes: ['id', 'fcmTokens'],
     }, async (users) => {
@@ -398,6 +401,8 @@ const setupCleanupProcessor = (queue) => {
     const savedSearches = sanitizeSavedSearchList(profile.lifestylePreferences?.savedSearches);
         if (!Array.isArray(savedSearches) || savedSearches.length === 0) continue;
 
+        const viewerCtx = await loadViewerContext(user.id);
+
         for (const search of savedSearches) {
           const { name, filters } = search;
           if (!filters) continue;
@@ -407,34 +412,19 @@ const setupCleanupProcessor = (queue) => {
           const alreadySent = await cacheGet(alertKey);
           if (alreadySent) continue;
 
-          const where = {
-            isActive: true,
-            incognitoMode: { [Op.ne]: true },
-            userId: { [Op.ne]: user.id },
-            createdAt: { [Op.gte]: dayAgo },
-          };
+          // The SAME query Search runs for this member (who may appear, the
+          // opposite-gender default, must-haves and every saved filter), limited
+          // to profiles created since yesterday — so the count in the alert is
+          // what opening the search will list.
+          const { where } = buildSearchWhere({ filters, currentProfile: profile, viewerCtx });
+          where.createdAt = { [Op.gte]: dayAgo };
 
-          if (filters.gender) where.gender = filters.gender;
-          if (filters.religion) where.religion = filters.religion;
-          if (filters.caste) where.caste = filters.caste;
-          if (filters.city?.length) where.city = { [Op.in]: filters.city };
-
-          if (filters.ageMin || filters.ageMax) {
-            const dobWhere = {};
-            if (filters.ageMin) {
-              const maxDob = new Date();
-              maxDob.setFullYear(maxDob.getFullYear() - filters.ageMin);
-              dobWhere[Op.lte] = maxDob;
-            }
-            if (filters.ageMax) {
-              const minDob = new Date();
-              minDob.setFullYear(minDob.getFullYear() - filters.ageMax - 1);
-              dobWhere[Op.gte] = minDob;
-            }
-            if (Object.keys(dobWhere).length) where.dateOfBirth = dobWhere;
-          }
-
-          const count = await Profile.count({ where });
+          const count = await Profile.count({
+            where,
+            include: [{ model: User, attributes: [], where: { status: 'active' }, required: true }],
+            distinct: true,
+            col: 'id',
+          });
           if (count > 0) {
             await notify(
               user.id,

@@ -18,7 +18,7 @@ export const PROFILE_SUBMIT_FIELDS = [
   'personalityValues', 'familyPreferences', 'lifestylePreferences',
   'bio', 'interestTags', 'profilePrompts', 'quizAnswers',
   'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
-  'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch',
+  'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch', 'excludeSameGotra',
   'profilePhoto', 'photos',
 ];
 
@@ -31,13 +31,24 @@ const SUBMIT_SET = new Set(PROFILE_SUBMIT_FIELDS);
 // it's handled as file uploads, not a clearable text array.
 const CLEARABLE_ARRAY_FIELDS = new Set(['preferredCity', 'interestTags', 'languages', 'mustHavePreferences']);
 
+// Fields the editor must never blank: identity (locked/critical server-side)
+// and city (required for search). The server ignores '' for these anyway.
+const NEVER_CLEARED = new Set(['firstName', 'lastName', 'gender', 'dateOfBirth', 'city', 'profilePhoto', 'photos']);
+
+const isEmptyValue = (v) => v === '' || v === null || v === undefined;
+
 /**
  * Build a multipart FormData for PUT /profile/me from the onboarding formData,
  * appending ONLY whitelisted profile fields. Handles File (photos), arrays
  * (multi-appended so multer parses an array), objects (JSON-stringified), and
  * primitives (skipping '', null, undefined).
+ *
+ * Edit mode passes `baseline` (the hydrated values the member started from): a
+ * scalar that held a value there and is now empty is sent as '' so the server
+ * clears it. Without a baseline (signup) an empty value is simply not sent, as
+ * there is nothing stored to clear.
  */
-export const buildProfileFormData = (formData = {}) => {
+export const buildProfileFormData = (formData = {}, { baseline } = {}) => {
   const fd = new FormData();
   Object.entries(formData).forEach(([key, value]) => {
     if (!SUBMIT_SET.has(key)) return; // never send account/verification fields
@@ -52,9 +63,20 @@ export const buildProfileFormData = (formData = {}) => {
       }
     } else if (typeof value === 'object' && value !== null) {
       fd.append(key, JSON.stringify(value));
-    } else if (value !== null && value !== undefined && value !== '') {
+    } else if (!isEmptyValue(value)) {
       fd.append(key, value);
     }
   });
+  if (baseline) {
+    PROFILE_SUBMIT_FIELDS.forEach((key) => {
+      if (NEVER_CLEARED.has(key) || CLEARABLE_ARRAY_FIELDS.has(key)) return;
+      const now = formData[key];
+      const before = baseline[key];
+      // Only plain scalars are cleared this way; objects/arrays have their own paths.
+      if (isEmptyValue(now) && !isEmptyValue(before) && typeof before !== 'object' && !fd.has(key)) {
+        fd.append(key, '');
+      }
+    });
+  }
   return fd;
 };

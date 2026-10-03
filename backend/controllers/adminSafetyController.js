@@ -8,9 +8,11 @@
 
 const { Op, QueryTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const { User, Profile, ContactMessage } = require('../models');
+const { User, Profile, ContactMessage, Verification } = require('../models');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
-const { logAudit } = require('../middlewares/logger');
+const { log, logAudit } = require('../middlewares/logger');
+const { deleteFromCloudinary } = require('../middlewares/upload');
+const { revalidateVerification } = require('../utils/verificationFingerprint');
 const { notify } = require('../utils/notifyUser');
 const { ADMIN_ROLES, scopesFor } = require('../constants/adminScopes');
 
@@ -251,7 +253,18 @@ exports.removePhoto = asyncHandler(async (req, res) => {
   const remaining = photos.filter((p) => p !== photoUrl);
   profile.photos = remaining;
   if (profile.profilePhoto === photoUrl) profile.profilePhoto = remaining[0] || '';
+  const wasMainPhoto = profile.changed('profilePhoto');
   await profile.save();
+
+  // Same follow-through as rejecting a held photo: the file itself goes (it
+  // stays reachable at its public URL otherwise), and a changed main photo
+  // changes what the verified badge vouched for. Neither may undo the removal.
+  deleteFromCloudinary(photoUrl)
+    .catch((err) => log.error('Removed photo delete failed', { error: err.message, targetUserId: userId }));
+  if (wasMainPhoto) {
+    revalidateVerification(userId, { Verification, Profile, notify, log })
+      .catch((err) => log.error('Verification re-check failed', { error: err.message, targetUserId: userId }));
+  }
 
   logAudit('photo_removed', req.user.id, { targetUserId: userId, photoUrl, reason });
   await notify(

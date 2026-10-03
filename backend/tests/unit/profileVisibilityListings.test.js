@@ -229,6 +229,9 @@ describe('GET /match/daily', () => {
   });
 });
 
+// A member whose age can be checked: date of birth and gender on file.
+const ADULT = { dateOfBirth: '1995-01-01', gender: 'female' };
+
 describe('POST /match/:userId target checks', () => {
   const act = (userId, action = 'like') =>
     run(match.matchAction, { params: { userId }, body: { action }, user: { id: ME } });
@@ -237,13 +240,13 @@ describe('POST /match/:userId target checks', () => {
   // interests), so Profile.findOne is answered per userId: the acting member is
   // always visible here, and each test controls what the TARGET's row says.
   const targetProfile = (value) => models.Profile.findOne.mockImplementation(async (query) => (
-    query && query.where && query.where.userId === ME ? { isActive: true, pausedAt: null } : value
+    query && query.where && query.where.userId === ME ? { isActive: true, pausedAt: null, ...ADULT } : value
   ));
 
   beforeEach(() => {
     models.Block.findOne.mockResolvedValue(null);
     models.User.findByPk.mockResolvedValue({ id: A, status: 'active' });
-    targetProfile({ isActive: true, profileVisibility: 'everyone' });
+    targetProfile({ isActive: true, profileVisibility: 'everyone', ...ADULT });
   });
 
   it('refuses to act on yourself', async () => {
@@ -265,15 +268,33 @@ describe('POST /match/:userId target checks', () => {
   });
 
   it('404s for a matches-only member who has not liked the viewer', async () => {
-    targetProfile({ isActive: true, profileVisibility: 'matches_only' });
+    targetProfile({ isActive: true, profileVisibility: 'matches_only', ...ADULT });
     models.Match.findOne.mockResolvedValue(null);
     const { thrown } = await act(A);
     expect(thrown).toMatchObject({ statusCode: 404 });
     expect(sequelize.transaction).not.toHaveBeenCalled();
   });
 
+  it('404s for a member whose age cannot be checked (no date of birth), with no write', async () => {
+    targetProfile({ isActive: true, profileVisibility: 'everyone', dateOfBirth: null, gender: 'female' });
+    const { thrown } = await act(A);
+    expect(thrown).toMatchObject({ statusCode: 404 });
+    expect(sequelize.transaction).not.toHaveBeenCalled();
+  });
+
+  it('403s when the ACTING member has no date of birth or gender yet, with no write', async () => {
+    models.Profile.findOne.mockImplementation(async (query) => (
+      query && query.where && query.where.userId === ME
+        ? { isActive: true, pausedAt: null, dateOfBirth: null, gender: null }
+        : { isActive: true, profileVisibility: 'everyone', ...ADULT }
+    ));
+    const { thrown } = await act(A);
+    expect(thrown).toMatchObject({ statusCode: 403, code: 'PROFILE_INCOMPLETE' });
+    expect(sequelize.transaction).not.toHaveBeenCalled();
+  });
+
   it('checks for an inbound like from that member, and only a like', async () => {
-    targetProfile({ isActive: true, profileVisibility: 'matches_only' });
+    targetProfile({ isActive: true, profileVisibility: 'matches_only', ...ADULT });
     models.Match.findOne.mockResolvedValue(null);
     await act(A);
     expect(models.Match.findOne).toHaveBeenCalledWith(

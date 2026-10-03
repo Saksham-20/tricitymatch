@@ -122,6 +122,7 @@ describe('eraseAccount', () => {
     const userUpdate = statements.find((s) => s.includes('UPDATE "Users"'));
     expect(userUpdate).toBeDefined();
     expect(userUpdate).toContain('"phone" = NULL');
+    expect(userUpdate).toContain('"contactPhone" = NULL');
     expect(userUpdate).toContain('"googleId" = NULL');
     expect(userUpdate).toContain('"fcmTokens" = ARRAY[]::text[]');
     expect(userUpdate).toContain('"inviteToken" = NULL');

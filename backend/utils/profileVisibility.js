@@ -18,6 +18,8 @@ const { Op } = require('sequelize');
 const { Block, Match, Profile, User } = require('../models');
 const { getActiveSubscription } = require('./entitlements');
 const { applyFieldVisibility } = require('../constants/fieldVisibility');
+const { normalizeGotra, gotraSql } = require('./gotra');
+const { AGE_VERIFIABLE_WHERE } = require('./ageVerifiable');
 
 // Keys that belong to the owner and are never useful to anyone else. Note
 // `dateOfBirth` stays: clients derive age from it today. Replacing it with a
@@ -33,24 +35,61 @@ const OWNER_ONLY_KEYS = [
   'photoBlurUntilMatch',
   'fieldVisibility',
   'mustHavePreferences',
+  'excludeSameGotra',
 ];
+
+/**
+ * What a LIST card needs, and nothing more.
+ *
+ * Search and suggestion responses used to carry the whole Profile row (about 85
+ * keys) for every result: birth time and place, parents' occupations, bio,
+ * partner preferences, creation time and so on, for up to 100 people per request.
+ * Anyone with a login could harvest that at 30 requests a minute. A card shows a
+ * name, a photo, a few facts and a score, and the full profile is one opened
+ * profile away (where visibility, blocks and the owner's per-field choices are
+ * applied and a profile view is recorded). The list is the union of what the web
+ * ProfileCard and the mobile cards/screens read, plus the shared
+ * ProfileSummary contract, so shipped clients keep working.
+ *
+ * `dateOfBirth` stays because those clients derive age from it; replacing it
+ * with a server-computed age is a client-contract change tracked separately.
+ */
+const CARD_KEYS = [
+  'id', 'userId', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'age', 'height',
+  'city', 'state', 'religion', 'caste', 'profession', 'education',
+  'profilePhoto', 'photos', 'completionPercentage',
+  'isVerified', 'verificationStatus', 'isPremium', 'premiumPlan', 'isBoosted',
+  'compatibilityScore', 'matchStatus', 'isMutual', 'reasons',
+];
+
+const toCardProfile = (data) => {
+  const card = {};
+  for (const key of CARD_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) card[key] = data[key];
+  }
+  return card;
+};
 
 /**
  * Everything a viewer's listing needs to know about their own relationships,
  * loaded once per request.
  */
 const loadViewerContext = async (viewerId) => {
-  const [blocks, mutualRows] = await Promise.all([
+  const [blocks, mutualRows, viewerProfile] = await Promise.all([
     Block.findAll({
       where: { [Op.or]: [{ blockerId: viewerId }, { blockedUserId: viewerId }] },
       attributes: ['blockerId', 'blockedUserId'],
     }),
     Match.findAll({ where: { userId: viewerId, isMutual: true }, attributes: ['matchedUserId'] }),
+    Profile.findOne({ where: { userId: viewerId }, attributes: ['gotra', 'excludeSameGotra'] }),
   ]);
   return {
     viewerId,
     blockedIds: [...new Set(blocks.map((b) => (b.blockerId === viewerId ? b.blockedUserId : b.blockerId)))],
     mutualIds: new Set(mutualRows.map((m) => m.matchedUserId)),
+    // For the same-gotra rule (see gotraClause). Empty when the viewer gave none.
+    gotra: normalizeGotra(viewerProfile && viewerProfile.gotra),
+    excludeSameGotra: Boolean(viewerProfile && viewerProfile.excludeSameGotra),
   };
 };
 
@@ -67,6 +106,21 @@ const matchesOnlyClause = (ctx) => ({
 });
 
 /**
+ * Same-gotra rule, both directions. A candidate is left out when
+ *   - the viewer asked to avoid their own gotra and the candidate shares it, or
+ *   - the candidate asked to avoid THEIR own gotra and the viewer shares it.
+ * A side with no gotra recorded is never excluded, and never excludes.
+ */
+const gotraClause = (ctx) => {
+  if (!ctx.gotra) return null;
+  const mine = Profile.sequelize.escape(ctx.gotra);
+  const theirs = gotraSql('"Profile"."gotra"');
+  const parts = [`("Profile"."excludeSameGotra" = true AND ${theirs} = ${mine})`];
+  if (ctx.excludeSameGotra) parts.push(`${theirs} = ${mine}`);
+  return Profile.sequelize.literal(`NOT (${parts.join(' OR ')})`);
+};
+
+/**
  * Sequelize `where` fragment for Profile listing queries. Spread it, then add
  * the caller's own filters. Also join User with `status: 'active'` (see
  * ACTIVE_USER_INCLUDE) — account status lives on Users, not Profiles.
@@ -76,15 +130,18 @@ const matchesOnlyClause = (ctx) => ({
  *        the member chose to share, so it does not hide incognito members the
  *        way discovery does.
  */
-const listingScope = (ctx, { includeIncognito = false } = {}) => {
+const listingScope = (ctx, { includeIncognito = false, applyGotra = true } = {}) => {
+  const gotra = applyGotra ? gotraClause(ctx) : null;
   return {
     isActive: true,
+    // Nobody whose age cannot be checked (no date of birth / gender yet) is listed.
+    ...AGE_VERIFIABLE_WHERE,
     ...(includeIncognito ? {} : { incognitoMode: { [Op.ne]: true } }),
     userId: {
       [Op.ne]: ctx.viewerId,
       ...(ctx.blockedIds.length ? { [Op.notIn]: ctx.blockedIds } : {}),
     },
-    [Op.and]: [matchesOnlyClause(ctx)],
+    [Op.and]: [matchesOnlyClause(ctx), ...(gotra ? [gotra] : [])],
   };
 };
 
@@ -186,6 +243,8 @@ const redactForViewer = (raw, { isMutual = false, isSelf = false, hasPaidAccess 
 
 module.exports = {
   OWNER_ONLY_KEYS,
+  CARD_KEYS,
+  toCardProfile,
   loadViewerContext,
   listingScope,
   matchesOnlyClause,

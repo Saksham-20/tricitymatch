@@ -69,6 +69,16 @@ const MarketingPayout = sequelize.define('MarketingPayout', {
     allowNull: true,
     references: { model: 'Users', key: 'id' },
   },
+  // Soft void (migration 000087). A payout is the record that money left, so it
+  // is never destroyed: a voided row keeps who/when/why and simply stops
+  // counting toward paid-out and pending.
+  voidedAt: { type: DataTypes.DATE, allowNull: true },
+  voidedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'Users', key: 'id' },
+  },
+  voidReason: { type: DataTypes.STRING(300), allowNull: true },
 }, {
   tableName: 'MarketingPayouts',
   timestamps: true,

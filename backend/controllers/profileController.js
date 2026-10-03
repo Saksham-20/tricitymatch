@@ -3,6 +3,7 @@
  * Handles user profile management with proper security
  */
 
+const { hasVerifiableAge } = require('../utils/ageVerifiable');
 const { Profile, User, ProfileView, Subscription, Match, ContactUnlock, Block, Verification, MediaReview } = require('../models');
 const { holdFlaggedPhotos } = require('../utils/imageModeration');
 const { revalidateVerification } = require('../utils/verificationFingerprint');
@@ -19,14 +20,18 @@ const { applyIdentityRules } = require('../utils/identityLock');
 const { blockedIdsFor } = require('../utils/blocks');
 const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
 const { sanitizeMustHaves } = require('../utils/preferenceFit');
+const { invalidateDailyMatches } = require('../utils/dailyMatchesCache');
 const { applyFieldVisibility, sanitizeFieldVisibility } = require('../constants/fieldVisibility');
+const { revealablePhone, contactOf, contactShareFor } = require('../utils/contactDetails');
+const { sameGotra } = require('../utils/gotra');
+const { levelFor, canSee } = require('../constants/fieldVisibility');
 const { getActiveSubscription } = require('../utils/entitlements');
 const { visibleSocialLinks, normalizeSocialLinks } = require('../utils/socialLinks');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
 const { PAID_PLANS } = require('../constants/plans');
-const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getAshtakootScore, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
+const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getKundliMatch, buildKundliSummary, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
 const { getNumerologyMatch } = require('../utils/numerology');
 const { generateKundliPDF } = require('../utils/kundli');
 const { generateBiodataPDF, TEMPLATES: BIODATA_TEMPLATES } = require('../utils/biodata');
@@ -42,7 +47,7 @@ const { trackEvent } = require('../utils/trackEvent');
 // Completion milestones and their messages
 const COMPLETION_MILESTONES = [
   { pct: 50, title: 'Profile 50% complete!', body: 'Add your education & profession to boost your matches.' },
-  { pct: 70, title: 'Profile 70% complete!', body: 'Upload your Kundli to reach 80%+ and appear in more searches.' },
+  { pct: 70, title: 'Profile 70% complete!', body: 'Add your horoscope details and a few photos to reach 80%+ and appear in more searches.' },
   { pct: 80, title: 'Profile 80% complete!', body: 'Almost there — add your bio and interest tags to complete your profile.' },
   { pct: 100, title: 'Profile 100% complete! 🎉', body: 'Congratulations! You now appear at the top of search results.' },
 ];
@@ -222,7 +227,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     // Fields that must be arrays in the database (excluding photos which is handled separately)
     const arrayFields = ['preferredCity', 'interestTags', 'languages'];
     // Boolean columns — coerce multipart 'true'/'false' strings to real booleans.
-    const booleanFields = ['isNri', 'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch'];
+    const booleanFields = ['isNri', 'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch', 'excludeSameGotra'];
     // Fields that must be JSON in the database
     const jsonFields = ['personalityValues', 'familyPreferences', 'lifestylePreferences', 'profilePrompts', 'quizAnswers', 'socialMediaLinks'];
     
@@ -277,7 +282,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     });
 
     // Don't overwrite critical fields with empty — keeps suggestions/discovery working (e.g. gender)
-    const criticalFields = ['gender', 'firstName', 'lastName'];
+    const criticalFields = ['gender', 'firstName', 'lastName', 'dateOfBirth'];
     criticalFields.forEach((key) => {
       const v = updateData[key];
       if (v === '' || v === null || v === undefined) delete updateData[key];
@@ -434,6 +439,9 @@ exports.updateProfile = asyncHandler(async (req, res) => {
 
   // A changed main photo or name withdraws the photo-verified badge until re-reviewed.
   await recheckVerification(req.user.id);
+
+  // Today's matches were ranked against the old profile / must-haves.
+  await invalidateDailyMatches(req.user.id);
 
   // Reload once more so response has latest DB state; send plain object so client gets photos array
   await profile.reload();
@@ -608,6 +616,11 @@ const assertProfileVisible = async (
     return { profile, isMutual: false, isSelf: true };
   }
 
+  // A profile whose age cannot be checked is not shown to anyone else.
+  if (!hasVerifiableAge(profile)) {
+    throw createError.notFound('Profile not found');
+  }
+
   // Blocks are bidirectional and must not reveal which direction fired.
   const blockExists = await Block.findOne({
     where: {
@@ -694,13 +707,16 @@ exports.getProfile = asyncHandler(async (req, res) => {
   // choice, so when the viewer is incognito we simply don't record the visit
   // (no create-then-destroy round-trip, no race where the target briefly sees it).
   if (!viewerProfile?.incognitoMode) {
-    try {
-      await ProfileView.create({ viewerId, viewedUserId: userId });
-    } catch (err) {
-      // CTRL-2: only the unique-constraint (already-viewed) case is expected;
-      // surface anything else instead of silently swallowing it.
-      if (err.name !== 'SequelizeUniqueConstraintError') throw err;
-    }
+    // One row per (viewer, viewed) pair — a unique index. A repeat visit moves the
+    // row's timestamp forward instead of being dropped, so "viewed at", the
+    // recently-viewed order and this week's count all follow the latest visit.
+    await sequelize.query(
+      `INSERT INTO "ProfileViews" (id, "viewerId", "viewedUserId", "createdAt", "updatedAt")
+       VALUES (:id, :viewerId, :viewedUserId, NOW(), NOW())
+       ON CONFLICT ("viewerId", "viewedUserId")
+       DO UPDATE SET "createdAt" = NOW(), "updatedAt" = NOW()`,
+      { replacements: { id: randomUUID(), viewerId, viewedUserId: userId } }
+    );
   }
 
   let compatibilityScore = null;
@@ -752,10 +768,15 @@ exports.getProfile = asyncHandler(async (req, res) => {
 
   // Only fetch contact details from DB when the viewer has actually earned access.
   // This prevents any accidental leakage through JSON serialisation.
-  if (hasPremiumAccess && isContactUnlocked) {
-    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email', 'phoneVerified'] });
+  // The owner's choice is read from the raw profile row: fieldVisibility is
+  // already stripped from `profileData` above.
+  const contactLevel = levelFor(profile.fieldVisibility, 'contact');
+  const contactShared = canSee(contactLevel, { isMutual });
+
+  if (hasPremiumAccess && isContactUnlocked && contactShared) {
+    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email', 'phoneVerified', 'contactPhone'] });
     // Only a number the owner proved they control is ever revealed.
-    const revealedPhone = targetUser?.phoneVerified ? targetUser.phone : null;
+    const revealedPhone = revealablePhone(targetUser);
     if (profileData.User) {
       profileData.User.phone = revealedPhone ?? null;
       profileData.User.email = targetUser?.email ?? null;
@@ -807,6 +828,10 @@ exports.getProfile = asyncHandler(async (req, res) => {
     compatibilityScore,
     hasPremiumAccess,
     isContactUnlocked,
+    contactShare: { level: contactLevel, allowed: contactShared },
+    // Both members recorded a gotra and it is the same one. The profile page
+    // shows a quiet note; nothing is hidden by this.
+    sameGotra: sameGotra(viewerProfile && viewerProfile.gotra, profile.gotra),
     contactUnlocksRemaining: hasPremiumAccess
       ? (viewerSubscription.contactUnlocksAllowed === null
         ? -1
@@ -826,20 +851,29 @@ exports.getProfileStats = asyncHandler(async (req, res) => {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+  // Same scope as the lists these numbers sit beside: no one in a block
+  // relationship with the member, and no one whose account is no longer active.
+  const blockedIds = [...(await blockedIdsFor(userId))];
+  const activeUser = (as) => ({ model: User, as, attributes: [], required: true, where: { status: 'active' } });
+  const notBlocked = (col) => (blockedIds.length ? { [col]: { [Op.notIn]: blockedIds } } : {});
+
   const [viewsThisWeek, totalViews, likesReceived, likesByCity] = await Promise.all([
     ProfileView.count({
-      where: { viewedUserId: userId, createdAt: { [Op.gte]: weekAgo } }
+      where: { viewedUserId: userId, createdAt: { [Op.gte]: weekAgo }, ...notBlocked('viewerId') },
+      include: [activeUser('Viewer')],
     }),
     ProfileView.count({
-      where: { viewedUserId: userId }
+      where: { viewedUserId: userId, ...notBlocked('viewerId') },
+      include: [activeUser('Viewer')],
     }),
     Match.count({
-      where: { matchedUserId: userId, action: 'like' }
+      where: { matchedUserId: userId, action: 'like', ...notBlocked('userId') },
+      include: [activeUser('User')],
     }),
     Match.findAll({
-      where: { matchedUserId: userId, action: 'like' },
+      where: { matchedUserId: userId, action: 'like', ...notBlocked('userId') },
       include: [{
-        model: User, as: 'User', attributes: ['id'],
+        model: User, as: 'User', attributes: ['id'], required: true, where: { status: 'active' },
         include: [{ model: Profile, attributes: ['city'] }]
       }],
       attributes: ['id']
@@ -872,6 +906,21 @@ exports.unlockContact = asyncHandler(async (req, res) => {
   // Check if already unlocked
   const existing = await ContactUnlock.findOne({ where: { userId, targetUserId } });
 
+  // The owner's own choice about who gets their contact details. It is checked
+  // before anything else and it applies to an unlock that was already paid for
+  // too: a setting that left every earlier buyer with the number would not be
+  // hiding it. Nothing is spent when it blocks.
+  const ownerProfile = await Profile.findOne({ where: { userId: targetUserId }, attributes: ['fieldVisibility'] });
+  const share = await contactShareFor(ownerProfile?.fieldVisibility, targetUserId, userId);
+  if (!share.allowed) {
+    throw createError.forbidden(
+      share.reason === 'CONTACT_NOT_SHARED'
+        ? 'This member has chosen not to share their contact details. No unlock was used.'
+        : 'This member shares contact details only with their matches. Send an interest first. No unlock was used.',
+      share.reason
+    );
+  }
+
   // Validate the target BEFORE any quota is consumed. This handler used to go
   // straight to the INSERT, so unlocking a deleted/suspended/nonexistent user
   // burned one of the plan's paid unlocks permanently and returned
@@ -890,18 +939,18 @@ exports.unlockContact = asyncHandler(async (req, res) => {
   if (existing) {
     const tp = await Profile.findOne({
       where: { userId: targetUserId },
-      include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }]
+      include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }]
     });
     return res.json({
       success: true,
       alreadyUnlocked: true,
-      contact: { phone: (tp?.User?.phoneVerified && tp?.User?.phone) || null, email: tp?.User?.email || null }
+      contact: contactOf(tp?.User)
     });
   }
 
   // Nothing to call means nothing to buy: refuse before a paid unlock is spent.
-  const targetContact = await User.findByPk(targetUserId, { attributes: ['phone', 'phoneVerified'] });
-  if (!targetContact?.phoneVerified || !targetContact.phone) {
+  const targetContact = await User.findByPk(targetUserId, { attributes: ['phone', 'phoneVerified', 'contactPhone'] });
+  if (!revealablePhone(targetContact)) {
     throw createError.conflict(
       'This member has not verified a contact number yet, so no unlock was used. Send them an interest and check back soon.'
     );
@@ -935,12 +984,12 @@ exports.unlockContact = asyncHandler(async (req, res) => {
         // Another request created it; charge nothing and report it as unlocked.
         const tpDup = await Profile.findOne({
           where: { userId: targetUserId },
-          include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }],
+          include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }],
           transaction: t
         });
         return {
           duplicate: true,
-          contact: { phone: (tpDup?.User?.phoneVerified && tpDup?.User?.phone) || null, email: tpDup?.User?.email || null },
+          contact: contactOf(tpDup?.User),
         };
       }
 
@@ -1019,12 +1068,12 @@ exports.unlockContact = asyncHandler(async (req, res) => {
 
       const tp = await Profile.findOne({
         where: { userId: targetUserId },
-        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }],
+        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }],
         transaction: t
       });
 
       return {
-        contact: { phone: (tp?.User?.phoneVerified && tp?.User?.phone) || null, email: tp?.User?.email || null },
+        contact: contactOf(tp?.User),
         remaining
       };
     });
@@ -1035,12 +1084,12 @@ exports.unlockContact = asyncHandler(async (req, res) => {
     if (err?.name === 'SequelizeUniqueConstraintError') {
       const tp = await Profile.findOne({
         where: { userId: targetUserId },
-        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified'] }]
+        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }]
       });
       return res.json({
         success: true,
         alreadyUnlocked: true,
-        contact: { phone: (tp?.User?.phoneVerified && tp?.User?.phone) || null, email: tp?.User?.email || null }
+        contact: contactOf(tp?.User)
       });
     }
     throw err;
@@ -1199,7 +1248,7 @@ exports.getCompatibilityBreakdown = asyncHandler(async (req, res) => {
 });
 
 exports.updatePrivacySettings = asyncHandler(async (req, res) => {
-  const { profileVisibility, showOnlineStatus, showLastSeen, fieldVisibility } = req.body;
+  const { profileVisibility, showOnlineStatus, showLastSeen, fieldVisibility, incognitoMode } = req.body;
   const profile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!profile) throw createError.notFound('Profile not found');
 
@@ -1217,6 +1266,7 @@ exports.updatePrivacySettings = asyncHandler(async (req, res) => {
   }
   if (typeof showOnlineStatus === 'boolean') profile.showOnlineStatus = showOnlineStatus;
   if (typeof showLastSeen === 'boolean') profile.showLastSeen = showLastSeen;
+  if (typeof incognitoMode === 'boolean') profile.incognitoMode = incognitoMode;
 
   await profile.save();
 
@@ -1224,6 +1274,7 @@ exports.updatePrivacySettings = asyncHandler(async (req, res) => {
     profileVisibility: profile.profileVisibility,
     showOnlineStatus: profile.showOnlineStatus,
     showLastSeen: profile.showLastSeen,
+    incognitoMode: Boolean(profile.incognitoMode),
     fieldVisibility: profile.fieldVisibility || {},
   }});
 });
@@ -1331,7 +1382,7 @@ exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
   });
 
   // Full Ashtakoot if both have nakshatra
-  const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
+  const ashtakoot = getKundliMatch(myProfile, theirProfile);
 
   // Manglik
   const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
@@ -1349,19 +1400,7 @@ exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
   const numerology = getNumerologyMatch(myProfile.dateOfBirth, theirProfile.dateOfBirth);
 
   // Summary
-  let summary = '';
-  if (ashtakoot) {
-    const score = ashtakoot.rawOut36 ?? 0;
-    summary = `Guna Milan: ${score}/36 (${ashtakoot.interpretation}).`;
-    if (ashtakoot.hasNadiDosha) summary += ' ⚠️ Nadi Dosha present.';
-    if (ashtakoot.hasBhakootDosha) summary += ' ⚠️ Bhakoot Dosha present.';
-    if (!manglikCompatible) summary += ' ⚠️ Manglik incompatibility.';
-    if (score >= 28 && manglikCompatible) summary += ' Excellent match for marriage.';
-  } else if (rashiScore !== null) {
-    summary = `Rashi compatibility: ${rashiScore}%. ${manglikDetail}.`;
-  } else {
-    summary = 'Insufficient horoscope data for full analysis. Please complete nakshatra and birth details.';
-  }
+  const summary = buildKundliSummary({ ashtakoot, manglikCompatible, manglikDetail, rashiScore });
 
   res.json({
     success: true,
@@ -1389,7 +1428,7 @@ exports.downloadKundliReport = asyncHandler(async (req, res) => {
   // Nakshatra, rashi and manglik feed the score itself and stay available.
   const theirProfile = applyFieldVisibility(visible.profile.toJSON(), { isMutual: visible.isMutual, isSelf: visible.isSelf });
 
-  const ashtakoot = getAshtakootScore(myProfile.nakshatra, theirProfile.nakshatra);
+  const ashtakoot = getKundliMatch(myProfile, theirProfile);
   const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
   const manglikDetail = (() => {
     if (!myProfile.manglikStatus || !theirProfile.manglikStatus) return 'Manglik status unknown for one or both profiles';
@@ -1400,19 +1439,7 @@ exports.downloadKundliReport = asyncHandler(async (req, res) => {
   const rashiScore = getRashiCompatibility(myProfile.rashi, theirProfile.rashi);
   const numerology = getNumerologyMatch(myProfile.dateOfBirth, theirProfile.dateOfBirth);
 
-  let summary = '';
-  if (ashtakoot) {
-    const score = ashtakoot.rawOut36 ?? 0;
-    summary = `Guna Milan: ${score}/36 (${ashtakoot.interpretation}).`;
-    if (ashtakoot.hasNadiDosha) summary += ' Nadi Dosha present.';
-    if (ashtakoot.hasBhakootDosha) summary += ' Bhakoot Dosha present.';
-    if (!manglikCompatible) summary += ' Manglik incompatibility.';
-    if (score >= 28 && manglikCompatible) summary += ' Excellent match for marriage.';
-  } else if (rashiScore !== null) {
-    summary = `Rashi compatibility: ${rashiScore}%. ${manglikDetail}.`;
-  } else {
-    summary = 'Insufficient horoscope data for full analysis. Please complete nakshatra and birth details.';
-  }
+  const summary = buildKundliSummary({ ashtakoot, manglikCompatible, manglikDetail, rashiScore, plain: true });
 
   generateKundliPDF(res, {
     myProfile, theirProfile, ashtakoot, manglikCompatible, manglikDetail, rashiScore, numerology, summary,

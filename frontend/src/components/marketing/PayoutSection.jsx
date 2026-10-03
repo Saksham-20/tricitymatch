@@ -108,7 +108,7 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
               {payouts.map((p) => (
-                <tr key={p.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors">
+                <tr key={p.id} className={`hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors ${p.voided ? 'opacity-60' : ''}`}>
                   <td className={td}>
                     {fmtDate(p.paidAt || p.createdAt)}
                     {p.recordedBy && (
@@ -119,13 +119,18 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
                   <td className={td}>
                     <span
                       className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        p.status === 'paid'
+                        p.voided
+                          ? 'bg-neutral-100 text-neutral-500 line-through dark:bg-neutral-800 dark:text-neutral-500'
+                          : p.status === 'paid'
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
                           : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
                       }`}
                     >
-                      {p.status === 'paid' ? 'Paid' : 'Queued'}
+                      {p.voided ? 'Voided' : p.status === 'paid' ? 'Paid' : 'Queued'}
                     </span>
+                    {p.voided && p.voidReason && (
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{p.voidReason}</div>
+                    )}
                   </td>
                   <td className={td}>{METHOD_LABELS[p.method] || '—'}</td>
                   <td className={td}>
@@ -139,7 +144,7 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
                       ? `${fmtDate(p.periodStart)} – ${fmtDate(p.periodEnd)}`
                       : '—'}
                   </td>
-                  {actions && <td className={`${td} text-right`}>{actions(p)}</td>}
+                  {actions && <td className={`${td} text-right`}>{p.voided ? '—' : actions(p)}</td>}
                 </tr>
               ))}
             </tbody>

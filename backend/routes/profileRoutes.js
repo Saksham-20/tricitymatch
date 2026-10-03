@@ -28,7 +28,7 @@ const {
   deleteVideoIntro,
 } = require('../controllers/profileController');
 const { auth, requirePremium, checkContactUnlockLimit, verifyTargetUser } = require('../middlewares/auth');
-const { uploadPhotos, validateUploadedFiles, uploadVoiceIntro, uploadVideoIntro } = require('../middlewares/upload');
+const { uploadPhotos, uploadLimitWhenPhotos, validateUploadedFiles, uploadVoiceIntro, uploadVideoIntro } = require('../middlewares/upload');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 const { profileUpdateLimiter, uploadLimiter, expensiveReadLimiter } = require('../middlewares/security');
 const { updateProfileValidation, getProfileValidation, deletePhotoValidation } = require('../validators');
@@ -69,8 +69,11 @@ router.put('/me',
   profileUpdateLimiter,
   // This route accepts a profile photo plus the full gallery (5 MB each), but
   // carried only the 10/min text-update limiter — ~600 uploads/hr per account.
-  // uploadLimiter (20/hr) is what the dedicated media routes already use.
-  uploadLimiter,
+  // uploadLimiter (20/hr) is what the dedicated media routes already use — but
+  // only for saves that actually carry a photo: the app saves once per journey
+  // step and the incognito/quiz toggles PUT here too, so counting text-only
+  // saves locked a diligent member out after ~20 steps (PROF-09).
+  uploadLimitWhenPhotos,
   uploadPhotos,
   ensureBody,
   validateUploadedFiles,

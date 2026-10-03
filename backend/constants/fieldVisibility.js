@@ -13,7 +13,7 @@
  *   matches   shown only to mutual matches
  *   hidden    shown to nobody but the owner
  *
- * Stored as Profiles.fieldVisibility JSONB `{ income, birthDetails }`. The rule
+ * Stored as Profiles.fieldVisibility JSONB `{ income, birthDetails, contact }`. The rule
  * is applied in the payload (utils/profileVisibility.redactForViewer, getProfile,
  * the kundli report) and search refuses to filter on a hidden income, or a
  * range filter would reveal exactly what the member chose to hide.
@@ -27,6 +27,10 @@ const LEVELS = ['everyone', 'matches', 'hidden'];
 const GROUPS = {
   income: ['income'],
   birthDetails: ['birthTime', 'placeOfBirth'],
+  // Phone number and email, which live on the User row rather than the Profile,
+  // so there is no column to null here: unlockContact and getProfile read the
+  // level through utils/contactDetails instead.
+  contact: [],
 };
 
 /** Accept only known groups and levels; anything else is dropped. */

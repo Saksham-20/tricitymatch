@@ -57,7 +57,9 @@ const optionalNumber = (key, defaultValue = 0) => {
 
 const optionalBoolean = (key, defaultValue = false) => {
   const value = process.env[key];
-  if (value === undefined) return defaultValue;
+  // An empty string is how docker-compose passes an unset `${VAR:-}`; it must
+  // mean "not set", not "false" (DB_SSL_REJECT_UNAUTHORIZED defaults to true).
+  if (value === undefined || value === '') return defaultValue;
   return value === 'true' || value === '1';
 };
 
@@ -217,6 +219,11 @@ const config = {
      */
     dryRun: optionalBoolean('EMAIL_DRY_RUN', !isProduction),
     support: optionalString('SUPPORT_EMAIL', 'support@tricitymatch.com'),
+    // Ceiling on member-triggered ACCOUNT mail (email OTP, password reset, email
+    // change) per UTC day across every address. 0 disables. Lifecycle/digest
+    // mail has its own caps; this only guards the endpoints an anonymous caller
+    // can drive, so a botnet cannot burn the shared Resend quota.
+    dailyBudget: optionalNumber('EMAIL_DAILY_BUDGET', 500),
     // SMTP creds present (real, not placeholder)
     smtpConfigured: () => {
       const u = optionalString('EMAIL_USER');

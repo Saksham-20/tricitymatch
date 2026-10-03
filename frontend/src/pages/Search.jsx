@@ -29,10 +29,22 @@ const FILTER_LABELS = {
   manglikFilter: (v) => v.replace(/_/g, ' '),
   verifiedOnly: () => 'Verified only',
 };
+// The whole filter set in one place: initial state, "clear all" and "apply a
+// saved search" all start from this, so none of them can leave a stale value.
+const EMPTY_FILTERS = {
+  ageMin: '', ageMax: '',
+  heightMin: '', heightMax: '',
+  city: '', education: '', profession: '',
+  diet: '', smoking: '', drinking: '',
+  religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '', incomeMax: '', manglikFilter: '',
+  verifiedOnly: '',
+};
+
 import { staggerContainer, fadeInUp } from '../utils/animations';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { ProfileCard } from '../components/cards';
+import { useMatchCelebration } from '../context/MatchCelebrationContext';
 import { FilterPanel } from '../components/search';
 import InviteLink from '../components/common/InviteLink';
 import { Skeleton, EmptyState, ErrorState } from '../components/ui';
@@ -72,10 +84,13 @@ const CardSkeleton = ({ compact = false }) => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 const Search = () => {
+  const { celebrate } = useMatchCelebration();
   const navigate = useNavigate();
   const [profiles, setProfiles]   = useState([]);
   const [loading, setLoading]     = useState(false);
   const [searchError, setSearchError] = useState(false);
+  // The server refused a filter value (400) — a problem with the filters, not an outage.
+  const [filterProblem, setFilterProblem] = useState(false);
   // DS6: on Search the theater only fills the REAL wait (maxHoldMs 0) —
   // results are never delayed; once per day, then plain skeletons.
   const { showTheater, skip: skipTheater } = useStagedReveal({
@@ -94,14 +109,7 @@ const Search = () => {
   const [mustHavesOff, setMustHavesOff] = useState(false);
   const [mustHaveKeys, setMustHaveKeys] = useState([]);
 
-  const [filters, setFilters] = useState({
-    ageMin: '', ageMax: '',
-    heightMin: '', heightMax: '',
-    city: '', education: '', profession: '',
-    diet: '', smoking: '', drinking: '',
-    religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '', incomeMax: '', manglikFilter: '',
-    verifiedOnly: '',
-  });
+  const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
@@ -110,19 +118,22 @@ const Search = () => {
 
   useEffect(() => { searchProfiles(); }, [page]);
 
-  // Apply a saved search: map the stored shape back onto the filter state and
-  // re-run from page 1.
+  // Apply a saved search: it REPLACES the filter state (leftover filters from
+  // the previous search must not leak into it) and runs from page 1 with the
+  // merged object passed straight in; state set in the same tick is not visible
+  // to a callback created in the previous render.
   const handleApplySavedSearch = (saved) => {
-    setFilters((prev) => ({
-      ...prev,
-      religion: saved.religion || '',
-      caste: saved.caste || '',
-      city: Array.isArray(saved.city) ? (saved.city[0] || '') : (saved.city || ''),
-      ageMin: saved.ageMin ? String(saved.ageMin) : '',
-      ageMax: saved.ageMax ? String(saved.ageMax) : '',
-    }));
+    const next = { ...EMPTY_FILTERS };
+    Object.keys(EMPTY_FILTERS).forEach((key) => {
+      const v = saved?.[key];
+      if (v === undefined || v === null || v === '') return;
+      next[key] = Array.isArray(v) ? String(v[0] || '') : String(v);
+    });
+    const nextSort = ['compatibility', 'age', 'location', 'recent'].includes(saved?.sortBy) ? saved.sortBy : sortBy;
+    setFilters(next);
+    setSortBy(nextSort);
     setPage(1);
-    setTimeout(() => searchProfiles({ overridePage: 1 }), 0);
+    searchProfiles({ overrideFilters: next, overridePage: 1, overrideSort: nextSort });
   };
 
   const handleIdSearch = async (e) => {
@@ -139,7 +150,7 @@ const Search = () => {
         toast.error('No profile found for that ID');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'No profile found for that ID');
+      toast.error(err.response?.data?.error?.message || 'No profile found for that ID');
     } finally {
       setIdLoading(false);
     }
@@ -187,6 +198,7 @@ const Search = () => {
 
       currentPage === 1 ? setProfiles(normalized) : setProfiles(prev => [...prev, ...normalized]);
       setSearchError(false);
+      setFilterProblem(false);
 
       const applied = response.data?.mustHaves?.applied;
       if (Array.isArray(applied) && applied.length) setMustHaveKeys(applied);
@@ -198,8 +210,16 @@ const Search = () => {
       // 404 is the backend's "no results for these filters" — that is the EMPTY
       // state, not an error. Anything else renders the distinct error card so a
       // server failure is never blamed on the member's filters.
-      if (err.response?.status !== 404) {
+      if (err.response?.status === 400) {
+        // A filter value the server will not search on (for example an age
+        // outside 18-99). Say so instead of calling it a server failure.
+        setFilterProblem(true);
+        setSearchError(false);
+      } else if (err.response?.status !== 404) {
         setSearchError(true);
+        setFilterProblem(false);
+      } else {
+        setFilterProblem(false);
       }
       if (currentPage === 1) setProfiles([]);
     } finally {
@@ -227,20 +247,27 @@ const Search = () => {
   };
 
   const handleClearFilters = () => {
-    const emptyFilters = { ageMin: '', ageMax: '', heightMin: '', heightMax: '', city: '', education: '', profession: '', diet: '', smoking: '', drinking: '', religion: '', caste: '', maritalStatus: '', motherTongue: '', incomeMin: '', incomeMax: '', manglikFilter: '', verifiedOnly: '' };
+    const emptyFilters = { ...EMPTY_FILTERS };
     setFilters(emptyFilters);
     setPage(1);
     searchProfiles({ overrideFilters: emptyFilters, overridePage: 1 });
   };
 
-  const handleMatchAction = async (userId, action) => {
-    if (!userId) return;
+  // `next` is the state the member asked for: true = like / save, false = take
+  // it back ('undo'). Returns whether the server accepted it, so the card icon
+  // can revert when it did not.
+  const handleMatchAction = async (userId, action, next = true) => {
+    if (!userId) return false;
     try {
-      await api.post(`/match/${userId}`, { action });
-      toast.success(action === 'like' ? 'Interest expressed!' : 'Profile shortlisted!');
-      setProfiles(prev => prev.map(p => p.userId === userId ? { ...p, matchStatus: action } : p));
+      const res = await api.post(`/match/${userId}`, { action: next ? action : 'undo' });
+      if (next) toast.success(action === 'like' ? 'Interest expressed!' : 'Profile shortlisted!');
+      else toast.success(action === 'like' ? 'Interest withdrawn' : 'Removed from your shortlist');
+      setProfiles(prev => prev.map(p => p.userId === userId ? { ...p, matchStatus: next ? action : null } : p));
+      if (res.data?.newMatch) celebrate(profiles.find(p => p.userId === userId));
+      return true;
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed');
+      return false;
     }
   };
 
@@ -414,6 +441,24 @@ const Search = () => {
             )}
 
             {/* ── Error state — distinct from empty: server broke, filters didn't ── */}
+            {/* ── Filter problem: the server refused a value, the filters need fixing ── */}
+            {!loading && filterProblem && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                role="alert"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
+              >
+                <ErrorState
+                  title="Check your filters"
+                  description="One of your filters has a value we can't search on, for example an age under 18 or over 99. Adjust it and apply again, or clear the filters."
+                  onRetry={handleClearFilters}
+                  retryLabel="Clear filters"
+                  className="py-16"
+                />
+              </motion.div>
+            )}
+
             {!loading && searchError && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -437,7 +482,7 @@ const Search = () => {
                 built. Saying "new members join every day" in either case was
                 a fabricated activity claim — the honest landing page can't be
                 followed by a dishonest interior. */}
-            {!loading && !searchError && profiles.length === 0 && (
+            {!loading && !searchError && !filterProblem && profiles.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -480,8 +525,8 @@ const Search = () => {
                           profile={profile}
                           userId={profile.userId}
                           index={i}
-                          onLike={() => handleMatchAction(profile.userId, 'like')}
-                          onShortlist={() => handleMatchAction(profile.userId, 'shortlist')}
+                          onLike={(next) => handleMatchAction(profile.userId, 'like', next)}
+                          onShortlist={(next) => handleMatchAction(profile.userId, 'shortlist', next)}
                         />
                       );
                     })}

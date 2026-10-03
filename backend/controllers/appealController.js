@@ -32,7 +32,9 @@ exports.submitAppeal = asyncHandler(async (req, res) => {
   if (!email || statement.length < 20) throw createError.badRequest('Please give your email and at least a couple of sentences');
 
   const user = await User.findOne({
-    where: { email: { [Op.in]: emailLookupCandidates(email) }, status: { [Op.in]: ['banned', 'inactive'] } },
+    // Ordinary members only. A suspended staff or marketing account is restored
+    // through the team tools, which carry rank and scope checks an appeal skips.
+    where: { email: { [Op.in]: emailLookupCandidates(email) }, status: { [Op.in]: ['banned', 'inactive'] }, role: 'user' },
     attributes: ['id', 'status'],
   });
 
@@ -79,6 +81,16 @@ exports.decideAppeal = asyncHandler(async (req, res) => {
   if (!appeal) throw createError.notFound('Appeal not found');
   if (appeal.status !== 'pending') throw createError.conflict('This appeal has already been decided');
 
+  // Restoring is a status change on the account, so it follows the same rule as
+  // one: only ordinary members here. (Staff status goes through updateUserStatus,
+  // which enforces rank, self-edit and team-scope guards.)
+  if (decision === 'overturned' && appeal.userId) {
+    const subject = await User.findByPk(appeal.userId, { attributes: ['id', 'role'] });
+    if (subject && subject.role !== 'user') {
+      throw createError.forbidden('This account is not an ordinary member. Restore it from Admin > Team.');
+    }
+  }
+
   appeal.status = decision;
   appeal.decisionNote = note.trim();
   appeal.decidedBy = req.user.id;
@@ -87,7 +99,7 @@ exports.decideAppeal = asyncHandler(async (req, res) => {
 
   if (decision === 'overturned' && appeal.userId) {
     // Only lift a suspension; never resurrect an erased account.
-    await User.update({ status: 'active' }, { where: { id: appeal.userId, status: { [Op.in]: ['banned', 'inactive'] } } });
+    await User.update({ status: 'active' }, { where: { id: appeal.userId, role: 'user', status: { [Op.in]: ['banned', 'inactive'] } } });
   }
   logAudit('appeal_decided', req.user.id, { appealId: appeal.id, targetUserId: appeal.userId, decision });
 

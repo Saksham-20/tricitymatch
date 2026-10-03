@@ -84,7 +84,7 @@ describe('Validators', () => {
       expect(errors).toContain('At least 8 characters');
       expect(errors).toContain('One uppercase letter');
       expect(errors).toContain('One number');
-      expect(errors).toContain('One special character (!@#$%^&*(),.?":{}|<>)');
+      expect(errors).toContain('One special character (a symbol such as ! @ # $ _ -)');
     });
   });
 

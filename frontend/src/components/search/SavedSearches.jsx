@@ -13,13 +13,17 @@ import toast from 'react-hot-toast';
 import api from '../../api/axios';
 
 // Search-page filter state → the saved shape the backend + alert job read.
+// EVERY filter on screen is saved (empty ones dropped), so opening the saved
+// search reproduces what was applied. City is stored as a list.
+const NUMERIC = new Set(['ageMin', 'ageMax', 'heightMin', 'heightMax', 'incomeMin', 'incomeMax']);
 const toSavedFilters = (filters) => {
   const out = {};
-  if (filters.religion) out.religion = filters.religion;
-  if (filters.caste) out.caste = filters.caste;
-  if (filters.city) out.city = [filters.city];
-  if (filters.ageMin) out.ageMin = parseInt(filters.ageMin, 10);
-  if (filters.ageMax) out.ageMax = parseInt(filters.ageMax, 10);
+  Object.entries(filters || {}).forEach(([key, value]) => {
+    if (value === '' || value === null || value === undefined) return;
+    if (key === 'city') out.city = [value];
+    else if (NUMERIC.has(key)) out[key] = parseInt(value, 10);
+    else out[key] = value;
+  });
   return out;
 };
 
@@ -53,7 +57,8 @@ const SavedSearches = ({ filters, onApplySaved }) => {
       setItems((prev) => [...prev, res.data.savedSearch]);
       setNaming(false);
       setName('');
-      toast.success('Search saved. We’ll alert you about new matches.');
+      const n = Object.keys(res.data.savedSearch?.filters || {}).length;
+      toast.success(`Search saved with ${n} filter${n === 1 ? '' : 's'}. We’ll alert you about new matches.`);
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Could not save search');
     } finally {

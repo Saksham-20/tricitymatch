@@ -31,13 +31,27 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
       if (typeof merged.dateOfBirth === 'string' && merged.dateOfBirth.length > 10) {
         merged.dateOfBirth = merged.dateOfBirth.slice(0, 10);
       }
+      // A member who never chose preferred cities has none stored (null = no
+      // preference). The signup form pre-ticks the three core cities as a hint;
+      // editing someone else's empty value must not turn that hint into a saved
+      // requirement they never made.
+      if (existingProfile.preferredCity === null || existingProfile.preferredCity === undefined) {
+        merged.preferredCity = [];
+      }
       return merged;
     }
-    const saved = localStorage.getItem('onboarding_draft');
-    if (!saved) return getInitialFormData();
+    // A corrupt value or blocked storage (private window, cleared site data)
+    // must fall back to a blank form, not white-screen /onboarding (PROF-29).
+    let draft = null;
+    try {
+      const saved = localStorage.getItem('onboarding_draft');
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) draft = parsed;
+    } catch { draft = null; }
+    if (!draft) return getInitialFormData();
     // Always start with empty credential fields — drafts written by older
     // builds may still contain a plain-text password; never rehydrate one.
-    return { ...getInitialFormData(), ...JSON.parse(saved), password: '', confirmPassword: '' };
+    return { ...getInitialFormData(), ...draft, password: '', confirmPassword: '' };
   });
 
   const [currentStep, setCurrentStep] = useState(() => {
@@ -58,9 +72,10 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     if (mode === 'create_for_other') {
       return 0; // Start at account type selection
     }
-    const saved = localStorage.getItem('onboarding_step');
-    const parsed = saved ? parseInt(saved) : 0;
-    return Math.min(parsed, maxStep);
+    let saved = null;
+    try { saved = localStorage.getItem('onboarding_step'); } catch { saved = null; }
+    const parsed = parseInt(saved, 10);
+    return Math.min(Number.isFinite(parsed) && parsed > 0 ? parsed : 0, maxStep);
   });
 
   const [errors, setErrors] = useState({});
@@ -85,12 +100,12 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     // eslint-disable-next-line no-unused-vars
     const { password, confirmPassword, emailProof, phoneProof, ...persisted } = formData;
     const safeDraft = { ...persisted, emailVerification: false, phoneVerification: false };
-    localStorage.setItem('onboarding_draft', JSON.stringify(safeDraft));
+    try { localStorage.setItem('onboarding_draft', JSON.stringify(safeDraft)); } catch { /* storage unavailable: the draft is a convenience */ }
   }, [formData, onboardingMode]);
 
   useEffect(() => {
     if (onboardingMode === 'edit') return;
-    localStorage.setItem('onboarding_step', String(currentStep));
+    try { localStorage.setItem('onboarding_step', String(currentStep)); } catch { /* storage unavailable */ }
   }, [currentStep, onboardingMode]);
 
   const updateFormData = useCallback((field, value) => {
@@ -159,8 +174,10 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
   }, []);
 
   const clearDraft = useCallback(() => {
-    localStorage.removeItem('onboarding_draft');
-    localStorage.removeItem('onboarding_step');
+    try {
+      localStorage.removeItem('onboarding_draft');
+      localStorage.removeItem('onboarding_step');
+    } catch { /* storage unavailable */ }
     setFormData(getInitialFormData());
     setCurrentStep(0);
     setErrors({});
@@ -275,6 +292,7 @@ function getInitialFormData() {
     caste: '',
     subCaste: '',
     gotra: '',
+    excludeSameGotra: false,
     motherTongue: '',
 
     // Marital Status

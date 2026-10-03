@@ -141,8 +141,10 @@ const galleryPhotoStorage = createCloudinaryStorage('gallery', [
 // Verification documents storage (images + PDF). Cloudinary stores PDFs under the
 // 'image' resource type, so PDFs remain supported while still being pinned away
 // from 'auto'/raw/video.
+// Selfies are compared face-to-face by a reviewer, so they are NOT stored at the
+// lowest quality tier (auto:eco degraded an already 720px capture). (PROF-25)
 const documentStorage = createCloudinaryStorage('verification-docs', [
-  { quality: 'auto:eco' },
+  { quality: 'auto:good' },
 ], { resourceType: 'image', formats: ['jpg', 'jpeg', 'png', 'webp'], type: 'authenticated' });
 
 // Create multer upload instances
@@ -162,9 +164,19 @@ const uploadGalleryPhotos = multer({
   { name: 'photos', maxCount: config.upload.maxGalleryPhotos },
 ]);
 
+// Per-field storage for the combined profile upload: the main photo is a face-
+// cropped 500x500 square, but gallery photos keep their composition (1200px
+// limit). One multer instance carries both fields, so route by fieldname
+// (PROF-07 — gallery photos used to be squared to 500px too).
+const perFieldPhotoStorage = {
+  _pick: (file) => (file.fieldname === 'photos' ? galleryPhotoStorage : profilePhotoStorage),
+  _handleFile(req, file, cb) { return this._pick(file)._handleFile(req, file, cb); },
+  _removeFile(req, file, cb) { return this._pick(file)._removeFile(req, file, cb); },
+};
+
 // Combined upload for profile updates
 const uploadPhotos = multer({
-  storage: profilePhotoStorage,
+  storage: perFieldPhotoStorage,
   fileFilter: imageFileFilter,
   limits: { fileSize: MAX_FILE_SIZE },
 }).fields([
@@ -415,7 +427,23 @@ const getMobileOptimizedUrl = (imageUrl) => {
   );
 };
 
+// A text-only multipart save is a few KB; any real photo is far larger. The
+// upload limiter must run BEFORE multer (a rejected request should never reach
+// Cloudinary), hence the declared length stands in for "carries a file". No
+// declared length (chunked) counts as an upload — it fails closed. Text-only
+// saves keep the 10/min profileUpdateLimiter (PROF-09).
+const TEXT_ONLY_MAX_BYTES = 32 * 1024;
+const uploadLimitWhenPhotos = (req, res, next) => {
+  const declared = Number(req.headers['content-length']);
+  if (Number.isFinite(declared) && declared > 0 && declared <= TEXT_ONLY_MAX_BYTES) return next();
+  return require('./security').uploadLimiter(req, res, next);
+};
+
 module.exports = {
+  uploadLimitWhenPhotos,
+  perFieldPhotoStorage,
+  profilePhotoStorage,
+  galleryPhotoStorage,
   uploadProfilePhoto,
   uploadGalleryPhotos,
   uploadPhotos,

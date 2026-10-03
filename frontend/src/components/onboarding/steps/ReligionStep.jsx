@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
+import CheckBox from '../../ui/CheckBox';
 import { CASTE_OPTIONS, CASTE_OTHER } from '../../../constants/profileOptions';
 import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
@@ -114,6 +115,16 @@ const ReligionStep = () => {
               value={formData.gotra}
               onChange={(value) => updateFormData('gotra', value)}
             />
+            {(formData.gotra || '').trim() && (
+              <div className="sm:col-span-2">
+                <CheckBox
+                  checked={!!formData.excludeSameGotra}
+                  onChange={(checked) => updateFormData('excludeSameGotra', checked)}
+                  label="Do not show me members with my gotra"
+                  hint="They will not see you either. It applies to every search, daily matches and suggestions. Members who have not entered a gotra are still shown."
+                />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

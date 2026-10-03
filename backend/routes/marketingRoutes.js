@@ -9,9 +9,8 @@ const router = express.Router();
 const { auth, marketingAuth } = require('../middlewares/auth');
 const { asyncHandler, createError, handleValidationErrors } = require('../middlewares/errorHandler');
 const { MarketingLead, ReferralCode, User } = require('../models');
-const { buildMarketingReport } = require('../utils/marketingReport');
+const { buildMarketingReport, getRepRevenue } = require('../utils/marketingReport');
 const { getPayoutLedger } = require('../utils/marketingPayouts');
-const sequelize = require('../config/database');
 const { param } = require('express-validator');
 
 // All marketing routes require authentication and marketing role
@@ -27,10 +26,9 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
     MarketingLead.count({ where: { assignedToMarketingUserId: userId } }),
     MarketingLead.count({ where: { assignedToMarketingUserId: userId, status: 'contacted' } }),
     MarketingLead.count({ where: { assignedToMarketingUserId: userId, status: 'converted' } }),
-    sequelize.query(
-      `SELECT SUM("amountPaid")::float AS total FROM "MarketingLeads" WHERE "assignedToMarketingUserId" = :userId AND "paymentStatus" = 'paid'`,
-      { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
-    ),
+    // Subscriptions are the source of truth for money (same as /report); the
+    // lead's amountPaid copy went stale whenever the webhook activated a plan.
+    getRepRevenue(userId),
     ReferralCode.count({ where: { marketingUserId: userId, isActive: true } })
   ]);
 
@@ -40,7 +38,7 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
       totalLeads: leadsCount,
       contactedLeads: contactedCount,
       convertedLeads: convertedCount,
-      totalRevenue: revenueData[0]?.total || 0,
+      totalRevenue: revenueData || 0,
       activeReferralCodes: codesCount
     }
   });
@@ -63,6 +61,9 @@ router.get('/report', asyncHandler(async (req, res) => {
 // @access  Private/Marketing
 router.get('/payouts', asyncHandler(async (req, res) => {
   const ledger = await getPayoutLedger(req.user.id);
+  // A voided payout stays visible (it was real money moving), but the admin's
+  // internal reason for voiding it is not the rep's to read.
+  ledger.payouts = ledger.payouts.map(({ voidReason, ...rest }) => rest);
   res.json({ success: true, ...ledger });
 }));
 

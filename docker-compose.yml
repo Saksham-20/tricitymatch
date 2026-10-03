@@ -249,6 +249,38 @@ services:
       # Monitoring
       MONITORING_ENABLED: ${MONITORING_ENABLED:-true}
       ALERT_EMAILS: ${ALERT_EMAILS:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      METRICS_PATH: ${METRICS_PATH:-}
+      # Read by config/env.js but missing from this allowlist, so a value in .env
+      # never reached the container (SITE-15). Empty = config/env.js default.
+      # Google sign-in (the frontend build already gets VITE_GOOGLE_CLIENT_ID; without
+      # this the button rendered and the server rejected every credential).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # Google Play purchases. The package name is permanent and NOT the brand name.
+      GOOGLE_PLAY_PACKAGE_NAME: ${GOOGLE_PLAY_PACKAGE_NAME:-}
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON:-}
+      # Referral / invite rewards (config defaults 3 and 20)
+      INVITE_REWARD_UNLOCKS: ${INVITE_REWARD_UNLOCKS:-}
+      INVITE_REWARD_MAX_PER_INVITER: ${INVITE_REWARD_MAX_PER_INVITER:-}
+      # Outbound email ceiling per day and SMTP TLS mode
+      EMAIL_DAILY_BUDGET: ${EMAIL_DAILY_BUDGET:-}
+      EMAIL_SECURE: ${EMAIL_SECURE:-}
+      # Redis TLS (managed Redis) and DB pool / TLS tuning
+      REDIS_TLS: ${REDIS_TLS:-}
+      DB_SSL_REJECT_UNAUTHORIZED: ${DB_SSL_REJECT_UNAUTHORIZED:-}
+      DB_POOL_MIN: ${DB_POOL_MIN:-}
+      DB_POOL_IDLE: ${DB_POOL_IDLE:-}
+      DB_POOL_ACQUIRE: ${DB_POOL_ACQUIRE:-}
+      DB_POOL_EVICTION_INTERVAL: ${DB_POOL_EVICTION_INTERVAL:-}
+      # Content limits
+      CLOUDINARY_FOLDER: ${CLOUDINARY_FOLDER:-}
+      MAX_GALLERY_PHOTOS: ${MAX_GALLERY_PHOTOS:-}
+      MAX_MESSAGE_LENGTH: ${MAX_MESSAGE_LENGTH:-}
+      MESSAGE_EDIT_TIME_LIMIT_MINUTES: ${MESSAGE_EDIT_TIME_LIMIT_MINUTES:-}
+    # SITE-12: server.js force-exits 12s into a shutdown; Docker's default 10s
+    # stop timeout would SIGKILL it first. Give it room to close sockets, queues,
+    # cache and the database cleanly.
+    stop_grace_period: 20s
     # Host port 5001 avoids conflict with other app on 5000; set VITE_API_URL to match for frontend build
     ports:
       # Loopback only: the reverse proxy reaches this over the docker network
@@ -289,6 +321,7 @@ services:
         VITE_RAZORPAY_KEY_ID: ${VITE_RAZORPAY_KEY_ID:-}
         VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_AGORA_APP_ID: ${VITE_AGORA_APP_ID:-}
         VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:-}
         VITE_SUPPORT_WHATSAPP: ${VITE_SUPPORT_WHATSAPP:-}
         VITE_SUPPORT_PHONE: ${VITE_SUPPORT_PHONE:-}

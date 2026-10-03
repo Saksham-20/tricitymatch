@@ -40,6 +40,8 @@ jest.mock('../../utils/profileVisibility', () => ({
   listingScope: jest.fn(() => ({})),
   viewerHasPaidAccess: jest.fn(async () => false),
   redactForViewer: (raw) => raw,
+  // The card projection has its own test (cardProfile.test.js); ranking is under test here.
+  toCardProfile: (data) => data,
 }));
 
 const { searchProfiles } = require('../../controllers/searchController');

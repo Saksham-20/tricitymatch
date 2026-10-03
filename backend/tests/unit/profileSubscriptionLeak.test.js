@@ -53,6 +53,8 @@ const TARGET = 'target-id';
 const makeProfile = (overrides = {}) => ({
   userId: TARGET,
   profileVisibility: 'everyone',
+  dateOfBirth: '1995-01-01',
+  gender: 'female',
   photoBlurUntilMatch: false,
   incognitoMode: false,
   socialMediaLinks: null,

@@ -5,6 +5,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiUsers, FiUserPlus, FiTrash2, FiEye, FiHeart, FiStar, FiCheck, FiX } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
+import apiErrorMessage from '../utils/apiError';
 
 export default function Guardian() {
   const { t } = useTranslation();
@@ -55,7 +56,7 @@ export default function Guardian() {
           setTab('candidates');
         }
       } catch (err) {
-        if (!cancelled) toast.error(err.response?.data?.message || 'This invite is invalid or has expired');
+        if (!cancelled) toast.error(apiErrorMessage(err, 'This invite is invalid or has expired'));
       } finally {
         if (!cancelled) {
           setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete('invite'); return next; }, { replace: true });
@@ -75,7 +76,7 @@ export default function Guardian() {
       if (decision === 'accept') setTab('candidates');
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'That invite is no longer open');
+      toast.error(apiErrorMessage(err, 'That invite is no longer open'));
       load();
     }
   };
@@ -90,7 +91,7 @@ export default function Guardian() {
       setEmail('');
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invite failed');
+      toast.error(apiErrorMessage(err, 'Invite failed'));
     } finally {
       setInviting(false);
     }
@@ -341,7 +342,7 @@ function HandOverCard() {
       setSent(true);
       setPassword('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not send the hand-over link');
+      toast.error(apiErrorMessage(err, 'Could not send the hand-over link'));
     } finally {
       setBusy(false);
     }

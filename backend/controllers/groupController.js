@@ -5,29 +5,20 @@
  * caused the socket events to be disabled (SOCK-1/MF-1).
  */
 
+const { Op } = require('sequelize');
 const { Group, GroupMember, GroupMessage, User, Profile } = require('../models');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { notify } = require('../utils/notifyUser');
 const { isBlockedBetween } = require('../utils/blocks');
+const { cleanMessageText } = require('../utils/messageText');
+const { evictGroupRoom } = require('../utils/relationship');
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_MEMBERS = 20;
 
-// Sanitize message content to prevent XSS (mirrors chatController).
-const sanitizeMessage = (content) => {
-  if (typeof content !== 'string') return '';
-  return content
-    .replace(/<[^>]*>/g, '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim();
-};
+// Messages are stored as typed (see utils/messageText); the clients render text safely.
+const sanitizeMessage = cleanMessageText;
 
 // Authorization: confirm the user is an ACTIVE member of the group; returns
 // membership. A pending invitation deliberately grants nothing — the invitee has
@@ -36,6 +27,15 @@ const requireMembership = async (groupId, userId) => {
   const membership = await GroupMember.findOne({ where: { groupId, userId, status: 'active' } });
   if (!membership) throw createError.forbidden('You are not a member of this group');
   return membership;
+};
+
+// Signup stores a phone as typed while login matches the bare, 91, +91 and 0
+// forms; an invite must find the same account login would.
+const phoneLookupForms = (raw) => {
+  const trimmed = String(raw).trim();
+  const digits = trimmed.replace(/\D/g, '').slice(-10);
+  if (digits.length !== 10) return [trimmed];
+  return [...new Set([trimmed, digits, `91${digits}`, `+91${digits}`, `0${digits}`])];
 };
 
 const groupRoom = (groupId) => `group_${groupId}`;
@@ -176,7 +176,7 @@ exports.addMember = asyncHandler(async (req, res) => {
   if (bodyUserId) {
     target = await User.findByPk(bodyUserId, { attributes: ['id', 'status'] });
   } else {
-    target = await User.findOne({ where: { phone: String(phone).trim() }, attributes: ['id', 'status'] });
+    target = await User.findOne({ where: { phone: { [Op.in]: phoneLookupForms(phone) } }, attributes: ['id', 'status'] });
   }
 
   const invitable = target
@@ -302,6 +302,7 @@ exports.removeMember = asyncHandler(async (req, res) => {
   }
 
   await target.destroy();
+  await evictGroupRoom(groupId, memberUserId);
   res.json({ success: true });
 });
 
@@ -317,6 +318,7 @@ exports.leaveGroup = asyncHandler(async (req, res) => {
     if (others > 1) throw createError.badRequest('Owner must delete the group or transfer ownership before leaving');
   }
   await membership.destroy();
+  await evictGroupRoom(groupId, userId);
   res.json({ success: true });
 });
 
@@ -330,6 +332,11 @@ exports.deleteGroup = asyncHandler(async (req, res) => {
   const group = await Group.findByPk(groupId);
   if (!group) throw createError.notFound('Group not found');
   await group.destroy(); // cascades to members + messages
+
+  // Tell open tabs the group is gone, then empty the room so nothing more is delivered.
+  const io = req.app.get('io');
+  if (io) io.to(groupRoom(groupId)).emit('group-deleted', { groupId });
+  await evictGroupRoom(groupId);
 
   res.json({ success: true });
 });
@@ -442,3 +449,4 @@ exports.deleteMessage = asyncHandler(async (req, res) => {
 
 module.exports.requireMembership = requireMembership;
 module.exports.groupRoom = groupRoom;
+module.exports.phoneLookupForms = phoneLookupForms;

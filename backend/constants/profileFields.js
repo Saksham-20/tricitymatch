@@ -64,7 +64,7 @@ const PROFILE_EDITABLE_FIELDS = [
   'spotifyPlaylist', 'socialMediaLinks', 'personalityType', 'languages',
   // Privacy toggles (already client-editable pre-fix)
   'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch',
-  'fieldVisibility',
+  'fieldVisibility', 'excludeSameGotra',
 ];
 
 // The validator stripper must additionally let the photo fields through so the

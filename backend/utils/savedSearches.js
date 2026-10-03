@@ -17,22 +17,47 @@
 
 const MAX_SAVED_SEARCHES = 5;
 
+// Every filter the Search page offers is saved, so opening a saved search
+// reproduces what was on screen and the alert counts the same thing.
+const FILTER_ENUMS = {
+  diet: ['vegetarian', 'non-vegetarian', 'vegan', 'jain'],
+  smoking: ['never', 'occasionally', 'regularly'],
+  drinking: ['never', 'occasionally', 'regularly'],
+  maritalStatus: ['never_married', 'divorced', 'widowed', 'awaiting_divorce'],
+  manglikFilter: ['manglik_only', 'non_manglik_only', 'exclude_incompatible'],
+  sortBy: ['compatibility', 'age', 'location', 'recent'],
+};
+const FILTER_TEXT = ['religion', 'caste', 'education', 'profession', 'motherTongue'];
+const FILTER_INTS = {
+  ageMin: [18, 99], ageMax: [18, 99],
+  heightMin: [100, 250], heightMax: [100, 250],
+  incomeMin: [0, 100000000], incomeMax: [0, 100000000],
+};
+
 const sanitizeSavedFilters = (raw) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
   const filters = {};
+  // Kept for stored rows: the alert always searches the opposite gender now.
   if (typeof raw.gender === 'string' && ['male', 'female'].includes(raw.gender)) filters.gender = raw.gender;
-  if (typeof raw.religion === 'string' && raw.religion.trim()) filters.religion = raw.religion.trim().slice(0, 50);
-  if (typeof raw.caste === 'string' && raw.caste.trim()) filters.caste = raw.caste.trim().slice(0, 50);
+  for (const key of FILTER_TEXT) {
+    if (typeof raw[key] === 'string' && raw[key].trim()) filters[key] = raw[key].trim().slice(0, 100);
+  }
+  for (const [key, allowed] of Object.entries(FILTER_ENUMS)) {
+    if (typeof raw[key] === 'string' && allowed.includes(raw[key])) filters[key] = raw[key];
+  }
+  if (raw.verifiedOnly === true || raw.verifiedOnly === 'true') filters.verifiedOnly = 'true';
   if (Array.isArray(raw.city)) {
     const cities = raw.city.filter(c => typeof c === 'string' && c.trim()).map(c => c.trim().slice(0, 60)).slice(0, 10);
     if (cities.length) filters.city = cities;
+  } else if (typeof raw.city === 'string' && raw.city.trim()) {
+    filters.city = [raw.city.trim().slice(0, 60)];
   }
-  const ageMin = parseInt(raw.ageMin, 10);
-  const ageMax = parseInt(raw.ageMax, 10);
-  if (Number.isFinite(ageMin) && ageMin >= 18 && ageMin <= 80) filters.ageMin = ageMin;
-  if (Number.isFinite(ageMax) && ageMax >= 18 && ageMax <= 80) filters.ageMax = ageMax;
-  if (filters.ageMin && filters.ageMax && filters.ageMin > filters.ageMax) {
-    delete filters.ageMax;
+  for (const [key, [lo, hi]] of Object.entries(FILTER_INTS)) {
+    const n = parseInt(raw[key], 10);
+    if (Number.isFinite(n) && n >= lo && n <= hi) filters[key] = n;
+  }
+  for (const [lo, hi] of [['ageMin', 'ageMax'], ['heightMin', 'heightMax'], ['incomeMin', 'incomeMax']]) {
+    if (filters[lo] !== undefined && filters[hi] !== undefined && filters[lo] > filters[hi]) delete filters[hi];
   }
   return filters;
 };

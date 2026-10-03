@@ -83,6 +83,20 @@ const ShimmerBar = ({ score }) => {
   );
 };
 
+// Badge copy per plan. A founding grant is a free 30-day offer, so it must not
+// wear the same crown label as a plan somebody bought; the plan on sale is
+// named "Premium" (premium_plus), and every other paid tier says its own name.
+const PLAN_BADGE = {
+  vip: ['VIP', 'VIP Member'],
+  nri: ['NRI', 'NRI Member'],
+  elite: ['Elite', 'Elite Member'],
+  premium_plus: ['Premium', 'Premium Member'],
+  basic_premium: ['Premium', 'Premium Member'],
+  founding_premium: ['Founding', 'Founding Member'],
+};
+const planBadgeLabel = (plan) => (PLAN_BADGE[plan] || PLAN_BADGE.premium_plus)[0];
+const planBadgeTitle = (plan) => (PLAN_BADGE[plan] || PLAN_BADGE.premium_plus)[1];
+
 /* ──────────────────────────────────────────────────────────
    Premium blur overlay
    ────────────────────────────────────────────────────────── */
@@ -153,8 +167,21 @@ const ProfileCard = ({
   const initials = ((profile.firstName?.[0] || '') + (profile.lastName?.[0] || '')).toUpperCase() || '?';
 
   const handleCardClick = () => userId && navigate(`/profile/${userId}`);
-  const handleLike = (e) => { e.stopPropagation(); setIsLiked(!isLiked); onLike?.(); };
-  const handleShortlist = (e) => { e.stopPropagation(); setIsShortlisted(!isShortlisted); onShortlist?.(); };
+  // The parent is told the state the member WANTS (true = like / save, false =
+  // take it back) and may answer `false` when the server refused, so the icon
+  // never claims something that did not happen.
+  const handleLike = async (e) => {
+    e.stopPropagation();
+    const next = !isLiked;
+    setIsLiked(next);
+    if ((await onLike?.(next)) === false) setIsLiked(!next);
+  };
+  const handleShortlist = async (e) => {
+    e.stopPropagation();
+    const next = !isShortlisted;
+    setIsShortlisted(next);
+    if ((await onShortlist?.(next)) === false) setIsShortlisted(!next);
+  };
 
   const hasPhoto = (profile.profilePhoto || profile.profile_photo) && !imgError;
   const isVerified = profile.verificationStatus === 'approved' || profile.User?.verificationStatus === 'approved' || profile.isVerified;
@@ -211,13 +238,7 @@ const ProfileCard = ({
                       ? 'text-primary-500'
                       : 'text-primary-400'
                   }`}
-                  title={
-                    profile.premiumPlan === 'vip'
-                      ? 'VIP Member'
-                      : profile.premiumPlan === 'premium_plus'
-                      ? 'Premium Plus Member'
-                      : 'Premium Member'
-                  }
+                  title={planBadgeTitle(profile.premiumPlan)}
                 />
               )}
             </div>
@@ -347,11 +368,7 @@ const ProfileCard = ({
               }`}
             >
               <FaCrown className="w-3 h-3" />
-              {profile.premiumPlan === 'vip'
-                ? 'VIP'
-                : profile.premiumPlan === 'premium_plus'
-                ? 'Plus'
-                : 'Premium'}
+              {planBadgeLabel(profile.premiumPlan)}
             </motion.div>
           )}
 

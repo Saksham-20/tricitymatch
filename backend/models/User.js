@@ -112,6 +112,13 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  // A verified contact number that differs from the login number (`phone`).
+  // Null = the contact number IS the login number. Written only by
+  // verifyContactNumber, after an OTP proves the member controls it.
+  contactPhone: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
   referralCodeUsed: {
     type: DataTypes.STRING,
     allowNull: true

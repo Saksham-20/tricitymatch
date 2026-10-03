@@ -13,6 +13,18 @@ const crypto = require('crypto');
 
 const REQUIRED = process.env.REQUIRE_DB_TESTS === '1';
 
+// Every test file gets a fresh module registry, so each file that touches the
+// database opens its own pool (min 5 connections) and nothing closed it: a
+// worker that ran ~20 files held ~100 connections and Postgres answered
+// "too many clients" once there were enough suites. A ROOT-level afterAll runs
+// after every describe-level afterAll, so it cannot close the pool before a
+// suite's own cleanup (the reason describeDb itself does not close it).
+if (typeof afterAll === 'function') {
+  afterAll(async () => {
+    try { await require('../../config/database').close(); } catch (_) { /* already closed */ }
+  });
+}
+
 const connect = async () => {
   const sequelize = require('../../config/database');
   try {
