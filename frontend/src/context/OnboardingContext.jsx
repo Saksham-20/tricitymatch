@@ -427,7 +427,7 @@ export const STEPS = [
     number: 4,
     title: 'Horoscope & Kundli',
     icon: 'Sun',
-    description: 'Only if it matters to you — skip freely',
+    description: 'Only if it matters to you',
     fields: ['manglikStatus', 'nakshatra', 'placeOfBirth', 'birthTime'],
     required: [],
     showIn: ['edit', 'create_for_other'],

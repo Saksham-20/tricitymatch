@@ -329,7 +329,7 @@ const CreateAccountStep = () => {
                 size="md"
                 label={
                   <span className="text-sm text-neutral-600">
-                    This account is for finding a marriage partner, not for dating or any other purpose, and I agree to the{' '}
+                    This account is for finding a marriage partner, not for dating, and I agree to the{' '}
                     <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a>{' '}and{' '}
                     <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.
                   </span>
@@ -436,7 +436,7 @@ const CreateAccountStep = () => {
         />
         <div className="pt-2">
           <CheckBox checked={!!formData.account_agree} onChange={(checked) => updateFormData('account_agree', checked)} size="md"
-            label={<span className="text-sm text-neutral-600">This account is for finding a marriage partner, not for dating or any other purpose, and I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.</span>} />
+            label={<span className="text-sm text-neutral-600">This account is for finding a marriage partner, not for dating, and I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.</span>} />
           {errors.account_agree && <p className="text-sm text-red-600 mt-1.5">{errors.account_agree}</p>}
         </div>
         {formData.creatingFor !== 'self' && (

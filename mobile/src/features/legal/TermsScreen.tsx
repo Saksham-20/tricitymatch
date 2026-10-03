@@ -155,7 +155,7 @@ export default function TermsScreen() {
 
       <Section heading="20. Suspension, termination & what happens to your data">
         <Para>You may delete your account at any time from Settings → Delete Account (steps: tricitymatch.com/delete-account). We may suspend or terminate an account that breaches these Terms or the law, or that endangers other members.</Para>
-        <Para>When your account is deleted, your profile, photographs, verification selfie, messages, matches, guardian links and registration information (email, phone) are erased 30 days after you ask, unless you cancel first; your profile is hidden from the moment you ask, and where you choose immediate erasure it happens at once. We keep payment records for as long as tax and accounting law requires, and keep moderation records where another member has reported you. Section 13 of the Privacy Policy sets this out in full.</Para>
+        <Para>When your account is deleted, your profile, photographs, verification selfie, messages, matches, guardian links and registration information (email, phone) are erased 30 days after you ask, unless you cancel first; your profile is hidden from the moment you ask, and on our website you can choose to erase immediately instead. We keep payment records for as long as tax and accounting law requires, and keep moderation records where another member has reported you. Section 13 of the Privacy Policy sets this out in full.</Para>
       </Section>
 
       <Section heading="21. Changes to these Terms">

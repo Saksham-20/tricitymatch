@@ -70,7 +70,8 @@ export const refreshAccessToken = async (): Promise<AuthResult> => {
 };
 
 export const googleLogin = async (idToken: string): Promise<AuthResult> => {
-  const res = await apiClient.post<AuthEnvelope>('/auth/google', { idToken });
+  // The server reads `credential` (same field the website sends).
+  const res = await apiClient.post<AuthEnvelope>('/auth/google', { credential: idToken });
   return persistTokens(res.data);
 };
 

@@ -1654,10 +1654,20 @@ exports.googleAuth = asyncHandler(async (req, res) => {
         throw createError.badRequest('Please accept the Terms and Privacy Policy to create an account');
       }
       isNewUser = true;
+      // Same hand-added-lead attribution as the email/phone signup: Google has
+      // proved the email, so it can match a partner's lead.
+      let manualLead = null;
+      try {
+        const { findManualLeadForSignup } = require('../utils/manualLeads');
+        manualLead = await findManualLeadForSignup({ phone: null, email });
+      } catch (err) {
+        log.warn('Manual lead lookup failed at Google signup (ignored)', { error: err.message });
+      }
       user = await sequelize.transaction(async (t) => {
         const newUser = await User.create({
           email: canonicalEmail(email),
           googleId,
+          ...(manualLead ? { referredByMarketingUserId: manualLead.assignedToMarketingUserId } : {}),
           password: null,
           status: 'active',
           emailVerified: true,
@@ -1675,6 +1685,13 @@ exports.googleAuth = asyncHandler(async (req, res) => {
           // Google member was a 26-year-old of gender 'other' in search until
           // they edited it. Onboarding collects the real values.
         }, { transaction: t });
+
+        if (manualLead) {
+          await MarketingLead.update(
+            { convertedUserId: newUser.id, status: 'contacted' },
+            { where: { id: manualLead.id, convertedUserId: null }, transaction: t }
+          );
+        }
 
         return newUser;
       });
