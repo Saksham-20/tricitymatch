@@ -33,6 +33,10 @@ export default function Step3Screen() {
 
   const isValid = !!manglikStatus;
 
+  const handleSkip = async () => {
+    await saveAndNext({}, {});
+  };
+
   // Same string for the eye and the screen reader, so "(Optional)" is spoken.
   const birthTimeLabel = `${t('onboarding.step3.birthTime')} (${t('common.optional')})`;
   const birthPlaceLabel = `${t('onboarding.step3.birthPlace')} (${t('common.optional')})`;
@@ -49,7 +53,13 @@ export default function Step3Screen() {
       subtitle={t('onboarding.step3.subtitle')}
       onContinue={handleContinue}
       continueDisabled={!isValid}
+      skippable
+      onSkip={handleSkip}
     >
+      <View style={styles.skipNote}>
+        <Text variant="subhead" color="textPrimary" style={styles.skipNoteTitle}>{t('onboarding.step3.skipTitle')}</Text>
+        <Text variant="footnote" color="textSecondary">{t('onboarding.step3.skipBody')}</Text>
+      </View>
       {/* Manglik status */}
       <View>
         <Text variant="footnote" color="textPrimary" style={styles.label}>{t('onboarding.step3.manglikStatus')}</Text>
@@ -141,6 +151,15 @@ const makeStyles = (c: ThemeColours) => StyleSheet.create({
   sectionHeader: {
     marginTop: spacing.sm,
   },
+  skipNote: {
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface2,
+    gap: 4,
+  },
+  skipNoteTitle: { fontFamily: 'Inter-SemiBold' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   optionBtn: {
     flexDirection: 'row',

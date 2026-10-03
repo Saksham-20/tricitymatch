@@ -115,7 +115,8 @@ export default function TermsScreen() {
       <Section heading="12. Plans, prices, taxes & payments">
         <Bullet>Basic use is free. Some features — unlocking contact details and unrestricted messaging — require a paid membership, sold for a fixed term stated at checkout.</Bullet>
         <Bullet>Prices are in Indian Rupees and include all applicable taxes, including GST. The price at checkout is the price you pay.</Bullet>
-        <Bullet>Memberships do not auto-renew. There is no standing instruction on your card or account; a membership expires at the end of its term unless you buy again.</Bullet>
+        <Bullet>Memberships paid for through Razorpay (card, UPI or netbanking) do not auto-renew. There is no standing instruction on your card or account; a membership expires at the end of its term unless you buy again.</Bullet>
+        <Bullet>A membership bought through Google Play billing is a Google Play subscription. Its renewal and cancellation follow the terms Google Play shows you when you buy, and you can cancel it at any time in Google Play under Payments & subscriptions.</Bullet>
         <Bullet>A membership grants the contact-unlock allowance stated at checkout. Unlocks are consumed when used and do not carry over after the term.</Bullet>
         <Bullet>Where a launch price is shown against a struck-through price, the struck-through figure is our regular price for the same term, and any stated offer end date is real.</Bullet>
         <Bullet>Payments are processed by Razorpay, and on Android may be processed by Google Play. On iPhone, memberships are purchased on our website. We never see or store your card, UPI or bank credentials.</Bullet>
@@ -154,7 +155,7 @@ export default function TermsScreen() {
 
       <Section heading="20. Suspension, termination & what happens to your data">
         <Para>You may delete your account at any time from Settings → Delete Account (steps: tricitymatch.com/delete-account). We may suspend or terminate an account that breaches these Terms or the law, or that endangers other members.</Para>
-        <Para>On deletion your profile, photographs, verification selfie, messages, matches and guardian links are erased. We retain your registration information for 180 days as rule 3(1)(h) of the IT Rules, 2021 requires, keep payment records for as long as tax and accounting law requires, and keep moderation records where another member has reported you. Section 13 of the Privacy Policy sets this out in full.</Para>
+        <Para>When your account is deleted, your profile, photographs, verification selfie, messages, matches, guardian links and registration information (email, phone) are erased 30 days after you ask, unless you cancel first; your profile is hidden from the moment you ask, and where you choose immediate erasure it happens at once. We keep payment records for as long as tax and accounting law requires, and keep moderation records where another member has reported you. Section 13 of the Privacy Policy sets this out in full.</Para>
       </Section>
 
       <Section heading="21. Changes to these Terms">

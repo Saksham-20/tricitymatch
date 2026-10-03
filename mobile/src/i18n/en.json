@@ -53,7 +53,7 @@
       "password": "Password",
       "confirmPassword": "Confirm password",
       "passwordMismatch": "Passwords do not match",
-      "termsLabel": "I agree to the Terms & Privacy Policy",
+      "termsLabel": "This account is for finding a marriage partner, not for dating, and I agree to the Terms & Privacy Policy",
       "createAccount": "Create Account",
       "alreadyMember": "Already a member? Sign In",
       "passwordStrength": {
@@ -243,7 +243,7 @@
     },
     "step3": {
       "title": "Manglik & Kundli",
-      "subtitle": "Kundli details are used for compatibility matching",
+      "subtitle": "Only if it matters to you",
       "manglikStatus": "Manglik Status",
       "manglikOptions": {
         "manglik": "Manglik",
@@ -254,7 +254,9 @@
       "uploadKundli": "Upload Kundli",
       "birthDetails": "Enter Birth Details",
       "birthTime": "Birth Time",
-      "birthPlace": "Birth Place"
+      "birthPlace": "Birth Place",
+      "skipTitle": "Not your thing? Skip ahead.",
+      "skipBody": "Kundli isn’t everyone’s tradition. Skipping won’t affect your profile or matches."
     },
     "step4": {
       "title": "Education",

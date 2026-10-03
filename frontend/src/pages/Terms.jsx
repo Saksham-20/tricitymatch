@@ -197,7 +197,8 @@ export default function Terms() {
               <ul className="list-disc pl-5 space-y-1 mt-2">
                 <li>Basic use is free. Some features — including unlocking contact details and unrestricted messaging — require a paid membership, sold for a fixed term stated at checkout.</li>
                 <li><strong>Prices shown are in Indian Rupees and include all applicable taxes, including GST.</strong> The price you see at checkout is the price you pay; there are no charges added afterwards.</li>
-                <li><strong>Memberships do not auto-renew.</strong> There is no standing instruction on your card or account. A membership simply expires at the end of its term unless you choose to buy again.</li>
+                <li><strong>Memberships paid for through Razorpay (card, UPI or netbanking) do not auto-renew.</strong> There is no standing instruction on your card or account. A membership simply expires at the end of its term unless you choose to buy again.</li>
+                <li><strong>A membership bought through Google Play billing is a Google Play subscription.</strong> Its renewal and cancellation follow the terms Google Play shows you when you buy, and you can cancel it at any time in Google Play under Payments &amp; subscriptions.</li>
                 <li>A membership grants the contact-unlock allowance stated at checkout. Unlocks are consumed when you use them and do not carry over after the term ends.</li>
                 <li>Where a launch or promotional price is shown against a struck-through price, the struck-through figure is our regular price for the same term. Where an offer has an end date, that date is real.</li>
                 <li>Payments are processed by Razorpay, and on Android may be processed by Google Play. We never see or store your card, UPI or bank credentials.</li>
@@ -248,7 +249,7 @@ export default function Terms() {
             <section>
               <H>20. Suspension, termination &amp; what happens to your data</H>
               <p>You may delete your account at any time from <L to="/settings">Settings</L> — see <L to="/delete-account">how to delete your account</L> for the exact steps on the website and both apps. We may suspend or terminate an account that breaches these Terms or the law, or that endangers other members.</p>
-              <p className="mt-2">When your account is deleted, your profile, photographs, verification selfie, messages, matches, guardian links and registration information (email, phone) are erased <strong>immediately</strong>. We keep payment records for as long as tax and accounting law requires, and moderation records where another member has reported you. This is set out in detail in section 13 of the <L to="/privacy">Privacy Policy</L>.</p>
+              <p className="mt-2">When your account is deleted, your profile, photographs, verification selfie, messages, matches, guardian links and registration information (email, phone) are <strong>erased 30 days after you ask</strong>, unless you cancel first; your profile is hidden from the moment you ask, and on the website you can choose to erase immediately instead. We keep payment records for as long as tax and accounting law requires, and moderation records where another member has reported you. This is set out in detail in section 13 of the <L to="/privacy">Privacy Policy</L>.</p>
             </section>
 
             <section>

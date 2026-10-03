@@ -5,6 +5,7 @@ import Seo from '../components/common/Seo';
 import FormField from '../components/ui/FormField';
 import CheckBox from '../components/ui/CheckBox';
 import api from '../api/axios';
+import { legal } from '../config';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -197,6 +198,23 @@ export default function Contact() {
                   <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 mb-1">Report abuse</h2>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     To report a suspicious profile, use the "Report" button on the profile, or email us with the profile ID.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-6">
+              <div className="flex items-start gap-3">
+                <FiAlertCircle className="w-5 h-5 text-primary-600 dark:text-primary-300 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 mb-1">Grievance Officer</h2>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    {legal.grievanceOfficer && <span className="block">{legal.grievanceOfficer}</span>}
+                    <a href={`mailto:${legal.grievanceEmail}`} className="inline-block py-2 -my-2 text-primary-600 dark:text-primary-300 hover:underline">{legal.grievanceEmail}</a>
+                    {legal.address && <span className="block mt-1">{legal.entity}, {legal.address}</span>}
+                    <span className="block mt-1">
+                      Complaints are acknowledged within 24 hours and decided within 15 days. See clause 23 of our{' '}
+                      <Link to="/terms" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Terms</Link>.
+                    </span>
                   </p>
                 </div>
               </div>

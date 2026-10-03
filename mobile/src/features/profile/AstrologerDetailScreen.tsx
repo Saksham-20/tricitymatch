@@ -216,6 +216,10 @@ export default function AstrologerDetailScreen() {
                 </Text>
               </View>
             ) : null}
+
+            <Text variant="footnote" color="textSecondary" style={s.section}>
+              Astrology consultations are for personal guidance only. Astrologers are independent practitioners; nothing said in a consultation is a prediction or a guarantee of any outcome, and it is not medical, legal or financial advice.
+            </Text>
           </ScrollView>
 
           {/* A sibling of the scroller rather than an overlay: an absolutely

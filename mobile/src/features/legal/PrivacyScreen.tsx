@@ -123,7 +123,7 @@ export default function PrivacyScreen() {
         <Bullet>Erased — your profile and every field in it, your photographs, voice and video intros, your verification selfie, your matches, shortlists, contact unlocks, profile views, notifications, call records, guardian links, blocks and sessions.</Bullet>
         <Bullet>Message text is destroyed, and the empty row is left in place so the other person's conversation does not develop holes.</Bullet>
         <Bullet>Retained — payment and membership records, because tax and accounting law requires them and refunds must be reconcilable; and moderation records where another member has reported you, because a report should not be erasable by the person reported.</Bullet>
-        <Bullet>Registration information is held for 180 days after deletion, because rule 3(1)(h) of the IT Rules, 2021 requires it, and then goes.</Bullet>
+        <Bullet>Your registration details (email, phone) are erased with the rest: 30 days after you ask, unless you cancel first, or at once where you choose immediate erasure. Your profile is hidden from the moment you ask.</Bullet>
         <Bullet>Content removed on a complaint or an official order, and its records, are preserved for 180 days for investigation, or longer if a court or agency requires it.</Bullet>
         <Bullet>Server and security logs are kept for a rolling period as required by the CERT-In Directions, 2022, and then rotate out.</Bullet>
         <Para>Where you withdraw consent for something optional, or an account has been inactive and its purpose is served, we erase the related data unless a law requires us to keep it.</Para>

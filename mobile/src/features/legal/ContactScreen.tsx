@@ -190,6 +190,9 @@ export default function ContactScreen() {
         />
 
         <Text variant="subhead" color="textSecondary" style={s.altContact} selectable>Or email us at {CONFIG.SUPPORT_EMAIL}</Text>
+        <Text variant="footnote" color="textSecondary" style={s.altContact} selectable>
+          Grievance Officer{CONFIG.GRIEVANCE_OFFICER ? ` (${CONFIG.GRIEVANCE_OFFICER})` : ''}: {CONFIG.GRIEVANCE_EMAIL}. Complaints are acknowledged within 24 hours and decided within 15 days.
+        </Text>
       </ScrollView>
     </Screen>
   );

@@ -16,6 +16,11 @@ const HoroscopeStep = () => {
 
   return (
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
+      <motion.div variants={fadeRise} className="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg p-4 text-sm text-neutral-700 dark:text-neutral-200">
+        <p className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">Not your thing? Skip ahead.</p>
+        <p>Kundli isn't everyone's tradition. Skipping won't affect your profile or matches.</p>
+      </motion.div>
+
       <motion.div variants={fadeRise}>
         <Select
           label="Manglik / Mangal Dosha"
@@ -88,8 +93,8 @@ const HoroscopeStep = () => {
       </AnimatePresence>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
-        <p className="font-medium text-neutral-800 mb-1">All optional</p>
-        <p>Horoscope details power Ashtakoot / Manglik compatibility and your Kundli match report. Fill what you know, you can add the rest later.</p>
+        <p className="font-medium text-neutral-800 mb-1">If you do follow it</p>
+        <p>These power Ashtakoot / Manglik matching. Fill what you know; add the rest later.</p>
       </motion.div>
     </motion.div>
   );

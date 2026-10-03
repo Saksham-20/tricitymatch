@@ -70,10 +70,8 @@
     "status": "Verification status",
     "tierDocuments": "Document verification",
     "tierSelfie": "Selfie verification",
-    "tierBgCheck": "Background check",
     "submitDocuments": "Submit documents",
     "uploadSelfie": "Upload selfie",
-    "startBgCheck": "Start background check",
     "statusPending": "Pending review",
     "statusInReview": "In review",
     "statusApproved": "Approved",
@@ -104,7 +102,8 @@
     "online": "Online now",
     "offline": "Offline",
     "callInApp": "Your call is booked. Join it from the TricityMatch mobile app.",
-    "bookingConfirmed": "Booking confirmed"
+    "bookingConfirmed": "Booking confirmed",
+    "disclaimer": "Astrology consultations are for personal guidance only. Astrologers are independent practitioners; nothing said in a consultation is a prediction or a guarantee of any outcome, and it is not medical, legal or financial advice."
   },
   "successStories": {
     "title": "Success Stories",

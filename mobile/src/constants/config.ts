@@ -55,7 +55,7 @@ export const CONFIG = {
   GRIEVANCE_EMAIL:    process.env.EXPO_PUBLIC_GRIEVANCE_EMAIL ?? 'grievance@tricitymatch.com',
   PRIVACY_EMAIL:      process.env.EXPO_PUBLIC_PRIVACY_EMAIL ?? 'privacy@tricitymatch.com',
   // One constant so the two apps and the website cannot drift apart.
-  LEGAL_UPDATED:      '26 August 2026',
+  LEGAL_UPDATED:      '2 October 2026',
 
   IS_DEV: process.env.NODE_ENV !== 'production',
 

@@ -212,6 +212,9 @@ export default function AstrologerDetail() {
           >
             {booking ? t('common.loading') : t('astrologers.book')}
           </button>
+          <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+            {t('astrologers.disclaimer')}
+          </p>
         </div>
       )}
     </div>

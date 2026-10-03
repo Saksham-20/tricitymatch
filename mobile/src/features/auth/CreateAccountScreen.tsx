@@ -471,7 +471,7 @@ export default function CreateAccountScreen() {
             style={[st.termsRow, { minHeight: hit }]}
             onPress={() => { setTermsAccepted((v) => !v); setTouched((p) => ({ ...p, terms: true })); }}
             accessibilityRole="checkbox"
-            accessibilityLabel={t('auth.signup.termsLabel', 'I agree to the Terms & Privacy Policy')}
+            accessibilityLabel={t('auth.signup.termsLabel', 'This account is for finding a marriage partner, not for dating, and I agree to the Terms & Privacy Policy')}
             accessibilityState={{ checked: termsAccepted }}
             // A screen-reader shortcut to either document without leaving the
             // consent control; sighted users have the two link rows below.
@@ -492,7 +492,7 @@ export default function CreateAccountScreen() {
               color={termsAccepted ? c.primary : c.textMuted}
             />
             <Text variant="footnote" color="textSecondary" style={st.termsText}>
-              {t('auth.signup.termsLabel', 'I agree to the Terms & Privacy Policy')}
+              {t('auth.signup.termsLabel', 'This account is for finding a marriage partner, not for dating, and I agree to the Terms & Privacy Policy')}
             </Text>
           </PressableScale>
           <PressableScale

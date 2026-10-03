@@ -54,7 +54,7 @@
     <key>NSLocalAuthenticationUsageDescription</key>
     <string>Biometric authentication is used for quick and secure login.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Microphone is used for voice and video calls.</string>
+    <string>Microphone is used for voice and video calls and for recording voice messages and voice intros.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Photo library access is used for uploading profile photos.</string>
     <key>UILaunchStoryboardName</key>

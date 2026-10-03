@@ -99,8 +99,8 @@ export const legal = {
   dataProtectionOfficer: orEmpty(import.meta.env.VITE_DPO_NAME),
   // Shown as "Last updated" on both policies. One constant so the two pages,
   // the mobile mirrors and the annual re-notification cannot drift apart.
-  termsUpdated: '26 August 2026',
-  privacyUpdated: '26 August 2026',
+  termsUpdated: '2 October 2026',
+  privacyUpdated: '2 October 2026',
 };
 
 // Cloudinary Configuration
