@@ -5,11 +5,11 @@ import {
 } from 'recharts';
 import { getRevenueReport } from '../../api/adminApi';
 import toast from 'react-hot-toast';
-import { FiDownload } from 'react-icons/fi';
+import { FiDownload, FiAlertCircle } from 'react-icons/fi';
 
 const KPI = ({ label, value }) => (
   <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-    <p className="text-2xl font-bold text-gray-900">{value}</p>
+    <p className="text-2xl font-bold text-gray-900 tabular-nums">{value}</p>
     <p className="text-sm text-gray-500 mt-0.5">{label}</p>
   </div>
 );
@@ -39,14 +39,17 @@ function exportCSV(rows) {
 export default function AdminRevenue() {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(false);
   const [year, setYear]       = useState(new Date().getFullYear());
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const res = await getRevenueReport({ year });
       setData(res.data);
     } catch {
+      setError(true);
       toast.error('Failed to load revenue data');
     } finally {
       setLoading(false);
@@ -116,6 +119,14 @@ export default function AdminRevenue() {
         </div>
       </div>
 
+      {error ? (
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center gap-3">
+          <FiAlertCircle className="w-8 h-8 text-gray-400" />
+          <p className="text-sm text-gray-600">Couldn&apos;t load revenue data.</p>
+          <button onClick={fetchData} className="px-4 py-2 bg-primary-700 hover:bg-primary-600 text-white rounded-xl text-sm font-medium transition-colors">Retry</button>
+        </div>
+      ) : (
+        <>
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KPI label={`Total Revenue ${year}`} value={summary.totalRevenue ? `₹${Number(summary.totalRevenue).toLocaleString('en-IN')}` : '—'} />
@@ -126,7 +137,7 @@ export default function AdminRevenue() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Monthly Revenue (₹)</h3>
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Monthly Revenue (₹)</h2>
           {loading ? (
             <div className="h-[220px] flex items-center justify-center">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
@@ -138,7 +149,7 @@ export default function AdminRevenue() {
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
-                <Bar dataKey="amount" fill="#be123c" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="amount" fill="#8B2346" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -147,15 +158,19 @@ export default function AdminRevenue() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Monthly Subscriptions</h3>
-          {!loading && monthly.length > 0 ? (
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Monthly Subscriptions</h2>
+          {loading ? (
+            <div className="h-[220px] flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+            </div>
+          ) : monthly.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="count" stroke="#8B2346" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -167,7 +182,7 @@ export default function AdminRevenue() {
       {/* By-plan breakdown */}
       {byPlan.length > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Revenue by Plan</h3>
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Revenue by Plan</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -182,9 +197,9 @@ export default function AdminRevenue() {
                 {byPlan.map((p) => (
                   <tr key={p.plan} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5 font-medium text-gray-800 capitalize">{p.plan}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{p.count}</td>
-                    <td className="px-4 py-2.5 text-gray-600">₹{Number(p.amount).toLocaleString('en-IN')}</td>
-                    <td className="px-4 py-2.5 text-gray-500">
+                    <td className="px-4 py-2.5 text-gray-600 tabular-nums">{p.count}</td>
+                    <td className="px-4 py-2.5 text-gray-600 tabular-nums">₹{Number(p.amount).toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-2.5 text-gray-500 tabular-nums">
                       {summary.totalRevenue ? `${((p.amount / summary.totalRevenue) * 100).toFixed(1)}%` : '—'}
                     </td>
                   </tr>
@@ -198,7 +213,7 @@ export default function AdminRevenue() {
       {/* Monthly table */}
       {monthly.length > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Monthly Breakdown</h3>
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Monthly Breakdown</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -211,15 +226,17 @@ export default function AdminRevenue() {
               <tbody className="divide-y divide-gray-50">
                 {monthly.map((m) => (
                   <tr key={m.month} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 font-medium text-gray-800">{m.month}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{m.count}</td>
-                    <td className="px-4 py-2.5 text-gray-600">₹{Number(m.amount).toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-2.5 font-medium text-gray-800 tabular-nums">{m.month}</td>
+                    <td className="px-4 py-2.5 text-gray-600 tabular-nums">{m.count}</td>
+                    <td className="px-4 py-2.5 text-gray-600 tabular-nums">₹{Number(m.amount).toLocaleString('en-IN')}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

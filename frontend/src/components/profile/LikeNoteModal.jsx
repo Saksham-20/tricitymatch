@@ -60,7 +60,7 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
               <h3 className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">
                 Like {name?.split(' ')[0]}&apos;s {target.type === 'photo' ? 'photo' : 'answer'}
               </h3>
-              <button onClick={onClose} aria-label="Close" className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400">
+              <button onClick={onClose} aria-label="Close" className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400">
                 <FiX className="w-5 h-5" />
               </button>
             </div>
@@ -82,14 +82,14 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
               rows={3}
               placeholder="Add a note (optional): say what caught your eye…"
               aria-label="Note to send with your like"
-              className="w-full px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+              className="w-full px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 text-base focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
             />
             <div className="flex items-center justify-between mt-3">
               <span className="text-xs text-neutral-400 tabular-nums">{note.length}/{MAX_NOTE}</span>
               <button
                 onClick={handleSend}
                 disabled={sending}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-full font-semibold text-sm hover:shadow-burgundy transition-shadow duration-[160ms] disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold text-sm transition-colors duration-[160ms] disabled:opacity-60"
               >
                 <FiHeart className="w-4 h-4" />
                 {sending ? 'Sending…' : 'Send like'}

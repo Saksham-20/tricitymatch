@@ -72,7 +72,7 @@ const PhotosStep = () => {
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       {/* Profile Photo Upload */}
       <motion.div variants={fadeRise}>
-        <label className="block text-sm font-medium text-neutral-900 mb-3">
+        <label className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3">
           Profile Photo {<span className="text-destructive ml-1">*</span>}
         </label>
 
@@ -88,15 +88,15 @@ const PhotosStep = () => {
             className={`w-full border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-[160ms] active:scale-[0.99] ${
               dragActive
                 ? 'border-primary-500 bg-primary-50'
-                : 'border-neutral-300 hover:border-primary-500 hover:bg-primary-50'
+                : 'border-neutral-300 dark:border-neutral-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20'
             }`}
           >
             <div className="flex flex-col items-center gap-2">
               <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                 <FiUpload className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
-              <p className="font-medium text-neutral-900">Drag a photo here, or click to browse</p>
-              <p className="text-sm text-neutral-600">PNG, JPG up to 5MB</p>
+              <p className="font-medium text-neutral-900 dark:text-neutral-100">Drag a photo here, or click to browse</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">PNG, JPG up to 5MB</p>
             </div>
           </button>
         ) : (
@@ -141,18 +141,18 @@ const PhotosStep = () => {
       </motion.div>
 
       {/* Gallery Photos Info */}
-      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+      <motion.div variants={fadeRise} className="bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
         <div className="flex gap-3">
           <FiImage className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-neutral-600">
-            <p className="font-medium text-neutral-800 mb-1">Add more photos later</p>
+          <div className="text-sm text-neutral-600 dark:text-neutral-300">
+            <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">Add more photos later</p>
             <p>You can add more photos to your gallery after completing the profile. Multiple photos increase your chances of finding a great match.</p>
           </div>
         </div>
       </motion.div>
 
       {/* Photo DO/DON'T visual guide */}
-      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+      <motion.div variants={fadeRise} className="bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
         <PhotoGuide />
       </motion.div>
     </motion.div>

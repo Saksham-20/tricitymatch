@@ -80,7 +80,7 @@ export default function AdminLeads() {
           <Filter size={20} />
           <h2 className="text-lg font-semibold">Filters</h2>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}

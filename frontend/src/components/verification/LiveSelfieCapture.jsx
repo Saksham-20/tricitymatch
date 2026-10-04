@@ -161,7 +161,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
         <button
           type="button"
           onClick={retake}
-          className="flex items-center gap-1.5 min-h-[44px] px-2 text-sm font-semibold text-primary-600 hover:text-primary-700"
+          className="flex items-center gap-1.5 min-h-11 px-2 text-sm font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700"
         >
           <FiRefreshCw className="w-4 h-4" /> Retake photo
         </button>
@@ -171,13 +171,13 @@ export default function LiveSelfieCapture({ file, onChange }) {
   // ── Error ───────────────────────────────────────────────────────────────
   } else if (phase === 'error') {
     content = (
-      <motion.div key="error" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-3 px-4 py-8 rounded-2xl border-2 border-dashed border-destructive/30 bg-destructive-light text-center">
+      <motion.div key="error" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-3 px-4 py-8 rounded-2xl border-2 border-dashed border-destructive/30 bg-destructive-light dark:bg-destructive/10 text-center">
         <FiAlertCircle className="w-8 h-8 text-destructive" />
-        <p role="alert" className="text-sm font-medium text-neutral-700 max-w-xs">{error}</p>
+        <p role="alert" className="text-sm font-medium text-neutral-700 dark:text-neutral-200 max-w-xs">{error}</p>
         <button
           type="button"
           onClick={startCamera}
-          className="mt-1 min-h-[44px] px-5 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors duration-[160ms] active:scale-[0.98]"
+          className="mt-1 min-h-11 px-5 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors duration-[160ms] active:scale-[0.98]"
         >
           Try again
         </button>
@@ -188,7 +188,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
   } else if (phase === 'live' || phase === 'starting') {
     content = (
       <motion.div key="live" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-4">
-        <div className="relative w-56 h-56 rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-200">
+        <div className="relative w-56 h-56 rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200">
           <video
             ref={videoRef}
             autoPlay
@@ -209,11 +209,11 @@ export default function LiveSelfieCapture({ file, onChange }) {
           type="button"
           onClick={capture}
           disabled={phase !== 'live'}
-          className="flex items-center gap-2 px-6 py-2.5 min-h-[44px] rounded-full bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-60 shadow-sm transition-colors duration-[160ms] active:scale-[0.98]"
+          className="flex items-center gap-2 px-6 py-2.5 min-h-11 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-60 shadow-sm transition-colors duration-[160ms] active:scale-[0.98]"
         >
           <FiCamera className="w-4 h-4" /> Capture selfie
         </button>
-        <p className="text-xs text-neutral-400">Center your face in the circle, good light, look at the camera.</p>
+        <p className="text-xs text-neutral-600 dark:text-neutral-400">Center your face in the circle, good light, look at the camera.</p>
       </motion.div>
     );
 
@@ -228,11 +228,11 @@ export default function LiveSelfieCapture({ file, onChange }) {
         exit="exit"
         variants={fade}
         onClick={startCamera}
-        className="w-full flex flex-col items-center gap-2 px-4 py-8 min-h-[44px] rounded-2xl border-2 border-dashed border-neutral-300 hover:border-primary-400 text-neutral-500 transition-colors duration-[160ms] active:scale-[0.99]"
+        className="w-full flex flex-col items-center gap-2 px-4 py-8 min-h-11 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-primary-400 text-neutral-500 dark:text-neutral-300 transition-colors duration-[160ms] active:scale-[0.99]"
       >
         <FiVideo className="w-8 h-8 text-primary-400" />
-        <span className="text-sm font-semibold text-neutral-700">Start live camera</span>
-        <span className="text-xs text-neutral-400">We capture your selfie live. No uploads, so nobody can fake it.</span>
+        <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">Start live camera</span>
+        <span className="text-xs text-neutral-600 dark:text-neutral-400">We capture your selfie live. No uploads, so nobody can fake it.</span>
       </motion.button>
     );
   }

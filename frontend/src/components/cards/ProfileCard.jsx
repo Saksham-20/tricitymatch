@@ -35,7 +35,7 @@ const CompatArc = ({ score }) => {
   return (
     <div className="relative w-12 h-12 flex-shrink-0" title={`${Math.round(score)}% match`}>
       <svg width="48" height="48" viewBox="0 0 48 48" className="transform -rotate-90">
-        <circle cx="24" cy="24" r={radius} fill="none" stroke="currentColor" strokeWidth="3" className="text-neutral-100" />
+        <circle cx="24" cy="24" r={radius} fill="none" stroke="currentColor" strokeWidth="3" className="text-neutral-100 dark:text-neutral-700" />
         <motion.circle
           cx="24" cy="24" r={radius} fill="none"
           stroke="currentColor" strokeWidth="3" strokeLinecap="round"
@@ -46,7 +46,7 @@ const CompatArc = ({ score }) => {
           transition={{ duration: 0.15, ease: EASE_OUT, delay: 0.1 }}
         />
       </svg>
-      <span className={`absolute inset-0 flex items-center justify-center text-[11px] font-bold ${colorClass}`}>
+      <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${colorClass}`}>
         {Math.round(score)}%
       </span>
     </div>
@@ -102,10 +102,9 @@ const planBadgeTitle = (plan) => (PLAN_BADGE[plan] || PLAN_BADGE.premium_plus)[1
    ────────────────────────────────────────────────────────── */
 const PremiumBlur = () => (
   <div
-    className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10"
+    className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 bg-white/25 dark:bg-neutral-900/40"
     style={{
       backdropFilter: 'blur(10px)',
-      background: 'rgba(255,255,255,0.25)',
     }}
   >
     <div className="w-12 h-12 rounded-full bg-white/90 shadow-lg flex items-center justify-center">
@@ -123,22 +122,20 @@ const PremiumBlur = () => (
 const DetailChip = ({ icon: Icon, text }) => (
   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-neutral-50 rounded-lg text-neutral-600 border border-neutral-100">
     <Icon className="w-3 h-3 text-primary-400 flex-shrink-0" />
-    <span className="text-[12px] truncate leading-tight">{text}</span>
+    <span className="text-xs truncate leading-tight">{text}</span>
   </div>
 );
 
 /**
- * ProfileCard — full + compact variants (redesigned)
+ * ProfileCard — redesigned profile card
  */
 const ProfileCard = ({
   profile,
   userId,
   index = 0,
-  variant = 'full',
   onLike,
   onShortlist,
   showActions = true,
-  isAISuggested = false,
   isPremiumLocked = false,
   isOnline = false,
   // 'interest' (default) shows the Express-Interest primary CTA.
@@ -186,86 +183,11 @@ const ProfileCard = ({
   const hasPhoto = (profile.profilePhoto || profile.profile_photo) && !imgError;
   const isVerified = profile.verificationStatus === 'approved' || profile.User?.verificationStatus === 'approved' || profile.isVerified;
 
-  // ── Compact ───────────────────────────────────
-  if (variant === 'compact') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: staggerIndex(index), duration: DUR.content, ease: EASE_OUT }}
-        // Radius unified to the app-wide `rounded-xl` button/card system
-        // (doctrine §2 ruling #6, §3.4); elevation declared once via
-        // `shadow-card` alone — the border this dropped made it a ghost card
-        // (doctrine §3.4, audit finding).
-        className={`bg-white rounded-xl shadow-card ${HOVER}:shadow-card-hover ${HOVER}:-translate-y-1 transition-[transform,box-shadow] duration-[160ms] p-4 cursor-pointer group`}
-        onClick={handleCardClick}
-        role="article"
-        aria-label={`Profile of ${fullName}`}
-      >
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="relative flex-shrink-0">
-            {hasPhoto ? (
-              <RetryImage
-                src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'thumbnail')}
-                alt={`${fullName}`}
-                className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
-                loading="lazy"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 font-display font-semibold text-lg ring-2 ring-white dark:ring-surface-dark-3 shadow-md">
-                {initials}
-              </div>
-            )}
-            {isOnline && (
-              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-success border-2 border-white" />
-            )}
-          </div>
-
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 min-w-0">
-              <h3 className="font-semibold text-sm text-neutral-800 truncate group-hover:text-primary-500 transition-colors">
-                {fullName}
-              </h3>
-              {profile.isPremium && (
-                <FaCrown
-                  className={`w-3 h-3 flex-shrink-0 ${
-                    profile.premiumPlan === 'vip'
-                      ? 'text-gold-500'
-                      : profile.premiumPlan === 'premium_plus'
-                      ? 'text-primary-500'
-                      : 'text-primary-400'
-                  }`}
-                  title={planBadgeTitle(profile.premiumPlan)}
-                />
-              )}
-            </div>
-            <p className="text-xs text-neutral-500">{getAge()} yrs · {profile.city || '—'}</p>
-            {profile.compatibilityScore && (
-              <div className="mt-1.5">
-                <ShimmerBar score={profile.compatibilityScore} />
-              </div>
-            )}
-          </div>
-
-          {/* Like */}
-          {showActions && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleLike}
-              aria-label={isLiked ? 'Unlike' : 'Like'}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-[160ms] flex-shrink-0 ${HOVER}:scale-110 ${isLiked ? 'bg-primary-500 text-white' : 'bg-neutral-100 text-primary-400 hover:bg-primary-50'
-                }`}
-            >
-              <FiHeart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-            </motion.button>
-          )}
-        </div>
-      </motion.div>
-    );
-  }
+  // A `compact` variant was removed here: it was dead code (no caller in src
+  // passed variant="compact") and a keyboard trap — the card navigated via a
+  // <div onClick> with no focusable path to the profile, so a keyboard user
+  // could never open it. The full variant below has a real "View Profile"
+  // button, so it carries the navigation path.
 
   // ── Full (Redesigned) ──────────────────────────
   return (
@@ -299,7 +221,7 @@ const ProfileCard = ({
           <RetryImage
             src={getImageUrl(profile.profilePhoto || profile.profile_photo, API_BASE_URL, 'profile')}
             alt={`${fullName}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            className="w-full h-full object-cover [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-105 transition-transform duration-[250ms] ease-out"
             loading="lazy"
             onError={() => setImgError(true)}
           />
@@ -309,7 +231,7 @@ const ProfileCard = ({
 
           {/* Bottom scrim — always visible for legibility */}
           {!isPremiumLocked && (
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 transition-opacity duration-[250ms] pointer-events-none" />
           )}
 
           {/* Online indicator */}
@@ -320,23 +242,8 @@ const ProfileCard = ({
             </div>
           )}
 
-          {/* AI badge */}
-          {isAISuggested && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="absolute top-3.5 left-3.5 px-3 py-1.5 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full text-[11px] font-semibold flex items-center gap-1.5 text-white shadow-burgundy"
-            >
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg>
-              AI Suggested
-            </motion.div>
-          )}
-
           {/* Match badge */}
-          {!isAISuggested && profile.compatibilityScore >= 80 && !isPremiumLocked && (
+          {profile.compatibilityScore >= 80 && !isPremiumLocked && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}

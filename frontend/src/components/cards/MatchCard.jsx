@@ -31,7 +31,9 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
     if (onChat) {
       onChat();
     } else {
-      navigate('/chat');
+      // Deep-link into this match's thread when we know who they are, instead
+      // of dropping the member into the generic conversation list.
+      navigate(userId ? `/chat?to=${userId}` : '/chat');
     }
   };
 
@@ -44,7 +46,9 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
       // Lift + shadow on hover already live on the `.card` class (index.css),
       // pointer-gated there — no separate whileHover needed here.
       onClick={handleClick}
-      className="card cursor-pointer group"
+      // rounded-xl (12px) overrides the .card class's rounded-2xl so mutual-match
+      // cards share the app-wide card radius system ProfileCard was unified to.
+      className="card rounded-xl cursor-pointer group"
       role="article"
       aria-label={`Mutual match with ${fullName}`}
     >
@@ -55,7 +59,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
             <RetryImage
               src={getImageUrl(match.profilePhoto || match.profile_photo, API_BASE_URL, 'profile')}
               alt={`Profile photo of ${fullName}`}
-              className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg group-hover:border-primary-100 transition-colors"
+              className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white dark:border-neutral-800 shadow-lg group-hover:border-primary-100 transition-colors"
               loading="lazy"
               onError={(e) => {
                 e.target.style.display = 'none';
@@ -64,16 +68,16 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
             />
           ) : null}
           <div 
-            className={`w-24 h-24 rounded-full mx-auto bg-primary-100 flex items-center justify-center text-primary-700 font-display text-2xl font-semibold border-4 border-white shadow-lg ${(match.profilePhoto || match.profile_photo) ? 'hidden' : ''}`}
+            className={`w-24 h-24 rounded-full mx-auto bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 font-display text-2xl font-semibold border-4 border-white dark:border-neutral-800 shadow-lg ${(match.profilePhoto || match.profile_photo) ? 'hidden' : ''}`}
           >
             {initials}
           </div>
           
           {/* Mutual Match Badge */}
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.3, type: "spring" }}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.2, ease: EASE_OUT }}
             className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 bg-success text-white text-xs font-semibold rounded-full shadow-md flex items-center gap-1"
           >
             <FiHeart className="w-3 h-3" aria-hidden="true" />

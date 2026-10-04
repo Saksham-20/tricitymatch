@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiHeart, FiBookmark, FiMessageCircle, FiCheck } from 'react-icons/fi';
 
@@ -28,11 +28,24 @@ const FloatingActionBar = ({
   const [shortlisted, setShortlisted]   = useState(isShortlisted);
   const [showSuccess, setShowSuccess]   = useState(false);
 
-  const handleInterest = () => {
+  // Reconcile local state with the parent whenever it confirms a change (a
+  // refresh, a mutual match). It was previously seeded from props only once at
+  // mount and never re-synced, so it could drift out of sync with the server.
+  useEffect(() => { setInterestSent(isInterestSent); }, [isInterestSent]);
+  useEffect(() => { setShortlisted(isShortlisted); }, [isShortlisted]);
+
+  const handleInterest = async () => {
     if (interestSent) return;
-    setInterestSent(true);
+    setInterestSent(true); // optimistic — also guards against a double-tap
+    // Drive the success toast off the parent's CONFIRMED result: if it reports
+    // failure (false), roll back so we never show a success toast or a stuck
+    // "Interest Sent" button for an action that didn't actually happen.
+    const ok = await onSendInterest?.();
+    if (ok === false) {
+      setInterestSent(false);
+      return;
+    }
     setShowSuccess(true);
-    onSendInterest?.();
     setTimeout(() => setShowSuccess(false), 2200);
   };
 
@@ -61,9 +74,8 @@ const FloatingActionBar = ({
 
       {/* Bar */}
       <div
-        className="mx-4 mb-4 flex items-center gap-2 p-2 rounded-2xl border border-white/60"
+        className="mx-4 mb-4 flex items-center gap-2 p-2 rounded-2xl border border-white/60 dark:border-white/10 bg-white/92 dark:bg-surface-dark-3/92"
         style={{
-          background: 'rgba(255,255,255,0.92)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           boxShadow: '0 8px 32px rgba(139,35,70,0.18), 0 2px 8px rgba(0,0,0,0.08)',
@@ -99,7 +111,7 @@ const FloatingActionBar = ({
           className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-[160ms] flex-shrink-0 ${
             shortlisted
               ? 'bg-neutral-800 text-white'
-              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-800'
+              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-100'
           }`}
           aria-label={shortlisted ? 'Remove from shortlist' : 'Add to shortlist'}
         >
@@ -110,7 +122,7 @@ const FloatingActionBar = ({
         <motion.button
           whileTap={{ scale: 0.93 }}
           onClick={onMessage}
-          className="w-12 h-12 rounded-xl bg-neutral-100 text-neutral-600 flex items-center justify-center hover:bg-primary-50 hover:text-primary-500 transition-colors duration-[160ms] flex-shrink-0"
+          className="w-12 h-12 rounded-xl bg-neutral-100 text-neutral-600 flex items-center justify-center hover:bg-primary-50 hover:text-primary-500 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-primary-900/30 dark:hover:text-primary-300 transition-colors duration-[160ms] flex-shrink-0"
           aria-label="Send message"
         >
           <FiMessageCircle className="w-5 h-5" />

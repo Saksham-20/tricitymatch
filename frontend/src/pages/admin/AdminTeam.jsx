@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FiPlus, FiShield, FiSearch, FiTrash2, FiSave, FiX } from 'react-icons/fi';
 import { getAdmins, createAdmin, updateUserRole, getUsers } from '../../api/adminApi';
@@ -19,16 +19,15 @@ import { useAuth } from '../../context/AuthContext';
  */
 
 const ROLE_COPY = {
-  sub_admin:   'Limited admin — only the permissions you tick below',
-  admin:       'Full admin — every panel, including pricing and payouts',
+  sub_admin:   'Limited admin: only the permissions you tick below',
+  admin:       'Full admin: every panel, including pricing and payouts',
   super_admin: 'Full admin, and may also manage other admins',
 };
 
 const RoleBadge = ({ role }) => (
   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
     role === 'super_admin' ? 'bg-primary-100 text-primary-700'
-      : role === 'admin' ? 'bg-amber-100 text-amber-700'
-        : 'bg-gray-100 text-gray-600'
+      : 'bg-gray-100 text-gray-600'
   }`}>
     {String(role).replace(/_/g, ' ')}
   </span>
@@ -46,6 +45,7 @@ export default function AdminTeam() {
   const [createOpen, setCreateOpen] = useState(false);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [editing, setEditing] = useState(null); // admin row being re-scoped
+  const [confirmRevoke, setConfirmRevoke] = useState(null); // admin row pending revoke confirmation
   const [busy, setBusy]       = useState(false);
 
   const fetchAdmins = useCallback(async () => {
@@ -87,12 +87,13 @@ export default function AdminTeam() {
 
   const revoke = async (row) => {
     // Irreversible from this screen for the person on the other end: they lose
-    // the panel on their next request. Confirm before, not a toast after.
-    if (!window.confirm(`Remove admin access for ${row.email}? They keep their member account.`)) return;
+    // the panel on their next request. Confirmed in a branded dialog before,
+    // not a toast after.
     setBusy(true);
     try {
       await updateUserRole(row.id, { role: 'user' });
       toast.success('Admin access removed');
+      setConfirmRevoke(null);
       fetchAdmins();
     } catch (err) {
       apiError(err, 'Could not remove access');
@@ -103,8 +104,25 @@ export default function AdminTeam() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      <div className="space-y-5" aria-busy="true">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="space-y-2">
+            <div className="skeleton h-7 w-48 rounded-lg" />
+            <div className="skeleton h-4 w-80 max-w-full rounded" />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="px-4 py-4 flex items-center gap-4">
+              <div className="flex-1 space-y-2">
+                <div className="skeleton h-4 w-40 rounded" />
+                <div className="skeleton h-3 w-56 max-w-full rounded" />
+              </div>
+              <div className="skeleton h-6 w-20 rounded-full" />
+              <div className="skeleton h-9 w-24 rounded-lg" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -126,8 +144,8 @@ export default function AdminTeam() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Admins &amp; Roles</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            Who can open this panel, and how much of it. Permissions are enforced on the server —
-            hiding a page is not the same as blocking it, and both happen here.
+            Who can open this panel, and how much of it. Permissions are enforced on the server.
+            Hiding a page is not the same as blocking it, and both happen here.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -177,7 +195,7 @@ export default function AdminTeam() {
                       ) : (
                         <div className="flex flex-wrap gap-1">
                           {a.permissions.map((p) => (
-                            <span key={p} className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[11px]">{p}</span>
+                            <span key={p} className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-xs">{p}</span>
                           ))}
                         </div>
                       )}
@@ -194,17 +212,18 @@ export default function AdminTeam() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setEditing({ ...a, draftRole: a.role, draftScopes: a.permissions })}
-                            className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium"
+                            className="inline-flex items-center min-h-[44px] px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium"
                           >
                             Edit access
                           </button>
                           <button
-                            onClick={() => revoke(a)}
+                            onClick={() => setConfirmRevoke(a)}
                             disabled={busy}
-                            className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 disabled:opacity-50"
+                            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg bg-red-50 hover:bg-red-100 text-red-600 disabled:opacity-50"
+                            aria-label={`Remove admin access for ${a.email}`}
                             title="Remove admin access"
                           >
-                            <FiTrash2 className="w-3.5 h-3.5" />
+                            <FiTrash2 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </div>
                       )}
@@ -294,6 +313,25 @@ export default function AdminTeam() {
           </div>
         </Modal>
       )}
+
+      {confirmRevoke && (
+        <Modal title="Remove admin access" onClose={() => setConfirmRevoke(null)}>
+          <p className="text-sm text-gray-600">
+            Remove admin access for <span className="font-medium text-gray-800">{confirmRevoke.email}</span>?
+            They keep their member account and lose the panel on their next request.
+          </p>
+          <div className="flex gap-3 mt-5">
+            <button onClick={() => setConfirmRevoke(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium">Cancel</button>
+            <button
+              onClick={() => revoke(confirmRevoke)}
+              disabled={busy}
+              className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium disabled:opacity-60"
+            >
+              Remove access
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -301,12 +339,66 @@ export default function AdminTeam() {
 /* ── pieces ─────────────────────────────────────────────────────────────── */
 
 function Modal({ title, onClose, children }) {
+  const titleId = useId();
+  const cardRef = useRef(null);
+  // Keep the effect mount-only: parents pass a fresh onClose each render, so a
+  // dependency on it would re-run the effect and yank focus back to the first
+  // field every time the dialog's own form state changes.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement;
+    const card = cardRef.current;
+    const focusables = () => (card
+      ? Array.from(card.querySelectorAll(
+          'a[href], button:not([disabled]), textarea, input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      : []);
+    // Move focus into the dialog on open.
+    (focusables()[0] || card)?.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current(); return; }
+      if (e.key === 'Tab') {
+        const items = focusables();
+        if (items.length === 0) { e.preventDefault(); return; }
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      // Restore focus to whatever opened the dialog.
+      if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={() => onClose()}
+    >
+      <div
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto focus:outline-none"
+      >
         <div className="flex items-start justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><FiX className="w-4 h-4" /></button>
+          <h3 id={titleId} className="text-lg font-bold text-gray-900">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg hover:bg-gray-100 text-gray-400"
+          >
+            <FiX className="w-4 h-4" aria-hidden="true" />
+          </button>
         </div>
         {children}
       </div>
@@ -360,7 +452,7 @@ function ScopePicker({ scopes, scopeKeys, grantableScopes, selected, onChange })
       {/* You cannot hand out what you do not hold — the server refuses it too,
           so the greyed rows are the same rule stated twice. */}
       {scopeKeys.some((k) => !grantableScopes.includes(k)) && (
-        <p className="text-[11px] text-gray-400 pt-1">Greyed permissions are ones your own account does not hold.</p>
+        <p className="text-xs text-gray-400 pt-1">Greyed permissions are ones your own account does not hold.</p>
       )}
     </div>
   );
@@ -377,14 +469,14 @@ function AdminForm({ title, scopes, scopeKeys, grantableRoles, grantableScopes, 
   return (
     <Modal title={title} onClose={onClose}>
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <input value={form.firstName} onChange={set('firstName')} placeholder="First name *" className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm" />
-        <input value={form.lastName} onChange={set('lastName')} placeholder="Last name" className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm" />
-        <input value={form.email} onChange={set('email')} placeholder="Email *" type="email" className="col-span-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm" />
-        <input value={form.phone} onChange={set('phone')} placeholder="Phone" className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm" />
-        <input value={form.password} onChange={set('password')} placeholder="Temporary password *" type="text" className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm" />
+        <input value={form.firstName} onChange={set('firstName')} aria-label="First name (required)" required aria-required="true" placeholder="First name *" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
+        <input value={form.lastName} onChange={set('lastName')} aria-label="Last name" placeholder="Last name" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
+        <input value={form.email} onChange={set('email')} aria-label="Email (required)" required aria-required="true" placeholder="Email *" type="email" className="col-span-2 px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
+        <input value={form.phone} onChange={set('phone')} aria-label="Phone" placeholder="Phone" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
+        <input value={form.password} onChange={set('password')} aria-label="Temporary password (required)" required aria-required="true" placeholder="Temporary password *" type="text" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
       </div>
       <p className="text-xs text-gray-400 -mt-2 mb-4">
-        Share the password with them directly — nothing is emailed. They can change it from Settings.
+        Share the password with them directly. Nothing is emailed, and they can change it from Settings.
       </p>
 
       <RolePicker role={role} onRole={setRole} grantableRoles={grantableRoles} />
@@ -432,7 +524,7 @@ function PromoteForm({ scopes, scopeKeys, grantableRoles, grantableScopes, onClo
   return (
     <Modal title="Promote an existing account" onClose={onClose}>
       <p className="text-sm text-gray-500 mb-3">
-        Find the person by email or phone. Their member profile stays exactly as it is — they simply
+        Find the person by email or phone. Their member profile stays exactly as it is. They simply
         gain the panel.
       </p>
       <div className="flex gap-2 mb-3">
@@ -440,8 +532,9 @@ function PromoteForm({ scopes, scopeKeys, grantableRoles, grantableScopes, onClo
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
+          aria-label="Search by email or phone"
           placeholder="Email or phone"
-          className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
+          className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-base"
         />
         <button onClick={search} disabled={searching} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium disabled:opacity-60">
           <FiSearch className="w-4 h-4" /> Search
@@ -460,7 +553,7 @@ function PromoteForm({ scopes, scopeKeys, grantableRoles, grantableScopes, onClo
                 {[u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' ') || '—'}
                 <span className="ml-2 text-xs text-gray-400">{u.email || u.phone}</span>
               </p>
-              <p className="text-[11px] text-gray-400">Currently: {String(u.role).replace(/_/g, ' ')}</p>
+              <p className="text-xs text-gray-400">Currently: {String(u.role).replace(/_/g, ' ')}</p>
             </button>
           ))}
         </div>

@@ -7,7 +7,7 @@
  * + small lock glyph), never gold — tapping opens the upgrade modal.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCheck, FiEdit2, FiTrash2, FiX, FiSmile, FiCornerUpLeft, FiLock, FiAlertTriangle, FiInfo } from 'react-icons/fi';
 import { BsCheck, BsCheckAll } from 'react-icons/bs';
@@ -119,6 +119,8 @@ const MessageBubble = ({
   // traffic is touch, which has no hover at all. Tapping the bubble itself
   // is the fallback reveal; hover and keyboard focus still work alongside it.
   const [actionsOpen, setActionsOpen] = useState(false);
+  // a11y: focus target when the delete confirmation opens (see effect below).
+  const deleteNoRef = useRef(null);
   const toggleActions = () => {
     if (!isEditing && !showDeleteConfirm) setActionsOpen((open) => !open);
   };
@@ -132,6 +134,13 @@ const MessageBubble = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showDeleteConfirm, onCancelDelete]);
+
+  // a11y: when the delete confirmation opens, move focus to the safe "No"
+  // button — the toolbar that held the trigger has already unmounted, so a
+  // keyboard user would otherwise be dropped to <body> and have to blind-tab.
+  useEffect(() => {
+    if (showDeleteConfirm) deleteNoRef.current?.focus();
+  }, [showDeleteConfirm]);
 
   return (
     // Messages are the highest-frequency motion event in the product
@@ -193,14 +202,14 @@ const MessageBubble = ({
 
         {/* Delete confirmation — floats in the same slot as the toolbar. */}
         {showDeleteConfirm && (
-          <div className={`absolute -top-14 ${isSentByMe ? 'right-0' : 'left-0'} z-20 flex items-center gap-1.5 bg-white dark:bg-neutral-900 rounded-full pl-4 pr-1.5 py-1.5 shadow-md`}>
+          <div role="alertdialog" aria-label="Delete message?" className={`absolute -top-14 ${isSentByMe ? 'right-0' : 'left-0'} z-20 flex items-center gap-1.5 bg-white dark:bg-neutral-900 rounded-full pl-4 pr-1.5 py-1.5 shadow-md`}>
             <span className="text-xs text-destructive font-medium whitespace-nowrap">Delete?</span>
             {/* min-w/min-h in rem, not px (doctrine §3.5 elder mode >= 48px):
                 a literal [44px] stays fixed at html.elder's 18.5px root,
                 landing 4px short; 2.75rem scales with it like the w-11/h-11
                 icon buttons above already do. */}
             <button onClick={() => onConfirmDelete(message.id)} className="min-w-[2.75rem] min-h-[2.75rem] px-3 rounded-full bg-destructive hover:bg-destructive/90 text-white text-xs font-medium transition-colors">Yes</button>
-            <button onClick={onCancelDelete} className="min-w-[2.75rem] min-h-[2.75rem] px-3 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-600 dark:text-neutral-300 text-xs font-medium transition-colors">No</button>
+            <button ref={deleteNoRef} onClick={onCancelDelete} className="min-w-[2.75rem] min-h-[2.75rem] px-3 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-600 dark:text-neutral-300 text-xs font-medium transition-colors">No</button>
           </div>
         )}
 
@@ -230,7 +239,7 @@ const MessageBubble = ({
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSaveEdit(message.id); }
                     else if (e.key === 'Escape') onCancelEdit();
                   }}
-                  className="w-full px-3 py-1.5 rounded-lg text-neutral-800 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  className="w-full px-3 py-1.5 rounded-lg text-neutral-800 text-base bg-white/90 focus:outline-none focus:ring-2 focus:ring-primary-300"
                   autoFocus
                 />
                 <div className="flex justify-end gap-1">
@@ -248,11 +257,11 @@ const MessageBubble = ({
                 {isVoice ? (
                   <VoiceBubble mediaUrl={message.mediaUrl} durationMs={message.mediaDurationMs} light={isSentByMe} />
                 ) : (
-                  <p className="break-words text-[15px] leading-relaxed">{sanitizeText(message.content)}</p>
+                  <p className="break-words text-base leading-relaxed">{sanitizeText(message.content)}</p>
                 )}
                 <div className={`flex items-center justify-end gap-1.5 mt-1 ${isSentByMe ? 'text-white/70' : 'text-neutral-400'}`}>
-                  {message.isEdited && <span className="text-[10px] italic">edited</span>}
-                  <span className="text-[10px]">
+                  {message.isEdited && <span className="text-xs italic">edited</span>}
+                  <span className="text-xs">
                     {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <MessageTicks message={message} isSent={isSentByMe} />

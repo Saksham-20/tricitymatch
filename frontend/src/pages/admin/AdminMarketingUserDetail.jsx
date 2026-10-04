@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { FiArrowLeft, FiRefreshCw } from 'react-icons/fi';
 import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import ReportSummary from '../../components/marketing/ReportSummary';
@@ -55,7 +55,10 @@ export default function AdminMarketingUserDetail() {
   };
 
   const handlePayoutStatus = async (payoutId, status) => {
-    const res = await apiClient.put(`/admin/marketing-payouts/${payoutId}`, { status });
+    // The bank's reference (UTR) ties the row to the statement line.
+    const reference = status === 'paid' ? window.prompt('Bank reference / UTR for this transfer (optional):', '') : null;
+    if (reference === null && status === 'paid') return;
+    const res = await apiClient.put(`/admin/marketing-payouts/${payoutId}`, { status, ...(reference ? { reference: reference.trim() } : {}) });
     setLedger({ summary: res.data.summary, payouts: res.data.payouts });
   };
 
@@ -82,8 +85,23 @@ export default function AdminMarketingUserDetail() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useAutoRefresh(() => fetchAll({ quiet: true }), 20000);
 
-  if (loading) return <div className="p-6 text-center text-gray-500">Loading...</div>;
-  if (error) return <div className="p-6"><div className="bg-red-100 text-red-700 p-4 rounded-lg">{error}</div></div>;
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-64 bg-gray-100 rounded animate-pulse" />
+        <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+        <div className="h-48 bg-gray-100 rounded-2xl animate-pulse" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-3">{error}</div>
+        <button onClick={() => fetchAll()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100">Try again</button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -91,7 +109,7 @@ export default function AdminMarketingUserDetail() {
         onClick={() => navigate('/admin/marketing-users')}
         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
       >
-        <ArrowLeft size={18} /> Back to Marketing Users
+        <FiArrowLeft size={18} /> Back to Marketing Users
       </button>
 
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
@@ -99,7 +117,7 @@ export default function AdminMarketingUserDetail() {
           <h1 className="text-3xl font-bold mb-2">Marketing User Detail</h1>
           {user && (
             <p className="text-gray-600">
-              {user.Profile?.firstName} {user.Profile?.lastName} — {user.email} ({user.role})
+              {user.Profile?.firstName} {user.Profile?.lastName} · {user.email} ({user.role})
               <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${
                 user.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}>{user.status}</span>
@@ -110,7 +128,7 @@ export default function AdminMarketingUserDetail() {
           onClick={() => fetchAll({ quiet: true })}
           className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-primary-600"
         >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <FiRefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
           {lastUpdated
             ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
             : 'Refresh'}
@@ -150,7 +168,7 @@ export default function AdminMarketingUserDetail() {
               </div>
             ) : undefined}
           >
-            {canPayouts && <RecordPayoutForm outstanding={ledger.summary.outstanding} onSubmit={handleRecordPayout} />}
+            {canPayouts && <RecordPayoutForm outstanding={ledger.summary.payable} inHold={ledger.summary.inHold} onSubmit={handleRecordPayout} />}
           </PayoutSection>
         </div>
       )}

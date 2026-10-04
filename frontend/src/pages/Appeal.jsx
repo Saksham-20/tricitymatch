@@ -29,9 +29,9 @@ export default function Appeal() {
     <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pt-20 pb-16 px-4">
       <Seo title="Appeal a suspension" description="Ask TricityMatch to review a decision about your account." path="/appeal" />
       <div className="max-w-xl mx-auto">
-        <Link to="/help" className="text-sm text-primary-600 dark:text-primary-300 inline-block py-2 mb-4">← Help Centre</Link>
-        <div className="bg-white dark:bg-surface-dark-3 rounded-2xl p-8">
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Appeal a suspension</h1>
+        <Link to="/help" className="text-sm text-primary-600 dark:text-primary-300 inline-flex items-center min-h-[44px] py-3 mb-4">← Help Centre</Link>
+        <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-8">
+          <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Appeal a suspension</h1>
           {done ? (
             <p className="text-sm text-neutral-700 dark:text-neutral-300" role="status">
               If a suspended account uses that email, your appeal has been received. A person will read it and reply by email.
@@ -49,7 +49,10 @@ export default function Appeal() {
                 <div>
                   <label htmlFor="appeal-statement" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">What happened?</label>
                   <textarea id="appeal-statement" required minLength={20} maxLength={2000} rows={6} className="input-field" value={statement} onChange={(e) => setStatement(e.target.value)} />
-                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{statement.length}/2000</p>
+                  <div className="mt-1 flex items-center justify-between gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                    <span>{statement.trim().length < 20 ? 'Please write at least 20 characters.' : ''}</span>
+                    <span>{statement.length}/2000</span>
+                  </div>
                 </div>
                 <button type="submit" disabled={busy || statement.trim().length < 20} className="btn-primary disabled:opacity-60">
                   {busy ? 'Sending…' : 'Send appeal'}

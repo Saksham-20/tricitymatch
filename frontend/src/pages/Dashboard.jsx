@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
@@ -123,7 +123,7 @@ const SuggestionCard = ({ profile, index }) => {
         </div>
 
         {/* Gradient scrim */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
         {/* Match score badge */}
         {score >= 75 && (
@@ -161,7 +161,7 @@ const SuggestionCard = ({ profile, index }) => {
           ) : (
             <p className="text-white font-semibold text-sm leading-tight">{fullName}</p>
           )}
-          {age && <p className="text-white/80 text-xs">{age} yrs · {profile.city || 'India'}</p>}
+          {age && <p className="text-white/90 text-xs">{age} yrs · {profile.city || 'India'}</p>}
         </div>
       </div>
 
@@ -170,7 +170,9 @@ const SuggestionCard = ({ profile, index }) => {
         {profile.education && (
           <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate max-w-[70%]">{profile.education}</span>
         )}
-        {score && (
+        {/* Shown here only when the photo badge above isn't already showing it
+            (score >= 75), so the percentage never prints twice on one card. */}
+        {score && score < 75 && (
           <span className={`text-xs font-bold ml-auto ${scoreColor}`}>{Math.round(score)}% match</span>
         )}
       </div>
@@ -272,9 +274,16 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
                 </div>
                 <span className="text-xs font-bold text-primary-600 dark:text-primary-300">{unlocksLeft} / {unlocksAllowed} left</span>
               </div>
-              <div className="h-2 bg-white/70 dark:bg-black/30 rounded-full overflow-hidden">
+              <div
+                className="h-2 bg-white/70 dark:bg-black/30 rounded-full overflow-hidden"
+                role="progressbar"
+                aria-valuenow={unlocksAllowed - unlocksLeft}
+                aria-valuemin={0}
+                aria-valuemax={unlocksAllowed}
+                aria-label="Contact unlocks used"
+              >
                 <div
-                  className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-[width] duration-[250ms]"
+                  className="h-full bg-primary-500 rounded-full transition-[width] duration-[250ms]"
                   style={{ width: `${unlocksAllowed ? ((unlocksAllowed - unlocksLeft) / unlocksAllowed) * 100 : 0}%` }}
                 />
               </div>
@@ -670,8 +679,8 @@ const Dashboard = () => {
                     rule in index.css. */}
                 {community?.newThisWeek > 0 && (
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-full">
-                    <FiUsers className="w-3.5 h-3.5 text-success dark:text-green-400" />
-                    <span className="text-success dark:text-green-400 text-xs font-medium">
+                    <FiUsers className="w-3.5 h-3.5 text-success" />
+                    <span className="text-success text-xs font-medium">
                       {community.newThisWeek} new {community.newThisWeek === 1 ? 'member' : 'members'} joined this week
                     </span>
                   </div>
@@ -720,12 +729,12 @@ const Dashboard = () => {
                     to="/profile/edit"
                     className={`${CARD} rounded-2xl p-4 flex items-start gap-3.5 transition-transform duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500`}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-success-50 dark:bg-success-500/15' : 'bg-primary-50 dark:bg-primary-900/30'}`}>
-                      {item.done ? <FiCheckCircle className="w-5 h-5 text-success dark:text-green-400" /> : <Icon className="w-5 h-5 text-primary-500" />}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-success-50 dark:bg-success/15' : 'bg-primary-50 dark:bg-primary-900/30'}`}>
+                      {item.done ? <FiCheckCircle className="w-5 h-5 text-success" /> : <Icon className="w-5 h-5 text-primary-500" />}
                     </div>
                     <div className="min-w-0">
                       <p className={`text-sm font-semibold ${item.done ? 'text-neutral-500 dark:text-neutral-400' : 'text-neutral-800 dark:text-neutral-100'}`}>{item.label}</p>
-                      <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5">{item.desc}</p>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-0.5">{item.desc}</p>
                     </div>
                   </Link>
                 );
@@ -743,43 +752,41 @@ const Dashboard = () => {
         </motion.div>
 
         {/* ── What's new: mutual matches, today's picks, who viewed you ──── */}
-        <AnimatePresence>
-          {mutualMatches.length > 0 && (
-            <motion.section
-              variants={fadeInUp}
-              initial="initial"
-              animate="animate"
-            >
-              <SectionHeader
-                title="Mutual Matches"
-                subtitle="These people liked you back. Start a conversation."
-                count={`${mutualMatches.length} new`}
-                countTone="ok"
-                action={
-                  <Link
-                    to="/chat"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors duration-[160ms] shadow-burgundy"
-                  >
-                    <FiMessageCircle className="w-4 h-4" />
-                    Open chat
-                  </Link>
-                }
-              />
+        {mutualMatches.length > 0 && (
+          <motion.section
+            variants={fadeInUp}
+            initial="initial"
+            animate="animate"
+          >
+            <SectionHeader
+              title="Mutual Matches"
+              subtitle="These people liked you back. Start a conversation."
+              count={`${mutualMatches.length} new`}
+              countTone="ok"
+              action={
+                <Link
+                  to="/chat"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors duration-[160ms] shadow-burgundy"
+                >
+                  <FiMessageCircle className="w-4 h-4" />
+                  Open chat
+                </Link>
+              }
+            />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {mutualMatches.slice(0, 3).map((match, i) => (
-                  <MatchCard
-                    key={`match-${match.userId}`}
-                    match={match}
-                    userId={match.userId}
-                    index={i}
-                    onChat={() => navigate('/chat')}
-                  />
-                ))}
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {mutualMatches.slice(0, 3).map((match, i) => (
+                <MatchCard
+                  key={`match-${match.userId}`}
+                  match={match}
+                  userId={match.userId}
+                  index={i}
+                  onChat={() => navigate('/chat')}
+                />
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {dailyMatches.length > 0 && (
           <motion.section variants={fadeInUp}>
@@ -797,6 +804,17 @@ const Dashboard = () => {
               ))}
             </div>
 
+            {/* Mobile: the rail scrolls horizontally; signal there's more and
+                give a tap-through to browse, mirroring "Curated for You" below. */}
+            <div className="mt-4 md:hidden text-center">
+              <Link
+                to="/search"
+                className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm py-3 px-3 -my-3 -mx-3"
+              >
+                See more matches <FiArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
             {!dailyMeta.isPremium && (
               <div className="mt-4 text-center">
                 <button
@@ -809,7 +827,7 @@ const Dashboard = () => {
             )}
 
             {/* Anticipation line — the daily set refreshes at midnight IST. */}
-            <p className="mt-3 text-center text-xs text-neutral-400 dark:text-neutral-500">
+            <p className="mt-3 text-center text-xs text-neutral-500 dark:text-neutral-500">
               Fresh matches arrive at midnight. Check back tomorrow.
             </p>
           </motion.section>
@@ -839,13 +857,18 @@ const Dashboard = () => {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: staggerIndex(i), duration: DUR.content, ease: EASE_OUT }}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`View ${viewerName}'s profile`}
-                    onClick={() => viewer.userId && navigate(`/profile/${viewer.userId}`)}
-                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && viewer.userId) { e.preventDefault(); navigate(`/profile/${viewer.userId}`); } }}
-                    className={`cursor-pointer ${CARD} rounded-xl overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 transition-transform duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1`}
+                    className={`relative ${CARD} rounded-xl overflow-hidden group transition-transform duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1`}
                   >
+                    {/* A real stretched <Link> (not role="button") so the card
+                        supports open-in-new-tab, middle/right-click and keyboard
+                        nav, matching the SuggestionCard pattern on this page. */}
+                    {viewer.userId && (
+                      <Link
+                        to={`/profile/${viewer.userId}`}
+                        aria-label={`View ${viewerName}'s profile`}
+                        className="absolute inset-0 z-10 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
+                      />
+                    )}
                     <div className="relative h-28 bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                       <div className="absolute inset-0 flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
                         <span className="font-display text-2xl font-semibold text-primary-700 dark:text-primary-300">{initials}</span>
@@ -862,7 +885,7 @@ const Dashboard = () => {
                     </div>
                     <div className="p-2.5 text-center">
                       <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-100 truncate">{viewerName}</p>
-                      {viewer.city && <p className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate">{viewer.city}</p>}
+                      {viewer.city && <p className="text-[10px] text-neutral-500 dark:text-neutral-500 truncate">{viewer.city}</p>}
                     </div>
                   </motion.div>
                 );
@@ -932,7 +955,7 @@ const Dashboard = () => {
                     <p className={`font-display text-3xl font-bold ${stat.numColor}`}>
                       {value}
                     </p>
-                    <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-1">{stat.sublabel}</p>
+                    <p className="text-[11px] text-neutral-500 dark:text-neutral-500 mt-1">{stat.sublabel}</p>
                   </div>
                   <div className={`w-11 h-11 ${stat.iconBg} rounded-xl flex items-center justify-center`}>
                     <Icon className={`w-5 h-5 ${stat.iconColor}`} />
@@ -954,14 +977,11 @@ const Dashboard = () => {
                 const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'User';
                 const initials = (p.firstName?.[0] || '') + (p.lastName?.[0] || '') || '?';
                 return (
-                  <div
+                  <Link
                     key={`recent-${p.userId}`}
-                    role="button"
-                    tabIndex={0}
+                    to={`/profile/${p.userId}`}
                     aria-label={`View ${name}'s profile`}
-                    onClick={() => navigate(`/profile/${p.userId}`)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/profile/${p.userId}`); } }}
-                    className={`cursor-pointer ${CARD} rounded-xl overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1`}
+                    className={`block cursor-pointer ${CARD} rounded-xl overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1`}
                   >
                     <div className="relative h-28 bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                       <div className="absolute inset-0 flex items-center justify-center bg-primary-100 dark:bg-primary-900/40">
@@ -979,9 +999,9 @@ const Dashboard = () => {
                     </div>
                     <div className="p-2.5 text-center">
                       <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-100 truncate">{name}</p>
-                      {p.city && <p className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate">{p.city}</p>}
+                      {p.city && <p className="text-[10px] text-neutral-500 dark:text-neutral-500 truncate">{p.city}</p>}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

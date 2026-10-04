@@ -30,24 +30,28 @@ const HOVER_CAPABLE =
 const buttonVariants = cva(
   // Base styles — named properties at doctrine §4.3 duration (press/hover
   // both land under 200ms; background/shadow/color are the only things that
-  // actually change here, never layout).
-  'inline-flex items-center justify-center gap-2 font-medium transition-[background-color,box-shadow,color,border-color] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+  // actually change here, never layout). Focus is one consistent burgundy
+  // ring, keyboard-only (focus-visible) so a mouse click never flashes it.
+  'inline-flex items-center justify-center gap-2 font-medium transition-[background-color,box-shadow,color,border-color] duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        primary: 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 focus:ring-primary-500 shadow-burgundy hover:shadow-lg',
-        secondary: 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200 focus:ring-neutral-500',
-        outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 focus:ring-primary-500',
-        ghost: 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 focus:ring-neutral-500',
-        danger: 'bg-destructive text-white hover:bg-destructive-700 focus:ring-destructive',
-        success: 'bg-success text-white hover:bg-success-700 focus:ring-success',
-        link: 'text-primary-500 hover:text-primary-600 underline-offset-4 hover:underline focus:ring-primary-500 p-0',
-        gold: 'bg-gradient-to-r from-gold-500 to-gold-600 text-neutral-900 hover:from-gold-600 hover:to-gold-700 focus:ring-gold-500 shadow-gold hover:shadow-lg font-semibold',
+        primary: 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy hover:shadow-lg',
+        secondary: 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200',
+        outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50',
+        ghost: 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
+        danger: 'bg-destructive text-white hover:bg-destructive-700',
+        success: 'bg-success text-white hover:bg-success-700',
+        link: 'text-primary-500 hover:text-primary-600 underline-offset-4 hover:underline p-0',
+        gold: 'bg-gradient-to-r from-gold-500 to-gold-600 text-neutral-900 hover:from-gold-600 hover:to-gold-700 shadow-gold hover:shadow-lg font-semibold',
       },
       size: {
         xs: 'text-xs px-2.5 py-1.5 rounded-md',
         sm: 'text-sm px-3 py-2 rounded-lg',
-        md: 'text-sm px-4 py-2.5 rounded-xl',
+        // md is the default and most common button — floor its tap target at
+        // 44px (doctrine a11y). Padding is rem-based, so elder mode (larger
+        // root font) scales it past the 48px elder minimum.
+        md: 'text-sm px-4 py-3 rounded-xl min-h-[44px]',
         lg: 'text-base px-6 py-3 rounded-xl',
         xl: 'text-lg px-8 py-4 rounded-2xl',
         icon: 'p-2 rounded-full',

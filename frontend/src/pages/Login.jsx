@@ -234,16 +234,16 @@ const Login = () => {
           {/* Logo */}
           <div>
             <Logo variant="white" size="lg" linkTo="/" />
-            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">
+            <p className="text-xs text-white/60 mt-1 uppercase tracking-widest">
               Chandigarh · Mohali · Panchkula
             </p>
           </div>
 
           {/* Main copy */}
           <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">
+            <p className="font-display text-5xl font-bold leading-tight mb-5 text-white">
               Your journey<br />continues here.
-            </h2>
+            </p>
             <p className="text-white/60 text-base leading-relaxed">
               Tricity's own matrimonial community — verified profiles, private
               conversations, and matches close enough to meet this week.
@@ -258,14 +258,14 @@ const Login = () => {
               ].map(({ n, l }) => (
                 <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
                   <span className="text-lg font-bold text-white leading-none">{n}</span>
-                  <span className="text-[11px] text-white/50 mt-0.5">{l}</span>
+                  <span className="text-[11px] text-white/65 mt-0.5">{l}</span>
                 </div>
               ))}
             </div>
           </motion.div>
 
           {/* Bottom trust strip */}
-          <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-5 text-xs text-white/40">
+          <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-5 text-xs text-white/60">
             <div className="flex items-center gap-1.5">
               <FiShield className="w-3.5 h-3.5" />
               <span>SSL Secured</span>
@@ -333,7 +333,7 @@ const Login = () => {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800/50 text-gold-800 dark:text-gold-300 text-sm"
+                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-warning/10 dark:bg-amber-950/30 border border-warning/20 dark:border-amber-900/50 text-warning dark:text-amber-300 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>Too many attempts. Please wait a few minutes, then try again.</span>
@@ -463,7 +463,7 @@ const Login = () => {
                       <input
                         id="mfa-code"
                         name="mfaCode"
-                        inputMode="numeric"
+                        inputMode="text"
                         autoComplete="one-time-code"
                         autoFocus
                         maxLength={20}

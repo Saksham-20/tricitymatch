@@ -81,7 +81,7 @@ const apiLimiter = createRateLimiter({
       : req.cookies?.accessToken;
     if (token) {
       try {
-        const decoded = jwt.verify(token, config.auth.jwtSecret);
+        const decoded = jwt.verify(token, config.auth.jwtSecret, { algorithms: ['HS256'] });
         if (decoded?.userId) return `user:${decoded.userId}`;
       } catch {
         // Expired/invalid token — fall through to IP keying.

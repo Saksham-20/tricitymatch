@@ -263,16 +263,45 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
     if (status !== 'active') await assertNotLastFullAdmin(user, 'user');
   }
 
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 300) : '';
+
   const previousStatus = user.status;
   user.status = status;
   await user.save();
 
-  // Audit log
+  // Audit log (record the reason so a ban is never a mystery later).
   logAudit('user_status_changed', req.user.id, {
     targetUserId: userId,
     previousStatus,
-    newStatus: status
+    newStatus: status,
+    reason: reason || undefined,
   });
+
+  // Tell the member when their account is restricted or restored — a ban that
+  // just silently locks them out, with no reason, is the failure to avoid
+  // (matches the photo-removal / verification-rejection notify pattern).
+  if (user.role === 'user' && status !== previousStatus) {
+    // A failed notification must never fail an otherwise-complete status change.
+    try {
+      // 'system' is the valid catch-all Notification type (the enum has no
+      // dedicated account-status value; a bespoke type would need a migration).
+      if (status === 'banned') {
+        await notify(
+          userId,
+          'system',
+          'Your account has been suspended',
+          `Your TricityMatch account has been suspended${reason ? ` for the following reason: ${reason}` : ' for violating our community guidelines'}. If you believe this is a mistake, you can appeal from the sign-in page.`,
+        );
+      } else if (status === 'active' && previousStatus === 'banned') {
+        await notify(
+          userId,
+          'system',
+          'Your account has been restored',
+          'Your TricityMatch account is active again. Welcome back.',
+        );
+      }
+    } catch { /* notification is best-effort */ }
+  }
 
   res.json({
     success: true,
@@ -1853,7 +1882,7 @@ exports.updateMarketingPayout = asyncHandler(async (req, res) => {
     const previous = before
       ? { status: before.status, paidAt: before.paidAt, amount: before.amount }
       : null;
-    const payout = await updatePayoutStatus(req.params.payoutId, req.body.status);
+    const payout = await updatePayoutStatus(req.params.payoutId, req.body.status, { reference: req.body.reference });
     if (!payout) throw createError.notFound('Payout not found');
     logAudit('marketing_payout_updated', req.user.id, {
       payoutId: payout.id,

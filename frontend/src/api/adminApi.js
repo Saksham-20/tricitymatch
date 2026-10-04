@@ -67,4 +67,6 @@ export const getSuspicious = (params) => api.get('/admin/suspicious', { params }
 export const getModerationStats = () => api.get('/admin/moderation-stats');
 export const getPhotoQueue = (params) => api.get('/admin/photos', { params });
 export const removePhoto = (data) => api.delete('/admin/photos', { data });
+// Flag a photo for review without removing it (files a MediaReview → Photo Review queue)
+export const flagPhoto = (data) => api.post('/admin/photos/flag', data);
 export const bulkUpdateStatus = (ids, status) => api.put('/admin/users/bulk-status', { ids, status });

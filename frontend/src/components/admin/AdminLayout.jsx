@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useDarkMode from '../../hooks/useDarkMode';
@@ -29,6 +29,7 @@ const navItems = [
   { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus,    scope: 'marketing' },
   { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag,         scope: 'marketing' },
   { to: '/admin/leads',            label: 'Leads',             icon: FiPhoneCall,   scope: 'marketing' },
+  { to: '/admin/payouts',          label: 'Rep Payouts',       icon: FiCreditCard,  scope: 'payouts' },
   { to: '/admin/success-stories',  label: 'Success Stories',   icon: FiHeart,       scope: 'stories' },
   { to: '/admin/team',             label: 'Admins & Roles',    icon: FiShield,      scope: 'team' },
   { to: '/admin/audit-log',        label: 'Audit Log',         icon: FiList,        scope: 'team' },
@@ -87,40 +88,34 @@ export function AdminScopeRoute({ scope, children }) {
   return children;
 }
 
-export default function AdminLayout() {
-  const { user, logout } = useAuth();
-  // The panel renders no member Navbar — the only thing that applied the saved
-  // theme — so a hard load of /admin/* came up light for someone who had chosen
-  // dark (same bug the marketing portal had). Mount the hook here and give the
-  // rail its own toggle.
-  const { isDark, toggle: toggleDark } = useDarkMode();
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleLogout = async () => {
-    await logout();
-    // /admin/login only exists as a redirect stub; send people to the real one.
-    navigate('/login');
-  };
-
-  // Full-access roles have no `adminScopes` restriction; a sub_admin gets the
-  // list the server resolved for it on /auth/me.
-  const scopes = user?.role === 'sub_admin' ? (user.adminScopes || []) : null;
-  const visibleNav = scopes ? navItems.filter((i) => scopes.includes(i.scope)) : navItems;
-
-  const Sidebar = ({ mobile = false }) => (
+// Hoisted to module scope so its identity is stable across AdminLayout renders.
+// Defined inside the render body it was a new component type on every render, so
+// React remounted the whole sidebar subtree each time — wasteful, and it lost
+// nav scroll/focus state. Props carry the state it used to close over.
+function Sidebar({ mobile = false, user, visibleNav, isDark, onToggleDark, onLogout, onClose }) {
+  return (
     <div className={`flex flex-col h-full admin-chrome ${mobile ? 'w-72' : 'w-64'}`}>
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-gray-800">
+      <div className="px-6 py-5 border-b border-gray-800 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary-700 flex items-center justify-center">
             <span className="text-white text-xs font-black">TM</span>
           </div>
           <div>
             <p className="text-white font-bold text-sm leading-tight">TricityMatch</p>
-            <p className="text-gray-400 text-[10px] uppercase tracking-widest">Admin Panel</p>
+            <p className="text-gray-300 text-xs uppercase tracking-wide">Admin Panel</p>
           </div>
         </div>
+        {mobile && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close menu"
+            className="p-1 text-gray-300 hover:text-white transition-colors"
+          >
+            <FiX className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -129,12 +124,12 @@ export default function AdminLayout() {
           <NavLink
             key={to}
             to={to}
-            onClick={() => setSidebarOpen(false)}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
                 isActive
                   ? 'bg-primary-700 text-white'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               }`
             }
           >
@@ -153,28 +148,29 @@ export default function AdminLayout() {
       <div className="px-3 py-4 border-t border-gray-800">
         <div className="px-3 py-2 rounded-lg bg-gray-800 mb-2">
           <p className="text-xs font-medium text-white truncate">{user?.firstName || 'Admin'} {user?.lastName || ''}</p>
-          <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
+          <p className="text-[11px] text-gray-300 truncate">{user?.email}</p>
         </div>
         <Link
           to="/dashboard"
-          onClick={() => setSidebarOpen(false)}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-all duration-150"
+          onClick={onClose}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-150"
         >
           <FiExternalLink className="w-4 h-4" />
           View live site
         </Link>
         <button
           type="button"
-          onClick={toggleDark}
+          onClick={onToggleDark}
           aria-pressed={isDark}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-all duration-150"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-150"
         >
           {isDark ? <FiSun className="w-4 h-4" /> : <FiMoon className="w-4 h-4" />}
           {isDark ? 'Light mode' : 'Dark mode'}
         </button>
         <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-red-400 transition-all duration-150"
+          type="button"
+          onClick={onLogout}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-red-400 transition-all duration-150"
         >
           <FiLogOut className="w-4 h-4" />
           Sign out
@@ -182,23 +178,96 @@ export default function AdminLayout() {
       </div>
     </div>
   );
+}
+
+export default function AdminLayout() {
+  const { user, logout } = useAuth();
+  // The panel renders no member Navbar — the only thing that applied the saved
+  // theme — so a hard load of /admin/* came up light for someone who had chosen
+  // dark (same bug the marketing portal had). Mount the hook here and give the
+  // rail its own toggle.
+  const { isDark, toggle: toggleDark } = useDarkMode();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const drawerRef = useRef(null);
+
+  const handleLogout = async () => {
+    await logout();
+    // /admin/login only exists as a redirect stub; send people to the real one.
+    navigate('/login');
+  };
+
+  const closeSidebar = () => setSidebarOpen(false);
+
+  // Full-access roles have no `adminScopes` restriction; a sub_admin gets the
+  // list the server resolved for it on /auth/me.
+  const scopes = user?.role === 'sub_admin' ? (user.adminScopes || []) : null;
+  const visibleNav = scopes ? navItems.filter((i) => scopes.includes(i.scope)) : navItems;
+
+  // The mobile drawer is a modal: move focus into it on open, trap Tab inside
+  // it, close on Escape, and return focus to the trigger on close. Without this
+  // a keyboard user who opened it was stranded.
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+    const opener = document.activeElement;
+    drawerRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setSidebarOpen(false); return; }
+      if (e.key === 'Tab' && drawerRef.current) {
+        const items = Array.from(drawerRef.current.querySelectorAll(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      if (opener && opener.focus) opener.focus();
+    };
+  }, [sidebarOpen]);
 
   return (
     <div className="admin-panel flex h-screen bg-gray-50 overflow-hidden">
       {/* Desktop sidebar */}
       <div className="hidden md:flex flex-shrink-0">
-        <Sidebar />
+        <Sidebar
+          user={user}
+          visibleNav={visibleNav}
+          isDark={isDark}
+          onToggleDark={toggleDark}
+          onLogout={handleLogout}
+          onClose={closeSidebar}
+        />
       </div>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div
+          ref={drawerRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+          className="fixed inset-0 z-[60] md:hidden focus:outline-none"
+        >
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
+            onClick={closeSidebar}
           />
           <div className="relative z-10 h-full">
-            <Sidebar mobile />
+            <Sidebar
+              mobile
+              user={user}
+              visibleNav={visibleNav}
+              isDark={isDark}
+              onToggleDark={toggleDark}
+              onLogout={handleLogout}
+              onClose={closeSidebar}
+            />
           </div>
         </div>
       )}
@@ -208,8 +277,10 @@ export default function AdminLayout() {
         {/* Mobile topbar */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 admin-chrome border-b border-gray-800">
           <button
+            type="button"
             onClick={() => setSidebarOpen(true)}
-            className="text-gray-400 hover:text-white transition-colors"
+            aria-label="Open navigation menu"
+            className="text-gray-300 hover:text-white transition-colors"
           >
             <FiMenu className="w-6 h-6" />
           </button>

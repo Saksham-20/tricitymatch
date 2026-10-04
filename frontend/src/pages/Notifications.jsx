@@ -199,7 +199,7 @@ export default function Notifications() {
           <div className="flex items-center gap-2">
             <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">Notifications</h1>
             {unreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-primary-500 text-white text-xs font-bold">{unreadCount}</span>
+              <span className="px-2 py-0.5 rounded-full bg-primary-500 text-white text-xs font-bold tabular-nums">{unreadCount > 99 ? '99+' : unreadCount}</span>
             )}
           </div>
           {unreadCount > 0 && (
@@ -248,38 +248,35 @@ export default function Notifications() {
               <AnimatePresence>
                 {notifications.map((n) => {
                   const Icon  = TYPE_ICONS[n.type]  || FiBell;
-                  const color = TYPE_COLORS[n.type] || 'bg-neutral-100 text-neutral-600';
+                  const color = TYPE_COLORS[n.type] || 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300';
                   return (
                     <motion.div
                       key={n.id}
                       {...listRow}
-                      role="button"
-                      tabIndex={0}
-                      className={`flex items-start gap-3 p-4 rounded-2xl shadow-card active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer ${
+                      className={`flex items-start gap-3 p-4 rounded-2xl shadow-card transition-colors duration-[160ms] ${
                         !n.isRead ? 'bg-primary-50/40 dark:bg-primary-900/20' : 'bg-white dark:bg-surface-dark-3'
                       }`}
-                      onClick={() => handleOpen(n)}
-                      onKeyDown={(e) => {
-                        // Ignore keydowns that bubbled up from the nested
-                        // delete button — only a key on the row itself opens
-                        // the notification.
-                        if (e.target !== e.currentTarget) return;
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleOpen(n);
-                        }
-                      }}
                     >
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm leading-snug ${!n.isRead ? 'font-semibold text-neutral-900 dark:text-neutral-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
-                          {n.title}
-                        </p>
-                        {n.body && <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{n.body}</p>}
-                        <p className="text-xs text-neutral-400 mt-1">{timeAgo(n.createdAt)}</p>
-                      </div>
+                      {/* The open action is a real <button>, so the delete
+                          <button> is a SIBLING rather than an interactive control
+                          nested inside another one (invalid ARIA). */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpen(n)}
+                        aria-label={n.title}
+                        className="flex items-start gap-3 flex-1 min-w-0 text-left rounded-xl active:scale-[0.97] transition-transform duration-[160ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
+                      >
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm leading-snug ${!n.isRead ? 'font-semibold text-neutral-900 dark:text-neutral-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
+                            {n.title}
+                          </p>
+                          {n.body && <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">{n.body}</p>}
+                          <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">{timeAgo(n.createdAt)}</p>
+                        </div>
+                      </button>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {!n.isRead && (
                           <div className="w-2 h-2 rounded-full bg-primary-500" />
@@ -288,7 +285,9 @@ export default function Notifications() {
                           onClick={(e) => { e.stopPropagation(); deleteNotif(n.id); }}
                           // w-11 h-11 pads the tap target to the 44px floor
                           // (doctrine §3.5); the icon glyph itself is unchanged.
-                          className="w-11 h-11 rounded-lg flex items-center justify-center text-neutral-300 dark:text-neutral-600 hover:text-neutral-500 dark:hover:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-[0.97] transition-colors duration-[160ms]"
+                          // Resting color meets the 3:1 icon floor so the delete
+                          // affordance is visible on touch (no hover to rely on).
+                          className="w-11 h-11 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-[0.97] transition-colors duration-[160ms]"
                           aria-label="Delete notification"
                           title="Delete"
                         >

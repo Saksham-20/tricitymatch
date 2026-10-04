@@ -83,7 +83,7 @@ export default function Contact() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Form */}
           <div className="lg:col-span-3 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-8 md:p-10">
-            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Contact us</h1>
+            <h1 className="font-display text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Contact us</h1>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-8">Have a question, concern, or feedback? Send us a message and we'll get back to you.</p>
 
             {submitted ? (
@@ -131,7 +131,7 @@ export default function Contact() {
                     onBlur={handleBlur('message')}
                     aria-invalid={errors.message ? true : undefined}
                     aria-describedby={errors.message ? 'contact-message-error' : undefined}
-                    className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-surface-dark-2 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-150 resize-y ${
+                    className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-surface-dark-2 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 dark:placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-150 resize-y ${
                       errors.message
                         ? 'border-red-500 dark:border-red-500 focus:ring-red-500/20 focus:ring-red-500'
                         : 'border-neutral-300 dark:border-neutral-700 focus:ring-primary-500/20 focus:ring-primary-500 dark:focus:ring-primary-400/20 dark:focus:ring-primary-400'

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Filter, RefreshCw, CheckCircle2, Clock, UserPlus, X } from 'lucide-react';
+import { FiFilter, FiRefreshCw, FiCheckCircle, FiUserPlus, FiX } from 'react-icons/fi';
 import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
+import Skeleton from '../../components/ui/Skeleton';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
 import ReportSummary from '../../components/marketing/ReportSummary';
 
@@ -89,7 +90,7 @@ export default function MarketingLeads() {
   };
 
   const selectCls =
-    'border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 px-3 py-2 rounded-lg text-sm';
+    'border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 px-3 py-2 rounded-lg text-base';
 
   return (
     <div className="p-6">
@@ -97,7 +98,7 @@ export default function MarketingLeads() {
         <div>
           <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">My Members</h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-            Everyone who joined through your referral links — who signed up, and who paid.
+            Everyone who joined through your referral links: who signed up, and who paid.
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -105,7 +106,7 @@ export default function MarketingLeads() {
             onClick={() => fetchReport({ quiet: true })}
             className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
           >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            <FiRefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             {lastUpdated
               ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
               : 'Refresh'}
@@ -114,7 +115,7 @@ export default function MarketingLeads() {
             onClick={() => { setShowAdd((v) => !v); setAddedName(''); setAddError(''); }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors"
           >
-            {showAdd ? <X size={16} /> : <UserPlus size={16} />}
+            {showAdd ? <FiX size={16} /> : <FiUserPlus size={16} />}
             {showAdd ? 'Close' : 'Add a lead'}
           </button>
         </div>
@@ -146,7 +147,7 @@ export default function MarketingLeads() {
 
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 rounded-xl mb-6">
         <div className="flex items-center gap-2 mb-4 text-neutral-900 dark:text-neutral-100">
-          <Filter size={18} />
+          <FiFilter size={18} />
           <h2 className="text-base font-semibold">Filters</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -172,15 +173,27 @@ export default function MarketingLeads() {
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 justify-center py-16 text-neutral-500 dark:text-neutral-400">
-          <Clock size={18} /> Loading your members…
+        <div className="overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+          <div className="bg-neutral-50 dark:bg-neutral-800/60 px-4 py-3">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-4">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24 ml-auto" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : !report?.members?.length ? (
         <div className="text-center py-16 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
-          <CheckCircle2 className="mx-auto mb-3 text-neutral-300 dark:text-neutral-600" size={32} />
+          <FiCheckCircle className="mx-auto mb-3 text-neutral-300 dark:text-neutral-600" size={32} />
           <p className="text-neutral-700 dark:text-neutral-200 font-medium">No members yet</p>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-            Share a referral link — every signup through it appears here automatically.
+            Share a referral link: every signup through it appears here automatically.
           </p>
         </div>
       ) : (
@@ -191,20 +204,24 @@ export default function MarketingLeads() {
             updatingId={updating}
           />
           {report.pagination?.pages > 1 && (
-            <div className="flex justify-center gap-2 mt-6">
-              {Array.from({ length: report.pagination.pages }, (_, i) => i + 1).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    page === p
-                      ? 'bg-primary-600 text-white'
-                      : 'border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400 tabular-nums">
+                Page {page} of {report.pagination.pages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(report.pagination.pages, p + 1))}
+                disabled={page >= report.pagination.pages}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
             </div>
           )}
         </>

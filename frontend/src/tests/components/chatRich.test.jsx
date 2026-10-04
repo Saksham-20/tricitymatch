@@ -36,7 +36,8 @@ describe('ReplyMeter (DS3)', () => {
       <ReplyMeter replyWindow={{ active: true, messagesRemaining: 1, expiresAt: new Date(Date.now() + HOUR).toISOString() }} />
     );
     const el = screen.getByText(/1 free reply left/i);
-    expect(el.parentElement.className).toContain('text-gold-700');
+    // Warning state uses the semantic warning token (gold is premium-only per doctrine).
+    expect(el.parentElement.className).toContain('text-warning');
     expect(el.parentElement).toHaveAttribute('aria-live', 'polite');
   });
 });

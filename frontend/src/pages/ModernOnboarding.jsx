@@ -543,7 +543,7 @@ const ModernOnboardingContent = () => {
               variants={fadeRise}
               className="mb-5 flex items-center gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 dark:bg-primary-900/20 dark:border-primary-900/40 px-4 py-3"
             >
-              <span className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-display font-semibold flex items-center justify-center flex-shrink-0">
+              <span className="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-display font-semibold flex items-center justify-center flex-shrink-0">
                 {inviterName.charAt(0).toUpperCase()}
               </span>
               <p className="text-sm text-neutral-800 dark:text-neutral-200">
@@ -682,7 +682,7 @@ const ModernOnboardingContent = () => {
               <div className="space-y-2">
                 <p>
                   Already have an account?{' '}
-                  <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
+                  <Link to="/login" className="font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200">
                     Sign in
                   </Link>
                 </p>
@@ -692,14 +692,14 @@ const ModernOnboardingContent = () => {
                 {mode === 'signup' ? (
                   <p className="text-xs text-neutral-500">
                     Setting up a profile for your son, daughter or sibling?{' '}
-                    <a href="/onboarding?createFor=other" className="font-semibold text-primary-600 hover:text-primary-700 underline underline-offset-2">
+                    <a href="/onboarding?createFor=other" className="font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 underline underline-offset-2">
                       Create it for them
                     </a>
                   </p>
                 ) : (
                   <p className="text-xs text-neutral-500">
                     Creating your own profile instead?{' '}
-                    <a href="/onboarding" className="font-semibold text-primary-600 hover:text-primary-700 underline underline-offset-2">
+                    <a href="/onboarding" className="font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 underline underline-offset-2">
                       Switch to a personal profile
                     </a>
                   </p>
@@ -708,7 +708,7 @@ const ModernOnboardingContent = () => {
             ) : (
               <button
                 onClick={handleQuit}
-                className="text-primary-600 hover:text-primary-700 font-medium underline"
+                className="text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 font-medium underline"
               >
                 Save & Exit
               </button>
@@ -772,7 +772,7 @@ const ModernOnboardingContent = () => {
                   <button
                     type="button"
                     onClick={() => navigate('/profile')}
-                    className="w-full py-1.5 text-xs font-medium text-success hover:underline underline-offset-2 transition-colors"
+                    className="w-full py-1.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:underline underline-offset-2 transition-colors"
                   >
                     Create your biodata: share it on WhatsApp
                   </button>

@@ -95,7 +95,7 @@ export default function SuccessStories() {
                     <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed mb-6 -mt-3">{s.quote}</p>
                     <div className="mt-auto pt-4 border-t border-neutral-200 dark:border-neutral-800">
                       <p className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">{s.coupleNames}</p>
-                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-neutral-400 dark:text-neutral-500 mt-1">
+                      <p className="text-xs uppercase tracking-[0.12em] text-neutral-600 dark:text-neutral-400 mt-1 tabular-nums">
                         {s.location}{s.marriedOn ? ` · ${t('successStories.married')} ${new Date(s.marriedOn).getFullYear()}` : ''}
                       </p>
                     </div>
@@ -120,7 +120,7 @@ export default function SuccessStories() {
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             Real Tricity couples found their forever here. Yours could be next.
           </p>
-          <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">
+          <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-xl hover:bg-white transition-colors">
             Create free profile <FiArrowRight />
           </Link>
         </div>

@@ -68,6 +68,14 @@ router.get('/payouts', asyncHandler(async (req, res) => {
   res.json({ success: true, ...ledger });
 }));
 
+// @route   GET/PUT /api/marketing/payout-details
+// @desc    Where the rep wants to be paid. Read back MASKED only; the full
+//          values are visible to admins through the audited payouts routes.
+// @access  Private/Marketing
+const payoutCtl = require('../controllers/marketingPayoutController');
+router.get('/payout-details', payoutCtl.getMyPayoutDetails);
+router.put('/payout-details', payoutCtl.saveMyPayoutDetails);
+
 // @route   GET /api/marketing/leads
 // @desc    Get own leads
 // @access  Private/Marketing

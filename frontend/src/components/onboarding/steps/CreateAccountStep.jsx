@@ -291,14 +291,14 @@ const CreateAccountStep = () => {
                     }
                   }}
                   aria-invalid={errors.password ? true : undefined}
-                  aria-describedby="signup-password-hint"
+                  aria-describedby={errors.password ? 'signup-password-error' : (formData.password ? undefined : 'signup-password-hint')}
                   className="w-full px-4 py-3 pr-11 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
                 />
                 <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
                   {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
-              {errors.password && <p className="text-sm text-destructive dark:text-red-300">{errors.password}</p>}
+              {errors.password && <p id="signup-password-error" className="text-sm text-destructive dark:text-red-300">{errors.password}</p>}
               {formData.password ? (
                 <PasswordRequirements password={formData.password} />
               ) : !errors.password && (

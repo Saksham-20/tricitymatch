@@ -54,13 +54,13 @@ const FormField = ({
         min={min}
         max={max}
         maxLength={maxLength}
-        className={`w-full px-4 py-3 text-base border rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-[160ms] ${
+        className={`w-full px-4 py-3 text-base border rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:border-transparent transition-[border-color,box-shadow] duration-[160ms] ${
           error
             ? 'border-destructive focus:ring-destructive/20 focus:ring-destructive'
             : 'border-neutral-300 dark:border-neutral-700 focus:ring-primary-500/20 focus:ring-primary-500'
         } ${disabled ? 'bg-neutral-100 dark:bg-neutral-800 cursor-not-allowed opacity-60' : ''}`}
       />
-      {error && <p id={errorId} className="text-sm text-destructive font-medium">{error}</p>}
+      {error && <p id={errorId} role="alert" className="text-sm text-destructive font-medium">{error}</p>}
       {hint && !error && <p id={hintId} className="text-xs text-neutral-500 dark:text-neutral-400">{hint}</p>}
     </div>
   );

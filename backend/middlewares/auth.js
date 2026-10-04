@@ -54,7 +54,7 @@ const auth = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, config.auth.jwtSecret);
+    const decoded = jwt.verify(token, config.auth.jwtSecret, { algorithms: ['HS256'] });
 
     // Verify token type
     if (decoded.type !== 'access') {
@@ -121,7 +121,7 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, config.auth.jwtSecret);
+    const decoded = jwt.verify(token, config.auth.jwtSecret, { algorithms: ['HS256'] });
 
     if (decoded.type === 'access' && !(await isAccessRevoked(decoded))) {
       const user = await User.findByPk(decoded.userId, {
@@ -417,7 +417,7 @@ const socketAuth = async (socket, next) => {
       return next(new Error('Authentication required'));
     }
 
-    const decoded = jwt.verify(token, config.auth.jwtSecret);
+    const decoded = jwt.verify(token, config.auth.jwtSecret, { algorithms: ['HS256'] });
 
     if (decoded.type !== 'access') {
       return next(new Error('Invalid token type'));

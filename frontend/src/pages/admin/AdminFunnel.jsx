@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FiArrowDown, FiRefreshCw, FiTrendingDown, FiTrendingUp } from 'react-icons/fi';
+import { FiArrowDown, FiFilter, FiRefreshCw, FiTrendingDown, FiTrendingUp } from 'react-icons/fi';
 import { getFunnel } from '../../api/adminApi';
 
 /**
@@ -63,22 +63,36 @@ export default function AdminFunnel() {
           ))}
           <button
             onClick={load}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600"
+            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600"
+            aria-label="Refresh"
             title="Refresh"
           >
-            <FiRefreshCw className="w-4 h-4" />
+            <FiRefreshCw className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50" aria-busy="true">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="px-5 py-4 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="skeleton h-4 w-40 rounded" />
+                <div className="skeleton h-5 w-12 rounded" />
+              </div>
+              <div className="skeleton h-2 w-full rounded-full" />
+            </div>
+          ))}
         </div>
       ) : error ? (
         <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center">
           <p className="text-sm text-gray-600 mb-3">{error}</p>
           <button onClick={load} className="px-4 py-2 rounded-xl bg-primary-700 text-white text-sm font-medium">Retry</button>
+        </div>
+      ) : stages.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 border border-gray-100 text-center">
+          <FiFilter className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+          <p className="text-sm text-gray-500">No events recorded for this window yet.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">

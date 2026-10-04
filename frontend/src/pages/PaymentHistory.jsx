@@ -11,17 +11,23 @@ import { Skeleton, ErrorState } from '../components/ui';
 const PLAN_LABELS = {
   free: 'Free',
   basic_premium: 'Basic Premium',
-  premium_plus: 'Premium Plus',
+  premium_plus: 'Premium',
+  elite: 'Elite',
   vip: 'VIP',
+  nri: 'NRI Connect',
+  founding_premium: 'Founding Member',
 };
-const planLabel = (p) => PLAN_LABELS[p] || (p || '—').replace(/_/g, ' ');
+const planLabel = (p) => PLAN_LABELS[p] || (p || '—').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 const PlanBadge = ({ plan }) => {
   const meta = {
     free:          { label: 'Free',          cls: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700' },
     basic_premium: { label: 'Basic Premium', cls: 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800/40' },
-    premium_plus:  { label: 'Premium Plus',  cls: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800/50' },
+    premium_plus:  { label: 'Premium',       cls: 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800/50' },
+    elite:         { label: 'Elite',         cls: 'bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-400 border-gold-200 dark:border-gold-800/40' },
     vip:           { label: 'VIP',           cls: 'bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-400 border-gold-200 dark:border-gold-800/40' },
+    nri:           { label: 'NRI Connect',   cls: 'bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-400 border-gold-200 dark:border-gold-800/40' },
+    founding_premium: { label: 'Founding Member', cls: 'bg-gold-50 dark:bg-gold-900/20 text-gold-700 dark:text-gold-400 border-gold-200 dark:border-gold-800/40' },
   };
   const m = meta[plan] || { label: plan, cls: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700' };
   return (
@@ -131,13 +137,13 @@ export default function PaymentHistory() {
         {!loading && !loadError && subscriptions.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {summary.map((s) => (
-              <div key={s.label} className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-4 flex items-center gap-3">
+              <div key={s.label} className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
                   <s.icon className="w-5 h-5 text-primary-500" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] text-neutral-400 dark:text-neutral-500 font-medium">{s.label}</p>
-                  <p className={`font-display text-lg font-bold text-neutral-900 dark:text-neutral-100 truncate ${s.cap ? 'capitalize' : ''}`}>{s.value}</p>
+                  <p className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100 truncate tabular-nums">{s.value}</p>
                 </div>
               </div>
             ))}
@@ -145,13 +151,13 @@ export default function PaymentHistory() {
         )}
 
         {loading ? (
-          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card overflow-hidden">
             <table className="w-full text-sm">
               <tbody>{[0, 1, 2, 3].map((i) => <RowSkeleton key={i} />)}</tbody>
             </table>
           </div>
         ) : loadError ? (
-          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card">
             <ErrorState
               title="Couldn't load your payment history"
               description="The connection dropped before this finished loading. Try again."
@@ -159,9 +165,9 @@ export default function PaymentHistory() {
             />
           </div>
         ) : subscriptions.length === 0 ? (
-          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl p-12 text-center shadow-card border border-neutral-100 dark:border-neutral-800">
-            <div className="w-14 h-14 rounded-full bg-gold-50 dark:bg-gold-900/20 flex items-center justify-center mx-auto mb-4">
-              <FiAward className="w-6 h-6 text-gold-500" />
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl p-12 text-center shadow-card">
+            <div className="w-14 h-14 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mx-auto mb-4">
+              <FiAward className="w-6 h-6 text-primary-500" />
             </div>
             <p className="text-neutral-800 dark:text-neutral-200 font-semibold">No payment history yet</p>
             <p className="text-neutral-400 dark:text-neutral-500 text-sm mt-1">Upgrade to a paid plan to see your transactions here.</p>
@@ -170,15 +176,15 @@ export default function PaymentHistory() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card border border-neutral-100 dark:border-neutral-800 overflow-hidden">
+          <div className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-neutral-50 dark:bg-neutral-800/40 border-b border-neutral-100 dark:border-neutral-800">
                     {['Plan', 'Status', 'Amount', 'Start Date', 'End Date'].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">{h}</th>
+                      <th key={h} scope="col" className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">{h}</th>
                     ))}
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Invoice</th>
+                    <th scope="col" className="text-right px-4 py-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Invoice</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-50 dark:divide-neutral-800">
@@ -186,20 +192,20 @@ export default function PaymentHistory() {
                     <tr key={s.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors">
                       <td className="px-4 py-3"><PlanBadge plan={s.planType} /></td>
                       <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
-                      <td className="px-4 py-3 font-medium text-neutral-800 dark:text-neutral-200">
+                      <td className="px-4 py-3 font-medium text-neutral-800 dark:text-neutral-200 tabular-nums">
                         {isPaidRow(s)
                           ? `₹${Number(s.amount).toLocaleString('en-IN')}`
                           : (s.amount != null ? 'Granted' : '—')}
                         {refundedOf(s) > 0 && (
-                          <span className="block text-xs font-normal text-neutral-500 dark:text-neutral-400">
+                          <span className="block text-xs font-normal text-neutral-500 dark:text-neutral-400 tabular-nums">
                             Refunded ₹{refundedOf(s).toLocaleString('en-IN')}
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-neutral-500 dark:text-neutral-400">
+                      <td className="px-4 py-3 text-xs text-neutral-500 dark:text-neutral-400 tabular-nums">
                         {s.startDate ? new Date(s.startDate).toLocaleDateString('en-IN') : '—'}
                       </td>
-                      <td className="px-4 py-3 text-xs text-neutral-500 dark:text-neutral-400">
+                      <td className="px-4 py-3 text-xs text-neutral-500 dark:text-neutral-400 tabular-nums">
                         {s.endDate ? new Date(s.endDate).toLocaleDateString('en-IN') : '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -211,6 +217,7 @@ export default function PaymentHistory() {
                         {s.razorpayPaymentId && Number(s.amount) > 0 && (
                           <button
                             onClick={() => downloadInvoice(s.id)}
+                            aria-label={`Download invoice for ${planLabel(s.planType)} • ${s.startDate ? new Date(s.startDate).toLocaleDateString('en-IN') : ''}`}
                             className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-medium transition-colors"
                           >
                             <FiDownload className="w-3.5 h-3.5" /> PDF

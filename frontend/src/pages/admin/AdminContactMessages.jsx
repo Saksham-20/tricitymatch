@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
-import { Filter, Mail, AlertCircle, Inbox, RefreshCw } from 'lucide-react';
+import { FiFilter, FiMail, FiAlertCircle, FiInbox, FiRefreshCw } from 'react-icons/fi';
 import apiClient from '../../api/apiClient';
 
 const STATUS_STYLES = {
@@ -78,7 +78,7 @@ function StatusChipMenu({ value, disabled, onChange, label }) {
       </button>
       {open && (
         <ul role="listbox" aria-label={label}
-          className="absolute z-20 mt-1 left-0 bg-white border border-neutral-200 rounded-lg shadow-card py-1 min-w-[8rem]">
+          className="absolute z-60 mt-1 left-0 bg-white border border-neutral-200 rounded-lg shadow-card py-1 min-w-[8rem]">
           {STATUS_OPTIONS.map((opt, i) => (
             <li key={opt} role="option" aria-selected={opt === value}>
               <button
@@ -204,7 +204,7 @@ export default function AdminContactMessages() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Support Inbox</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Support Inbox</h1>
           <p className="text-sm text-neutral-500 mt-1">
             Enquiries from the public contact form.
             {newCount > 0 && <span className="ml-2 font-medium text-primary-700">{newCount} unread</span>}
@@ -214,13 +214,13 @@ export default function AdminContactMessages() {
           onClick={fetchMessages}
           className="inline-flex items-center gap-2 border px-3 py-2 rounded text-sm hover:bg-neutral-50"
         >
-          <RefreshCw size={16} /> Refresh
+          <FiRefreshCw size={16} /> Refresh
         </button>
       </div>
 
       <div className="bg-white p-4 rounded-lg mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <Filter size={20} />
+          <FiFilter size={20} />
           <h2 className="text-lg font-semibold">Filters</h2>
         </div>
         <div className="flex gap-4 flex-wrap">
@@ -260,7 +260,7 @@ export default function AdminContactMessages() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 flex items-start gap-3">
-          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+          <FiAlertCircle size={18} className="mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="font-medium">{error}</p>
             <button onClick={fetchMessages} className="text-sm underline mt-1">Retry</button>
@@ -276,7 +276,7 @@ export default function AdminContactMessages() {
         </div>
       ) : messages.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg">
-          <Inbox size={40} className="mx-auto text-neutral-300 mb-3" />
+          <FiInbox size={40} className="mx-auto text-neutral-300 mb-3" />
           <p className="text-neutral-600 font-medium">No enquiries found</p>
           <p className="text-sm text-neutral-400 mt-1">
             {status || search ? 'Try clearing the filters.' : 'Messages from the contact form will appear here.'}
@@ -300,7 +300,19 @@ export default function AdminContactMessages() {
                   <Fragment key={m.id}>
                     <tr
                       className="hover:bg-gray-50 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expanded === m.id}
+                      aria-controls={`msg-body-${m.id}`}
                       onClick={() => setExpanded(expanded === m.id ? null : m.id)}
+                      onKeyDown={(e) => {
+                        // Only the row itself toggles — Enter/Space on the inner
+                        // chip, assign select or email link must not bubble here.
+                        if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+                          e.preventDefault();
+                          setExpanded(expanded === m.id ? null : m.id);
+                        }
+                      }}
                     >
                       <td className="border p-3 whitespace-nowrap text-sm" title={formatDate(m.createdAt)}>{formatRelative(m.createdAt)}</td>
                       <td className="border p-3">
@@ -321,7 +333,7 @@ export default function AdminContactMessages() {
                             href={`mailto:${m.email}?subject=${encodeURIComponent(`Re: ${m.subject || 'Your enquiry'}`)}`}
                             className="inline-flex items-center gap-1 text-sm text-primary-700 hover:underline py-2"
                           >
-                            <Mail size={14} /> Email
+                            <FiMail size={14} /> Email
                           </a>
                         </div>
                       </td>
@@ -338,7 +350,7 @@ export default function AdminContactMessages() {
                       </td>
                     </tr>
                     {expanded === m.id && (
-                      <tr key={`${m.id}-body`}>
+                      <tr key={`${m.id}-body`} id={`msg-body-${m.id}`}>
                         <td colSpan={5} className="border p-4 bg-neutral-50">
                           <p className="whitespace-pre-wrap text-sm text-neutral-800">{m.message}</p>
 
@@ -372,7 +384,7 @@ export default function AdminContactMessages() {
                                   disabled={replyingId === m.id || (replyDraft[m.id] || '').trim().length < 2}
                                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold disabled:opacity-50"
                                 >
-                                  <Mail size={14} /> {replyingId === m.id ? 'Sending…' : 'Send reply'}
+                                  <FiMail size={14} /> {replyingId === m.id ? 'Sending…' : 'Send reply'}
                                 </button>
                                 <span className="text-xs text-neutral-400">
                                   Sends from support and marks the enquiry resolved.

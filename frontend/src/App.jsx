@@ -89,6 +89,7 @@ const AdminMarketingUsers = lazy(() => import('./pages/admin/AdminMarketingUsers
 const AdminMarketingUserDetail = lazy(() => import('./pages/admin/AdminMarketingUserDetail'));
 const AdminReferralCodes = lazy(() => import('./pages/admin/AdminReferralCodes'));
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
+const AdminPayouts = lazy(() => import('./pages/admin/AdminPayouts'));
 const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
 const AdminContactMessages = lazy(() => import('./pages/admin/AdminContactMessages'));
 const AdminLaunchOffer = lazy(() => import('./pages/admin/AdminLaunchOffer'));
@@ -502,6 +503,7 @@ const AnimatedRoutes = () => {
             <Route path="marketing-users/:userId"  element={<AdminScopeRoute scope="marketing"><AdminMarketingUserDetail /></AdminScopeRoute>} />
             <Route path="referral-codes"           element={<AdminScopeRoute scope="marketing"><AdminReferralCodes /></AdminScopeRoute>} />
             <Route path="leads"                    element={<AdminScopeRoute scope="marketing"><AdminLeads /></AdminScopeRoute>} />
+            <Route path="payouts"                  element={<AdminScopeRoute scope="payouts"><AdminPayouts /></AdminScopeRoute>} />
             <Route path="success-stories"          element={<AdminScopeRoute scope="stories"><AdminSuccessStories /></AdminScopeRoute>} />
             <Route path="contact-messages"         element={<AdminScopeRoute scope="support"><AdminContactMessages /></AdminScopeRoute>} />
             <Route path="launch-offer"             element={<AdminScopeRoute scope="pricing"><AdminLaunchOffer /></AdminScopeRoute>} />

@@ -992,7 +992,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, config.auth.jwtSecret);
+    decoded = jwt.verify(token, config.auth.jwtSecret, { algorithms: ['HS256'] });
   } catch (err) {
     throw createError.badRequest('Invalid or expired reset token');
   }

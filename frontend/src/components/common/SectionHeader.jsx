@@ -47,7 +47,7 @@ const SectionHeader = ({
           )}
         </div>
       </div>
-      {action && <div className="flex-shrink-0 hidden sm:flex items-center">{action}</div>}
+      {action && <div className="flex-shrink-0 flex items-center">{action}</div>}
     </div>
   );
 };

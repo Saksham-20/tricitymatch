@@ -7,7 +7,7 @@ import {
   FiEdit2, FiInstagram, FiLinkedin, FiFacebook, FiTwitter,
   FiMusic, FiCheck, FiMapPin, FiBook, FiBriefcase, FiUser,
   FiGlobe, FiShield, FiHome, FiSun, FiHeart, FiInfo,
-  FiCamera, FiChevronRight, FiEye, FiDollarSign, FiGrid,
+  FiCamera, FiChevronRight, FiEye, FiGrid,
   FiHash, FiCopy, FiAlertCircle, FiYoutube, FiLink,
 } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
@@ -63,7 +63,7 @@ const DetailRow = ({ label, value, isLast }) => {
   return (
     <div className={`flex justify-between items-center py-2.5 ${!isLast ? 'border-b border-neutral-50' : ''}`}>
       <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-semibold text-neutral-700 capitalize text-right max-w-[55%] truncate">{String(value).replace(/_/g, ' ')}</span>
+      <span title={String(value).replace(/_/g, ' ')} className="text-sm font-semibold text-neutral-700 capitalize text-right max-w-[55%] truncate">{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
@@ -373,7 +373,7 @@ const MyProfileView = () => {
                       {location && <span className="flex items-center gap-1.5 font-medium"><FiMapPin className="w-3.5 h-3.5 text-primary-400" />{location}</span>}
                       {profile.profession && <span className="flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-primary-400" />{profile.profession}</span>}
                       {profile.education && <span className="flex items-center gap-1.5"><FiBook className="w-3.5 h-3.5 text-primary-400" />{profile.education}</span>}
-                      {profile.income && <span className="flex items-center gap-1.5"><FiDollarSign className="w-3.5 h-3.5 text-primary-400" />{formatIncome(profile.income)}</span>}
+                      {profile.income && <span className="flex items-center gap-1.5">{formatIncome(profile.income)}</span>}
                     </div>
                   </div>
                   <EditBtn to="/profile/edit" />
@@ -480,7 +480,7 @@ const MyProfileView = () => {
                   className="flex items-center gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 hover:border-[#1DB954]/40 hover:bg-[#1DB954]/5 active:scale-[0.98] transition-[background-color,border-color,transform] duration-[160ms] group cursor-pointer"
                 >
                   <div className="w-10 h-10 rounded-xl bg-[#1DB954]/15 flex items-center justify-center flex-shrink-0">
-                    <FiMusic className="w-4.5 h-4.5 text-[#1DB954]" />
+                    <FiMusic className="w-4 h-4 text-[#1DB954]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-neutral-700 group-hover:text-[#1DB954] transition-colors truncate">My Spotify Playlist</p>
@@ -612,10 +612,10 @@ const MyProfileView = () => {
               <Card title="Looking For" icon={FiHeart} action={<EditBtn small to="/profile/edit?section=preferences" />}>
                 <div>
                   {(profile.preferredAgeMin || profile.preferredAgeMax) && (
-                    <DetailRow label="Age Range" value={`${profile.preferredAgeMin || '—'} – ${profile.preferredAgeMax || '—'} yrs`} />
+                    <DetailRow label="Age Range" value={`${profile.preferredAgeMin || 'Any'} – ${profile.preferredAgeMax || 'Any'} yrs`} />
                   )}
                   {(profile.preferredHeightMin || profile.preferredHeightMax) && (
-                    <DetailRow label="Height Range" value={`${profile.preferredHeightMin || '—'} – ${profile.preferredHeightMax || '—'} cm`} />
+                    <DetailRow label="Height Range" value={`${profile.preferredHeightMin || 'Any'} – ${profile.preferredHeightMax || 'Any'} cm`} />
                   )}
                   {profile.preferredEducation && <DetailRow label="Education" value={profile.preferredEducation} />}
                   {profile.preferredProfession && <DetailRow label="Profession" value={profile.preferredProfession} />}

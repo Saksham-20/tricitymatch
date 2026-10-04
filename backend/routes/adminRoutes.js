@@ -11,6 +11,7 @@ const {
   bulkUpdateStatus,
   getPhotoQueue,
   removePhoto,
+  flagPhoto,
   getSupportStaff,
   assignContactMessage,
 } = require('../controllers/adminSafetyController');
@@ -186,6 +187,7 @@ router.get('/suspicious', requireAdminScope('reports'), getSuspicious);
 router.get('/moderation-stats', requireAdminScope('reports'), getModerationStats);
 router.get('/photos', requireAdminScope('reports'), getPhotoQueue);
 router.delete('/photos', requireAdminScope('reports'), removePhoto);
+router.post('/photos/flag', requireAdminScope('reports'), flagPhoto);
 router.put('/reports/:reportId', requireAdminScope('reports'),
   param('reportId').isUUID(4),
   body('status').isIn(['reviewing', 'resolved', 'reviewed', 'dismissed']),
@@ -246,6 +248,7 @@ router.post('/marketing-users/:userId/payouts', requireAdminScope('payouts'),
 router.put('/marketing-payouts/:payoutId', requireAdminScope('payouts'),
   param('payoutId').isUUID(4),
   body('status').isIn(['pending', 'paid']),
+  body('reference').optional({ nullable: true }).isString().isLength({ max: 128 }),
   handleValidationErrors,
   updateMarketingPayout
 );
@@ -254,6 +257,36 @@ router.delete('/marketing-payouts/:payoutId', requireAdminScope('payouts'),
   body('reason').isString().trim().isLength({ min: 5, max: 300 }).withMessage('A reason (5-300 characters) is required to void a payout'),
   handleValidationErrors,
   deleteMarketingPayout
+);
+const payoutCtl = require('../controllers/marketingPayoutController');
+router.get('/marketing-payouts/overview', requireAdminScope('payouts'), payoutCtl.getPayoutOverview);
+router.get('/marketing-payout-settings', requireAdminScope('payouts'), payoutCtl.getPayoutSettingsAdmin);
+router.put('/marketing-payout-settings', requireAdminScope('payouts'),
+  body('holdDays').optional().isInt({ min: 0, max: 90 }),
+  body('minPayout').optional().isFloat({ min: 0, max: 100000 }),
+  body('tdsRate').optional().isFloat({ min: 0, max: 30 }),
+  handleValidationErrors,
+  payoutCtl.updatePayoutSettingsAdmin
+);
+router.post('/marketing-payouts/prepare', requireAdminScope('payouts'),
+  body('repIds').optional().isArray({ max: 500 }),
+  body('repIds.*').optional().isUUID(4),
+  handleValidationErrors,
+  payoutCtl.prepareBatch
+);
+router.get('/marketing-payouts/queued', requireAdminScope('payouts'), payoutCtl.getQueued);
+router.get('/marketing-payouts/queued.csv', requireAdminScope('payouts'), payoutCtl.queuedCsv);
+router.post('/marketing-payouts/mark-paid', requireAdminScope('payouts'),
+  body('items').isArray({ min: 1, max: 500 }),
+  body('items.*.id').isUUID(4),
+  body('items.*.reference').optional({ nullable: true }).isString().isLength({ max: 128 }),
+  handleValidationErrors,
+  payoutCtl.markPaid
+);
+router.get('/marketing-users/:userId/payout-details', requireAdminScope('payouts'),
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  payoutCtl.getRepPayoutDetails
 );
 router.get('/marketing-users/:userId/report', requireAdminScope('marketing'),
   param('userId').isUUID(4),

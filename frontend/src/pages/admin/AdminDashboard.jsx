@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { getAnalytics } from '../../api/adminApi';
 import { FiUsers, FiCheckCircle, FiCreditCard, FiTrendingUp, FiFlag, FiAlertCircle } from 'react-icons/fi';
+import Skeleton from '../../components/ui/Skeleton';
 
 // Brand-family ramp (burgundy → gold → muted tints); no off-brand green/blue/purple.
 const COLORS = ['#8B2346', '#C9A227', '#B76E79', '#5E1730', '#D8B24A'];
@@ -13,7 +14,6 @@ const COLORS = ['#8B2346', '#C9A227', '#B76E79', '#5E1730', '#D8B24A'];
 const KpiCard = ({ icon: Icon, label, value, sub, color = 'rose' }) => {
   const colorMap = {
     rose: 'bg-primary-100 text-primary-700',
-    gold: 'bg-gold-50 text-gold-700',
   };
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4">
@@ -21,7 +21,7 @@ const KpiCard = ({ icon: Icon, label, value, sub, color = 'rose' }) => {
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-2xl font-bold text-gray-900">{value ?? '—'}</p>
+        <p className="text-2xl font-bold text-gray-900">{value ?? 'None'}</p>
         <p className="text-sm font-medium text-gray-600">{label}</p>
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
@@ -49,8 +49,30 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-56 mt-2" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4">
+              <Skeleton className="w-11 h-11 rounded-xl flex-shrink-0" />
+              <div className="flex-1">
+                <Skeleton className="h-7 w-16" />
+                <Skeleton className="h-4 w-24 mt-2" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <Skeleton className="h-4 w-40 mb-4" />
+              <Skeleton className="h-[200px] w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -91,23 +113,23 @@ export default function AdminDashboard() {
         <KpiCard icon={FiCreditCard}  label="Paying Members"      value={stats.paidSubscribers ?? stats.activeSubscribers} color="rose"
           sub={stats.foundingActive != null ? `plus ${stats.foundingActive} founding grants` : undefined} />
         <KpiCard icon={FiTrendingUp}  label="Revenue (This Month)"
-          value={showRevenue ? `₹${Number(stats.revenueThisMonth).toLocaleString('en-IN')}` : '—'}
-          sub={showRevenue ? undefined : 'Revenue access required'} color="gold" />
+          value={showRevenue ? `₹${Number(stats.revenueThisMonth).toLocaleString('en-IN')}` : 'None'}
+          sub={showRevenue ? undefined : 'Revenue access required'} color="rose" />
       </div>
 
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Registrations over time */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">New Registrations (Last 30 days)</h3>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-gray-500">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">New Registrations (Last 30 days)</h2>
           {registrations.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={registrations}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'currentColor' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'currentColor' }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#be123c" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="count" stroke="#8B2346" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -116,16 +138,16 @@ export default function AdminDashboard() {
         </div>
 
         {/* Revenue over time */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Monthly Revenue (₹)</h3>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-gray-500">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Monthly Revenue (₹)</h2>
           {revenue.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={revenue}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'currentColor' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'currentColor' }} />
                 <Tooltip formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
-                <Bar dataKey="amount" fill="#be123c" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="amount" fill="#8B2346" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -138,7 +160,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Plan distribution */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Subscription Plans</h3>
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Subscription Plans</h2>
           {planDist.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
@@ -158,7 +180,7 @@ export default function AdminDashboard() {
 
         {/* Quick links */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Quick Actions</h3>
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Pending Verifications', to: '/admin/verifications', badge: stats.pendingVerifications },
@@ -194,11 +216,11 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h3 className="text-sm font-semibold text-gray-700">Founding window</h3>
+              <h2 className="text-sm font-semibold text-gray-700">Founding window</h2>
               <p className="text-xs text-gray-500 mt-0.5">
                 {stats.founding.open
-                  ? `Open — new members are granted ${stats.founding.contactUnlocks} unlocks for ${stats.founding.grantDays} days, free.`
-                  : 'Closed — new signups no longer receive a founding grant.'}
+                  ? `Open: new members are granted ${stats.founding.contactUnlocks} unlocks for ${stats.founding.grantDays} days, free.`
+                  : 'Closed: new signups no longer receive a founding grant.'}
               </p>
             </div>
             <Link to="/admin/launch-offer" className="text-xs font-medium text-primary-700 hover:underline">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
-import { FiArrowLeft, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiEye, FiEyeOff } from 'react-icons/fi';
 import { validatePassword } from '../utils/validators';
 import OtpBoxes from '../components/ui/OtpBoxes';
 import Logo from '../components/common/Logo';
@@ -26,6 +26,7 @@ export default function ForgotPasswordPhone() {
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [resent, setResent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (cooldown <= 0) return undefined;
@@ -107,7 +108,7 @@ export default function ForgotPasswordPhone() {
               </p>
             </div>
 
-            {error && <p role="alert" className="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive dark:text-red-300 text-sm">{error}</p>}
+            {error && <p role="alert" className="px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm">{error}</p>}
 
             {step === 'phone' ? (
               <div>
@@ -123,7 +124,18 @@ export default function ForgotPasswordPhone() {
                 </div>
                 <div>
                   <label htmlFor="reset-new-password" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">New password</label>
-                  <input id="reset-new-password" type="password" autoComplete="new-password" className={field} value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} />
+                  <div className="relative">
+                    <input id="reset-new-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" className={`${field} pr-12`} value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                    >
+                      {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1.5">8+ characters with uppercase, lowercase, a number, and a symbol.</p>
                 </div>
               </>
             )}

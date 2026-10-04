@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiClock, FiMail, FiShield, FiXCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiArrowRight, FiClock, FiMail, FiShield, FiXCircle } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
-import { support } from '../config';
+import { legal, support } from '../config';
 
 /**
  * Refund & conduct policy.
@@ -22,7 +22,7 @@ const Section = ({ icon: Icon, title, children }) => (
       <Icon className="w-5 h-5 text-primary-600 dark:text-primary-300 flex-shrink-0" aria-hidden="true" />
       {title}
     </h2>
-    <div className="mt-4 space-y-3 text-sm sm:text-base leading-relaxed text-neutral-700 dark:text-neutral-300">
+    <div className="mt-4 space-y-3 text-base sm:text-lg leading-relaxed text-neutral-700 dark:text-neutral-300">
       {children}
     </div>
   </section>
@@ -38,6 +38,9 @@ export default function RefundPolicy() {
       />
 
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-14">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-primary-700 dark:text-primary-300 py-2 px-2 -mx-2 -mt-2 mb-4">
+          <FiArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to home
+        </Link>
         {/* Doctrine ruling 2: zero eyebrows — the "Refunds & conduct" label
             that used to sit above this heading is dropped. */}
         <h1 className="font-display text-3xl sm:text-4xl leading-tight tracking-tight">
@@ -48,7 +51,7 @@ export default function RefundPolicy() {
           than hold on to money they regret spending. This page says exactly when we refund, how
           to ask, and what happens when a member behaves badly.
         </p>
-        <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-500">Last updated 25 August 2026</p>
+        <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">Last updated {legal.termsUpdated}</p>
 
         <div className="mt-8">
           <Section icon={FiClock} title="Seven days, no argument">
@@ -102,7 +105,7 @@ export default function RefundPolicy() {
               take five to seven working days to appear, depending on your bank. We do not refund to
               a different account than the one that paid.
             </p>
-            <p className="text-neutral-500 dark:text-neutral-400">
+            <p className="text-neutral-600 dark:text-neutral-400">
               What we never do: charge a renewal without asking, keep charging after you cancel, or
               make you phone somebody to leave. You can delete your account yourself, at any time,{' '}
               <Link to="/delete-account" className="text-primary-700 dark:text-primary-300 underline">from here</Link>.

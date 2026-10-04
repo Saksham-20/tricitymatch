@@ -41,7 +41,7 @@ export default function About() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-16 md:pt-32 md:pb-20">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-block py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
+          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-flex items-center min-h-[44px] py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 dark:text-neutral-100 max-w-3xl">
             Matrimony built for families,
             <span className="text-primary-700 italic"> not algorithms.</span>
@@ -54,12 +54,12 @@ export default function About() {
       </section>
 
       {/* Stats band */}
-      <section className="bg-primary-800 text-[#FDF8F2]">
+      <section className="bg-[#FFFAF6] dark:bg-surface-dark-2 border-y border-neutral-200 dark:border-neutral-800">
         <div className="max-w-5xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
           {stats.map((s) => (
             <div key={s.label} className="text-center md:text-left">
-              <div className="font-display text-4xl md:text-5xl font-bold text-[#D4B048]">{s.value}</div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#FDF8F2]/55 mt-2">{s.label}</div>
+              <div className="font-display text-4xl md:text-5xl font-bold text-primary-700 dark:text-primary-300">{s.value}</div>
+              <div className="text-xs uppercase tracking-[0.16em] text-neutral-600 dark:text-neutral-400 mt-2">{s.label}</div>
             </div>
           ))}
         </div>
@@ -98,7 +98,7 @@ export default function About() {
                   <span className="w-10 h-10 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center">
                     <Icon className="w-[18px] h-[18px]" />
                   </span>
-                  <span className="font-mono text-[11px] tracking-[0.16em] text-neutral-400 dark:text-neutral-500">{n}</span>
+                  <span className="text-xs tracking-[0.16em] text-neutral-400 dark:text-neutral-500 tabular-nums">{n}</span>
                 </div>
                 <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t}</h3>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{d}</p>
@@ -110,17 +110,17 @@ export default function About() {
 
       {/* CTA */}
       <section className="px-4 pb-24">
-        <div className="max-w-5xl mx-auto rounded-3xl bg-primary-600 text-[#FDF8F2] px-8 py-14 md:py-16 text-center">
+        <div className="max-w-5xl mx-auto rounded-2xl bg-primary-600 text-[#FDF8F2] px-8 py-14 md:py-16 text-center">
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Your forever starts with one step.</h2>
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             Have questions or feedback? Reach us at{' '}
-            <a href="mailto:support@tricitymatch.com" className="underline decoration-[#D4B048] underline-offset-4 hover:text-white">support@tricitymatch.com</a>
+            <a href="mailto:support@tricitymatch.com" className="underline decoration-[#FDF8F2]/60 underline-offset-4 hover:text-white">support@tricitymatch.com</a>
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-full hover:bg-white transition-colors">
+            <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-xl hover:bg-white transition-colors">
               Create free profile <FiArrowRight />
             </Link>
-            <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-[#FDF8F2]/40 text-[#FDF8F2] font-semibold px-7 py-3.5 rounded-full hover:bg-[#FDF8F2]/10 transition-colors">
+            <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-[#FDF8F2]/40 text-[#FDF8F2] font-semibold px-7 py-3.5 rounded-xl hover:bg-[#FDF8F2]/10 transition-colors">
               Contact us
             </Link>
           </div>

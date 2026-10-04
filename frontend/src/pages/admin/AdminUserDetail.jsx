@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, deleteUsers } from '../../api/adminApi';
+import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, deleteUsers, updateUserStatus, removePhoto, flagPhoto } from '../../api/adminApi';
+import { useAdminScopes } from '../../components/admin/AdminLayout';
 import usePlanOptions from '../../hooks/usePlanOptions';
 import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2 } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
 const Section = ({ title, children }) => (
@@ -17,7 +18,7 @@ const Section = ({ title, children }) => (
 
 const InfoRow = ({ label, value }) => (
   <div className="flex items-start gap-2 py-1.5">
-    <span className="text-xs text-gray-400 w-36 flex-shrink-0">{label}</span>
+    <span className="text-xs text-gray-500 w-36 flex-shrink-0">{label}</span>
     <span className="text-sm text-gray-800 font-medium">{value || '—'}</span>
   </div>
 );
@@ -95,7 +96,57 @@ export default function AdminUserDetail() {
   const [newPlan, setNewPlan]     = useState('');
   const [reason, setReason]       = useState('');
   const [saving, setSaving]       = useState(false);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling]   = useState(false);
+  const planPanelRef   = useRef(null);
+  const cancelPanelRef = useRef(null);
   const { options: planOptions } = usePlanOptions();
+
+  // Photo-moderation + ban. A full admin (scopes === null) can do everything;
+  // a sub-admin needs `reports` to remove/flag a photo and `users` to ban.
+  const scopes = useAdminScopes();
+  const can = (s) => scopes === null || scopes.includes(s);
+  const [photoAction, setPhotoAction] = useState(null); // { type: 'remove' | 'flag', url }
+  const [photoReason, setPhotoReason] = useState('');
+  const [photoBusy, setPhotoBusy]     = useState(false);
+  const [lightbox, setLightbox]       = useState(null);  // url of photo being viewed full-size
+  const [statusTarget, setStatusTarget] = useState(null); // 'banned' | 'active' when the ban modal is open
+  const [statusReason, setStatusReason] = useState('');
+  const [statusBusy, setStatusBusy]     = useState(false);
+
+  const submitPhotoAction = async () => {
+    if (!photoAction) return;
+    if (photoReason.trim().length < 5) { toast.error('Give a brief reason (at least 5 characters)'); return; }
+    setPhotoBusy(true);
+    try {
+      if (photoAction.type === 'remove') {
+        await removePhoto({ userId, photoUrl: photoAction.url, reason: photoReason.trim() });
+        toast.success('Photo removed and the member notified');
+      } else {
+        await flagPhoto({ userId, photoUrl: photoAction.url, reason: photoReason.trim() });
+        toast.success('Photo flagged for review');
+      }
+      setPhotoAction(null); setPhotoReason('');
+      fetchUser();
+    } catch (err) {
+      toast.error(err?.response?.data?.error?.message || err?.response?.data?.message || 'Action failed');
+    } finally { setPhotoBusy(false); }
+  };
+
+  const submitStatusChange = async () => {
+    if (!statusTarget) return;
+    if (statusTarget === 'banned' && statusReason.trim().length < 5) { toast.error('Give a brief reason for the ban (at least 5 characters)'); return; }
+    setStatusBusy(true);
+    try {
+      await updateUserStatus(userId, { status: statusTarget, reason: statusReason.trim() });
+      toast.success(statusTarget === 'banned' ? 'User banned' : 'User reinstated');
+      setStatusTarget(null); setStatusReason('');
+      fetchUser();
+    } catch (err) {
+      toast.error(err?.response?.data?.error?.message || err?.response?.data?.message || 'Action failed');
+    } finally { setStatusBusy(false); }
+  };
 
   const fetchUser = async () => {
     setLoading(true);
@@ -110,6 +161,34 @@ export default function AdminUserDetail() {
   };
 
   useEffect(() => { fetchUser(); }, [userId]);
+
+  // Both modals are dialogs: move focus into the panel on open and close on
+  // Escape. Without this a keyboard operator got no modal semantics on a
+  // money-changing action.
+  useEffect(() => {
+    if (!planModal && !cancelModal) return undefined;
+    const ref = cancelModal ? cancelPanelRef : planPanelRef;
+    ref.current?.focus();
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (cancelModal) setCancelModal(false); else setPlanModal(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [planModal, cancelModal]);
+
+  // Escape closes the photo-action / ban / lightbox overlays.
+  useEffect(() => {
+    if (!photoAction && !statusTarget && !lightbox) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (lightbox) setLightbox(null);
+      else if (photoAction) setPhotoAction(null);
+      else setStatusTarget(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [photoAction, statusTarget, lightbox]);
 
   const handleUpdateSubscription = async () => {
     setSaving(true);
@@ -145,18 +224,21 @@ export default function AdminUserDetail() {
     }
   };
 
+  // Ending a member's paid access is consequential and the reason is written to
+  // the audit log \u2014 captured in a styled modal, not a pair of browser dialogs.
   const handleCancelPlan = async () => {
-    // Confirm first: this ends a member's paid access immediately and there is
-    // no undo beyond granting it again.
-    if (!window.confirm('End this member\u2019s current plan now? Their profile and matches are unchanged.')) return;
-    const reason = window.prompt('Why is it being cancelled? (recorded in the audit log)') || '';
+    setCancelling(true);
     try {
-      await cancelSubscription(userId, { reason });
+      await cancelSubscription(userId, { reason: cancelReason.trim() });
       toast.success('Plan cancelled');
+      setCancelModal(false);
+      setCancelReason('');
       fetchUser();
     } catch (err) {
       const e = err?.response?.data?.error;
       toast.error(e?.message || 'Could not cancel the plan');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -193,6 +275,43 @@ export default function AdminUserDetail() {
   // the non-existent field meant this chip never rendered, for anyone.
   const isVerified = verifications.some((v) => v.status === 'approved');
 
+  // Everything the member has uploaded, so a reviewer can actually see what
+  // they are moderating. Main photo first, then the rest of the gallery, then
+  // the verification selfie (a signed URL; view-only here — the selfie is
+  // decided through the verification approve/reject flow, not photo removal).
+  const galleryPhotos = Array.isArray(profile?.photos) ? profile.photos.filter(Boolean) : [];
+  const mainPhoto = profile?.profilePhoto || '';
+  const moderatablePhotos = [mainPhoto, ...galleryPhotos.filter((p) => p !== mainPhoto)].filter(Boolean);
+  const selfie = verifications.map((v) => v.selfiePhoto).find(Boolean) || '';
+  const hasAnyPhoto = moderatablePhotos.length > 0 || Boolean(selfie);
+
+  const PhotoTile = ({ url, label, moderatable }) => (
+    <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+      <button type="button" onClick={() => setLightbox(url)} className="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500" title="View full size">
+        <img src={url} alt={label || 'Member photo'} className="w-full h-40 object-cover" loading="lazy" />
+      </button>
+      {label && (
+        <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-black/65 text-white text-[11px] font-medium pointer-events-none">{label}</span>
+      )}
+      {moderatable && can('reports') && (
+        <div className="absolute inset-x-0 bottom-0 flex opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            onClick={() => { setPhotoReason(''); setPhotoAction({ type: 'flag', url }); }}
+            className="flex-1 py-1.5 text-[11px] font-semibold bg-amber-500/95 hover:bg-amber-600 text-white flex items-center justify-center gap-1"
+          >
+            <FiFlag className="w-3 h-3" /> Flag
+          </button>
+          <button
+            onClick={() => { setPhotoReason(''); setPhotoAction({ type: 'remove', url }); }}
+            className="flex-1 py-1.5 text-[11px] font-semibold bg-red-600/95 hover:bg-red-700 text-white flex items-center justify-center gap-1"
+          >
+            <FiTrash2 className="w-3 h-3" /> Remove
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-5">
       {/* Back */}
@@ -212,7 +331,7 @@ export default function AdminUserDetail() {
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || '—'}</h2>
             {isVerified && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
                 <FiCheckCircle className="w-3 h-3" /> Verified
               </span>
             )}
@@ -223,9 +342,26 @@ export default function AdminUserDetail() {
             )}
           </div>
           <p className="text-gray-500 text-sm">{user.email}</p>
-          <p className="text-gray-400 text-xs mt-1">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
+          <p className="text-gray-500 text-xs mt-1">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {can('users') && user.role === 'user' && (
+            user.status === 'banned' ? (
+              <button
+                onClick={() => { setStatusReason(''); setStatusTarget('active'); }}
+                className="flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-xl text-sm font-medium transition-colors"
+              >
+                <FiRotateCcw className="w-3.5 h-3.5" /> Reinstate
+              </button>
+            ) : (
+              <button
+                onClick={() => { setStatusReason(''); setStatusTarget('banned'); }}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                <FiSlash className="w-3.5 h-3.5" /> Ban user
+              </button>
+            )
+          )}
           {canDelete && user.role === 'user' && (
             <button
               onClick={handleDeleteAccount}
@@ -244,7 +380,7 @@ export default function AdminUserDetail() {
               payment previously had no in-product remedy at all. */}
           {subscription && (
             <button
-              onClick={handleCancelPlan}
+              onClick={() => { setCancelReason(''); setCancelModal(true); }}
               className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-medium transition-colors"
             >
               End plan
@@ -252,6 +388,38 @@ export default function AdminUserDetail() {
           )}
         </div>
       </div>
+
+      {/* Photos — the whole gallery the member shows, plus their verification
+          selfie, so an admin can review what is actually on the profile and act
+          on anything inappropriate. */}
+      <Section title="Photos">
+        {hasAnyPhoto ? (
+          <>
+            {moderatablePhotos.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {moderatablePhotos.map((url, i) => (
+                  <PhotoTile key={url} url={url} label={i === 0 && url === mainPhoto ? 'Main' : null} moderatable />
+                ))}
+              </div>
+            )}
+            {selfie && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Verification selfie</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  <PhotoTile url={selfie} label="Selfie" moderatable={false} />
+                </div>
+              </div>
+            )}
+            {!can('reports') && moderatablePhotos.length > 0 && (
+              <p className="text-xs text-gray-400 mt-3">Flag and remove need the <span className="font-medium">reports</span> permission.</p>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+            <FiImage className="w-4 h-4" /> No photos uploaded yet.
+          </div>
+        )}
+      </Section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Account info */}
@@ -275,13 +443,40 @@ export default function AdminUserDetail() {
         <Section title="Profile Information">
           {profile ? (
             <>
-              <InfoRow label="Gender"       value={profile.gender} />
+              <InfoRow label="Gender"        value={profile.gender} />
               <InfoRow label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null} />
-              <InfoRow label="City"         value={profile.city} />
-              <InfoRow label="Religion"     value={profile.religion} />
-              <InfoRow label="Caste"        value={profile.caste} />
-              <InfoRow label="Education"    value={profile.education} />
-              <InfoRow label="Profession"   value={profile.profession} />
+              {profile.height && <InfoRow label="Height" value={`${profile.height} cm`} />}
+              {profile.maritalStatus && <InfoRow label="Marital Status" value={String(profile.maritalStatus).replace(/_/g, ' ')} />}
+              <InfoRow label="City"          value={profile.city} />
+              {(profile.state || profile.familyLocation) && <InfoRow label="State / Area" value={profile.state || profile.familyLocation} />}
+              {profile.isNri && <InfoRow label="NRI" value={profile.residenceCountry ? `Yes · ${profile.residenceCountry}` : 'Yes'} />}
+              <InfoRow label="Religion"      value={profile.religion} />
+              <InfoRow label="Caste"         value={profile.caste} />
+              {profile.subCaste && <InfoRow label="Sub-caste" value={profile.subCaste} />}
+              {profile.gotra && <InfoRow label="Gotra" value={profile.gotra} />}
+              {profile.motherTongue && <InfoRow label="Mother Tongue" value={profile.motherTongue} />}
+              {profile.manglikStatus && <InfoRow label="Manglik" value={profile.manglikStatus} />}
+              <InfoRow label="Education"     value={profile.education || profile.educationLevel} />
+              {profile.institution && <InfoRow label="Institution" value={profile.institution} />}
+              <InfoRow label="Profession"    value={profile.profession || profile.professionGroup} />
+              {profile.income && <InfoRow label="Income" value={profile.income} />}
+              {profile.familyType && <InfoRow label="Family Type" value={String(profile.familyType).replace(/_/g, ' ')} />}
+              {(profile.diet || profile.smoking || profile.drinking) && (
+                <InfoRow label="Lifestyle" value={[profile.diet, profile.smoking && `smoking: ${profile.smoking}`, profile.drinking && `drinking: ${profile.drinking}`].filter(Boolean).join(' · ')} />
+              )}
+              {profile.bio && (
+                <div className="pt-2 mt-1 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 mb-1">About</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{profile.bio}</p>
+                </div>
+              )}
+              <div className="pt-2 mt-1 border-t border-gray-100">
+                <p className="text-xs text-gray-500 mb-1">Privacy</p>
+                <InfoRow label="Profile visibility" value={profile.profileVisibility === 'matches_only' ? 'Matches only' : 'Everyone'} />
+                <InfoRow label="Shows phone" value={profile.showPhone ? 'Yes' : 'No'} />
+                <InfoRow label="Shows email" value={profile.showEmail ? 'Yes' : 'No'} />
+                {profile.incognitoMode && <InfoRow label="Incognito" value="On" />}
+              </div>
             </>
           ) : (
             <div className="text-sm text-neutral-600 bg-neutral-50 border border-neutral-200 rounded-lg p-4">
@@ -442,6 +637,122 @@ export default function AdminUserDetail() {
                 className="flex-1 py-2.5 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Update Plan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End subscription (reason captured + audited) */}
+      {cancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div ref={cancelPanelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="End subscription" className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl outline-none">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">End this subscription</h3>
+            <p className="text-sm text-gray-500 mb-3">The member&apos;s paid access ends now and the reason is written to the audit log. This does not issue a refund.</p>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              placeholder="Reason (e.g. mis-grant, refunded elsewhere, member request)"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setCancelModal(false)} className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors">Cancel</button>
+              <button
+                onClick={handleCancelPlan}
+                disabled={cancelling}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {cancelling ? 'Ending…' : 'End plan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-size photo viewer */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80"
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo preview"
+        >
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/15 hover:bg-white/25 text-white"
+            aria-label="Close"
+          >
+            <FiX className="w-5 h-5" />
+          </button>
+          <img src={lightbox} alt="Member photo full size" className="max-h-[90vh] max-w-full rounded-xl object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {/* Flag / Remove a photo */}
+      {photoAction && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              {photoAction.type === 'remove' ? 'Remove this photo' : 'Flag this photo for review'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-3">
+              {photoAction.type === 'remove'
+                ? 'The photo is deleted from the profile and from storage, and the member is notified. This cannot be undone.'
+                : 'The photo stays live but is queued in Photo Review for a decision.'}
+            </p>
+            <img src={photoAction.url} alt="Selected" className="w-full h-40 object-cover rounded-xl border border-gray-200 mb-3" />
+            <textarea
+              value={photoReason}
+              onChange={(e) => setPhotoReason(e.target.value)}
+              rows={3}
+              autoFocus
+              placeholder="Reason (recorded in the audit log, e.g. nudity, not the member, offensive)"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setPhotoAction(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors">Cancel</button>
+              <button
+                onClick={submitPhotoAction}
+                disabled={photoBusy || photoReason.trim().length < 5}
+                className={`flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-colors disabled:opacity-50 ${photoAction.type === 'remove' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-500 hover:bg-amber-600'}`}
+              >
+                {photoBusy ? 'Working…' : (photoAction.type === 'remove' ? 'Remove photo' : 'Flag photo')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban / reinstate */}
+      {statusTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              {statusTarget === 'banned' ? 'Ban this user' : 'Reinstate this user'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-3">
+              {statusTarget === 'banned'
+                ? 'The member is signed out everywhere and cannot log back in. They are notified and can appeal. Removing an inappropriate photo is a separate action — do that first if it should come down.'
+                : 'The member can sign in and use their account again. They are notified.'}
+            </p>
+            <textarea
+              value={statusReason}
+              onChange={(e) => setStatusReason(e.target.value)}
+              rows={3}
+              autoFocus
+              placeholder={statusTarget === 'banned' ? 'Reason (shown to the member and recorded, e.g. inappropriate photos)' : 'Note (optional, recorded in the audit log)'}
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setStatusTarget(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors">Cancel</button>
+              <button
+                onClick={submitStatusChange}
+                disabled={statusBusy || (statusTarget === 'banned' && statusReason.trim().length < 5)}
+                className={`flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-colors disabled:opacity-50 ${statusTarget === 'banned' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                {statusBusy ? 'Working…' : (statusTarget === 'banned' ? 'Ban user' : 'Reinstate')}
               </button>
             </div>
           </div>

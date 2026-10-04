@@ -15,7 +15,7 @@ const PaywalledComposer = ({ name, avatarUrl, reason }) => {
 
   return (
     <div className="rounded-2xl border border-gold-200 dark:border-gold-700/40 bg-white dark:bg-surface-dark-3 px-4 py-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
         ) : (
@@ -40,7 +40,7 @@ const PaywalledComposer = ({ name, avatarUrl, reason }) => {
             chip/badge/filter token. */}
         <Link
           to="/subscription"
-          className="flex-shrink-0 inline-flex items-center justify-center min-h-[2.75rem] px-5 rounded-xl bg-gold-500 hover:bg-gold-600 text-primary-900 text-sm font-semibold transition-colors"
+          className="flex-shrink-0 w-full sm:w-auto inline-flex items-center justify-center min-h-[2.75rem] px-5 rounded-xl bg-gold-500 hover:bg-gold-600 text-primary-900 text-sm font-semibold transition-colors"
         >
           Keep talking with {name?.split(' ')[0] || 'them'}
         </Link>

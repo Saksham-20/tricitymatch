@@ -105,7 +105,7 @@ export default function ContactNumberVerify({
   return (
     <div className="space-y-2">
       <label htmlFor="contact-number" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        {label} <span className="text-red-500 ml-1">*</span>
+        {label} <span className="text-destructive ml-1">*</span>
       </label>
       <div className="flex gap-2">
         <div className="flex flex-1 items-center rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus-within:ring-2 focus-within:ring-primary-500">
@@ -119,9 +119,9 @@ export default function ContactNumberVerify({
             value={phone}
             onChange={(e) => edit(e.target.value)}
             disabled={verifying}
-            className="w-full bg-transparent py-3 pr-3 text-sm outline-none"
+            className="w-full bg-transparent py-3 pr-3 text-base outline-none"
           />
-          {verified && isValid(phone) && <FiCheckCircle className="mr-3 h-4 w-4 text-green-600" aria-label="Verified" />}
+          {verified && isValid(phone) && <FiCheckCircle className="mr-3 h-4 w-4 text-success" aria-label="Verified" />}
         </div>
         {!verified && !otpSent && (
           <button
@@ -150,8 +150,8 @@ export default function ContactNumberVerify({
         </div>
       )}
 
-      {verified && isValid(phone) && <p className="text-xs text-green-700 dark:text-green-400">Verified. This is the number members will call.</p>}
-      {shown && <p role="alert" className="text-xs text-red-600">{shown}</p>}
+      {verified && isValid(phone) && <p className="text-xs text-success">Verified. This is the number members will call.</p>}
+      {shown && <p role="alert" className="text-xs text-destructive">{shown}</p>}
       {!shown && !verified && <p className="text-xs text-neutral-400">{hint}</p>}
     </div>
   );

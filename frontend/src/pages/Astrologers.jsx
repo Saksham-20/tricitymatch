@@ -5,11 +5,6 @@ import api from '../api/axios';
 import { FiStar, FiClock, FiCalendar } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 
-// Pointer-gated hover (doctrine §4.7/ruling 16): a plain `hover:` utility
-// fires on tap and leaves a touch device's card stuck in its raised state
-// after the finger lifts.
-const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
-
 export default function Astrologers() {
   const { t } = useTranslation();
   const [astrologers, setAstrologers] = useState([]);
@@ -44,7 +39,7 @@ export default function Astrologers() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {[0, 1].map((i) => (
-            <div key={i} className="flex gap-4 bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-card rounded-2xl p-4">
+            <div key={i} className="flex gap-4 bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-4">
               <Skeleton variant="circle" className="w-16 h-16 flex-shrink-0" />
               <div className="flex-1 space-y-2 py-1">
                 <Skeleton className="h-4 w-2/3" />
@@ -72,7 +67,7 @@ export default function Astrologers() {
             <Link
               key={a.id}
               to={`/astrologers/${a.id}`}
-              className={`flex gap-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-card rounded-2xl p-4 ${HOVER}:border-primary-300 dark:${HOVER}:border-primary-700 ${HOVER}:-translate-y-0.5 transition-[border-color,transform] duration-[160ms]`}
+              className="flex gap-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 [@media(hover:hover)_and_(pointer:fine)]:hover:border-primary-300 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:border-primary-700 [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5 transition-[border-color,transform] duration-[160ms]"
             >
               <img
                 src={a.avatarUrl || '/images/avatar-placeholder.svg'}
@@ -82,8 +77,8 @@ export default function Astrologers() {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-neutral-800 dark:text-neutral-100 truncate">{a.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${a.isOnline ? 'bg-success-50 dark:bg-success/15 text-success' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400'}`}>
+                  <h2 className="font-semibold text-neutral-800 dark:text-neutral-100 truncate">{a.name}</h2>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${a.isOnline ? 'bg-success-50 dark:bg-success/15 text-success' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
                     {a.isOnline ? t('astrologers.online') : t('astrologers.offline')}
                   </span>
                 </div>

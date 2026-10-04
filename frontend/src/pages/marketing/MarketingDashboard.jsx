@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { FiRefreshCw } from 'react-icons/fi';
 import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
+import Skeleton from '../../components/ui/Skeleton';
 import ReportSummary from '../../components/marketing/ReportSummary';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
 import PayoutSection from '../../components/marketing/PayoutSection';
+import PayoutDetailsCard from '../../components/marketing/PayoutDetailsCard';
 
 export default function MarketingDashboard() {
   const [report, setReport] = useState(null);
@@ -39,7 +41,25 @@ export default function MarketingDashboard() {
   useAutoRefresh(() => fetchReport({ quiet: true }), 20000);
 
   if (loading) {
-    return <div className="p-6 text-center text-neutral-500 dark:text-neutral-400">Loading…</div>;
+    return (
+      <div className="p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-5 w-28" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5">
+              <Skeleton className="w-10 h-10 rounded-xl mb-4" />
+              <Skeleton className="h-7 w-20 mb-2" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-40 w-full rounded-2xl mb-8" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    );
   }
 
   return (
@@ -50,7 +70,7 @@ export default function MarketingDashboard() {
           onClick={() => fetchReport({ quiet: true })}
           className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
         >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <FiRefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
           {lastUpdated
             ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
             : 'Refresh'}
@@ -70,6 +90,10 @@ export default function MarketingDashboard() {
           <PayoutSection ledger={ledger} />
         </div>
       )}
+
+      <div className="mb-8">
+        <PayoutDetailsCard />
+      </div>
 
       {report?.members?.length > 0 && (
         <div className="mb-8">

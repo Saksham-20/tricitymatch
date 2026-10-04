@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { FiBookmark, FiHeart, FiUsers, FiLock, FiSend } from 'react-icons/fi';
 import { sanitizeText } from '../utils/sanitize';
 import { getImageUrl } from '../utils/cloudinary';
@@ -74,7 +73,7 @@ const TABS = [
 // that's mostly the shorter shape is a visible layout shift on load (doctrine
 // §9 Craft, §6 Loading: "skeletons that match the final layout's shape").
 const CardSkeleton = ({ compact = false }) => (
-  <div className="bg-white dark:bg-surface-dark-3 rounded-3xl overflow-hidden shadow-card">
+  <div className="bg-white dark:bg-surface-dark-3 rounded-xl overflow-hidden shadow-card">
     {compact ? (
       <div className="flex items-center gap-2.5 px-4 pt-4 pb-3.5">
         <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
@@ -120,7 +119,11 @@ export default function Matches() {
     setProfiles([]);
     try {
       const res = await api.get(cfg.endpoint);
-      const list = res.data?.[cfg.respKey] || [];
+      let list = res.data?.[cfg.respKey] || [];
+      // On the Sent tab every profile is one the member has already liked, so
+      // the card's primary action reads "Interest Sent" (a toggle to withdraw)
+      // instead of offering to express interest in them a second time.
+      if (tabId === 'sent') list = list.map((p) => ({ ...p, matchStatus: 'like' }));
       setProfiles(list);
       setState(list.length ? 'ready' : 'empty');
     } catch (err) {
@@ -135,6 +138,16 @@ export default function Matches() {
   }, []);
 
   useEffect(() => { load(active); }, [active, load]);
+
+  // A notification deep-link can change ?tab= while this page is already
+  // mounted; the load effect keys off `active`, not the URL, so without this
+  // sync the tab wouldn't follow the link (the deep-link promise above).
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (TABS.some((t) => t.id === requestedTab) && requestedTab !== active) {
+      setActive(requestedTab);
+    }
+  }, [searchParams, active]);
 
   // Match actions on the cards — optimistic, then reconcile.
   // `want` is the state the member asked for (true = like / save, false = take it
@@ -177,13 +190,21 @@ export default function Matches() {
             shrink a flex item below its own content's intrinsic width — the
             row was pushing the whole page 51px wider than the viewport.
             Scrolling inside this row contains it instead. */}
-        <div className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit overflow-x-auto scrollbar-hide">
+        {/* mask-image fades the right edge on mobile so the off-screen "Likes
+            You" tab is discoverable; disabled from sm up where the row is w-fit. */}
+        <div
+          role="tablist"
+          aria-label="Match lists"
+          className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit overflow-x-auto scrollbar-hide [mask-image:linear-gradient(to_right,#000_90%,transparent)] sm:[mask-image:none]"
+        >
           {TABS.map((t) => {
             const Icon = t.icon;
             const isActive = active === t.id;
             return (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => {
                   setActive(t.id);
                   // Keep the URL honest so a refresh or a shared link lands on
@@ -225,7 +246,7 @@ export default function Matches() {
         {/* ── Premium gate (Likes You) ────────────────────────────── */}
         {state === 'premium' && (
           <div className="flex flex-col items-center justify-center text-center py-20">
-            <div className="w-14 h-14 rounded-2xl bg-gold-50 border border-gold-200 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800 flex items-center justify-center mb-4">
               <FiLock className="w-7 h-7 text-gold-500" />
             </div>
             <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-1">See who likes you</h3>
@@ -266,59 +287,57 @@ export default function Matches() {
         {/* ── List ────────────────────────────────────────────────── */}
         {state === 'ready' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            <AnimatePresence>
-              {profiles.map((profile, i) => {
-                const pid = profile.userId || profile.id;
-                if (!pid) return null;
-                return (
-                  <div key={`match-${pid}`} className="flex flex-col h-full">
-                    {/* D3/DS5: a like-with-note leads with the quoted note +
-                        the liked-item snapshot above the standard card.
-                        This wrapper (not ProfileCard) is the actual grid
-                        item, so it needs `h-full` to pick up the CSS Grid
-                        row-stretch, and the card below needs `flex-1` so it,
-                        not the note, absorbs that extra height — otherwise a
-                        note on one card and not its neighbour throws the two
-                        button rows out of alignment (audit Part 5 #10). */}
-                    {(profile.note || profile.likedItem) && (
-                      <div className="mb-2 px-4 py-3 rounded-2xl bg-primary-50/70 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 flex items-start gap-3">
-                        {profile.likedItem?.type === 'photo' && profile.likedItem.photoUrl && (
-                          <RetryImage
-                            src={getImageUrl(profile.likedItem.photoUrl, API_BASE_URL, 'thumbnail')}
-                            alt=""
-                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
+            {profiles.map((profile, i) => {
+              const pid = profile.userId || profile.id;
+              if (!pid) return null;
+              return (
+                <div key={`match-${pid}`} className="flex flex-col h-full">
+                  {/* D3/DS5: a like-with-note leads with the quoted note +
+                      the liked-item snapshot above the standard card.
+                      This wrapper (not ProfileCard) is the actual grid
+                      item, so it needs `h-full` to pick up the CSS Grid
+                      row-stretch, and the card below needs `flex-1` so it,
+                      not the note, absorbs that extra height — otherwise a
+                      note on one card and not its neighbour throws the two
+                      button rows out of alignment (audit Part 5 #10). */}
+                  {(profile.note || profile.likedItem) && (
+                    <div className="mb-2 px-4 py-3 rounded-2xl bg-primary-50/70 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 flex items-start gap-3">
+                      {profile.likedItem?.type === 'photo' && profile.likedItem.photoUrl && (
+                        <RetryImage
+                          src={getImageUrl(profile.likedItem.photoUrl, API_BASE_URL, 'thumbnail')}
+                          alt=""
+                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        {profile.likedItem && (
+                          <p className="text-xs font-bold text-primary-600 dark:text-primary-300">
+                            {active === 'sent' ? 'You liked' : 'Liked'} {profile.likedItem.type === 'prompt' ? 'their answer' : 'a photo'}
+                          </p>
                         )}
-                        <div className="min-w-0">
-                          {profile.likedItem && (
-                            <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wide">
-                              {active === 'sent' ? 'You liked' : 'Liked'} {profile.likedItem.type === 'prompt' ? 'their answer' : 'a photo'}
-                            </p>
-                          )}
-                          {profile.likedItem?.type === 'prompt' && profile.likedItem.promptText && (
-                            <p className="text-xs text-neutral-500 line-clamp-1">“{sanitizeText(profile.likedItem.promptText)}”</p>
-                          )}
-                          {profile.note && (
-                            <p className="text-sm text-neutral-700 dark:text-neutral-200 line-clamp-2">“{sanitizeText(profile.note)}”</p>
-                          )}
-                        </div>
+                        {profile.likedItem?.type === 'prompt' && profile.likedItem.promptText && (
+                          <p className="text-xs text-neutral-500 line-clamp-1">“{sanitizeText(profile.likedItem.promptText)}”</p>
+                        )}
+                        {profile.note && (
+                          <p className="text-sm text-neutral-700 dark:text-neutral-200 line-clamp-2">“{sanitizeText(profile.note)}”</p>
+                        )}
                       </div>
-                    )}
-                    <div className="flex-1 min-h-0">
-                      <ProfileCard
-                        profile={profile}
-                        userId={pid}
-                        index={i}
-                        primaryCta={active === 'mutual' ? 'message' : 'interest'}
-                        onLike={(want) => handleAction(pid, 'like', want)}
-                        onShortlist={(want) => handleAction(pid, 'shortlist', want)}
-                      />
                     </div>
+                  )}
+                  <div className="flex-1 min-h-0">
+                    <ProfileCard
+                      profile={profile}
+                      userId={pid}
+                      index={i}
+                      primaryCta={active === 'mutual' ? 'message' : 'interest'}
+                      onLike={(want) => handleAction(pid, 'like', want)}
+                      onShortlist={(want) => handleAction(pid, 'shortlist', want)}
+                    />
                   </div>
-                );
-              })}
-            </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

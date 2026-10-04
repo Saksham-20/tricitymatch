@@ -57,7 +57,7 @@ import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 // that's mostly the shorter shape is a visible layout shift on load (doctrine
 // §9 Craft, §6 Loading: "skeletons that match the final layout's shape").
 const CardSkeleton = ({ compact = false }) => (
-  <div className="bg-white rounded-2xl border border-neutral-100 shadow-card overflow-hidden">
+  <div className="bg-white rounded-xl shadow-card overflow-hidden">
     {compact ? (
       <div className="flex items-center gap-2.5 px-4 pt-4 pb-3.5">
         <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
@@ -68,7 +68,7 @@ const CardSkeleton = ({ compact = false }) => (
         <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
       </div>
     ) : (
-      <Skeleton className="h-52 w-full rounded-none" />
+      <Skeleton className="h-56 w-full rounded-none" />
     )}
     <div className="p-4 space-y-3">
       <Skeleton className="h-4 w-3/4" />
@@ -138,7 +138,9 @@ const Search = () => {
 
   const handleIdSearch = async (e) => {
     e.preventDefault();
-    const code = idQuery.trim();
+    // Profile codes are canonically uppercase (TCS-XXXXXXXX); the field only
+    // uppercases visually via CSS, so normalise before sending to by-code.
+    const code = idQuery.trim().toUpperCase();
     if (!code) return;
     try {
       setIdLoading(true);
@@ -298,9 +300,9 @@ const Search = () => {
                 </h1>
               </div>
               <p className="text-neutral-500 text-sm ml-3">
-                Verified profiles from Tricity and beyond
+                Profiles from Tricity and beyond
                 {totalCount > 0 && (
-                  <span className="ml-2 px-2.5 py-0.5 bg-primary-50 text-primary-600 text-xs font-semibold rounded-full border border-primary-100">
+                  <span className="ml-2 px-2.5 py-0.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 text-xs font-semibold rounded-full border border-primary-100 dark:border-primary-800">
                     {totalCount}+ profiles
                   </span>
                 )}
@@ -313,7 +315,7 @@ const Search = () => {
                 value={sortBy}
                 onChange={handleSortChange}
                 aria-label="Sort profiles by"
-                className="input-field text-sm min-w-[160px]"
+                className="input-field min-w-[160px]"
               >
                 <option value="compatibility">Best Match %</option>
                 <option value="age">By Age</option>
@@ -332,7 +334,7 @@ const Search = () => {
                 value={idQuery}
                 onChange={(e) => setIdQuery(e.target.value)}
                 placeholder="Have a profile ID? e.g. TCS-A1B2C3D4"
-                className="input-field w-full pl-9 text-sm uppercase placeholder:normal-case placeholder:text-neutral-400"
+                className="input-field w-full pl-9 uppercase placeholder:normal-case placeholder:text-neutral-400"
                 aria-label="Search by profile ID"
               />
             </div>
@@ -386,7 +388,7 @@ const Search = () => {
             )}
 
             {/* Results meta bar */}
-            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card">
+            <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card">
               <p className="text-sm text-neutral-600">
                 {loading && profiles.length === 0 ? (
                   <span className="text-neutral-400">Loading profiles…</span>
@@ -395,7 +397,7 @@ const Search = () => {
                     <span className="font-semibold text-neutral-900">{Math.max(totalCount, profiles.length)}</span>
                     {' '}{Math.max(totalCount, profiles.length) === 1 ? 'profile' : 'profiles'} found
                     {activeFilterCount > 0 && (
-                      <span className="ml-2 text-primary-500 font-medium">
+                      <span className="ml-2 text-primary-500 dark:text-primary-300 font-medium">
                         · {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active
                       </span>
                     )}
@@ -419,8 +421,8 @@ const Search = () => {
                   <button
                     key={key}
                     onClick={() => handleRemoveFilter(key)}
-                    className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-full border border-primary-100 hover:bg-primary-100 transition-colors"
-                    aria-label={`Remove filter ${key}`}
+                    className="inline-flex items-center gap-1.5 min-h-[44px] pl-3 pr-2 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-medium rounded-full border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+                    aria-label={`Remove ${FILTER_LABELS[key]?.(value) ?? key}`}
                   >
                     {(FILTER_LABELS[key]?.(value)) ?? `${key}: ${value}`}
                     <FiX className="w-3.5 h-3.5" />
@@ -447,7 +449,7 @@ const Search = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 role="alert"
-                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl shadow-card"
               >
                 <ErrorState
                   title="Check your filters"
@@ -464,7 +466,7 @@ const Search = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 role="alert"
-                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-destructive/20 dark:border-destructive/30 shadow-card"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl shadow-card"
               >
                 <ErrorState
                   title="Something went wrong"
@@ -486,7 +488,7 @@ const Search = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card"
+                className="bg-white dark:bg-surface-dark-3 rounded-3xl shadow-card"
               >
                 <EmptyState
                   icon={FiUsers}
@@ -502,7 +504,7 @@ const Search = () => {
                   <InviteLink variant="inline" />
                   <button
                     onClick={() => { setPage(1); searchProfiles(); }}
-                    className="btn-secondary inline-flex items-center gap-2 text-sm"
+                    className="btn-secondary dark:text-primary-300 inline-flex items-center gap-2 text-sm"
                   >
                     <FiRefreshCw className="w-4 h-4" />
                     Refresh
@@ -549,7 +551,7 @@ const Search = () => {
                     <motion.button
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setPage(p => p + 1)}
-                      className="btn-secondary inline-flex items-center gap-2"
+                      className="btn-secondary dark:text-primary-300 inline-flex items-center gap-2"
                     >
                       Load More Profiles
                       <FiArrowRight className="w-4 h-4" />

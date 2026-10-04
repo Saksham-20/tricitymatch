@@ -33,6 +33,8 @@ const BasicInfoStep = () => {
   const initialIdentity = useRef({ gender: formData.gender, dateOfBirth: formData.dateOfBirth });
   const genderLocked = mode === 'edit' && !!initialIdentity.current.gender;
   const dobLocked = mode === 'edit' && !!initialIdentity.current.dateOfBirth;
+  // One tab stop into the gender radiogroup; Arrow keys move + select (roving tabindex).
+  const genderRefs = useRef([]);
 
   const validateStep = () => {
     const data = formDataRef.current;
@@ -94,6 +96,22 @@ const BasicInfoStep = () => {
     validateStep();
   };
 
+  // Roving-tabindex arrow-key navigation for the gender radiogroup (ARIA radio
+  // pattern): Arrow keys move selection and focus between the options.
+  const handleGenderKey = (e, index) => {
+    if (genderLocked) return;
+    let next = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (index + 1) % genderOptions.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (index - 1 + genderOptions.length) % genderOptions.length;
+    if (next === null) return;
+    e.preventDefault();
+    const opt = genderOptions[next];
+    updateFormData('gender', opt.value);
+    setFieldTouched('gender');
+    validateStep();
+    genderRefs.current[next]?.focus();
+  };
+
   return (
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise}>
@@ -128,16 +146,20 @@ const BasicInfoStep = () => {
             Gender <span className="text-red-500 ml-1">*</span>
           </span>
           <div className="grid grid-cols-3 gap-2.5" role="radiogroup" aria-label="Gender">
-            {genderOptions.map((opt) => {
+            {genderOptions.map((opt, index) => {
               const selected = formData.gender === opt.value;
+              const tabbable = genderLocked ? selected : (selected || (!formData.gender && index === 0));
               return (
                 <button
                   key={opt.value}
+                  ref={(el) => { genderRefs.current[index] = el; }}
                   type="button"
                   role="radio"
                   aria-checked={selected}
+                  tabIndex={tabbable ? 0 : -1}
                   disabled={genderLocked && !selected}
                   onClick={() => { if (genderLocked) return; updateFormData('gender', opt.value); setFieldTouched('gender'); validateStep(); }}
+                  onKeyDown={(e) => handleGenderKey(e, index)}
                   className={`min-h-[2.75rem] py-3 rounded-xl border-2 text-sm font-semibold transition-colors duration-[160ms] active:scale-[0.97] ${
                     selected
                       ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'

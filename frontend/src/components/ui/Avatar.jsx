@@ -90,6 +90,8 @@ const Avatar = ({
       {/* Verified badge — success green w/ check (trust signal) */}
       {verified && (
         <span
+          role="img"
+          aria-label="Verified"
           className={cn(
             'absolute -bottom-0.5 -right-0.5 bg-success rounded-full p-0.5 border-2 border-white dark:border-surface-dark-3',
             size === 'xs' && 'hidden',

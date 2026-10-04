@@ -11,11 +11,11 @@ const METHODS = [
 
 /**
  * Records a payout against a rep. The server refuses an amount above the
- * outstanding balance unless allowOverpay is set, so the checkbox is the
+ * payable balance (cleared of the refund window) unless allowOverpay is set, so the checkbox is the
  * deliberate escape hatch for a bonus or a correction — the guard exists to
  * catch a typed extra zero, not to overrule the admin.
  */
-export default function RecordPayoutForm({ outstanding = 0, onSubmit }) {
+export default function RecordPayoutForm({ outstanding = 0, inHold = 0, onSubmit }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     amount: '', method: 'bank_transfer', reference: '', note: '',
@@ -35,7 +35,7 @@ export default function RecordPayoutForm({ outstanding = 0, onSubmit }) {
       setForm({ amount: '', method: 'bank_transfer', reference: '', note: '', status: 'paid', allowOverpay: false });
       setOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to record payout');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to record payout');
     } finally {
       setSaving(false);
     }
@@ -54,7 +54,12 @@ export default function RecordPayoutForm({ outstanding = 0, onSubmit }) {
         </button>
         {outstanding > 0 && (
           <span className="text-sm text-gray-600">
-            ₹{Number(outstanding).toLocaleString('en-IN')} outstanding
+            ₹{Number(outstanding).toLocaleString('en-IN')} payable now
+          </span>
+        )}
+        {inHold > 0 && (
+          <span className="text-sm text-gray-500">
+            ₹{Number(inHold).toLocaleString('en-IN')} still in the refund window
           </span>
         )}
       </div>
@@ -114,7 +119,7 @@ export default function RecordPayoutForm({ outstanding = 0, onSubmit }) {
           checked={form.allowOverpay}
           onChange={(e) => set('allowOverpay', e.target.checked)}
         />
-        Allow more than the outstanding balance (bonus or correction)
+        Allow more than the payable balance (pay early, a bonus or a correction)
       </label>
 
       {error && <p className="text-sm text-red-600 mt-3">{error}</p>}

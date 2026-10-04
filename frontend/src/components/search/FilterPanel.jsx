@@ -28,10 +28,10 @@ const FilterSection = ({ title, icon: Icon, sectionKey, expanded, onToggle, chil
     <AnimatePresence initial={false}>
       {expanded && (
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.22 }}
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="overflow-hidden"
         >
           <div className="pb-4 pt-1 space-y-4 px-1">
@@ -52,15 +52,20 @@ const FieldLabel = ({ htmlFor, children }) => (
 
 // ─── Styled select ───────────────────────────
 const StyledSelect = ({ id, name, value, onChange, children }) => (
-  <select
-    id={id}
-    name={name}
-    value={value}
-    onChange={onChange}
-    className="w-full px-3 py-2.5 text-sm bg-white border border-neutral-200 rounded-xl text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-[border-color,box-shadow] duration-[160ms] appearance-none cursor-pointer"
-  >
-    {children}
-  </select>
+  <div className="relative">
+    <select
+      id={id}
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full pl-3 pr-9 py-2.5 text-base bg-white border border-neutral-200 rounded-xl text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-[border-color,box-shadow] duration-[160ms] appearance-none cursor-pointer"
+    >
+      {children}
+    </select>
+    {/* Explicit chevron: `appearance-none` hides the native arrow, so without
+        this a <select> looked identical to the typeable text inputs beside it. */}
+    <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
+  </div>
 );
 
 // ─── Styled input ─────────────────────────────
@@ -74,7 +79,7 @@ const StyledInput = ({ id, name, value, onChange, placeholder, type = 'text', mi
     placeholder={placeholder}
     min={min}
     max={max}
-    className="w-full px-3 py-2.5 text-sm bg-white border border-neutral-200 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-[border-color,box-shadow] duration-[160ms]"
+    className="w-full px-3 py-2.5 text-base bg-white border border-neutral-200 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-[border-color,box-shadow] duration-[160ms]"
     {...rest}
   />
 );
@@ -381,7 +386,7 @@ const FilterPanel = ({
     <>
       {/* ── Desktop sidebar ─────────────────── */}
       <div className="hidden lg:block">
-        <div className="sticky top-24 bg-white rounded-2xl border border-neutral-100 shadow-card p-5">
+        <div className="sticky top-24 bg-white rounded-2xl shadow-card p-5">
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-semibold text-neutral-800 flex items-center gap-2">
@@ -497,7 +502,7 @@ const FilterPanel = ({
                 </h2>
                 <button
                   onClick={() => setSheetOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-neutral-100 transition-colors"
+                  className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-neutral-100 transition-colors"
                   aria-label="Close filters"
                 >
                   <FiX className="w-4 h-4 text-neutral-600" />

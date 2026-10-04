@@ -118,7 +118,7 @@ const Faq = ({ q, a }) => {
         <span className="font-medium text-neutral-900 dark:text-neutral-100">{q}</span>
         <FiChevronDown className={`w-4 h-4 text-neutral-400 mt-1 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && <p className="text-sm text-neutral-600 leading-relaxed pb-4 -mt-1 max-w-2xl">{a}</p>}
+      {open && <p className="text-base text-neutral-600 dark:text-neutral-300 leading-relaxed pb-4 -mt-1 max-w-2xl">{a}</p>}
     </div>
   );
 };
@@ -137,9 +137,9 @@ export default function Help() {
         <div className="max-w-5xl mx-auto">
           <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-block py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl">
-            Answers, and a <span className="text-primary-700 italic">real person</span> when you need one.
+            Answers, and a <span className="text-primary-700 dark:text-primary-300 italic">real person</span> when you need one.
           </h1>
-          <p className="mt-6 text-lg text-neutral-600 max-w-2xl leading-relaxed">
+          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
             Most questions are answered below. If yours is not, write to us — every message reaches
             our team and gets a reply.
           </p>
@@ -153,22 +153,22 @@ export default function Help() {
             href={`mailto:${support.email}`}
             className="bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 hover:border-primary-300 transition-colors"
           >
-            <span className="w-11 h-11 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center mb-4">
+            <span className="w-11 h-11 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center mb-4">
               <FiMail className="w-5 h-5" />
             </span>
             <h2 className="font-display text-lg font-bold mb-1">Email support</h2>
-            <p className="text-sm text-neutral-600 break-all">{support.email}</p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 break-all">{support.email}</p>
           </a>
 
           <Link
             to="/contact"
             className="bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 hover:border-primary-300 transition-colors"
           >
-            <span className="w-11 h-11 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center mb-4">
+            <span className="w-11 h-11 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center mb-4">
               <FiHelpCircle className="w-5 h-5" />
             </span>
             <h2 className="font-display text-lg font-bold mb-1">Contact form</h2>
-            <p className="text-sm text-neutral-600">Send us the details and we&apos;ll reply by email.</p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">Send us the details and we&apos;ll reply by email.</p>
           </Link>
 
           {/* Rendered only when a real WhatsApp number is configured — a dead
@@ -184,7 +184,7 @@ export default function Help() {
                 <FaWhatsapp className="w-5 h-5" />
               </span>
               <h2 className="font-display text-lg font-bold mb-1">WhatsApp</h2>
-              <p className="text-sm text-neutral-600">Chat with our team.</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">Chat with our team.</p>
             </a>
           )}
         </div>
@@ -196,7 +196,7 @@ export default function Help() {
           {SECTIONS.map(({ icon: Icon, title, faqs }) => (
             <div key={title} className="bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 md:p-8">
               <div className="flex items-center gap-3 mb-3">
-                <span className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0">
+                <span className="w-10 h-10 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-4 h-4" />
                 </span>
                 <h2 className="font-display text-xl md:text-2xl font-bold">{title}</h2>
@@ -221,7 +221,7 @@ export default function Help() {
           <Link to="/delete-account" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm font-medium hover:border-primary-400 transition-colors">
             <FiTrash2 className="w-4 h-4" /> Delete account
           </Link>
-          <Link to="/contact" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
+          <Link to="/contact" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
             Still stuck? Contact us <FiArrowRight className="w-4 h-4" />
           </Link>
         </div>

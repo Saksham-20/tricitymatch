@@ -51,12 +51,12 @@ const PreferencesStep = () => {
   // A plain function, not a component: a component defined here would be a new
   // type every render and remount (dropping focus) on each toggle.
   const mustHaveRow = (id, label) => (
-    <label className="flex items-center gap-2 mt-2 text-xs text-neutral-600 cursor-pointer min-h-[2.75rem]">
+    <label className="flex items-center gap-2 mt-2 text-xs text-neutral-600 dark:text-neutral-400 cursor-pointer min-h-[2.75rem]">
       <input
         type="checkbox"
         checked={mustHaves.includes(id)}
         onChange={() => toggleMustHave(id)}
-        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+        className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 focus:ring-primary-500"
       />
       <span>{label}</span>
     </label>
@@ -106,7 +106,7 @@ const PreferencesStep = () => {
       </motion.div>
 
       <motion.div variants={fadeRise}>
-        <label className="block text-sm font-medium text-neutral-900 mb-1">
+        <label className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
           Preferred Cities
         </label>
         <p className="text-xs text-neutral-500 mb-3">Tap all the cities you're open to.</p>
@@ -122,7 +122,7 @@ const PreferencesStep = () => {
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[2.75rem] rounded-full text-sm font-medium border transition-colors duration-[160ms] active:scale-[0.97] ${
                   selected
                     ? 'bg-primary-500 border-primary-500 text-white shadow-burgundy'
-                    : 'bg-white border-neutral-300 text-neutral-700 hover:border-primary-400 hover:text-primary-600 dark:hover:text-primary-300'
+                    : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-primary-400 hover:text-primary-600 dark:hover:text-primary-300'
                 }`}
               >
                 {selected && <FiCheck className="w-3.5 h-3.5" />}
@@ -134,8 +134,8 @@ const PreferencesStep = () => {
         {mustHaveRow('city', "Must-have: only show me people in these cities")}
       </motion.div>
 
-      <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
-        <p className="font-medium text-neutral-800 mb-1">Smarter match recommendations</p>
+      <motion.div variants={fadeRise} className="bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">Smarter match recommendations</p>
         <p>Preferences guide who we suggest first. Anything you mark as a must-have is a rule: people who do not meet it will not appear in your search (you can switch this off from the search page).</p>
       </motion.div>
     </motion.div>

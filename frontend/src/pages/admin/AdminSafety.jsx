@@ -122,6 +122,7 @@ function Photos() {
   const remove = async (userId, photoUrl) => {
     const reason = window.prompt('Remove this photo? Reason (recorded in the audit log):');
     if (reason === null) return;
+    if (!reason.trim()) { toast.error('A reason is required — it is written to the audit log.'); return; }
     try {
       await removePhoto({ userId, photoUrl, reason });
       toast.success('Photo removed and the member was told');
@@ -155,7 +156,7 @@ function Photos() {
                   <button
                     type="button"
                     onClick={() => remove(p.userId, url)}
-                    className="absolute inset-x-0 bottom-0 py-1 text-[11px] font-medium bg-red-600/90 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    className="absolute inset-x-0 bottom-0 py-1 text-[11px] font-medium bg-red-600/90 text-white opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100 transition-opacity"
                   >
                     Remove
                   </button>
@@ -259,7 +260,9 @@ export default function AdminSafety() {
           <button
             key={id}
             role="tab"
+            id={`tab-${id}`}
             aria-selected={tab === id}
+            aria-controls={`panel-${id}`}
             onClick={() => setTab(id)}
             className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === id ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -269,9 +272,11 @@ export default function AdminSafety() {
           </button>
         ))}
       </div>
-      {tab === 'suspicious' && <Suspicious />}
-      {tab === 'photos' && <Photos />}
-      {tab === 'stats' && <Stats />}
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+        {tab === 'suspicious' && <Suspicious />}
+        {tab === 'photos' && <Photos />}
+        {tab === 'stats' && <Stats />}
+      </div>
     </div>
   );
 }
