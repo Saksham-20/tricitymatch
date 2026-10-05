@@ -245,7 +245,8 @@ const ProfileDetail = () => {
       } else {
         setLoadError(true);
       }
-      toast.error('Failed to load profile');
+      // Both branches render their own full-page state; a toast on top of
+      // "Profile not found" said the same thing twice.
     } finally {
       setLoading(false);
     }

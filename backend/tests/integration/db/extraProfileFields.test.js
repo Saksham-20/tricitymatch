@@ -53,4 +53,25 @@ describeDb('extra profile fields', (t) => {
     expect(await run({ brothers: 99 })).toContain('brothers');
     expect(await run({ willingToRelocate: 'yes', familyValues: 'liberal', livingArrangement: 'alone', brothers: 2 })).toEqual([]);
   });
+
+  t('a phone number hidden in the bio or a prompt answer is refused and nothing is saved', async () => {
+    const { updateProfile } = require('../../../controllers/profileController');
+    const { Profile } = require('../../../models');
+    const owner = await makeMember({ profile: { bio: 'Family-first, love cricket.' } });
+    ids.push(owner.user.id);
+
+    const split = await call(updateProfile, { user: owner.user, body: { bio: 'Hello 97410, 79680 nice to meet you', city: 'Mohali' } });
+    expect(split.statusCode).toBe(400);
+    expect(split.body.error.code).toBe('CONTACT_IN_TEXT');
+    const prompt = await call(updateProfile, { user: owner.user, body: { profilePrompts: JSON.stringify([{ question: 'q', answer: 'whatsapp me on 98765 43210' }]) } });
+    expect(prompt.statusCode).toBe(400);
+
+    const row = await Profile.findOne({ where: { userId: owner.user.id } });
+    expect(row.bio).toBe('Family-first, love cricket.');
+    expect(row.city).not.toBe('Mohali');
+
+    const fine = await call(updateProfile, { user: owner.user, body: { bio: 'Born 1995, 5 10, earning 8,00,000 - 9,00,000.' } });
+    expect(fine.statusCode).toBe(200);
+  });
 });
+

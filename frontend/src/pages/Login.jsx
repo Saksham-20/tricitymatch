@@ -29,7 +29,7 @@ const Login = () => {
   const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
   const [direction, setDirection] = useState(1); // 1 = identifier→password, -1 = back
   const passwordRef = useRef(null);
-  const { login, setUser } = useAuth();
+  const { login, setUser, isAuthenticated, loading: authLoading, user: authUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
@@ -69,7 +69,11 @@ const Login = () => {
     // a scoped account on the first section it is actually allowed to open.
     const isAdminRole = ['sub_admin', 'admin', 'super_admin'].includes(role);
     const isMarketingRole = ['marketing', 'marketing_manager'].includes(role);
-    if (safeReturnTo && !isAdminRole && !isMarketingRole) {
+    // Staff may be sent back to the page they asked for, but only inside their
+    // own area — a member link in a partner's returnTo is not theirs to open.
+    const staffArea = isAdminRole ? '/admin' : isMarketingRole ? '/marketing' : null;
+    const returnFits = safeReturnTo && (!staffArea || safeReturnTo === staffArea || safeReturnTo.startsWith(`${staffArea}/`));
+    if (returnFits) {
       navigate(safeReturnTo);
       return;
     }
@@ -77,6 +81,12 @@ const Login = () => {
       : isMarketingRole ? '/marketing/dashboard'
       : '/dashboard');
   }, [navigate, safeReturnTo]);
+
+  // Already signed in (a bookmarked /login, or the old /admin/login link): go
+  // straight to where this account belongs instead of asking again.
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && authUser?.role) goAfterLogin(authUser.role);
+  }, [authLoading, isAuthenticated, authUser?.role, goAfterLogin]);
 
   const handleGoogleCredential = useCallback(async (response) => {
     setGoogleLoading(true);

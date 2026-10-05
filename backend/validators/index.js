@@ -672,9 +672,16 @@ const updateUserStatusValidation = [
 // accounts (whose compromise is far worse) also need 12 characters.
 const strongPassword = (minLength) => passwordField('password', { minLength });
 
+// An assisted signup is a real member: gender and date of birth are theirs to
+// give, not ours to invent (the form used to write 'other' / 1990-01-01, which
+// the identity lock then froze onto the profile).
 const adminCreateUserValidation = [
   body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
   strongPassword(8),
+  body('firstName').isString().trim().isLength({ min: 1, max: 50 }).withMessage('First name is required'),
+  body('lastName').isString().trim().isLength({ min: 1, max: 50 }).withMessage('Last name is required'),
+  body('gender').isIn(['male', 'female']).withMessage('Choose the member\'s gender'),
+  body('dateOfBirth').isISO8601({ strict: true }).withMessage('Enter the member\'s date of birth'),
 ];
 
 const adminCreateAdminValidation = [

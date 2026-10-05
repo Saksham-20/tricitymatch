@@ -51,7 +51,7 @@ describeDb('admin partner care', (t) => {
   });
 
   describe('phone numbers on admin create', () => {
-    const create = (fn, body) => call(adminCtl()[fn], { user: admin, body: { password: PW, firstName: 'Neha', lastName: 'Sood', ...body } });
+    const create = (fn, body) => call(adminCtl()[fn], { user: admin, body: { password: PW, firstName: 'Neha', lastName: 'Sood', gender: 'female', dateOfBirth: '1996-04-12', ...body } });
     const made = [];
     afterAll(async () => {
       if (made.length) {
@@ -78,6 +78,23 @@ describeDb('admin partner care', (t) => {
     t('rejects a number that cannot be a mobile number', async () => {
       const res = await create('createMarketingUser', { email: `bad-${uniq()}@example.test`, phone: '12345' });
       expect(res.statusCode).toBe(400);
+    });
+
+    t('an assisted member signup keeps the gender and date of birth the admin entered', async () => {
+      const res = track(await create('createUser', { email: `assist-${uniq()}@example.test` }));
+      expect(res.statusCode).toBe(201);
+      const profile = await models.Profile.findOne({ where: { userId: res.body.user.id } });
+      expect(profile.gender).toBe('female');
+      expect(new Date(profile.dateOfBirth).toISOString().slice(0, 10)).toBe('1996-04-12');
+    });
+
+    t('an assisted member signup refuses a missing gender or an under-age date of birth', async () => {
+      const noGender = await create('createUser', { email: `ng-${uniq()}@example.test`, gender: undefined });
+      expect(noGender.statusCode).toBe(400);
+      const young = new Date(Date.now() - 19 * 365.25 * 86400000).toISOString().slice(0, 10);
+      const underage = await create('createUser', { email: `ua-${uniq()}@example.test`, gender: 'male', dateOfBirth: young });
+      expect(underage.statusCode).toBe(400);
+      expect(underage.body.error.message).toMatch(/at least 21/);
     });
 
     t('still allows no phone at all', async () => {

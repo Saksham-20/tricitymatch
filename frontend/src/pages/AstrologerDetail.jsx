@@ -69,6 +69,7 @@ export default function AstrologerDetail() {
           order_id: b.razorpayOrderId,
           amount: b.amountPaise,
           name: 'TricityMatch',
+          image: `${window.location.origin}/icons/icon-192x192.png`,
           description: `Consultation with ${b.astrologerName}`,
           handler: async (resp) => {
             try {

@@ -15,6 +15,7 @@ vi.mock('../../context/AuthContext', () => ({
 
 import AdminProtectedRoute from '../../components/admin/AdminProtectedRoute';
 import ProtectedRoute from '../../components/common/ProtectedRoute';
+import MarketingProtectedRoute from '../../pages/marketing/MarketingProtectedRoute';
 
 const setAuth = (state) => Object.assign(mockAuth, state);
 
@@ -25,6 +26,7 @@ const renderAt = (initial, element) =>
         <Route path={initial} element={element} />
         <Route path="/login" element={<div>LOGIN PAGE</div>} />
         <Route path="/dashboard" element={<div>DASHBOARD</div>} />
+        <Route path="/marketing/dashboard" element={<div>PARTNER HOME</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -44,10 +46,16 @@ describe('AdminProtectedRoute', () => {
     expect(screen.getByText('ADMIN UI')).toBeInTheDocument();
   });
 
-  it('redirects a plain user to /login', () => {
+  it('sends a signed-in plain user to their own dashboard, not the login page', () => {
     setAuth({ isAuthenticated: true, user: { role: 'user' } });
     renderAt('/admin', <AdminProtectedRoute><div>ADMIN UI</div></AdminProtectedRoute>);
-    expect(screen.getByText('LOGIN PAGE')).toBeInTheDocument();
+    expect(screen.getByText('DASHBOARD')).toBeInTheDocument();
+  });
+
+  it('sends a marketing partner to the partner portal', () => {
+    setAuth({ isAuthenticated: true, user: { role: 'marketing' } });
+    renderAt('/admin', <AdminProtectedRoute><div>ADMIN UI</div></AdminProtectedRoute>);
+    expect(screen.getByText('PARTNER HOME')).toBeInTheDocument();
   });
 
   it('redirects an unauthenticated visitor to /login', () => {
@@ -73,5 +81,27 @@ describe('ProtectedRoute adminOnly', () => {
     setAuth({ isAuthenticated: true, user: { role: 'user' } });
     renderAt('/x', <ProtectedRoute><div>MEMBER AREA</div></ProtectedRoute>);
     expect(screen.getByText('MEMBER AREA')).toBeInTheDocument();
+  });
+});
+
+describe('MarketingProtectedRoute', () => {
+  it('allows marketing and marketing_manager', () => {
+    for (const role of ['marketing', 'marketing_manager']) {
+      setAuth({ isAuthenticated: true, user: { role } });
+      const { unmount } = renderAt('/marketing/leads', <MarketingProtectedRoute><div>PORTAL</div></MarketingProtectedRoute>);
+      expect(screen.getByText('PORTAL')).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('sends a member to their dashboard, not the login page', () => {
+    setAuth({ isAuthenticated: true, user: { role: 'user' } });
+    renderAt('/marketing/leads', <MarketingProtectedRoute><div>PORTAL</div></MarketingProtectedRoute>);
+    expect(screen.getByText('DASHBOARD')).toBeInTheDocument();
+  });
+
+  it('sends a signed-out visitor to login', () => {
+    renderAt('/marketing/leads', <MarketingProtectedRoute><div>PORTAL</div></MarketingProtectedRoute>);
+    expect(screen.getByText('LOGIN PAGE')).toBeInTheDocument();
   });
 });

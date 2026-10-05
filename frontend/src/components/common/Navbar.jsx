@@ -356,12 +356,17 @@ const Navbar = () => {
                 whileTap={{ scale: 0.93 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-expanded={isMobileMenuOpen}
-                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-                className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors"
+                aria-label={isMobileMenuOpen ? 'Close menu' : (unreadCount > 0 ? `Open menu, ${unreadCount} unread notifications` : 'Open menu')}
+                className="relative md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors"
               >
                 {isMobileMenuOpen
                   ? <FiX className="w-5 h-5" />
                   : <FiMenu className="w-5 h-5" />}
+                {/* On a phone the bell lives inside this menu; without a mark
+                    here a new notification was invisible until opened. */}
+                {!isMobileMenuOpen && unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-primary-600 ring-2 ring-white dark:ring-neutral-900" aria-hidden="true" />
+                )}
               </motion.button>
             </div>
           </div>

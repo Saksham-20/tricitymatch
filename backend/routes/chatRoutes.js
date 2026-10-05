@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getUnreadMessageCount,
   getConversations,
   getMessages,
   sendMessage,
@@ -38,6 +39,9 @@ const {
 // all?" instead of "may they chat with THIS person?", and any free member
 // holding a grant for one thread passed the gate for every thread.
 router.use(auth);
+
+// Unread messages for the nav badge (no chat gate; see controller)
+router.get('/unread-count', getUnreadMessageCount);
 
 // Get all conversations with pagination
 router.get('/conversations', 

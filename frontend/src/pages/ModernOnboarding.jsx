@@ -84,7 +84,8 @@ const ModernOnboardingContent = () => {
   } = useOnboarding();
 
   const navigate = useNavigate();
-  const { signup, isAuthenticated } = useAuth();
+  const { signup, isAuthenticated, loading: authLoading } = useAuth();
+  const signedInChecked = useRef(false);
   const [searchParams] = useSearchParams();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   // Snapshot of name/DOB taken before clearDraft() resets formData — the
@@ -131,12 +132,16 @@ const ModernOnboardingContent = () => {
   // Send them to the editor instead. Mount-only: after signup succeeds we are
   // authenticated too, and that must not bounce the success card away.
   // create_for_other is a deliberate deep-link and is left alone.
+  // Checked once, after the session check settles: on a hard load the auth
+  // state is still "unknown" at mount, so a mount-time check never fired.
   useEffect(() => {
+    if (authLoading || signedInChecked.current) return;
+    signedInChecked.current = true;
     if (isAuthenticated && mode === 'signup') {
       navigate('/profile/edit', { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading]);
 
   useEffect(() => {
     setCompletionPercentage(getCompletionPercentage());

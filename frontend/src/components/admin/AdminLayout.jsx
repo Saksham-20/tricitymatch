@@ -93,6 +93,38 @@ export function AdminScopeRoute({ scope, children }) {
   return children;
 }
 
+/**
+ * Where AdminIndexRedirect sends an account that can open no section at all.
+ * A full admin can open everything, so for them this URL is just the dashboard
+ * (it used to render an empty panel).
+ */
+export function AdminNoAccess() {
+  const scopes = useAdminScopes();
+  if (!scopes) return <Navigate to="/admin/dashboard" replace />;
+  return (
+    <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10">
+      <FiShield className="w-8 h-8 text-gray-300 mx-auto mb-3" aria-hidden="true" />
+      <h1 className="text-lg font-bold text-gray-900 mb-1">No sections yet</h1>
+      <p className="text-sm text-gray-500">
+        Your admin account has not been given any sections to work on. Ask a full admin to grant you access.
+      </p>
+    </div>
+  );
+}
+
+/** Unknown address inside the panel: say so, inside the panel chrome. */
+export function AdminNotFound() {
+  return (
+    <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10">
+      <h1 className="text-lg font-bold text-gray-900 mb-1">Page not found</h1>
+      <p className="text-sm text-gray-500 mb-5">There is no admin page at this address.</p>
+      <Link to="/admin" className="inline-block px-4 py-2 rounded-xl bg-primary-700 text-white text-sm font-medium">
+        Back to the panel
+      </Link>
+    </div>
+  );
+}
+
 // Hoisted to module scope so its identity is stable across AdminLayout renders.
 // Defined inside the render body it was a new component type on every render, so
 // React remounted the whole sidebar subtree each time — wasteful, and it lost

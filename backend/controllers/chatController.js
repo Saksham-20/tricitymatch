@@ -129,6 +129,23 @@ const verifyMutualMatch = async (userId1, userId2, transaction = null) => {
 // @route   GET /api/chat/conversations
 // @desc    Get all conversations for current user (optimized)
 // @access  Private/Premium
+// @route   GET /api/chat/unread-count
+// @desc    Messages waiting for this member (the mobile nav's Messages badge)
+// @access  Private. Not behind the chat gate: a member whose plan lapsed still
+//          deserves to know someone wrote to them.
+exports.getUnreadMessageCount = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const blocked = [...(await blockedIdsFor(userId))];
+  const count = await Message.count({
+    where: {
+      receiverId: userId,
+      isRead: false,
+      ...(blocked.length ? { senderId: { [Op.notIn]: blocked } } : {}),
+    },
+  });
+  res.json({ success: true, count });
+});
+
 exports.getConversations = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   // Clamp, do not trust the validator alone -- searchController.js already does

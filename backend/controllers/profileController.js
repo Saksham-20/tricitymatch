@@ -65,6 +65,28 @@ const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { PROFILE_EDITABLE_FIELDS, NULLABLE_NONSTRING_FIELDS } = require('../constants/profileFields');
+const { findContactInText, CONTACT_IN_TEXT_MESSAGES } = require('../utils/contactInText');
+
+// Free text other members read on the profile. (socialMediaLinks is left out on
+// purpose: it is the place a member chooses to share links.)
+const CONTACT_SCREENED_FIELDS = [
+  'bio', 'profilePrompts', 'firstName', 'lastName',
+  'fatherOccupation', 'motherOccupation', 'profession', 'institution', 'familyLocation',
+];
+
+// Every string inside a value that may be a JSON string, an array or an object.
+const stringsIn = (value) => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try { return stringsIn(JSON.parse(trimmed)); } catch { /* plain text */ }
+    }
+    return [value];
+  }
+  if (Array.isArray(value)) return value.flatMap(stringsIn);
+  if (value && typeof value === 'object') return Object.values(value).flatMap(stringsIn);
+  return [];
+};
 
 // Maximum number of gallery photos allowed
 const MAX_GALLERY_PHOTOS = config.upload.maxGalleryPhotos;
@@ -216,6 +238,18 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   // family/horoscope/numberOfSiblings). onboardingComplete is intentionally excluded here —
   // it is server-controlled (set at signup), never client-settable via PUT /me.
   const PROFILE_UPDATABLE_FIELDS = PROFILE_EDITABLE_FIELDS;
+
+  // Contact details in text every member can read would skip the paid unlock
+  // and the member's own contact-sharing setting (and are how scams start).
+  for (const field of CONTACT_SCREENED_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(req.body || {}, field)) continue;
+    const kind = findContactInText(stringsIn(req.body[field]).join('\n'));
+    if (kind) {
+      const err = createError.badRequest(CONTACT_IN_TEXT_MESSAGES[kind], { field });
+      err.code = 'CONTACT_IN_TEXT';
+      throw err;
+    }
+  }
 
   // Use transaction for data consistency
   let heldPhotoCount = 0;
@@ -706,7 +740,9 @@ exports.getProfile = asyncHandler(async (req, res) => {
   // Record profile view — CTRL-1: incognito is the VIEWER's "browse privately"
   // choice, so when the viewer is incognito we simply don't record the visit
   // (no create-then-destroy round-trip, no race where the target briefly sees it).
-  if (!viewerProfile?.incognitoMode) {
+  // Staff (admins, partners) looking at a profile is not a member's interest in
+  // it, and must not surface in that member's "who viewed you".
+  if (!viewerProfile?.incognitoMode && req.user.role === 'user') {
     // One row per (viewer, viewed) pair — a unique index. A repeat visit moves the
     // row's timestamp forward instead of being dropped, so "viewed at", the
     // recently-viewed order and this week's count all follow the latest visit.

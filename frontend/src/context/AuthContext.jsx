@@ -15,6 +15,16 @@ const PROTECTED_ROUTE_PREFIXES = [
   '/settings',
   '/notifications',
   '/admin',
+  // Every route that sits behind a guard must be here. Missing ones only
+  // worked while the localStorage auth hint survived; once it was gone (a new
+  // tab profile, or Safari purging script storage after a week idle while the
+  // 7-day session cookie lived on) a signed-in partner opening a bookmarked
+  // /marketing page was bounced to /login without the session being checked.
+  '/marketing',
+  '/matches',
+  '/verification',
+  '/guardian',
+  '/astrologers',
 ];
 
 const hasStoredAuthHint = () => {

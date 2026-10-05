@@ -922,6 +922,9 @@ const Subscription = () => {
         amount: order.amount,
         currency: order.currency,
         name: 'TricityMatch',
+        // Absolute URL: Razorpay renders it from its own origin. Without it the
+        // checkout header showed a generic letter "T".
+        image: `${window.location.origin}/icons/icon-192x192.png`,
         description,
         order_id: order.id,
         handler: async (response) => {

@@ -15,11 +15,12 @@ const STATUSES = ['active', 'inactive', 'pending'];
 // the render body is a brand-new type on every render, so React unmounts and
 // remounts every input on each keystroke, which drops focus after one character
 // and made the form nearly impossible to type in.
-const Field = ({ label, name, type = 'text', required = false, form, set, children }) => (
+const Field = ({ label, name, type = 'text', required = false, form, set, hint, children }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+    <label htmlFor={`cu-${name}`} className="block text-sm font-medium text-gray-700 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
     {children || (
       <input
+        id={`cu-${name}`}
         type={type}
         value={form[name]}
         onChange={(e) => set(name, e.target.value)}
@@ -27,8 +28,17 @@ const Field = ({ label, name, type = 'text', required = false, form, set, childr
         className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
       />
     )}
+    {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
   </div>
 );
+
+// The youngest date of birth the form offers: 18 years ago today (women's
+// minimum; the server applies 21 for men).
+const maxDob = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 18);
+  return d.toISOString().slice(0, 10);
+};
 
 export default function AdminCreateUser() {
   const navigate = useNavigate();
@@ -37,6 +47,8 @@ export default function AdminCreateUser() {
     lastName: '',
     email: '',
     phone: '',
+    gender: '',
+    dateOfBirth: '',
     password: '',
     role: 'user',
     status: 'active',
@@ -74,15 +86,44 @@ export default function AdminCreateUser() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="First Name" name="firstName" required form={form} set={set} />
           <Field label="Last Name"  name="lastName"  required form={form} set={set} />
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Gender" name="gender" required>
+            <select
+              id="cu-gender"
+              value={form.gender}
+              onChange={(e) => set('gender', e.target.value)}
+              required
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="" disabled>Choose…</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </Field>
+          <Field label="Date of birth" name="dateOfBirth" required hint="Locked once set — check it with the member. Men 21+, women 18+.">
+            <input
+              id="cu-dateOfBirth"
+              type="date"
+              value={form.dateOfBirth}
+              max={maxDob()}
+              min="1926-01-01"
+              onChange={(e) => set('dateOfBirth', e.target.value)}
+              required
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </Field>
+        </div>
         <Field label="Email Address" name="email" type="email" required form={form} set={set} />
-        <Field label="Phone Number"  name="phone" type="tel" form={form} set={set} />
+        <Field label="Phone Number"  name="phone" type="tel" form={form} set={set} hint="Optional. The member still verifies it by SMS the first time they sign in." />
         <Field label="Password" name="password" type="password" required form={form} set={set}>
           <input
+            id="cu-password"
             type="password"
+            autoComplete="new-password"
             value={form.password}
             onChange={(e) => set('password', e.target.value)}
             required
@@ -94,6 +135,7 @@ export default function AdminCreateUser() {
 
         <Field label="Status" name="status">
           <select
+            id="cu-status"
             value={form.status}
             onChange={(e) => set('status', e.target.value)}
             className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"

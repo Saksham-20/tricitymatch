@@ -110,8 +110,13 @@ const Search = () => {
   const [mustHaveKeys, setMustHaveKeys] = useState([]);
 
   const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
+  // What the results on screen were actually fetched with. The panel edits a
+  // staged copy (`filters`) that only takes effect on Apply; the count and the
+  // removable chips above the results used to read the staged copy, so they
+  // announced a filter (e.g. "Verified only") the results did not have.
+  const [appliedFilters, setAppliedFilters] = useState({ ...EMPTY_FILTERS });
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length;
 
   const [idQuery, setIdQuery]     = useState('');
   const [idLoading, setIdLoading] = useState(false);
@@ -162,6 +167,7 @@ const Search = () => {
     try {
       setLoading(true);
       const currentFilters = options.overrideFilters || filters;
+      setAppliedFilters(currentFilters);
       const currentPage = options.overridePage || page;
       const currentSort = options.overrideSort || sortBy;
 
@@ -232,6 +238,15 @@ const Search = () => {
   const handleFilterChange = (eventOrObj) => {
     const name  = eventOrObj?.target ? eventOrObj.target.name  : eventOrObj.name;
     const value = eventOrObj?.target ? eventOrObj.target.value : eventOrObj.value;
+    // An on/off switch reads as instant, so it applies straight away; the
+    // other fields stay staged until Apply.
+    if (name === 'verifiedOnly') {
+      const next = { ...filters, [name]: value };
+      setFilters(next);
+      setPage(1);
+      searchProfiles({ overrideFilters: next, overridePage: 1 });
+      return;
+    }
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
@@ -242,8 +257,9 @@ const Search = () => {
   };
 
   const handleRemoveFilter = (key) => {
-    const updated = { ...filters, [key]: '' };
-    setFilters(updated);
+    // Remove it from what is showing, keeping any other staged edits.
+    const updated = { ...appliedFilters, [key]: '' };
+    setFilters((prev) => ({ ...prev, [key]: '' }));
     setPage(1);
     searchProfiles({ overrideFilters: updated, overridePage: 1 });
   };
@@ -417,7 +433,7 @@ const Search = () => {
             {/* ── Active filter chips (remove one without opening the panel) ── */}
             {activeFilterCount > 0 && (
               <div className="flex flex-wrap items-center gap-2 mb-5">
-                {Object.entries(filters).filter(([, v]) => v).map(([key, value]) => (
+                {Object.entries(appliedFilters).filter(([, v]) => v).map(([key, value]) => (
                   <button
                     key={key}
                     onClick={() => handleRemoveFilter(key)}

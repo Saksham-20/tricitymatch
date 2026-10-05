@@ -41,7 +41,7 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
-import AdminLayout, { AdminIndexRedirect, AdminScopeRoute } from './components/admin/AdminLayout';
+import AdminLayout, { AdminIndexRedirect, AdminScopeRoute, AdminNoAccess, AdminNotFound } from './components/admin/AdminLayout';
 import Navbar from './components/common/Navbar';
 import BottomNav from './components/common/BottomNav';
 import LaunchBanner from './components/common/LaunchBanner';
@@ -477,6 +477,13 @@ const AnimatedRoutes = () => {
             <Route path="guide"         element={<MarketingGuide />} />
             <Route path="kit"           element={<MarketingKit />} />
             <Route path="team"          element={<MarketingTeam />} />
+            <Route path="*" element={
+              <div className="max-w-md mx-auto mt-10 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-10 text-center">
+                <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Page not found</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">There is no partner page at this address.</p>
+                <Link to="/marketing/dashboard" className="inline-block px-4 py-2 rounded-xl bg-primary-700 text-white text-sm font-medium">Back to your dashboard</Link>
+              </div>
+            } />
           </Route>
 
           {/* Admin Routes - bypass Navbar/BottomNav via AppContent check */}
@@ -492,7 +499,7 @@ const AnimatedRoutes = () => {
             {/* Send a scoped sub-admin to the first section they may open instead
                 of a 'Not your section' card on every sign-in. */}
             <Route index element={<AdminIndexRedirect />} />
-            <Route path="no-access" element={<AdminScopeRoute scope="__none__"><div /></AdminScopeRoute>} />
+            <Route path="no-access" element={<AdminNoAccess />} />
             <Route path="dashboard"     element={<AdminScopeRoute scope="users"><AdminDashboard /></AdminScopeRoute>} />
             <Route path="users"         element={<AdminScopeRoute scope="users"><AdminUsers /></AdminScopeRoute>} />
             <Route path="users/create"  element={<AdminScopeRoute scope="users"><AdminCreateUser /></AdminScopeRoute>} />
@@ -516,6 +523,7 @@ const AnimatedRoutes = () => {
             <Route path="team"                     element={<AdminScopeRoute scope="team"><AdminTeam /></AdminScopeRoute>} />
             <Route path="funnel"                   element={<AdminScopeRoute scope="users"><AdminFunnel /></AdminScopeRoute>} />
             <Route path="audit-log"                element={<AdminScopeRoute scope="team"><AdminAuditLog /></AdminScopeRoute>} />
+            <Route path="*" element={<AdminNotFound />} />
           </Route>
 
           {/* 404 */}

@@ -17,14 +17,14 @@ const BottomNav = ({ unreadCount: unreadCountProp = 0 }) => {
   const { t } = useTranslation();
   const isActive = (path) => location.pathname === path;
 
-  // App renders <BottomNav /> only for authenticated members and passes no
-  // count, so the Chat badge was always 0 (dead UI). Poll unread-count like the
-  // Navbar does; the interval is torn down when the member signs out and the
-  // nav unmounts. An explicit prop still wins if a parent ever supplies one.
+  // The Messages badge counts unread MESSAGES. It used to show the general
+  // notification count, so a like lit up "Messages" with a 1 and tapping it led
+  // to an empty inbox. The interval is torn down when the member signs out and
+  // the nav unmounts. An explicit prop still wins if a parent ever supplies one.
   const [fetchedCount, setFetchedCount] = useState(0);
   useEffect(() => {
     const fetchCount = () => {
-      api.get('/notifications/unread-count')
+      api.get('/chat/unread-count')
         .then((r) => setFetchedCount(r.data?.count || 0))
         .catch(() => {});
     };

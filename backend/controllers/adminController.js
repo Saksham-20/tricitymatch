@@ -844,7 +844,7 @@ exports.updateReport = asyncHandler(async (req, res) => {
 // @desc    Create a new user (admin-side)
 // @access  Private/Admin
 exports.createUser = asyncHandler(async (req, res) => {
-  const { email, password, phone, firstName, lastName, status = 'active' } = req.body;
+  const { email, password, phone, firstName, lastName, gender, dateOfBirth, status = 'active' } = req.body;
   // Role must always default to 'user' — never trust the request body for role assignment.
   // Admin can promote users via a separate, explicit admin action if needed.
   const role = 'user';
@@ -852,6 +852,9 @@ exports.createUser = asyncHandler(async (req, res) => {
   if (!email || !password || !firstName || !lastName) {
     throw createError.badRequest('email, password, firstName, and lastName are required');
   }
+  if (!['male', 'female'].includes(gender)) throw createError.badRequest('Choose the member\'s gender');
+  const ageProblem = dateOfBirth ? marriageableAgeProblem(gender, dateOfBirth) : 'Enter the member\'s date of birth';
+  if (ageProblem) throw createError.badRequest(ageProblem);
 
   // Validate status to only allowed values (never allow 'banned' on creation)
   const allowedStatuses = ['active', 'pending', 'inactive'];
@@ -878,10 +881,10 @@ exports.createUser = asyncHandler(async (req, res) => {
 
     await Profile.create({
       userId: user.id,
-      firstName,
-      lastName,
-      gender: 'other',
-      dateOfBirth: new Date('1990-01-01'),
+      firstName: String(firstName).trim(),
+      lastName: String(lastName).trim(),
+      gender,
+      dateOfBirth,
     }, { transaction: t });
 
     return user;
