@@ -166,7 +166,7 @@ node seeders/adminSeeder.js  # create admin user
 | `GOOGLE_CLIENT_ID` | Optional | Google OAuth — button hidden if missing |
 | `REDIS_URL` | Optional | Falls back to in-memory |
 | `ADMIN_EMAIL` | Optional | Default `admin@tricitymatch.com` |
-| `ADMIN_PASSWORD` | Optional | Default `Pass@1234` |
+| `ADMIN_PASSWORD` | Required in production | Development falls back to a local seed value; production has no default |
 
 ### Frontend (`frontend/.env`)
 
@@ -425,7 +425,7 @@ E2E suites: `01-auth-flow`, `02-crawler`, `03-visual-ui`, `04-ux-interactions`, 
 | Field | Value |
 |-------|-------|
 | Email | `admin@tricitymatch.com` (or `ADMIN_EMAIL` env) |
-| Password | `Pass@1234` (or `ADMIN_PASSWORD` env) |
+| Password | `ADMIN_PASSWORD` env (development falls back to a local seed value) |
 | Login URL | `/login` (NOT `/admin/login` — that redirects) |
 
 Re-seed / reset: `node backend/seeders/adminSeeder.js`

@@ -9,6 +9,14 @@
 const TERMS_VERSION = '2026-08-26';
 
 /**
+ * Marker for an account an admin created on a member's behalf (assisted
+ * signup). Nobody has accepted anything yet, so it is not the current version
+ * and needsReconsent() puts the accept screen in front of the member at their
+ * first sign-in. Accepting replaces it with the real version.
+ */
+const ASSISTED_SIGNUP_TERMS = 'assisted-signup';
+
+/**
  * A member must accept again when the Terms move on from the version they
  * accepted. NULL means the account pre-dates the consent record (they accepted
  * the original notice at signup), which is deliberately NOT a reason to lock
@@ -18,5 +26,6 @@ const needsReconsent = (user) => Boolean(user && user.termsVersion && user.terms
 
 module.exports = {
   TERMS_VERSION,
+  ASSISTED_SIGNUP_TERMS,
   needsReconsent,
 };

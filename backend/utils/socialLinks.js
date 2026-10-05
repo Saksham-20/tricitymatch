@@ -4,7 +4,7 @@
  * `Profile.socialMediaLinks` (JSONB) holds member-entered social handles. The
  * shape evolved from a flat `{ instagram: "url" }` map to a per-link map with a
  * visibility choice: `{ instagram: { url, visibility } }` where
- * visibility ∈ 'everyone' | 'matches_only' | 'hidden' (default 'matches_only').
+ * visibility ∈ 'matches_only' | 'hidden' (default 'matches_only').
  *
  * These are DISPLAY-ONLY links — no OAuth, no ownership proof, no credibility
  * score. Verification (the selfie badge) stays the trust anchor. This module
@@ -16,7 +16,10 @@
  */
 
 const PLATFORMS = ['instagram', 'linkedin', 'facebook', 'twitter', 'youtube', 'website'];
-const VISIBILITIES = ['everyone', 'matches_only', 'hidden'];
+// Owner rule (2026-10-05): a social link is a way to reach someone off the site,
+// so it is shown only to mutual matches. 'everyone' is no longer offered; a link
+// stored with it (or sent by an old client) is read as 'matches_only'.
+const VISIBILITIES = ['matches_only', 'hidden'];
 const DEFAULT_VISIBILITY = 'matches_only';
 
 // Build a safe https URL from a bare handle for a known platform.
@@ -95,7 +98,7 @@ function normalizeSocialLinks(raw) {
       rawUrl = entry;
     } else if (typeof entry === 'object') {
       rawUrl = entry.url;
-      if (VISIBILITIES.includes(entry.visibility)) visibility = entry.visibility;
+      if (entry.visibility === 'hidden') visibility = 'hidden';
     } else {
       continue;
     }
@@ -112,8 +115,7 @@ function normalizeSocialLinks(raw) {
 /**
  * Filter normalized links down to what a given viewer may see.
  * - owner sees everything (including hidden), with visibility labels
- * - everyone → always visible
- * - matches_only → visible only when the viewer is a mutual match
+ * - matches_only (and legacy 'everyone') → visible only to a mutual match
  * - hidden → never visible to others
  *
  * Returns `{ [key]: { url, visibility } }` or null.
@@ -125,7 +127,7 @@ function visibleSocialLinks(raw, { isOwner = false, isMutual = false } = {}) {
 
   const out = {};
   for (const [key, { url, visibility }] of Object.entries(normalized)) {
-    if (visibility === 'everyone' || (visibility === 'matches_only' && isMutual)) {
+    if (visibility === 'matches_only' && isMutual) {
       out[key] = { url, visibility };
     }
   }

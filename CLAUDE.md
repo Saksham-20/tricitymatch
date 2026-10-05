@@ -154,9 +154,9 @@ Pubkey installed in server `~/.ssh/authorized_keys` (comment `claude-code@tricit
 > **TricityMatch footprint on the VPS:** docker containers `tricitymatch-frontend` (host **3002**→80), `tricitymatch-backend` (host **5002**→5000), `tricitymatch-db` (postgres:15-alpine), `tricitymatch-redis` (redis:7). nginx sites: **`tricitymatch.com`** (primary, `sites-available` + symlink) and `tricityshadi.com` (legacy — 301s page routes to the new domain but still proxies `/api/` + `/socket.io/` for shipped mobile builds; `sites-enabled` regular file, not a symlink). webroot `/var/www/tricitymatch`. Note prod host ports are **3002/5002** here (not the local 3000/5001). Manage only via this project's compose file; target containers by `tricitymatch-*` name.
 
 ## Admin
-`admin@tricitymatch.com` / `Pass@1234` (or `ADMIN_EMAIL`/`ADMIN_PASSWORD`). Login `/login` (not /admin/login). Re-seed `node backend/seeders/adminSeeder.js`.
+`admin@tricitymatch.com` (password: the seeded `ADMIN_PASSWORD` locally; prod password is kept out of the repo). Login `/login` (not /admin/login). Re-seed `node backend/seeders/adminSeeder.js`.
 
-**Prod QA member account** (real prod member on user's own inbox — use for live prod testing / receiving OTP + emails): `globoniksprod@gmail.com` / `TricityQA@2026` (userId `ba32aefe-e5b2-4089-a963-0cc7bd5c4e37`). Free tier, has test profile data. OTP/verification emails land in that Gmail.
+**Prod QA member account** (real prod member on user's own inbox — use for live prod testing / receiving OTP + emails): `globoniksprod@gmail.com` (password kept out of the repo) (userId `ba32aefe-e5b2-4089-a963-0cc7bd5c4e37`). Free tier, has test profile data. OTP/verification emails land in that Gmail.
 
 ## Testing
 **QA playbook: `docs/QA.md`** — universal, reusable: method + severity/status legends, env/creds, per-screen + anti-slop checklists, web (375/768/1440) + admin + **RN apps iOS+Android simulator** plan, readiness gates. (Replaced the scattered root QA files — `browser-qa-*`, `qa-progress`, `mobile-qa-progress`, `bug-tracker`, `production-bugs`, `launch-readiness`, `release-*`, `user-flows`; their history is in git + Audit History below. Audit-phase tracker `review-progress.md` stays.)

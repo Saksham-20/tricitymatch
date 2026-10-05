@@ -128,7 +128,7 @@ end on a throwaway account seeded across every table.
 
 ### M-1 · Admin seeder reset the live admin password to a published value
 
-`adminSeeder.js` defaulted `ADMIN_PASSWORD` to `Pass@1234` — a value published in tracked
+`adminSeeder.js` defaulted `ADMIN_PASSWORD` to `<password>` — a value published in tracked
 project documentation — and re-hashed it onto an **existing** admin on every run. A routine
 `node backend/seeders/adminSeeder.js` silently reset the production admin login to a public
 password. Separately, the data seeders had no production guard at all: `db:seed:all` against
@@ -315,8 +315,8 @@ fixed before the pipeline is ever revived.
 | **Resend API key** | Same file — this key sends mail as your domain |
 | **MSG91 `SMS_API_KEY`** | Same file — SMS billed to you |
 | **Hostinger API token** | Pasted in chat during the 2026-08-20 session; still open |
-| **Admin password** `Pass@1234` | Published in tracked `CLAUDE.md`, was the seeder default, used by three scripts |
-| **Prod QA account** `TricityQA@2026` | Published in tracked `CLAUDE.md` |
+| **Admin password** `<password>` | Published in tracked `CLAUDE.md`, was the seeder default, used by three scripts |
+| **Prod QA account** `<password>` | Published in tracked `CLAUDE.md` |
 | **Seeded account password** | Was tracked in four seeder files (now untracked) |
 
 **Hygiene, no evidence of exposure:** production `JWT_SECRET` and `COOKIE_SECRET`. Note

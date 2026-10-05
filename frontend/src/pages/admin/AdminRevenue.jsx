@@ -37,6 +37,11 @@ function exportCSV(rows) {
   URL.revokeObjectURL(url);
 }
 
+const monthDate = (ym) => new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, 1);
+const shortMonth = (ym) => monthDate(ym).toLocaleDateString('en-IN', { month: 'short' });
+const longMonth = (ym) => monthDate(ym).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+const rupees = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+
 export default function AdminRevenue() {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -69,14 +74,25 @@ export default function AdminRevenue() {
   const rawRows  = data?.monthlyRevenue || [];
   const yearRows = rawRows.filter((r) => String(r.month).startsWith(String(year)));
 
-  const monthly = Object.values(
-    yearRows.reduce((acc, r) => {
-      const m = (acc[r.month] ||= { month: r.month, amount: 0, count: 0 });
-      m.amount += Number(r.revenue) || 0;
-      m.count  += Number(r.count) || 0;
-      return acc;
-    }, {})
-  ).sort((a, b) => a.month.localeCompare(b.month));
+  const byMonth = yearRows.reduce((acc, r) => {
+    const m = (acc[r.month] ||= { month: r.month, amount: 0, count: 0 });
+    m.amount += Number(r.revenue) || 0;
+    m.count  += Number(r.count) || 0;
+    return acc;
+  }, {});
+  // Months with no sales are absent from the API. Fill them with zeros from the
+  // first month with a sale up to this month (or December for a past year), so
+  // a quiet month reads as zero instead of the chart simply stopping.
+  const firstMonth = Object.keys(byMonth).sort()[0];
+  const now = new Date();
+  const lastMonthNo = Number(year) === now.getFullYear() ? now.getMonth() + 1 : 12;
+  const monthly = [];
+  if (firstMonth) {
+    for (let mo = Number(firstMonth.slice(5, 7)); mo <= lastMonthNo; mo += 1) {
+      const key = `${year}-${String(mo).padStart(2, '0')}`;
+      monthly.push(byMonth[key] || { month: key, amount: 0, count: 0 });
+    }
+  }
 
   const byPlan = Object.values(
     yearRows.reduce((acc, r) => {
@@ -132,7 +148,7 @@ export default function AdminRevenue() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KPI label={`Total Revenue ${year}`} value={summary.totalRevenue ? `₹${Number(summary.totalRevenue).toLocaleString('en-IN')}` : '—'} />
         <KPI label="Total Subscriptions"     value={summary.totalSubscriptions ?? '—'} />
-        <KPI label="Avg. Revenue / Sub"      value={summary.avgRevenue ? `₹${Number(summary.avgRevenue).toFixed(0)}` : '—'} />
+        <KPI label="Avg. Revenue / Sub"      value={summary.avgRevenue ? rupees(summary.avgRevenue) : '—'} />
       </div>
 
       {/* Charts */}
@@ -147,9 +163,9 @@ export default function AdminRevenue() {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} tickFormatter={shortMonth} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} tickFormatter={rupees} width={64} />
+                <Tooltip formatter={(v) => [rupees(v), 'Revenue']} labelFormatter={longMonth} />
                 <Bar dataKey="amount" fill="#8B2346" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -168,10 +184,10 @@ export default function AdminRevenue() {
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#8B2346" strokeWidth={2} dot={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} tickFormatter={shortMonth} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip formatter={(v) => [v, 'Subscriptions']} labelFormatter={longMonth} />
+                <Line type="monotone" dataKey="count" stroke="#8B2346" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -227,7 +243,7 @@ export default function AdminRevenue() {
               <tbody className="divide-y divide-gray-50">
                 {monthly.map((m) => (
                   <tr key={m.month} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 font-medium text-gray-800 tabular-nums">{m.month}</td>
+                    <td className="px-4 py-2.5 font-medium text-gray-800">{longMonth(m.month)}</td>
                     <td className="px-4 py-2.5 text-gray-600 tabular-nums">{m.count}</td>
                     <td className="px-4 py-2.5 text-gray-600 tabular-nums">₹{Number(m.amount).toLocaleString('en-IN')}</td>
                   </tr>

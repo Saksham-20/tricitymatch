@@ -1,22 +1,10 @@
-'use strict';
-
 /**
- * Contact details hidden in profile text.
- *
- * Owner rule (2026-10-05): a phone number belongs in the phone-number field and
- * nowhere else, and no other way to reach someone off the site (email, link,
- * messenger handle, UPI ID) belongs in any text a member writes on a profile.
- * Text is read by every member who opens the profile, so a number in it skips
- * the paid contact unlock and the owner's own "who can see my number" setting,
- * and it is the first move of the scams the safety page warns about.
- *
- * People do not type numbers plainly when they know there is a filter: they
- * split them ("97410, 79680"), space them out, spell them ("nine eight seven"),
- * or prefix +91. This looks at digit groups the way a reader would put them
- * back together.
- *
- * Deliberately narrow on numbers: dates, heights, salaries ("8,00,000 -
- * 9,00,000"), years and degree names ("B.Com") do not trip it.
+ * Client copy of backend/utils/contactInText.js (detection only), so the
+ * profile editor can stop a save and point at the field before the server
+ * refuses it. Owner rule: a phone number belongs in the phone-number field and
+ * nowhere else, and no other contact detail (email, link, messenger handle,
+ * UPI ID) belongs in anything a member writes on a profile. Keep the two copies
+ * in step; the server is the authority.
  */
 
 const ZERO_WIDTH = new RegExp('[\\u200B-\\u200D\\u2060\\uFEFF]', 'g');
@@ -80,53 +68,7 @@ const findContactInText = (text) => {
   return null;
 };
 
-const HIDDEN = '[hidden]';
-
-/**
- * The same text with every contact detail replaced, for showing text that was
- * saved before this rule existed. Spelled-out numbers are masked as a whole.
- */
-const maskContactInText = (text) => {
-  if (typeof text !== 'string' || !text.trim() || !findContactInText(text)) return text;
-  let t = String(text).normalize('NFKC').replace(ZERO_WIDTH, '');
-  t = t.replace(NUMBER_WORD_RUN, (run) => (runHasMobile(spellDigits(run)) ? `${HIDDEN} ` : run));
-  t = t.replace(DIGIT_RUN, (run) => (runHasMobile(run) ? HIDDEN : run));
-  for (const re of [EMAIL, EMAIL_SPELLED, UPI_ID, MESSENGER, LINK]) {
-    t = t.replace(new RegExp(re.source, `${re.flags.replace('g', '')}g`), HIDDEN);
-  }
-  return t;
-};
-
-// Fields that are numbers, dates, settings or links with their own rules.
-const UNMASKED_KEYS = new Set([
-  'id', 'userId', 'User', 'photos', 'profilePhoto', 'voiceIntroUrl', 'videoIntroUrl',
-  'socialMediaLinks', 'spotifyPlaylist', 'dateOfBirth', 'birthTime', 'createdAt', 'updatedAt',
-  'contactPhone', 'contactEmail', 'profileCode',
-]);
-const maskDeep = (value) => {
-  if (typeof value === 'string') return maskContactInText(value);
-  if (Array.isArray(value)) return value.map(maskDeep);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, maskDeep(v)]));
-  }
-  return value;
-};
-
-/**
- * A profile as another member may see it: contact details saved in its text
- * before the rule existed are masked. Mutates and returns `profile` (a plain
- * object). The owner's own view is never passed through this.
- */
-const maskProfileText = (profile) => {
-  if (!profile || typeof profile !== 'object') return profile;
-  for (const [key, value] of Object.entries(profile)) {
-    if (UNMASKED_KEYS.has(key) || value == null || typeof value === 'number' || typeof value === 'boolean') continue;
-    profile[key] = maskDeep(value);
-  }
-  return profile;
-};
-
-const MESSAGES = {
+export const CONTACT_IN_TEXT_MESSAGES = {
   phone: 'Please take the phone number out. Your number goes only in the phone number field, and members see it only the way you choose in Settings.',
   email: 'Please take the email address out. Members reach you through TricityMatch.',
   messenger: 'Please take out WhatsApp, Telegram, Instagram or other handles. Members reach you through TricityMatch.',
@@ -134,4 +76,4 @@ const MESSAGES = {
   upi: 'Please take the payment ID out. Never share payment details on your profile.',
 };
 
-module.exports = { findContactInText, maskContactInText, maskProfileText, runHasMobile, CONTACT_IN_TEXT_MESSAGES: MESSAGES };
+export { findContactInText, runHasMobile };

@@ -608,6 +608,10 @@ const Dashboard = () => {
   const verifiedOrPending = !verificationStatus || ['approved', 'pending'].includes(verificationStatus);
   const hasPhoto = !!profileForMeter.profilePhoto ||
     (Array.isArray(profileForMeter.photos) && profileForMeter.photos.length > 0);
+  // PhotoNudge directly above already asks for the photo; a second "Add your
+  // photo" tile under it said the same thing twice. Once a photo exists the
+  // tile returns as a ticked step.
+  const checklistItems = setupChecklist.filter((item) => item.id !== 'photo' || hasPhoto);
 
   // ── Main render ────────────────────────────────────────────────────────────
   // One hierarchy, top to bottom: what's new (matches, viewers) → what needs
@@ -720,8 +724,8 @@ const Dashboard = () => {
           <PhotoNudge hasPhoto={hasPhoto} isVerified={verifiedOrPending} allow={['photo', 'verify']} />
 
           {isFirstRun && !allImportantDone && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {setupChecklist.map((item) => {
+            <div className={`grid grid-cols-1 gap-3 ${checklistItems.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {checklistItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link

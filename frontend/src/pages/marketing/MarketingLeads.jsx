@@ -128,13 +128,31 @@ export default function MarketingLeads() {
             When they sign up with this number or email within 60 days, they are credited to you — even without a code.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input required value={addForm.name} onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))} placeholder="Full name *" className={selectCls} />
-            <input required value={addForm.phone} onChange={(e) => setAddForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Mobile number *" inputMode="numeric" className={selectCls} />
-            <input type="email" value={addForm.email} onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email (optional)" className={selectCls} />
-            <input value={addForm.city} onChange={(e) => setAddForm((f) => ({ ...f, city: e.target.value }))} placeholder="City (optional)" className={selectCls} />
+            {[
+              { key: 'name', label: 'Full name', required: true, autoComplete: 'name' },
+              { key: 'phone', label: 'Mobile number', required: true, type: 'tel', inputMode: 'numeric', autoComplete: 'tel-national', maxLength: 14, hint: '10 digits' },
+              { key: 'email', label: 'Email', type: 'email', autoComplete: 'email' },
+              { key: 'city', label: 'City', autoComplete: 'address-level2' },
+            ].map(({ key, label, required, hint, ...rest }) => (
+              <div key={key}>
+                <label htmlFor={`lead-${key}`} className="block text-sm font-medium text-neutral-800 dark:text-neutral-200 mb-1">
+                  {label}{' '}
+                  <span className="font-normal text-neutral-500 dark:text-neutral-400">{required ? '(required)' : '(optional)'}</span>
+                </label>
+                <input
+                  id={`lead-${key}`}
+                  required={required}
+                  value={addForm[key]}
+                  onChange={(e) => setAddForm((f) => ({ ...f, [key]: e.target.value }))}
+                  placeholder={hint}
+                  className={`${selectCls} w-full`}
+                  {...rest}
+                />
+              </div>
+            ))}
           </div>
-          {addError && <p className="text-sm text-red-600 dark:text-red-400 mt-3">{addError}</p>}
-          {addedName && !addError && <p className="text-sm text-green-700 dark:text-green-400 mt-3">Added {addedName}. Add another, or close.</p>}
+          {addError && <p role="alert" className="text-sm text-red-600 dark:text-red-400 mt-3">{addError}</p>}
+          {addedName && !addError && <p role="status" className="text-sm text-green-700 dark:text-green-400 mt-3">Added {addedName}. Add another, or close.</p>}
           <div className="flex justify-end mt-4">
             <button type="submit" disabled={adding} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60 transition-colors">
               {adding ? 'Adding…' : 'Add lead'}
@@ -151,14 +169,14 @@ export default function MarketingLeads() {
           <h2 className="text-base font-semibold">Filters</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className={selectCls}>
+          <select aria-label="Filter by status" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className={selectCls}>
             <option value="">All Status</option>
             <option value="new">New</option>
             <option value="contacted">Contacted</option>
             <option value="converted">Converted</option>
             <option value="lost">Lost</option>
           </select>
-          <select value={filters.paymentStatus} onChange={(e) => handleFilterChange('paymentStatus', e.target.value)} className={selectCls}>
+          <select aria-label="Filter by payment" value={filters.paymentStatus} onChange={(e) => handleFilterChange('paymentStatus', e.target.value)} className={selectCls}>
             <option value="">All Payment Status</option>
             <option value="none">Not paid</option>
             <option value="paid">Paid</option>

@@ -33,6 +33,7 @@ const { isSystemReview } = require('../utils/underageFlag');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
+const { ASSISTED_SIGNUP_TERMS } = require('../constants/legal');
 const { invoiceBlocker } = require('../utils/invoiceEligibility');
 const { recordRefund } = require('../utils/paymentRefunds');
 const { notify } = require('../utils/notifyUser');
@@ -877,6 +878,8 @@ exports.createUser = asyncHandler(async (req, res) => {
       role,
       status: safeStatus,
       emailVerified: true,
+      // The member accepts the Terms themselves at first sign-in.
+      termsVersion: ASSISTED_SIGNUP_TERMS,
     }, { transaction: t });
 
     await Profile.create({
@@ -885,6 +888,9 @@ exports.createUser = asyncHandler(async (req, res) => {
       lastName: String(lastName).trim(),
       gender,
       dateOfBirth,
+      // The admin collected what self-signup's basics step collects, so the
+      // account is onboarded like one (and the verified-number check applies).
+      onboardingComplete: true,
     }, { transaction: t });
 
     return user;

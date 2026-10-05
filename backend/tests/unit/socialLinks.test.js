@@ -45,9 +45,9 @@ describe('normalizeSocialLinks', () => {
     expect(out.instagram).toEqual({ url: 'https://instagram.com/priya', visibility: 'matches_only' });
   });
 
-  test('new shape keeps a valid visibility', () => {
-    const out = normalizeSocialLinks({ linkedin: { url: 'https://linkedin.com/in/x', visibility: 'everyone' } });
-    expect(out.linkedin.visibility).toBe('everyone');
+  test('new shape keeps hidden; a legacy "everyone" becomes matches_only', () => {
+    expect(normalizeSocialLinks({ linkedin: { url: 'https://linkedin.com/in/x', visibility: 'hidden' } }).linkedin.visibility).toBe('hidden');
+    expect(normalizeSocialLinks({ linkedin: { url: 'https://linkedin.com/in/x', visibility: 'everyone' } }).linkedin.visibility).toBe('matches_only');
   });
 
   test('clamps an invalid visibility to the default', () => {
@@ -84,9 +84,8 @@ describe('visibleSocialLinks', () => {
     expect(Object.keys(out).sort()).toEqual(['facebook', 'instagram', 'linkedin']);
   });
 
-  test('non-mutual viewer sees only everyone links', () => {
-    const out = visibleSocialLinks(raw, { isOwner: false, isMutual: false });
-    expect(Object.keys(out)).toEqual(['instagram']);
+  test('a non-mutual viewer sees no links at all, even ones stored as "everyone"', () => {
+    expect(visibleSocialLinks(raw, { isOwner: false, isMutual: false })).toBeNull();
   });
 
   test('mutual viewer also sees matches_only links, never hidden', () => {

@@ -19,6 +19,7 @@ const { Block, Match, Profile, User } = require('../models');
 const { getActiveSubscription } = require('./entitlements');
 const { applyFieldVisibility } = require('../constants/fieldVisibility');
 const { normalizeGotra, gotraSql } = require('./gotra');
+const { maskProfileText } = require('./contactInText');
 const { AGE_VERIFIABLE_WHERE } = require('./ageVerifiable');
 
 // Keys that belong to the owner and are never useful to anyone else. Note
@@ -246,6 +247,8 @@ const redactForViewer = (raw, { isMutual = false, isSelf = false, hasPaidAccess 
 
   stripOwnerOnlyKeys(out);
   delete out.User;
+  // Contact details saved in profile text before they were refused at save.
+  maskProfileText(out);
   return out;
 };
 

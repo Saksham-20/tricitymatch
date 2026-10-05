@@ -154,7 +154,7 @@ export default function MarketingLayout() {
           <span className="font-serif font-bold text-lg text-neutral-900 dark:text-neutral-100">Marketing</span>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <main id="main-content" className="flex-1 overflow-auto">
           {needsAgreement && (
             <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 px-6 py-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-sm text-amber-900 dark:text-amber-100">
               <FiAlertCircle size={16} className="flex-shrink-0" aria-hidden="true" />
@@ -169,7 +169,7 @@ export default function MarketingLayout() {
             </div>
           )}
           <Outlet context={{ onboarding, refreshOnboarding }} />
-        </div>
+        </main>
       </div>
     </div>
   );

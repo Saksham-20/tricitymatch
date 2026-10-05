@@ -86,6 +86,12 @@ describeDb('admin partner care', (t) => {
       const profile = await models.Profile.findOne({ where: { userId: res.body.user.id } });
       expect(profile.gender).toBe('female');
       expect(new Date(profile.dateOfBirth).toISOString().slice(0, 10)).toBe('1996-04-12');
+      // Onboarded like a self-signup, and asked to accept the Terms themselves.
+      expect(profile.onboardingComplete).toBe(true);
+      const created = await models.User.findByPk(res.body.user.id);
+      const { needsReconsent } = require('../../../constants/legal');
+      expect(created.termsAcceptedAt).toBeNull();
+      expect(needsReconsent(created)).toBe(true);
     });
 
     t('an assisted member signup refuses a missing gender or an under-age date of birth', async () => {

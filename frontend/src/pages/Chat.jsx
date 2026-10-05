@@ -147,6 +147,10 @@ const Chat = () => {
   const [showFirstReplyUpsell, setShowFirstReplyUpsell] = useState(false);
 
   const chatEverWorked = useRef(false);
+  const lastSocketRef = useRef(null);
+  // Who the open thread is with, read by in-flight loads so a slow response
+  // for the previous person never fills the new thread.
+  const openThreadRef = useRef(null);
   const messagesEndRef = useRef(null);
   const editInputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -197,11 +201,33 @@ const Chat = () => {
     return () => clearTimeout(t);
   }, [replyWindow?.active, replyWindow?.expiresAt]);
 
+  // The thread loads over REST whether or not the socket is up: a blocked or
+  // slow websocket must never leave the pane on its loading skeleton. Keyed on
+  // the person, not the row object, so a refreshed row for the same person
+  // does not reload (and flash) the thread.
+  useEffect(() => {
+    openThreadRef.current = selected?.userId || null;
+    if (selected && !selected.locked) loadMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.userId, selected?.locked]);
+
   useEffect(() => {
     if (selected && !selected.locked && socket) {
-      loadMessages();
+      // A new socket after a drop may have missed messages: refetch quietly.
+      if (lastSocketRef.current && lastSocketRef.current !== socket) loadMessages({ quiet: true });
+      lastSocketRef.current = socket;
       const roomId = [user.id, selected.userId].sort().join('_room_');
       socket.emit('join-room', roomId);
+      // After a dropped connection the server has forgotten the room and the
+      // thread may have missed messages: rejoin and refetch quietly. The first
+      // connect is skipped (the emit above is buffered until then).
+      let connectedBefore = socket.connected;
+      const onReconnect = () => {
+        if (!connectedBefore) { connectedBefore = true; return; }
+        socket.emit('join-room', roomId);
+        loadMessages({ quiet: true });
+      };
+      socket.on('connect', onReconnect);
 
       const isForThread = (m) => m.senderId === selected.userId || m.receiverId === selected.userId;
 
@@ -243,6 +269,7 @@ const Chat = () => {
 
       return () => {
         socket.emit('leave-room', roomId);
+        socket.off('connect', onReconnect);
         socket.off('message:new', onNew);
         socket.off('message:edited', onEdited);
         socket.off('message:deleted', onDeleted);
@@ -253,7 +280,7 @@ const Chat = () => {
     }
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, socket, user.id]);
+  }, [selected?.userId, selected?.locked, socket, user.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -317,12 +344,17 @@ const Chat = () => {
     }
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async ({ quiet = false } = {}) => {
     if (!selected) return;
-    setMessagesLoading(true);
-    setMessagesError(false);
+    if (!quiet) {
+      setMessagesLoading(true);
+      setMessagesError(false);
+    }
+    const threadId = selected.userId;
+    const stale = () => openThreadRef.current !== threadId;
     try {
-      const response = await api.get(`/chat/messages/${selected.userId}`);
+      const response = await api.get(`/chat/messages/${threadId}`);
+      if (stale()) return;
       setMessages(response.data.messages || []);
       // D1: the thread response carries {reason, replyWindow} — drives the
       // composer state machine (normal / meter / paywalled).
@@ -333,6 +365,9 @@ const Chat = () => {
       setRevoked(false);
     } catch (error) {
       if (isDev) console.error('Failed to load messages:', error.response?.data || error.message);
+      if (stale()) return;
+      // A background refresh that fails leaves the thread as it was.
+      if (quiet && error.response?.status !== 403) return;
       if (error.response?.status === 403) {
         const code = error.response?.data?.error?.code;
         if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
@@ -351,7 +386,7 @@ const Chat = () => {
         setMessagesError(true);
       }
     } finally {
-      setMessagesLoading(false);
+      if (!quiet && !stale()) setMessagesLoading(false);
     }
   };
 
@@ -495,8 +530,14 @@ const Chat = () => {
     return messageAge < 15 * 60 * 1000;
   };
 
+  // Scroll the message list only. scrollIntoView also scrolls every scrollable
+  // ancestor, which moved the whole page and slid the thread header (name,
+  // View profile, safety menu) under the fixed navbar.
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const list = chatContainerRef.current;
+    if (!list) return;
+    if (typeof list.scrollTo === 'function') list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    else list.scrollTop = list.scrollHeight;
   };
 
   const typingTimeoutRef = useRef(null);
@@ -542,6 +583,12 @@ const Chat = () => {
       setShowUpgradeModal(true);
       return;
     }
+    // Tapping the conversation that is already open just shows it (on mobile,
+    // closes the list); it must not blank the thread it is showing.
+    if (selected && row.userId === selected.userId) {
+      setShowMobileSidebar(false);
+      return;
+    }
     setSelected(row);
     setMessages([]);
     setMessagesLoading(true);
@@ -561,7 +608,7 @@ const Chat = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex">
+      <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex">
         {/* Skeleton mirrors the real two-pane layout, not a spinner. */}
         <div className="hidden md:flex w-80 lg:w-96 h-full flex-col bg-white dark:bg-surface-dark-3 border-r border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
           <Skeleton className="h-6 w-32" />
@@ -597,7 +644,7 @@ const Chat = () => {
   if (accessDenied) {
     return (
       <>
-        <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
+        <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 dark:bg-gold-900/20 border border-gold-100 dark:border-gold-800/40 rounded-full flex items-center justify-center">
               <FiLock className="w-12 h-12 text-gold-600 dark:text-gold-400" />
@@ -621,7 +668,7 @@ const Chat = () => {
 
   if (loadError) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
+      <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <ErrorState
           title="Couldn't load your conversations"
           description="The connection dropped before this finished loading. Your messages are safe. Try again."
@@ -634,7 +681,7 @@ const Chat = () => {
 
   if (conversations.length === 0) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
+      <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <EmptyState
           icon={FiMessageCircle}
           title="Chat opens when you both match"
@@ -654,7 +701,7 @@ const Chat = () => {
   const endReason = replyWindow?.messagesRemaining === 0 ? 'exhausted' : 'expired';
 
   return (
-    <div className="h-[calc(100dvh-8rem)] md:h-[100dvh] -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-surface-dark-2 overflow-hidden">
+    <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-surface-dark-2 overflow-hidden">
       {/* Conversations Sidebar */}
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -793,7 +840,7 @@ const Chat = () => {
                 <ErrorState
                   title="Couldn't load this conversation"
                   description="The connection dropped before this finished loading. Nothing here was lost. Try again."
-                  onRetry={loadMessages}
+                  onRetry={() => loadMessages()}
                   className="max-w-md mx-auto mt-10"
                 />
               ) : (

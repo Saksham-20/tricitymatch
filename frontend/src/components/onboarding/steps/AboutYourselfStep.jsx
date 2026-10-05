@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { FiX } from 'react-icons/fi';
 import { staggerContainer, fadeRise, listRow } from '../../../utils/animations';
+import { findContactInText, CONTACT_IN_TEXT_MESSAGES } from '../../../utils/contactInText';
 
 const INTERESTS = [
   'Reading', 'Movies', 'Travel', 'Cooking', 'Fitness',
@@ -50,6 +51,8 @@ const AboutYourselfStep = () => {
     updateFormData('interestTags', formData.interestTags.filter(tag => tag !== interest));
   };
 
+  const bioContact = findContactInText(formData.bio || '');
+
   return (
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       {/* Bio */}
@@ -61,6 +64,7 @@ const AboutYourselfStep = () => {
           id="onboarding-bio"
           name="bio"
           aria-describedby="onboarding-bio-count"
+          aria-invalid={bioContact ? 'true' : undefined}
           placeholder="Tell us about yourself, your values, and what makes you unique... (max 500 characters)"
           value={formData.bio}
           onChange={(e) => updateFormData('bio', e.target.value.slice(0, 500))}
@@ -78,6 +82,15 @@ const AboutYourselfStep = () => {
             <span className="text-neutral-400"> · minimum 20 characters</span>
           )}
         </p>
+        {bioContact ? (
+          <p role="alert" className="text-xs mt-1.5 text-red-600 dark:text-red-400">
+            {CONTACT_IN_TEXT_MESSAGES[bioContact]}
+          </p>
+        ) : (
+          <p className="text-xs mt-1.5 text-neutral-500 dark:text-neutral-400">
+            Please leave out phone numbers, emails, links and social handles. Members reach you through TricityMatch, and your number goes only in Settings.
+          </p>
+        )}
       </motion.div>
 
       {/* Interests */}

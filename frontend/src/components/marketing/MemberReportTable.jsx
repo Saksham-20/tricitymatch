@@ -1,4 +1,5 @@
 import { FiCheck, FiMinus } from 'react-icons/fi';
+import { formatLeadPhone, leadEmail } from '../../utils/leadContact';
 
 /**
  * One row per invited member, shared by the rep's portal and the admin view of
@@ -69,15 +70,19 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
                 {m.city && <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{m.city}</div>}
               </td>
               <td className={td}>
-                <div className="text-neutral-700 dark:text-neutral-200">{m.phone || '—'}</div>
-                {m.email && (
-                  <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 break-all">{m.email}</div>
+                <div className="text-neutral-700 dark:text-neutral-200 whitespace-nowrap">{formatLeadPhone(m.phone) || '—'}</div>
+                {leadEmail(m.email) && (
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 break-all">{leadEmail(m.email)}</div>
                 )}
               </td>
               <td className={td}>
-                <span className="font-mono text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200">
-                  {m.referralCode || '—'}
-                </span>
+                {m.referralCode ? (
+                  <span className="font-mono text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200">
+                    {m.referralCode}
+                  </span>
+                ) : (
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Added by hand</span>
+                )}
                 {m.campaign && (
                   <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{m.campaign}</div>
                 )}

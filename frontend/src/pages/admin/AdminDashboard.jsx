@@ -142,7 +142,7 @@ export default function AdminDashboard() {
               <LineChart data={registrations}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'currentColor' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'currentColor' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'currentColor' }} allowDecimals={false} />
                 <Tooltip />
                 <Line type="monotone" dataKey="count" stroke="#8B2346" strokeWidth={2} dot={false} />
               </LineChart>
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
               <BarChart data={revenue}>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="chart-grid" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'currentColor' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'currentColor' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'currentColor' }} allowDecimals={false} width={64} tickFormatter={(v) => `₹${Number(v).toLocaleString('en-IN')}`} />
                 <Tooltip formatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
                 <Bar dataKey="amount" fill="#8B2346" radius={[4, 4, 0, 0]} />
               </BarChart>

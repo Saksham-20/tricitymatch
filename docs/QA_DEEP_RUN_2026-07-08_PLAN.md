@@ -109,13 +109,13 @@ Not in the current dev binaries (verified in the 2026-06-29 pass): **Agora, expo
 
 | Role | Account | Notes |
 |---|---|---|
-| Admin (web + RN admin stack) | `admin@tricitymatch.com` / `Pass@1234` | seeded; re-seed `node backend/seeders/adminSeeder.js`. Login at `/login`. |
-| Member A (premium) | pick a seeded member (password `Pass@1234`) | **Fix the known seed quirk first:** set plan via admin `PUT /api/v1/admin/users/:id/subscription` to `vip` with future endDate (seeded rows have invalid `elite`/expired dates). |
+| Admin (web + RN admin stack) | `admin@tricitymatch.com` / `<password>` | seeded; re-seed `node backend/seeders/adminSeeder.js`. Login at `/login`. |
+| Member A (premium) | pick a seeded member (password `<password>`) | **Fix the known seed quirk first:** set plan via admin `PUT /api/v1/admin/users/:id/subscription` to `vip` with future endDate (seeded rows have invalid `elite`/expired dates). |
 | Member B (free) | second seeded member | for gating tests + the A↔B match/chat pair |
 | Member C (fresh) | `qa.deep.c1@tricityshadi.com` etc. | created during C2 signup tests via OTP bypass; delete in C22 |
 | Marketing user | create via admin `POST /admin/marketing-users` in C18 | for `/marketing/*` portal |
 | Bureau user (RN) | investigate in C19 — set `role='bureau'` on a test user via SQL if no seeder | RN-only stack |
-| Prod QA member (only if §15 runs) | `globoniksprod@gmail.com` / `TricityQA@2026` | real prod account; OTP/emails land in that Gmail |
+| Prod QA member (only if §15 runs) | `globoniksprod@gmail.com` / `<password>` | real prod account; OTP/emails land in that Gmail |
 
 **A↔B pair setup (used by C6–C9, C12):** Member A likes B, B likes A → mutual → chat unlocked (A is premium). Keep these two logged in web (Playwright) + RN (sim) in whatever combination the chunk's sync tests need.
 

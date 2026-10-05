@@ -65,14 +65,34 @@ const config = require('../config/env');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { PROFILE_EDITABLE_FIELDS, NULLABLE_NONSTRING_FIELDS } = require('../constants/profileFields');
-const { findContactInText, CONTACT_IN_TEXT_MESSAGES } = require('../utils/contactInText');
+const { findContactInText, maskProfileText, CONTACT_IN_TEXT_MESSAGES } = require('../utils/contactInText');
 
-// Free text other members read on the profile. (socialMediaLinks is left out on
-// purpose: it is the place a member chooses to share links.)
-const CONTACT_SCREENED_FIELDS = [
-  'bio', 'profilePrompts', 'firstName', 'lastName',
-  'fatherOccupation', 'motherOccupation', 'profession', 'institution', 'familyLocation',
-];
+// Owner rule: a phone number goes in the phone-number field and nowhere else,
+// and no other contact detail goes in anything a member writes on a profile.
+// Every editable field is screened EXCEPT these: numbers and dates that are
+// validated as such, server-controlled settings, and the two link fields that
+// have their own rules below (Spotify must be a Spotify link; social links are
+// shown to matches only).
+const CONTACT_SCREEN_EXEMPT = new Set([
+  'dateOfBirth', 'birthTime', 'height', 'weight', 'income', 'numberOfChildren',
+  'numberOfSiblings', 'brothers', 'sisters', 'preferredAgeMin', 'preferredAgeMax',
+  'preferredHeightMin', 'preferredHeightMax', 'mustHavePreferences', 'fieldVisibility',
+  'isNri', 'showPhone', 'showEmail', 'incognitoMode', 'photoBlurUntilMatch', 'excludeSameGotra',
+  'spotifyPlaylist', 'socialMediaLinks',
+]);
+const CONTACT_SCREENED_FIELDS = PROFILE_EDITABLE_FIELDS.filter((f) => !CONTACT_SCREEN_EXEMPT.has(f));
+
+// What the member calls each field, for the error message.
+const FIELD_LABELS = {
+  bio: 'About me', profilePrompts: 'Your prompts', firstName: 'First name', lastName: 'Last name',
+  fatherOccupation: "Father's occupation", motherOccupation: "Mother's occupation", profession: 'Profession',
+  institution: 'College / institution', familyLocation: 'Family location', placeOfBirth: 'Place of birth',
+  degree: 'Degree', education: 'Education', industry: 'Industry', city: 'City', state: 'State',
+  subCaste: 'Sub-caste', gotra: 'Gotra', caste: 'Caste', nationality: 'Nationality',
+  residenceCountry: 'Country of residence', interestTags: 'Interests', languages: 'Languages',
+  personalityValues: 'Values', familyPreferences: 'Family preferences', lifestylePreferences: 'Lifestyle',
+  preferredCity: 'Preferred city', preferredEducation: 'Preferred education', preferredProfession: 'Preferred profession',
+};
 
 // Every string inside a value that may be a JSON string, an array or an object.
 const stringsIn = (value) => {
@@ -241,13 +261,35 @@ exports.updateProfile = asyncHandler(async (req, res) => {
 
   // Contact details in text every member can read would skip the paid unlock
   // and the member's own contact-sharing setting (and are how scams start).
+  const refuseContact = (field, kind) => {
+    const label = FIELD_LABELS[field] || 'Your profile';
+    const err = createError.badRequest(`${label}: ${CONTACT_IN_TEXT_MESSAGES[kind]}`, { field });
+    err.code = 'CONTACT_IN_TEXT';
+    throw err;
+  };
   for (const field of CONTACT_SCREENED_FIELDS) {
     if (!Object.prototype.hasOwnProperty.call(req.body || {}, field)) continue;
-    const kind = findContactInText(stringsIn(req.body[field]).join('\n'));
-    if (kind) {
-      const err = createError.badRequest(CONTACT_IN_TEXT_MESSAGES[kind], { field });
-      err.code = 'CONTACT_IN_TEXT';
-      throw err;
+    // Each string separately, so groups from two answers are never joined into
+    // something that reads like one number.
+    for (const text of stringsIn(req.body[field])) {
+      const kind = findContactInText(text);
+      if (kind) refuseContact(field, kind);
+    }
+  }
+  // A playlist link must be a Spotify link, not a way to post any URL.
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'spotifyPlaylist')) {
+    const raw = String(req.body.spotifyPlaylist || '').trim();
+    if (raw && !/^(?:https?:\/\/)?(?:open\.spotify\.com|spotify\.link)\//i.test(raw)) {
+      throw createError.badRequest('Playlist: please paste a link from open.spotify.com');
+    }
+  }
+  // Social links: real profile links only, never a number or a chat link.
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'socialMediaLinks')) {
+    for (const text of stringsIn(req.body.socialMediaLinks)) {
+      const kind = findContactInText(text);
+      if (kind === 'phone' || kind === 'email' || kind === 'upi' || /(?:^|\/\/|\.)(?:wa\.me|t\.me|telegram\.me|whatsapp\.com)/i.test(text)) {
+        throw createError.badRequest('Social connections: add profile links only, not phone numbers, emails or chat links.');
+      }
     }
   }
 
@@ -834,6 +876,9 @@ exports.getProfile = asyncHandler(async (req, res) => {
     isOwner: false,
     isMutual,
   });
+
+  // Contact details saved in profile text before they were refused at save.
+  maskProfileText(profileData);
 
   // Verified badge: derived from an approved Verification. getProfile never
   // included the Verification association, so ProfileDetail's badge was always

@@ -4,6 +4,7 @@ import apiClient from '../../api/apiClient';
 import toast from 'react-hot-toast';
 import { assignLead } from '../../api/adminApi';
 import ReassignLeadsDialog from '../../components/admin/ReassignLeadsDialog';
+import { formatLeadPhone, leadEmail } from '../../utils/leadContact';
 
 const LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
 
@@ -146,8 +147,8 @@ export default function AdminLeads() {
                 {leads.map(lead => (
                   <tr key={lead.id} className="hover:bg-gray-50">
                     <td className="border p-3">{lead.name}</td>
-                    <td className="border p-3">{lead.phone}</td>
-                    <td className="border p-3">{lead.email || '-'}</td>
+                    <td className="border p-3 whitespace-nowrap">{formatLeadPhone(lead.phone)}</td>
+                    <td className="border p-3">{leadEmail(lead.email) || '-'}</td>
                     <td className="border p-3">{lead.city || '-'}</td>
                     <td className="border p-3">
                       {/* Editable here, not just displayed: an admin covering for a
