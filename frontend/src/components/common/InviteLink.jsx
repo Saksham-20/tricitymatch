@@ -81,9 +81,13 @@ export default function InviteLink({ variant = 'card', className = '' }) {
     }
   }, []);
 
+  // Invites credit a member. Staff accounts browsing the member site have no
+  // invite link (the API answers 403), so the card is not shown to them.
+  const isMember = !user?.role || user.role === 'user';
+
   useEffect(() => {
-    if (variant !== 'inline') load();
-  }, [variant, load]);
+    if (variant !== 'inline' && isMember) load();
+  }, [variant, load, isMember]);
 
   useEffect(() => {
     if (!copied) return undefined;
@@ -109,6 +113,8 @@ export default function InviteLink({ variant = 'card', className = '' }) {
   };
 
   const copyLabel = copied ? 'Link copied' : 'Copy invite link';
+
+  if (!isMember) return null;
 
   // ---- inline: one button, used inside empty states -------------------------
   if (variant === 'inline') {
