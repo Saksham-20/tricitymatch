@@ -100,7 +100,7 @@ class ErrorBoundary extends Component {
               This page hit a problem
             </h1>
             <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-              Nothing you did caused this. Try again, or go back to the dashboard.
+              Nothing you did caused this. Try again, or go back to the home page.
             </p>
 
             {/* Error details in development */}

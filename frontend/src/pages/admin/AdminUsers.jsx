@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getUsers, updateUserStatus, exportUsers, deleteUsers, bulkUpdateStatus } from '../../api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark, FiUsers } from 'react-icons/fi';
+import Skeleton from '../../components/ui/Skeleton';
+import { saveCsv, describeExport } from '../../utils/saveCsv';
 
 // Must match User model status enum: active/inactive/banned/pending/deleted.
 const STATUS_OPTIONS   = ['all', 'active', 'inactive', 'banned', 'pending', 'deleted'];
@@ -25,7 +27,7 @@ const EMPTY_FILTERS = {
   gender: 'all', city: '', emailVerified: 'all', phoneVerified: 'all', inactiveDays: '',
   testAccounts: 'all', sort: 'newest', joinedTouched: false,
 };
-const selectCls = 'px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500';
+const selectCls = 'px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2';
 
 const Field = ({ label, children }) => (
   <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
@@ -33,21 +35,6 @@ const Field = ({ label, children }) => (
     {children}
   </label>
 );
-
-const StatusBadge = ({ status }) => {
-  const map = {
-    active:    'bg-green-100 text-green-700',
-    inactive:  'bg-gray-100 text-gray-600',
-    banned:    'bg-red-100 text-red-600',
-    pending:   'bg-amber-100 text-amber-700',
-    deleted:   'bg-gray-200 text-gray-500',
-  };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[status] || 'bg-gray-100 text-gray-500'}`}>
-      {status}
-    </span>
-  );
-};
 
 const VIEWS_KEY = 'tm-admin-user-views';
 const loadViews = () => {
@@ -74,14 +61,12 @@ export default function AdminUsers() {
       if (roleFilter   !== 'all') params.role   = roleFilter;
       Object.assign(params, activeFilterParams(filters));
       const res = await exportUsers(params);
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv;charset=utf-8' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      // No row cap: the file holds every matching member. The toast states the
+      // count so an admin can check it, and warns if the stream broke part-way.
+      const outcome = describeExport('members', await saveCsv(res, `tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv`));
+      (outcome.ok ? toast.success : toast.error)(outcome.text);
     } catch {
-      toast.error('Export failed');
+      toast.error('Export failed. Try again.');
     }
   };
 
@@ -93,8 +78,16 @@ export default function AdminUsers() {
   const [roleFilter, setRole]     = useState('all');
   const { user: me } = useAuth();
   const canDelete = me?.role === 'admin' || me?.role === 'super_admin';
-  const [filters, setFilters]     = useState(EMPTY_FILTERS);
-  const [showAdv, setShowAdv]     = useState(false);
+  // The dashboard's "Profiles With No Photo" tile deep-links here; honour it
+  // instead of opening the unfiltered list under a misleading count.
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters]     = useState(() => {
+    const hasPhoto = searchParams.get('hasPhoto');
+    return hasPhoto === 'no' || hasPhoto === 'yes' ? { ...EMPTY_FILTERS, hasPhoto } : EMPTY_FILTERS;
+  });
+  // Open the advanced filters when we arrived with one applied, so the filter
+  // that is narrowing the list is visible rather than silent.
+  const [showAdv, setShowAdv]     = useState(() => searchParams.get('hasPhoto') === 'no' || searchParams.get('hasPhoto') === 'yes');
   const [selected, setSelected]   = useState(new Set());
   const [views, setViews]     = useState(loadViews);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -126,12 +119,20 @@ export default function AdminUsers() {
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const handleStatusChange = async (userId, newStatus) => {
+    // Banning or deactivating a member (possibly a paying one) is consequential
+    // and had no guard — a single stray dropdown pick applied instantly.
+    if (newStatus === 'banned' || newStatus === 'inactive') {
+      const u = users.find((x) => x.id === userId);
+      if (!window.confirm(`Set ${u?.email || 'this account'} to "${newStatus}"?`)) return;
+    }
     try {
       await updateUserStatus(userId, { status: newStatus });
       toast.success('Status updated');
       fetchUsers();
-    } catch {
-      toast.error('Update failed');
+    } catch (err) {
+      // Say what the server said (for example the staff-account guard) rather
+      // than a generic failure the admin cannot act on.
+      toast.error(err?.response?.data?.error?.message || err?.response?.data?.message || 'Update failed');
     }
   };
 
@@ -250,25 +251,25 @@ export default function AdminUsers() {
             placeholder="Search by name or email…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
         >
           {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>{s === 'all' ? 'All Statuses' : s}</option>
+            <option key={s} value={s}>{s === 'all' ? 'All Statuses' : s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
         </select>
         <select
           value={roleFilter}
           onChange={(e) => { setRole(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
         >
           {ROLE_OPTIONS.map((r) => (
-            <option key={r} value={r}>{r === 'all' ? 'All Roles' : r}</option>
+            <option key={r} value={r}>{r === 'all' ? 'All Roles' : r.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
           ))}
         </select>
         <select value={filters.plan} onChange={(e) => setFilter('plan', e.target.value)} className={selectCls} aria-label="Plan">
@@ -293,25 +294,27 @@ export default function AdminUsers() {
           </>
         )}
         {views.length > 0 && (
-          <div className="flex items-center gap-1">
-            <select
-              value=""
-              onChange={(e) => applyView(e.target.value)}
-              className={selectCls}
-              aria-label="Saved views"
-            >
-              <option value="">Saved views…</option>
-              {views.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}
-            </select>
-            <select
-              value=""
-              onChange={(e) => e.target.value && deleteView(e.target.value)}
-              className={selectCls}
-              aria-label="Delete a saved view"
-            >
-              <option value="">Delete view…</option>
-              {views.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}
-            </select>
+          <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Saved views">
+            {views.map((v) => (
+              <span key={v.name} className="inline-flex items-center rounded-full bg-gray-100 text-gray-700 text-xs">
+                <button
+                  type="button"
+                  onClick={() => applyView(v.name)}
+                  className="pl-3 pr-1.5 py-1 font-medium rounded-l-full hover:text-primary-700"
+                  aria-label={`Apply saved view ${v.name}`}
+                >
+                  {v.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteView(v.name)}
+                  aria-label={`Delete saved view ${v.name}`}
+                  className="pr-2 pl-0.5 py-1 rounded-r-full text-gray-400 hover:text-red-600"
+                >
+                  <FiX className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -409,16 +412,42 @@ export default function AdminUsers() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr>
-                  <td colSpan={canDelete ? 7 : 6} className="text-center py-12 text-gray-400">
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={`sk-${i}`}>
+                    {canDelete && <td className="w-10 px-4 py-3"><Skeleton className="w-4 h-4 rounded" /></td>}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                        <div className="flex-1">
+                          <Skeleton className="h-3.5 w-28" />
+                          <Skeleton className="h-3 w-40 mt-1.5" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-7 w-24 rounded-lg" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-3 w-20" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
+                    <td className="px-4 py-3"><div className="flex justify-end"><Skeleton className="h-7 w-16 rounded-lg" /></div></td>
+                  </tr>
+                ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={canDelete ? 7 : 6} className="text-center py-12 text-gray-400 text-sm">No users found</td>
+                  <td colSpan={canDelete ? 7 : 6} className="py-14">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <FiUsers className="w-8 h-8 text-gray-300 mb-3" />
+                      <p className="text-sm text-gray-500">
+                        {(activeCount > 0 || search || statusFilter !== 'all' || roleFilter !== 'all')
+                          ? 'No members match these filters'
+                          : 'No members yet'}
+                      </p>
+                      {(activeCount > 0 || search || statusFilter !== 'all' || roleFilter !== 'all') && (
+                        <button type="button" onClick={clearAll} className="mt-3 px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium">
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ) : (
                 users.map((u) => (
@@ -426,7 +455,7 @@ export default function AdminUsers() {
                     {canDelete && (
                       <td className="w-10 px-4 py-3">
                         {u.role === 'user' && (
-                          <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} aria-label={`Select ${u.email}`} />
+                          <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} aria-label={`Select ${u.email || u.phone || 'member'}`} />
                         )}
                       </td>
                     )}
@@ -437,7 +466,7 @@ export default function AdminUsers() {
                         </div>
                         <div>
                           <p className="font-medium text-gray-800">{[u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
-                          <p className="text-xs text-gray-400">{u.email}</p>
+                          <p className="text-xs text-gray-500">{u.email}</p>
                         </div>
                       </div>
                     </td>
@@ -454,6 +483,7 @@ export default function AdminUsers() {
                       <select
                         value={u.status}
                         onChange={(e) => handleStatusChange(u.id, e.target.value)}
+                        aria-label={`Status for ${u.email || u.phone || 'member'}`}
                         className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
                       >
                         {SETTABLE_STATUSES.map((s) => (
@@ -479,7 +509,7 @@ export default function AdminUsers() {
                           {String(u.activePlan).replace(/_/g, ' ')}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400">Free</span>
+                        <span className="text-xs text-gray-500">Free</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">

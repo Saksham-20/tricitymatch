@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { FiArrowLeft, FiSmartphone, FiCalendar } from 'react-icons/fi';
@@ -24,6 +24,7 @@ const statusLabel = (s) => STATUS_LABEL[s] || (s || '').replace(/_/g, ' ');
 
 export default function AstrologerBookings() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -48,7 +49,7 @@ export default function AstrologerBookings() {
       <Link to="/astrologers" className="inline-flex items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 mb-6">
         <FiArrowLeft className="w-4 h-4" /> {t('common.back')}
       </Link>
-      <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">{t('astrologers.myBookings')}</h1>
+      <h1 className="font-display text-2xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">{t('astrologers.myBookings')}</h1>
 
       {loading ? (
         <div className="space-y-3">
@@ -68,9 +69,9 @@ export default function AstrologerBookings() {
       ) : bookings.length === 0 ? (
         <EmptyState
           icon={FiCalendar}
-          title={t('common.empty')}
+          title={t('astrologers.noBookings', 'You have no consultations booked yet.')}
           actionLabel={t('astrologers.title', 'Talk to an astrologer')}
-          onAction={() => { window.location.href = '/astrologers'; }}
+          onAction={() => navigate('/astrologers')}
         />
       ) : (
         <ul className="space-y-3">
@@ -80,7 +81,7 @@ export default function AstrologerBookings() {
                 <p className="font-medium text-neutral-800 dark:text-neutral-100">{b.Astrologer?.name || 'Astrologer'}</p>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CLS[b.status] || 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'}`}>{statusLabel(b.status)}</span>
               </div>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 tabular-nums">
                 {b.scheduledAt ? new Date(b.scheduledAt).toLocaleString() : '—'} · {b.durationMin} min
               </p>
               {b.status === 'confirmed' && (

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import {
-  FiInstagram, FiLinkedin, FiFacebook, FiTwitter, FiYoutube, FiLink, FiEye, FiUsers, FiEyeOff, FiMusic,
+  FiInstagram, FiLinkedin, FiFacebook, FiTwitter, FiYoutube, FiLink, FiUsers, FiEyeOff, FiMusic,
 } from 'react-icons/fi';
 import { staggerContainer, fadeRise } from '../../../utils/animations';
 
@@ -15,8 +15,9 @@ const PLATFORMS = [
   { key: 'website', label: 'Website', icon: FiLink, color: '#8B2346', placeholder: 'yoursite.com' },
 ];
 
+// No "Everyone": a social link is a way to reach someone off the site, so it
+// is shown only to mutual matches (the server applies the same rule).
 const VISIBILITY = [
-  { value: 'everyone', label: 'Everyone', icon: FiEye },
   { value: 'matches_only', label: 'Matches only', icon: FiUsers },
   { value: 'hidden', label: 'Hidden', icon: FiEyeOff },
 ];
@@ -25,7 +26,7 @@ const VISIBILITY = [
 const readEntry = (entry) => {
   if (!entry) return { url: '', visibility: 'matches_only' };
   if (typeof entry === 'string') return { url: entry, visibility: 'matches_only' };
-  return { url: entry.url || '', visibility: entry.visibility || 'matches_only' };
+  return { url: entry.url || '', visibility: entry.visibility === 'hidden' ? 'hidden' : 'matches_only' };
 };
 
 /**
@@ -124,8 +125,8 @@ export default function SocialConnectionsStep() {
       </motion.div>
 
       <p className="text-xs text-neutral-400 mt-5">
-        Default visibility is <span className="font-semibold">Matches only</span>. Set a link to
-        <span className="font-semibold"> Hidden</span> to keep it just for you.
+        Links are shown only to members you have matched with. Set a link to
+        <span className="font-semibold"> Hidden</span> to keep it just for you. Add profile links only, never a phone number.
       </p>
     </motion.div>
   );

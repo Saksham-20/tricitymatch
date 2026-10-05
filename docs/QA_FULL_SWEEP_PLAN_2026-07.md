@@ -41,9 +41,9 @@ Screenshot evidence for every 🔴/🟠 (`browse screenshot` → Read the PNG).
 curl -s -o /dev/null -w '%{http_code}' http://localhost:3000        # 200
 curl -s -o /dev/null -w '%{http_code}' http://localhost:5001/api/v1/auth/me  # 401 = up
 
-# seeded local creds (NOT prod): password is Pass@1234 (ACCOUNT_CREDENTIALS.md
+# seeded local creds (NOT prod): password is <password> (ACCOUNT_CREDENTIALS.md
 # lies — it says Password@123). Probe before trusting any creds file:
-for pw in Pass@1234 Password@123 password123; do
+for pw in <password> Password@123 password123; do
   curl -s -o /dev/null -w "$pw %{http_code}\n" -X POST \
     http://localhost:5001/api/v1/auth/login -H 'Content-Type: application/json' \
     -d '{"email":"aman.singh2@example.com","password":"'"$pw"'"}'; done
@@ -51,10 +51,10 @@ for pw in Pass@1234 Password@123 password123; do
 
 Accounts to keep on hand:
 - **Free member** — for upsell/gating states (a `free` seeded row).
-- **Paid member** (`aman.singh2@example.com` / `Pass@1234`, elite) — premium views.
-- **Admin** — `admin@tricitymatch.com` / `Pass@1234`.
+- **Paid member** (`aman.singh2@example.com` / `<password>`, elite) — premium views.
+- **Admin** — `admin@tricitymatch.com` / `<password>`.
 - **Fresh signup** — created live per run (delete after) for the new-user path.
-- **Prod QA member** — `globoniksprod@gmail.com` / `TricityQA@2026` — LIVE re-verify only.
+- **Prod QA member** — `globoniksprod@gmail.com` / `<password>` — LIVE re-verify only.
 
 Note seeded quirks (not bugs): relative `/uploads/*` photos show initials
 fallback locally; some seeded premium rows have invalid `planType`/expired

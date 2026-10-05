@@ -76,6 +76,12 @@ exports.matchAction = asyncHandler(async (req, res) => {
     return undoMatchAction(req, res);
   }
 
+  // Staff accounts can browse to show the product, but an interest from one
+  // would land in a member's inbox as if it came from a prospective match.
+  if (req.user.role && req.user.role !== 'user') {
+    throw createError.forbidden('Staff accounts cannot send interests to members');
+  }
+
   // Prevent match actions between blocked users (either direction)
   const blockExists = await Block.findOne({
     where: {

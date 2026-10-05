@@ -10,7 +10,7 @@ import SmartContactField, { detectContactType, phoneDigits } from '../components
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
 import { fadeInUp, staggerContainer, fade, stepSlide, DUR, EASE_IN_OUT } from '../utils/animations';
 import { google as googleConfig } from '../config';
-import api from '../api/axios';
+import GoogleSignIn from '../components/auth/GoogleSignIn';
 
 const Login = () => {
   // Progressive fintech-style flow: identifier first, password revealed after.
@@ -23,13 +23,12 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
   const [direction, setDirection] = useState(1); // 1 = identifier→password, -1 = back
   const passwordRef = useRef(null);
-  const { login, setUser } = useAuth();
+  const { login, isAuthenticated, loading: authLoading, user: authUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
@@ -69,7 +68,11 @@ const Login = () => {
     // a scoped account on the first section it is actually allowed to open.
     const isAdminRole = ['sub_admin', 'admin', 'super_admin'].includes(role);
     const isMarketingRole = ['marketing', 'marketing_manager'].includes(role);
-    if (safeReturnTo && !isAdminRole && !isMarketingRole) {
+    // Staff may be sent back to the page they asked for, but only inside their
+    // own area — a member link in a partner's returnTo is not theirs to open.
+    const staffArea = isAdminRole ? '/admin' : isMarketingRole ? '/marketing' : null;
+    const returnFits = safeReturnTo && (!staffArea || safeReturnTo === staffArea || safeReturnTo.startsWith(`${staffArea}/`));
+    if (returnFits) {
       navigate(safeReturnTo);
       return;
     }
@@ -78,55 +81,21 @@ const Login = () => {
       : '/dashboard');
   }, [navigate, safeReturnTo]);
 
-  const handleGoogleCredential = useCallback(async (response) => {
-    setGoogleLoading(true);
-    setApiError('');
-    try {
-      // The page shows "By continuing you agree to the Terms and Privacy Policy" beside
-      // the Google button; the server needs that acceptance stated in the request
-      // before it will create a NEW account (an existing member is unaffected).
-      const result = await api.post('/auth/google', { credential: response.credential, termsAccepted: true });
-      if (result.data.success) {
-        // Fetch full user profile and let AuthContext handle state
-        const meResult = await api.get('/auth/me');
-        if (meResult.data?.user) {
-          setUser(meResult.data.user);
-          localStorage.setItem('tricitymatch-auth-hint', '1');
-        }
-        // A brand-new Google member has no gender or date of birth yet (the
-        // server no longer invents placeholders): send them to fill the basics.
-        if (result.data.isNewUser) navigate('/profile/edit');
-        else goAfterLogin(result.data.user?.role);
-      }
-    } catch (err) {
-      setApiError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  }, [goAfterLogin, navigate, setUser]);
-
+  // Already signed in (a bookmarked /login, or the old /admin/login link): go
+  // straight to where this account belongs instead of asking again.
   useEffect(() => {
-    if (!googleConfig.isConfigured) return;
+    if (!authLoading && isAuthenticated && authUser?.role) goAfterLogin(authUser.role);
+  }, [authLoading, isAuthenticated, authUser?.role, goAfterLogin]);
 
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      window.google?.accounts.id.initialize({
-        client_id: googleConfig.clientId,
-        callback: handleGoogleCredential,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-      window.google?.accounts.id.renderButton(
-        document.getElementById('google-signin-btn'),
-        { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
-      );
-    };
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-  }, [handleGoogleCredential]);
+  // Google: an existing member is signed in; a new one gives the same consent
+  // as email signup inside GoogleSignIn, then finishes their basics.
+  const handleGoogleSuccess = useCallback((user, isNewUser) => {
+    if (user?.role === 'user' && (isNewUser || user.onboardingComplete === false)) {
+      navigate('/welcome', { replace: true });
+      return;
+    }
+    goAfterLogin(user?.role);
+  }, [goAfterLogin, navigate]);
 
   const shake = () => {
     setShakeTrigger(true);
@@ -234,16 +203,16 @@ const Login = () => {
           {/* Logo */}
           <div>
             <Logo variant="white" size="lg" linkTo="/" />
-            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">
+            <p className="text-xs text-white/60 mt-1 uppercase tracking-widest">
               Chandigarh · Mohali · Panchkula
             </p>
           </div>
 
           {/* Main copy */}
           <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">
+            <p className="font-display text-5xl font-bold leading-tight mb-5 text-white">
               Your journey<br />continues here.
-            </h2>
+            </p>
             <p className="text-white/60 text-base leading-relaxed">
               Tricity's own matrimonial community — verified profiles, private
               conversations, and matches close enough to meet this week.
@@ -258,14 +227,14 @@ const Login = () => {
               ].map(({ n, l }) => (
                 <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
                   <span className="text-lg font-bold text-white leading-none">{n}</span>
-                  <span className="text-[11px] text-white/50 mt-0.5">{l}</span>
+                  <span className="text-[11px] text-white/65 mt-0.5">{l}</span>
                 </div>
               ))}
             </div>
           </motion.div>
 
           {/* Bottom trust strip */}
-          <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-5 text-xs text-white/40">
+          <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-5 text-xs text-white/60">
             <div className="flex items-center gap-1.5">
               <FiShield className="w-3.5 h-3.5" />
               <span>SSL Secured</span>
@@ -333,7 +302,7 @@ const Login = () => {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800/50 text-gold-800 dark:text-gold-300 text-sm"
+                  className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-warning/10 dark:bg-amber-950/30 border border-warning/20 dark:border-amber-900/50 text-warning dark:text-amber-300 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>Too many attempts. Please wait a few minutes, then try again.</span>
@@ -463,7 +432,7 @@ const Login = () => {
                       <input
                         id="mfa-code"
                         name="mfaCode"
-                        inputMode="numeric"
+                        inputMode="text"
                         autoComplete="one-time-code"
                         autoFocus
                         maxLength={20}
@@ -532,9 +501,7 @@ const Login = () => {
                     <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">{t('auth.orContinueWith')}</span>
                   </div>
                 </div>
-                <div className={`w-full overflow-hidden rounded-xl ${googleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                  <div id="google-signin-btn" className="w-full" />
-                </div>
+                <GoogleSignIn text="signin_with" onSuccess={handleGoogleSuccess} />
               </>
             )}
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FiAlertTriangle, FiImage, FiActivity, FiRefreshCw } from 'react-icons/fi';
+import { useAdminScopes } from '../../components/admin/AdminLayout';
 import {
   getSuspicious, getModerationStats, getPhotoQueue, removePhoto, updateUserStatus,
 } from '../../api/adminApi';
@@ -27,6 +28,10 @@ const Loading = () => (
 const scoreTone = (score) => (score >= 60 ? 'bg-red-100 text-red-700' : score >= 35 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600');
 
 function Suspicious() {
+  // Banning needs the `users` scope on the server; a reports-only sub-admin can
+  // review but would get a 403 on every Ban, so the button is not offered.
+  const scopes = useAdminScopes();
+  const canBan = scopes === null || scopes.includes('users');
   const [accounts, setAccounts] = useState(null);
   const [includeTest, setIncludeTest] = useState(false);
 
@@ -92,7 +97,7 @@ function Suspicious() {
               </div>
               <div className="flex items-center gap-2">
                 <Link to={`/admin/users/${a.id}`} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700">Review</Link>
-                <button onClick={() => ban(a)} className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-medium text-red-700">Ban</button>
+                {canBan && <button onClick={() => ban(a)} className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-medium text-red-700">Ban</button>}
               </div>
             </div>
           ))}
@@ -122,6 +127,7 @@ function Photos() {
   const remove = async (userId, photoUrl) => {
     const reason = window.prompt('Remove this photo? Reason (recorded in the audit log):');
     if (reason === null) return;
+    if (!reason.trim()) { toast.error('A reason is required — it is written to the audit log.'); return; }
     try {
       await removePhoto({ userId, photoUrl, reason });
       toast.success('Photo removed and the member was told');
@@ -155,7 +161,7 @@ function Photos() {
                   <button
                     type="button"
                     onClick={() => remove(p.userId, url)}
-                    className="absolute inset-x-0 bottom-0 py-1 text-[11px] font-medium bg-red-600/90 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    className="absolute inset-x-0 bottom-0 py-1 text-[11px] font-medium bg-red-600/90 text-white opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100 transition-opacity"
                   >
                     Remove
                   </button>
@@ -259,7 +265,9 @@ export default function AdminSafety() {
           <button
             key={id}
             role="tab"
+            id={`tab-${id}`}
             aria-selected={tab === id}
+            aria-controls={`panel-${id}`}
             onClick={() => setTab(id)}
             className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === id ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -269,9 +277,11 @@ export default function AdminSafety() {
           </button>
         ))}
       </div>
-      {tab === 'suspicious' && <Suspicious />}
-      {tab === 'photos' && <Photos />}
-      {tab === 'stats' && <Stats />}
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+        {tab === 'suspicious' && <Suspicious />}
+        {tab === 'photos' && <Photos />}
+        {tab === 'stats' && <Stats />}
+      </div>
     </div>
   );
 }

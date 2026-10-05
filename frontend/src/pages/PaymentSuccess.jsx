@@ -76,16 +76,11 @@ export default function PaymentSuccess() {
     return () => { cancelled = true; };
   }, [navigate, user]);
 
-  useEffect(() => {
-    if (checking) return undefined;
-    const timer = setTimeout(() => navigate('/dashboard'), 10000);
-    return () => clearTimeout(timer);
-  }, [navigate, checking]);
-
   if (checking) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background dark:bg-surface-dark-1 px-4">
+      <div role="status" className="min-h-[100dvh] flex items-center justify-center bg-background dark:bg-surface-dark-1 px-4">
         <div className="w-10 h-10 rounded-full border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 animate-spin" />
+        <span className="sr-only">Confirming your payment</span>
       </div>
     );
   }
@@ -157,8 +152,6 @@ export default function PaymentSuccess() {
                 View payment history
               </Link>
             </div>
-
-            <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-5">Redirecting to dashboard in 10 seconds…</p>
           </motion.div>
         </motion.div>
       </div>

@@ -46,4 +46,20 @@ describeDb('appeals and staff accounts', (t) => {
     expect((await User.findByPk(target.id)).status).toBe('banned');
     expect((await Appeal.findByPk(appeal.id)).status).toBe('pending');
   });
+
+  // Regression: listAppeals eager-loads the appellant via `include: [{ model: User }]`.
+  // The Appeal->User association was never declared, so the admin Appeals list 500'd
+  // with "User is not associated to Appeal!" (shipped broken to prod 2026-09-30).
+  t('listing appeals eager-loads the appellant (association regression)', async () => {
+    const { Appeal } = require('../../../models');
+    const member = await mk({ status: 'banned' });
+    await Appeal.create({ userId: member.id, email: member.email, statement });
+    const res = await call(ctl().listAppeals, { query: { status: 'pending' } });
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body.appeals)).toBe(true);
+    const row = res.body.appeals.find((a) => a.userId === member.id);
+    expect(row).toBeTruthy();
+    expect(row.User).toBeTruthy();
+    expect(row.User.email).toBe(member.email);
+  });
 });

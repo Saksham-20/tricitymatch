@@ -7,6 +7,7 @@ const AUTH_HINT_KEY = 'tricitymatch-auth-hint';
 
 const PROTECTED_ROUTE_PREFIXES = [
   '/dashboard',
+  '/welcome',
   '/profile',
   '/search',
   '/chat',
@@ -15,6 +16,16 @@ const PROTECTED_ROUTE_PREFIXES = [
   '/settings',
   '/notifications',
   '/admin',
+  // Every route that sits behind a guard must be here. Missing ones only
+  // worked while the localStorage auth hint survived; once it was gone (a new
+  // tab profile, or Safari purging script storage after a week idle while the
+  // 7-day session cookie lived on) a signed-in partner opening a bookmarked
+  // /marketing page was bounced to /login without the session being checked.
+  '/marketing',
+  '/matches',
+  '/verification',
+  '/guardian',
+  '/astrologers',
 ];
 
 const hasStoredAuthHint = () => {
@@ -93,6 +104,7 @@ const authFallback = {
   updateUser: () => {},
   checkAuth: async () => {},
   refreshUser: async () => {},
+  startSession: () => {},
 };
 
 export const useAuth = () => {
@@ -259,6 +271,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // A session the server already opened by another route (Google sign-in):
+  // mark the app signed in exactly as login() does. setUser alone left
+  // isAuthenticated false, so every protected page bounced back to /login.
+  const startSession = useCallback((userData) => {
+    if (!userData) return;
+    setUser(userData);
+    setIsAuthenticated(true);
+    setStoredAuthHint(true);
+  }, [setUser]);
+
   const signup = async (userData) => {
     try {
       const response = await api.post('/auth/signup', userData);
@@ -349,6 +371,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         isAuthenticated,
         login,
+        startSession,
         signup,
         logout,
         logoutAll,

@@ -170,4 +170,16 @@ describeDb('discovery filters', (t) => {
     expect(res.body.profiles.map((p) => p.userId)).toContain(nearby.user.id);
     expect(res.body.mustHaves.applied).toEqual([]);
   });
+
+  t('staff accounts (admin, partner) never appear in Search', async () => {
+    const city = tagOf('St');
+    const viewer = await mk({ gender: 'male' });
+    const member = await mk({ gender: 'female', city });
+    const admin = await mk({ gender: 'female', city }, { role: 'admin' });
+    const partner = await mk({ gender: 'female', city }, { role: 'marketing' });
+    const listed = await found(viewer, { city });
+    expect(listed).toContain(member.user.id);
+    expect(listed).not.toContain(admin.user.id);
+    expect(listed).not.toContain(partner.user.id);
+  });
 });

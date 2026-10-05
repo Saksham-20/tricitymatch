@@ -1,4 +1,5 @@
-import { Check, Minus } from 'lucide-react';
+import { FiCheck, FiMinus } from 'react-icons/fi';
+import { formatLeadPhone, leadEmail } from '../../utils/leadContact';
 
 /**
  * One row per invited member, shared by the rep's portal and the admin view of
@@ -31,13 +32,13 @@ const fmtDate = (v) =>
 
 const Yes = ({ label }) => (
   <span className="inline-flex items-center gap-1.5 text-green-700 dark:text-green-300 font-medium">
-    <Check size={15} /> {label}
+    <FiCheck size={15} /> {label}
   </span>
 );
 
 const No = ({ label }) => (
   <span className="inline-flex items-center gap-1.5 text-neutral-400 dark:text-neutral-500">
-    <Minus size={15} /> {label}
+    <FiMinus size={15} /> {label}
   </span>
 );
 
@@ -50,15 +51,15 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
       <table className="w-full border-collapse">
         <thead className="bg-neutral-50 dark:bg-neutral-800/60">
           <tr>
-            <th className={th}>Member</th>
-            <th className={th}>Contact</th>
-            <th className={th}>Code</th>
-            <th className={th}>Signed up</th>
-            <th className={th}>Paid on</th>
-            <th className={th}>Plan</th>
-            <th className={`${th} text-right`}>Amount</th>
-            <th className={`${th} text-right`}>Commission</th>
-            <th className={th}>Lead status</th>
+            <th scope="col" className={th}>Member</th>
+            <th scope="col" className={th}>Contact</th>
+            <th scope="col" className={th}>Code</th>
+            <th scope="col" className={th}>Signed up</th>
+            <th scope="col" className={th}>Paid on</th>
+            <th scope="col" className={th}>Plan</th>
+            <th scope="col" className={`${th} text-right`}>Amount</th>
+            <th scope="col" className={`${th} text-right`}>Commission</th>
+            <th scope="col" className={th}>Lead status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -69,15 +70,19 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
                 {m.city && <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{m.city}</div>}
               </td>
               <td className={td}>
-                <div className="text-neutral-700 dark:text-neutral-200">{m.phone || '—'}</div>
-                {m.email && (
-                  <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 break-all">{m.email}</div>
+                <div className="text-neutral-700 dark:text-neutral-200 whitespace-nowrap">{formatLeadPhone(m.phone) || '—'}</div>
+                {leadEmail(m.email) && (
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 break-all">{leadEmail(m.email)}</div>
                 )}
               </td>
               <td className={td}>
-                <span className="font-mono text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200">
-                  {m.referralCode || '—'}
-                </span>
+                {m.referralCode ? (
+                  <span className="font-mono text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200">
+                    {m.referralCode}
+                  </span>
+                ) : (
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Added by hand</span>
+                )}
                 {m.campaign && (
                   <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{m.campaign}</div>
                 )}
@@ -108,7 +113,7 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
               <td className={`${td} text-right font-semibold tabular-nums`}>
                 {m.amountPaid ? `₹${Number(m.amountPaid).toLocaleString('en-IN')}` : '—'}
               </td>
-              <td className={`${td} text-right font-semibold tabular-nums text-gold-700 dark:text-gold-300`}>
+              <td className={`${td} text-right font-semibold tabular-nums`}>
                 {m.commission ? `₹${Number(m.commission).toLocaleString('en-IN')}` : '—'}
               </td>
               <td className={td}>
@@ -117,6 +122,7 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
                     value={m.leadStatus}
                     onChange={(e) => onStatusChange(m.leadId, e.target.value)}
                     disabled={updatingId === m.leadId}
+                    aria-label={`Lead status for ${m.name}`}
                     className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 ${
                       STATUS_CHIP[m.leadStatus] || STATUS_CHIP.new
                     }`}

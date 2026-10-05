@@ -19,8 +19,8 @@ const RULES = [
 const STRENGTH = [
   { label: '', color: '' },
   { label: 'Weak', color: 'bg-destructive' },
-  { label: 'Fair', color: 'bg-gold-500' },
-  { label: 'Good', color: 'bg-gold-600' },
+  { label: 'Fair', color: 'bg-warning' },
+  { label: 'Good', color: 'bg-warning' },
   { label: 'Strong', color: 'bg-success' },
 ];
 

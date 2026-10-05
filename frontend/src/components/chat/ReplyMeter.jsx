@@ -1,7 +1,7 @@
 /**
  * ReplyMeter — DS3: muted inline strip under the composer showing free-reply
- * budget. Neutral until ≤2 remaining, then warning tone (the ONLY place gold
- * may appear in the meter). Announces changes politely for screen readers.
+ * budget. Neutral until ≤2 remaining, then a warning chip (the semantic
+ * warning token, never gold). Announces changes politely for screen readers.
  */
 
 const ReplyMeter = ({ replyWindow }) => {
@@ -17,8 +17,10 @@ const ReplyMeter = ({ replyWindow }) => {
   return (
     <div
       aria-live="polite"
-      className={`mt-2 flex items-center gap-2 text-xs px-1 ${
-        low ? 'text-gold-700 dark:text-gold-400 font-medium' : 'text-neutral-400'
+      className={`mt-2 flex items-center gap-2 text-xs ${
+        low
+          ? 'rounded-lg px-2 py-1 bg-warning/10 dark:bg-warning/15 border border-warning/20 text-warning dark:text-amber-300 font-medium'
+          : 'px-1 text-neutral-400'
       }`}
     >
       <span className="tabular-nums">

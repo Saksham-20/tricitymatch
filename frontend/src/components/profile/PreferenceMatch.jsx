@@ -36,7 +36,7 @@ export const buildPreferenceChecks = (target, viewer) => {
     const min = target.preferredAgeMin, max = target.preferredAgeMax;
     checks.push({
       label: 'Age',
-      want: `${min || '—'} – ${max || '—'} years`,
+      want: `${min || 'Any'} – ${max || 'Any'} years`,
       ok: age == null ? null : (!min || age >= min) && (!max || age <= max),
     });
   }
@@ -46,7 +46,7 @@ export const buildPreferenceChecks = (target, viewer) => {
     const min = target.preferredHeightMin, max = target.preferredHeightMax;
     checks.push({
       label: 'Height',
-      want: `${min ? cmToFeet(min) : '—'} – ${max ? cmToFeet(max) : '—'}`,
+      want: `${min ? cmToFeet(min) : 'Any'} – ${max ? cmToFeet(max) : 'Any'}`,
       ok: !h ? null : (!min || h >= min) && (!max || h <= max),
     });
   }

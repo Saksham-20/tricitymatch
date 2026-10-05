@@ -67,13 +67,21 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
           hint={s.lastPaidAt ? `Last on ${fmtDate(s.lastPaidAt)}` : 'Nothing paid yet'}
           tone="green"
         />
-        {s.pending > 0 && <Figure icon={Clock} label="Queued" value={inr(s.pending)} hint="Not sent yet" />}
+        {s.pending > 0 && <Figure icon={Clock} label="Queued" value={inr(s.pending)} hint="Being prepared for transfer" />}
         <Figure
           icon={Wallet}
-          label="Outstanding"
-          value={inr(s.outstanding)}
-          hint={s.outstanding ? 'Owed to you' : 'All settled'}
+          label="Payable now"
+          value={inr(s.payable ?? s.outstanding)}
+          hint={(s.payable ?? s.outstanding) ? 'Cleared for the next payout' : 'Nothing cleared yet'}
         />
+        {s.inHold > 0 && (
+          <Figure
+            icon={Clock}
+            label="In refund window"
+            value={inr(s.inHold)}
+            hint={`Becomes payable ${s.holdDays} days after each member's payment`}
+          />
+        )}
       </div>
 
       {s.overpaid > 0 && (
@@ -115,7 +123,14 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
                       <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">by {p.recordedBy}</div>
                     )}
                   </td>
-                  <td className={`${td} text-right font-semibold tabular-nums`}>{inr(p.amount)}</td>
+                  <td className={`${td} text-right font-semibold tabular-nums`}>
+                    {inr(p.amount)}
+                    {p.tdsAmount > 0 && (
+                      <div className="text-xs font-normal text-neutral-500 dark:text-neutral-400 mt-0.5">
+                        TDS {inr(p.tdsAmount)} · you receive {inr(p.netAmount)}
+                      </div>
+                    )}
+                  </td>
                   <td className={td}>
                     <span
                       className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${

@@ -49,14 +49,14 @@ export default function Terms() {
       />
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-primary-700 dark:text-primary-300 py-2 px-2 -mx-2 -mt-2 mb-4">
-          <FiArrowLeft className="w-4 h-4" /> Back to home
+          <FiArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to home
         </Link>
 
         <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800 p-8 md:p-12">
           <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Terms of Service</h1>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-8">Last updated: {legal.termsUpdated}</p>
 
-          <div className="prose prose-sm max-w-none text-neutral-700 dark:text-neutral-300 space-y-6">
+          <div className="max-w-none text-base leading-relaxed text-neutral-700 dark:text-neutral-300 space-y-6">
             <section>
               <p>
                 TricityMatch is a matrimonial platform for the Tricity region — Chandigarh, Mohali

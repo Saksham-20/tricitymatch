@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { FiArrowLeft, FiRefreshCw, FiCheckCircle, FiCircle, FiUsers } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
+import { reassignPartnerLeads } from '../../api/adminApi';
+import ReassignLeadsDialog from '../../components/admin/ReassignLeadsDialog';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import ReportSummary from '../../components/marketing/ReportSummary';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
 import PayoutSection from '../../components/marketing/PayoutSection';
 import RecordPayoutForm from '../../components/admin/RecordPayoutForm';
+import PartnerAccountCard from '../../components/admin/PartnerAccountCard';
 import { useAdminScopes } from '../../components/admin/AdminLayout';
 
 export default function AdminMarketingUserDetail() {
@@ -16,6 +20,9 @@ export default function AdminMarketingUserDetail() {
   const canPayouts = !scopes || scopes.includes('payouts');
   const [user, setUser] = useState(null);
   const [report, setReport] = useState(null);
+  const [onboarding, setOnboarding] = useState(null);
+  const [openLeads, setOpenLeads] = useState(0);
+  const [handingOver, setHandingOver] = useState(false);
   const [codes, setCodes] = useState([]);
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +42,8 @@ export default function AdminMarketingUserDetail() {
       ]);
       setUser(reportRes.data.user);
       setReport(reportRes.data);
+      setOnboarding(reportRes.data.onboarding || null);
+      setOpenLeads(reportRes.data.openLeads || 0);
       setCodes(codesRes.data.codes);
       setLedger(payoutRes.data);
       setLastUpdated(new Date());
@@ -55,7 +64,10 @@ export default function AdminMarketingUserDetail() {
   };
 
   const handlePayoutStatus = async (payoutId, status) => {
-    const res = await apiClient.put(`/admin/marketing-payouts/${payoutId}`, { status });
+    // The bank's reference (UTR) ties the row to the statement line.
+    const reference = status === 'paid' ? window.prompt('Bank reference / UTR for this transfer (optional):', '') : null;
+    if (reference === null && status === 'paid') return;
+    const res = await apiClient.put(`/admin/marketing-payouts/${payoutId}`, { status, ...(reference ? { reference: reference.trim() } : {}) });
     setLedger({ summary: res.data.summary, payouts: res.data.payouts });
   };
 
@@ -82,8 +94,23 @@ export default function AdminMarketingUserDetail() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useAutoRefresh(() => fetchAll({ quiet: true }), 20000);
 
-  if (loading) return <div className="p-6 text-center text-gray-500">Loading...</div>;
-  if (error) return <div className="p-6"><div className="bg-red-100 text-red-700 p-4 rounded-lg">{error}</div></div>;
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-64 bg-gray-100 rounded animate-pulse" />
+        <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+        <div className="h-48 bg-gray-100 rounded-2xl animate-pulse" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-3">{error}</div>
+        <button onClick={() => fetchAll()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100">Try again</button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -91,7 +118,7 @@ export default function AdminMarketingUserDetail() {
         onClick={() => navigate('/admin/marketing-users')}
         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
       >
-        <ArrowLeft size={18} /> Back to Marketing Users
+        <FiArrowLeft size={18} /> Back to Marketing Users
       </button>
 
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
@@ -99,7 +126,7 @@ export default function AdminMarketingUserDetail() {
           <h1 className="text-3xl font-bold mb-2">Marketing User Detail</h1>
           {user && (
             <p className="text-gray-600">
-              {user.Profile?.firstName} {user.Profile?.lastName} — {user.email} ({user.role})
+              {user.Profile?.firstName} {user.Profile?.lastName} · {user.email} ({user.role})
               <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${
                 user.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}>{user.status}</span>
@@ -110,12 +137,71 @@ export default function AdminMarketingUserDetail() {
           onClick={() => fetchAll({ quiet: true })}
           className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-primary-600"
         >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <FiRefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
           {lastUpdated
             ? `Updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
             : 'Refresh'}
         </button>
       </div>
+
+      {user && <PartnerAccountCard user={user} onChanged={() => fetchAll({ quiet: true })} />}
+
+      {onboarding && (
+        <section aria-label="Partner setup" className="mb-8 bg-white border border-gray-200 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">
+            Setup · {onboarding.completed} of {onboarding.total} done
+          </h2>
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            {[
+              ['agreement', onboarding.agreementAcceptedAt
+                ? `Accepted the Partner Guide on ${new Date(onboarding.agreementAcceptedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                : (onboarding.needsReacceptance ? 'Must re-accept the updated guide' : 'Has not accepted the Partner Guide')],
+              ['payout', onboarding.steps.payout ? 'Payout details saved' : 'No payout details yet'],
+              ['code', onboarding.steps.code ? 'Has a referral code' : 'No referral code yet'],
+              ['outreach', onboarding.steps.outreach ? 'Has members or leads' : 'No members or leads yet'],
+            ].map(([key, text]) => {
+              const done = Boolean(onboarding.steps[key]);
+              const Icon = done ? FiCheckCircle : FiCircle;
+              return (
+                <li key={key} className={`inline-flex items-center gap-1.5 ${done ? 'text-gray-700' : 'text-amber-800 font-medium'}`}>
+                  <Icon size={15} aria-hidden="true" className={done ? 'text-green-600' : 'text-amber-600'} />
+                  {text}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {openLeads > 0 && user && (
+        <section
+          aria-label="Open leads"
+          className={`mb-8 rounded-2xl p-5 border flex flex-wrap items-center justify-between gap-4 ${
+            user.status === 'active' ? 'bg-white border-gray-200' : 'bg-amber-50 border-amber-200'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <FiUsers className={`mt-0.5 ${user.status === 'active' ? 'text-gray-500' : 'text-amber-700'}`} size={18} aria-hidden="true" />
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">
+                {openLeads} open {openLeads === 1 ? 'lead' : 'leads'}
+              </h2>
+              <p className="text-sm text-gray-700 mt-0.5">
+                {user.status === 'active'
+                  ? 'People this partner added who have not joined yet.'
+                  : 'This partner is not active, so nobody is following these people up and a signup from them earns no one commission. Give them to another partner.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setHandingOver(true)}
+            className="min-h-[44px] px-4 rounded-lg bg-primary-700 text-white text-sm font-medium hover:bg-primary-800"
+          >
+            Move to another partner
+          </button>
+        </section>
+      )}
 
       {report?.summary && <ReportSummary summary={report.summary} className="mb-8" commissionLabel="Rep commission" />}
 
@@ -150,7 +236,7 @@ export default function AdminMarketingUserDetail() {
               </div>
             ) : undefined}
           >
-            {canPayouts && <RecordPayoutForm outstanding={ledger.summary.outstanding} onSubmit={handleRecordPayout} />}
+            {canPayouts && <RecordPayoutForm outstanding={ledger.summary.payable} inHold={ledger.summary.inHold} onSubmit={handleRecordPayout} />}
           </PayoutSection>
         </div>
       )}
@@ -191,6 +277,22 @@ export default function AdminMarketingUserDetail() {
           </div>
         )}
       </div>
+
+      {handingOver && (
+        <ReassignLeadsDialog
+          title="Move open leads"
+          intro={`Gives ${user?.email || 'this partner'}'s ${openLeads} open ${openLeads === 1 ? 'lead' : 'leads'} to another active partner.`}
+          confirmLabel={`Move ${openLeads} ${openLeads === 1 ? 'lead' : 'leads'}`}
+          excludeId={userId}
+          onClose={() => setHandingOver(false)}
+          onConfirm={async (toUserId) => {
+            const res = await reassignPartnerLeads(userId, toUserId);
+            toast.success(res.data?.message || 'Leads moved');
+            setHandingOver(false);
+            fetchAll({ quiet: true });
+          }}
+        />
+      )}
     </div>
   );
 }

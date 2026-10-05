@@ -69,6 +69,10 @@ const MarketingPayout = sequelize.define('MarketingPayout', {
     allowNull: true,
     references: { model: 'Users', key: 'id' },
   },
+  // TDS withheld (migration 000092). `amount` is the GROSS commission settled
+  // against the rep's balance; the bank transfer is amount - tdsAmount.
+  tdsRate: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
+  tdsAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
   // Soft void (migration 000087). A payout is the record that money left, so it
   // is never destroyed: a voided row keeps who/when/why and simply stops
   // counting toward paid-out and pending.

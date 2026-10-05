@@ -93,7 +93,7 @@ export default function CommissionSettingsCard() {
 
       {savedRate !== null && (
         <p className="text-xs text-gray-500 mt-3">
-          At {savedRate}%, a ₹1,100 plan pays the rep ₹{Math.round((1100 * savedRate) / 100).toLocaleString('en-IN')}.
+          At {savedRate}%, every ₹1,000 a member pays earns the rep ₹{Math.round((1000 * savedRate) / 100).toLocaleString('en-IN')}.
         </p>
       )}
       {error && <p className="text-sm text-red-600 mt-3">{error}</p>}

@@ -10,6 +10,7 @@ import {
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import api from '../api/axios';
 import useFoundingWindow from '../hooks/useFoundingWindow';
+import { launchPhase } from '../utils/launchDate';
 import { support } from '../config';
 import { revealOnce, staggerIndex } from '../utils/animations';
 import { EDITORIAL_IMAGES } from '../data/editorialImages';
@@ -29,7 +30,7 @@ const AiTag = ({ entry, style }) => {
   if (!entry?.aiGenerated) return null;
   return (
     <span
-      aria-hidden="true"
+      className="ai-tag"
       style={{
         position: 'absolute', zIndex: 5, pointerEvents: 'none',
         fontFamily: 'var(--sans)', fontSize: 11, lineHeight: 1.3, letterSpacing: '.01em',
@@ -109,6 +110,16 @@ const FontLoader = () => (
     html.elder .announce-dismiss { padding: 17px; }
     html.elder .story-nav-btn { width: 48px; height: 48px; }
     html.elder .social-icon { width: 48px; height: 48px; }
+
+    /* Elder mode: this page sets type in px inline, which the base html.elder
+       rem bump can't reach. Raise the reading content for the 50-70 visitor —
+       body paragraphs, the uppercase mono micro-labels (10-11px), and the FAQ —
+       to comfortable sizes. !important clears the inline px; scoped to elder. */
+    html.elder .home-root p { font-size: 1.05rem !important; line-height: 1.68 !important; }
+    html.elder .home-root [style*="--mono"] { font-size: 0.82rem !important; letter-spacing: .1em !important; }
+    html.elder .faq-q { font-size: 1.05rem !important; }
+    html.elder .faq-a { font-size: 1.02rem !important; }
+    html.elder .ai-tag { font-size: 0.72rem !important; }
 
     .ht-display { font-family: var(--display) !important; }
     .ht-serif   { font-family: var(--serif) !important; }
@@ -219,8 +230,6 @@ const FontLoader = () => (
       .cta-section { padding: 48px 20px !important; }
     }
     @media (max-width: 900px) {
-      nav .nav-links-wrap { display: none !important; }
-      nav { padding: 16px 20px !important; }
       /* Trust */
       .trust-section { padding: 40px 20px !important; }
       .trust-header { grid-template-columns: 1fr !important; }
@@ -278,7 +287,7 @@ const FontLoader = () => (
     .faq-item-open .faq-toggle::after { background: var(--panel-cream); }
     .faq-item-open .faq-toggle::after { transform: translate(-50%,-50%) rotate(90deg); }
     .faq-a { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 200ms var(--ease-out), opacity 200ms var(--ease-out), margin-top 200ms var(--ease-out); }
-    .faq-item-open .faq-a { max-height: 240px; opacity: 1; margin-top: 12px; }
+    .faq-item-open .faq-a { max-height: 1600px; opacity: 1; margin-top: 12px; }
 
     /* ── Sticky mobile CTA ── */
     .sticky-cta {
@@ -316,12 +325,6 @@ const FontLoader = () => (
       }
     }
 
-    /* Fixed global navbar is taller on mobile (~89px) than the desktop bar the
-       announcement clears by default → its first line hid under the navbar.
-       Give the announcement explicit top clearance on small screens. */
-    @media (max-width: 767px) {
-      .home-announce { margin-top: 40px; }
-    }
   `}</style>
 );
 
@@ -350,7 +353,7 @@ const StickyCTA = ({ heroRef }) => {
       </div>
       <Link to="/onboarding" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0,
-        padding: '12px 20px', borderRadius: 999,
+        padding: '12px 20px', borderRadius: 12,
         background: 'var(--burgundy)', color: 'var(--panel-cream)',
         fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
       }}>Create profile <FiArrowRight /></Link>
@@ -509,7 +512,7 @@ const Home = () => {
 
   /* ════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ background: 'var(--cream)', fontFamily: 'var(--sans)', color: 'var(--ink)', overflowX: 'clip' }}>
+    <div className="home-root" style={{ background: 'var(--cream)', fontFamily: 'var(--sans)', color: 'var(--ink)', overflowX: 'clip' }}>
       <Seo path="/" />
       <FontLoader />
 
@@ -531,7 +534,7 @@ const Home = () => {
           only while the server confirms the window is open, and simply does
           not render otherwise rather than showing a claim nobody can redeem. */}
       <AnimatePresence>
-        {announcementOn && founding.open && (
+        {announcementOn && founding.open && launchPhase().phase === 'after' && (
           <motion.div
             className="home-announce"
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
@@ -545,7 +548,7 @@ const Home = () => {
                 <Link to="/onboarding" style={{ textDecoration: 'underline', fontWeight: 600 }}>Claim now</Link>
               </p>
               {/* padding + compensating offset: 32px hit box, icon stays at right:16; html.elder bumps it to 48 */}
-              <button className="announce-dismiss" onClick={() => setAnnouncementOn(false)} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', opacity: 0.7, padding: 9, lineHeight: 0 }} aria-label="Dismiss">
+              <button className="announce-dismiss" onClick={() => setAnnouncementOn(false)} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', opacity: 0.7, padding: 15, lineHeight: 0 }} aria-label="Dismiss">
                 <FiX style={{ width: 14, height: 14 }} />
               </button>
             </div>
@@ -599,7 +602,7 @@ const Home = () => {
             {['Live selfie verification', 'Chandigarh · Mohali · Panchkula', 'Family-first matchmaking'].map((t, i) => (
               <span key={i} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', color: 'var(--burgundy-dk)',
+                fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', color: 'var(--burgundy-text)',
                 background: 'var(--cream-3)', border: '1px solid var(--line)', borderRadius: 999, padding: '7px 14px',
               }}><FiCheckCircle style={{ width: 14, height: 14, flexShrink: 0 }} />{t}</span>
             ))}
@@ -617,7 +620,7 @@ const Home = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <Link to="/onboarding" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
-                padding: '14px 28px', borderRadius: 999,
+                padding: '14px 28px', borderRadius: 12,
                 background: 'var(--burgundy)', color: 'var(--panel-cream)',
                 fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)',
                 transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease',
@@ -751,12 +754,12 @@ const Home = () => {
                   docs/LEGAL_REVIEW_2026-09-17.md A-7: state the grant length, then
                   the join-by deadline, matching the announcement band above. */}
               {founding.open
-                ? ` Founding members get ${founding.grantDays ? `${founding.grantDays} days` : 'full membership'} free, including ${founding.contactUnlocks} contact unlocks, if you join before ${foundingEndsLabel}.`
+                ? ` Founding members get ${founding.grantDays ? `${founding.grantDays} days` : 'full membership'} free${founding.contactUnlocks != null ? `, including ${founding.contactUnlocks} contact unlock${founding.contactUnlocks === 1 ? '' : 's'}` : ''}, if you join before ${foundingEndsLabel}.`
                 : ' Founding members join free and shape what this becomes.'}
             </p>
             <Link to="/onboarding" style={{
               display: 'inline-flex', alignItems: 'center', gap: 10,
-              padding: '14px 28px', borderRadius: 999,
+              padding: '14px 28px', borderRadius: 12,
               background: 'var(--panel-cream)', color: 'var(--panel-ink)',
               fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)',
               textDecoration: 'none', transition: 'transform 160ms ease, box-shadow 160ms ease',
@@ -903,7 +906,6 @@ const Home = () => {
               <div className="wt-tag" style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--mute)', marginBottom: 10, transition: 'color 200ms ease' }}>{c.tag}</div>
               <div style={{ fontFamily: 'var(--display)', fontSize: 22, lineHeight: 1.05, letterSpacing: '-.01em', marginBottom: 10 }}>{c.title}</div>
               <div className="wt-body" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-soft)', marginBottom: 'auto', transition: 'color 200ms ease' }}>{c.body}</div>
-              <div className="wt-foot" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--burgundy-text)', paddingTop: 24, transition: 'color 200ms ease' }}>Learn more</div>
             </motion.div>
           ))}
         </div>
@@ -959,7 +961,7 @@ const Home = () => {
             <div style={{ position: 'relative', width: '100%', height: 340, flexShrink: 0 }}>
               <img
                 src={cur.src} alt={cur.alt} loading="lazy" decoding="async"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 25%', display: 'block' }}
               />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 60%,rgba(0,0,0,.4))' }} />
               <AiTag entry={cur} style={{ bottom: 14, left: 14 }} />
@@ -988,7 +990,7 @@ const Home = () => {
                 marginTop: 'auto',
                 fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase',
                 padding: '11px 20px', background: 'var(--panel-cream)', color: 'var(--burgundy)',
-                borderRadius: 999, alignSelf: 'flex-start',
+                borderRadius: 12, alignSelf: 'flex-start',
                 transition: 'background-color 160ms ease, color 160ms ease, transform 160ms ease', textDecoration: 'none',
               }}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
@@ -1026,7 +1028,7 @@ const Home = () => {
             ))}
             <Link to="/search" style={{
               marginTop: 'auto', fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
-              padding: 14, border: '1px solid var(--gold)', borderRadius: 999, textAlign: 'center',
+              padding: 14, border: '1px solid var(--gold)', borderRadius: 12, textAlign: 'center',
               color: 'var(--panel-cream)', textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease',
             }}
               onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; }}
@@ -1169,18 +1171,20 @@ const Home = () => {
             </h2>
           </motion.div>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
-            Hover a strip to expand. Mass-market apps don't understand what matters here: shared roots, family values, the comfort of proximity.
+            Tap a city to explore. Mass-market apps don't understand what matters here: shared roots, family values, the comfort of proximity.
           </p>
         </div>
 
         <div style={{ display: 'flex', height: 360, borderTop: '1px solid var(--line-on-dk)' }}>
           {cities.map((c, i) => (
+            // The strip expands on mouse/touch via onClick+onMouseEnter, but is NOT
+            // itself a focusable control — the inner "Browse" <Link> is the sole
+            // keyboard/AT control (expands the strip on focus). Avoids a button
+            // nesting an interactive link (two tab stops + invalid nesting). a11y 2026-10-04.
             <div key={i}
               className={`city-strip${activeCity === i ? ' active' : ''}`}
-              role="button" tabIndex={0} aria-pressed={activeCity === i} aria-label={`Expand ${c.name}`}
               onMouseEnter={() => { if (canHover()) setActiveCity(i); }}
               onClick={() => setActiveCity(i)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCity(i); } }}
               style={{
                 flex: activeCity === i ? 3 : 1,
                 position: 'relative', overflow: 'hidden', cursor: 'pointer',
@@ -1224,7 +1228,7 @@ const Home = () => {
                   <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 320, fontFamily: 'var(--sans)' }}>{c.desc}</p>
                   <Link to="/search" aria-label={`Browse ${c.name} profiles`} onFocus={() => setActiveCity(i)} style={{
                     fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase',
-                    padding: '10px 18px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 999, color: 'var(--panel-cream)',
+                    padding: '10px 18px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 12, color: 'var(--panel-cream)',
                     textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', whiteSpace: 'nowrap',
                   }}
                     onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.borderColor = 'var(--panel-cream)'; }}
@@ -1323,7 +1327,7 @@ const Home = () => {
             <Link to="/refund-policy" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
-              padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 999,
+              padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 12,
               color: 'var(--ink)', textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease',
             }}
               onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
@@ -1452,7 +1456,7 @@ const Home = () => {
             <a href="mailto:support@tricitymatch.com" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase',
-              padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 999,
+              padding: '12px 20px', border: '1px solid var(--line)', borderRadius: 12,
               color: 'var(--ink)', textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease',
             }}
               onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
@@ -1527,7 +1531,7 @@ const Home = () => {
             <div style={{ display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
               <Link to="/onboarding" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
-                padding: '14px 28px', borderRadius: 999,
+                padding: '14px 28px', borderRadius: 12,
                 background: 'var(--panel-cream)', color: 'var(--burgundy)',
                 fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
                 transition: 'background-color 160ms ease, color 160ms ease, transform 160ms ease',
@@ -1537,7 +1541,7 @@ const Home = () => {
               >Create profile · Free <FiArrowRight /></Link>
               <Link to="/search" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
-                padding: '14px 28px', borderRadius: 999,
+                padding: '14px 28px', borderRadius: 12,
                 border: '1px solid rgba(253,248,242,.35)', color: 'var(--panel-cream)',
                 fontSize: 14, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
                 transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease',
@@ -1641,12 +1645,6 @@ const Home = () => {
             </a>
           </span>
           <span>Made with care in Chandigarh</span>
-          {/* Static dot — the perpetual pulse is gone (doctrine §2 ruling 7:
-              no idle loop with no semantic exemption). */}
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
-            All systems operational
-          </span>
         </div>
       </footer>
 

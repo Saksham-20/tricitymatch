@@ -72,7 +72,7 @@ const CompatRing = ({ score }) => {
         </svg>
         <div className={`absolute inset-0 flex flex-col items-center justify-center ${bgClass} rounded-full m-1`}>
           <span className={`text-lg font-bold leading-none ${colorClass}`}>{score}%</span>
-          <span className="text-[0.5625rem] text-neutral-400 dark:text-neutral-500 mt-0.5 font-medium uppercase tracking-wide">match</span>
+          <span className="text-[0.6875rem] text-neutral-400 dark:text-neutral-500 mt-0.5 font-medium uppercase tracking-wide">match</span>
         </div>
       </div>
       <p className="text-[0.6875rem] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Compatibility</p>
@@ -87,7 +87,7 @@ const Pill = ({ icon: Icon, label, value }) => {
     <div className="flex items-center gap-2 px-3 py-2 bg-neutral-50 dark:bg-surface-dark-2 rounded-xl border border-neutral-100 dark:border-neutral-800">
       {Icon && <Icon className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />}
       <div className="min-w-0">
-        <p className="text-[0.625rem] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
+        <p className="text-[0.625rem] text-neutral-500 dark:text-neutral-400 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
         <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200 capitalize truncate">{value}</p>
       </div>
     </div>
@@ -114,7 +114,7 @@ const DetailRow = ({ label, value }) => {
   if (!value && value !== 0) return null;
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-b-0">
-      <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">{label}</span>
+      <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">{label}</span>
       <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 capitalize text-right max-w-[55%]">{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
@@ -245,7 +245,8 @@ const ProfileDetail = () => {
       } else {
         setLoadError(true);
       }
-      toast.error('Failed to load profile');
+      // Both branches render their own full-page state; a toast on top of
+      // "Profile not found" said the same thing twice.
     } finally {
       setLoading(false);
     }
@@ -403,8 +404,12 @@ const ProfileDetail = () => {
         setIsShortlisted(!isShortlisted);
         toast.success(isShortlisted ? 'Removed from shortlist' : 'Saved to shortlist');
       }
+      // Report the confirmed outcome so callers (the mobile FloatingActionBar)
+      // can roll back their optimistic state instead of showing a false success.
+      return true;
     } catch {
       toast.error('Failed to perform action');
+      return false;
     }
   };
 
@@ -512,19 +517,15 @@ const ProfileDetail = () => {
               Back
             </button>
             <div className="hidden md:flex items-center gap-2">
+              {/* Save lives only here. Express Interest is NOT duplicated in the
+                  top bar — it sits in the hero action column (always rendered on
+                  desktop) so there is one live copy of the primary action. */}
               <button
                 onClick={() => handleAction('shortlist')}
                 className={`flex items-center gap-1.5 h-11 px-3.5 rounded-xl text-sm font-semibold transition-colors duration-[160ms] cursor-pointer ${isShortlisted ? 'bg-neutral-800 text-white border border-neutral-800' : 'border border-neutral-200 text-neutral-600 hover:border-neutral-400 hover:text-neutral-800'}`}
               >
                 <FiStar className="w-3.5 h-3.5" />
                 {isShortlisted ? 'Saved' : 'Save'}
-              </button>
-              <button
-                onClick={() => handleAction('like')}
-                disabled={isLiked}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success dark:text-green-400 border border-success-100 dark:border-success-500/30' : `bg-primary-500 text-white hover:bg-primary-600 shadow-sm ${HOVER}:-translate-y-0.5`}`}
-              >
-                {isLiked ? <><FiCheck className="w-3.5 h-3.5" /> Interested</> : <><FiHeart className="w-3.5 h-3.5" /> Express Interest</>}
               </button>
             </div>
           </div>
@@ -549,36 +550,42 @@ const ProfileDetail = () => {
                   const isFirst = i === 0;
                   const isOverlay = i === 4 && allPhotos.length > 5;
                   return (
-                    <button
+                    <div
                       key={photo}
-                      type="button"
-                      onClick={() => setLightbox({ open: true, index: i })}
-                      className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-[filter] duration-[160ms] focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : allPhotos.length < 3 ? 'aspect-[4/5]' : ''}`}
+                      className={`group relative overflow-hidden bg-primary-100 dark:bg-primary-900/40 hover:brightness-95 transition-[filter] duration-[160ms] ${isFirst && allPhotos.length >= 3 ? 'row-span-2 col-span-1' : allPhotos.length < 3 ? 'aspect-[4/5]' : ''}`}
                     >
                       <span className="absolute inset-0 flex items-center justify-center text-7xl font-display font-semibold text-primary-700/40 dark:text-primary-300/40 select-none">{firstName[0]}</span>
-                      <RetryImage src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      <RetryImage src={url} alt={`${firstName} ${i + 1}`} className="relative w-full h-full object-cover pointer-events-none" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      {/* Opening the lightbox is its own button covering the tile,
+                          so the like affordance can be a SIBLING button rather than
+                          interactive content nested inside a <button> (invalid HTML,
+                          undefined focus/SR semantics). */}
+                      <button
+                        type="button"
+                        onClick={() => setLightbox({ open: true, index: i })}
+                        aria-label={`View ${firstName}'s photo ${i + 1}`}
+                        className="absolute inset-0 w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer"
+                      />
                       {isOverlay && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
                           <span className="text-white text-xl font-bold">+{allPhotos.length - 5}</span>
                         </div>
                       )}
                       {/* D3: explicit like-with-note affordance on the photo — always
                           visible (doctrine ruling #16 bans hover-only affordances;
                           half our traffic is touch and a tap doesn't reliably
-                          trigger :hover). */}
+                          trigger :hover). A real sibling button, ≥44px touch target. */}
                       {!isOverlay && (
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
                           aria-label="Like this photo with a note"
-                          onClick={(e) => { e.stopPropagation(); setLikeNoteTarget({ type: 'photo', photoUrl: photo }); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setLikeNoteTarget({ type: 'photo', photoUrl: photo }); } }}
-                          className="absolute top-2 right-2 p-2 rounded-full bg-black/35 hover:bg-black/55 text-white transition-colors duration-[160ms]"
+                          onClick={() => setLikeNoteTarget({ type: 'photo', photoUrl: photo })}
+                          className="absolute top-2 right-2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full bg-black/35 hover:bg-black/55 text-white transition-colors duration-[160ms]"
                         >
                           <FiHeart className="w-4 h-4" />
-                        </span>
+                        </button>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -668,10 +675,12 @@ const ProfileDetail = () => {
                   </div>
                 </div>
 
-                {/* Compat ring desktop */}
-                {compatScore && (
-                  <div className="hidden md:flex flex-col items-center gap-3 flex-shrink-0">
-                    <CompatRing score={compatScore} />
+                {/* Desktop action column — the contact actions below (Express
+                    Interest, Message, Call) always render on desktop; only the
+                    ring is gated on a score being present, so a null (or a
+                    legitimate 0%) compatibility score never unmounts them. */}
+                <div className="hidden md:flex flex-col items-center gap-3 flex-shrink-0">
+                  {compatScore != null && <CompatRing score={compatScore} />}
                     <div className="flex flex-col gap-2 w-full">
                       <button
                         onClick={() => handleAction('like')}
@@ -704,7 +713,6 @@ const ProfileDetail = () => {
                       </div>
                     )}
                   </div>
-                )}
               </div>
 
               {/* Bio */}
@@ -720,6 +728,7 @@ const ProfileDetail = () => {
                   <p className="text-[0.6875rem] font-bold text-primary-400 uppercase tracking-wide mb-2">Video intro</p>
                   <video
                     src={getImageUrl(profile.videoIntroUrl, API_BASE_URL, 'full')}
+                    aria-label={`${firstName}'s video introduction`}
                     controls
                     playsInline
                     preload="metadata"
@@ -832,7 +841,7 @@ const ProfileDetail = () => {
                                   type="button"
                                   aria-label="Like this answer with a note"
                                   onClick={() => setLikeNoteTarget({ type: 'prompt', promptText: a })}
-                                  className="absolute top-3 right-3 p-2 rounded-full text-primary-300 hover:text-primary-600 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
+                                  className="absolute top-3 right-3 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full text-primary-300 hover:text-primary-600 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                                 >
                                   <FiHeart className="w-4 h-4" />
                                 </button>
@@ -1195,7 +1204,7 @@ const ProfileDetail = () => {
                           className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                         >
                           <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
-                          <span className="text-xs font-semibold text-neutral-600 truncate">{label}</span>
+                          <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 truncate">{label}</span>
                         </a>
                       );
                     })}

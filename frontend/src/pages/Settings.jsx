@@ -43,7 +43,7 @@ const TABS = [
 // the same color as its off-state track. `bg-[#fff]` isn't matched by that
 // selector, so the knob stays a legible white circle in both themes.
 const Toggle = ({ value, onChange, label, desc, disabled }) => (
-  <div className="flex items-center justify-between py-3.5 border-b border-neutral-100 dark:border-neutral-800 last:border-0">
+  <div className="flex items-center justify-between py-3.5">
     <div className="min-w-0 pr-4">
       <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">{label}</p>
       {desc && <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{desc}</p>}
@@ -79,7 +79,7 @@ const Toggle = ({ value, onChange, label, desc, disabled }) => (
 // "SectionHeader" resolves to exactly one component.
 const GroupHeader = ({ title, desc }) => (
   <div className="mb-5">
-    <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{title}</h3>
+    <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{title}</h2>
     {desc && <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">{desc}</p>}
   </div>
 );
@@ -131,7 +131,7 @@ const EmailSection = () => {
     }
   };
 
-  const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent';
+  const inputCls = 'w-full px-4 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent';
 
   return (
     <div>
@@ -149,11 +149,11 @@ const EmailSection = () => {
             <input
               type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
               readOnly={!emailEditable} onFocus={() => setEmailEditable(true)}
-              placeholder="New email address" name="new-email-address" autoComplete="off" className={inputCls} required
+              placeholder="New email address" name="new-email-address" autoComplete="off" aria-label="New email address" className={inputCls} required
             />
             <input
               type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="Current password (leave blank for Google accounts)" autoComplete="current-password" className={inputCls}
+              placeholder="Current password (leave blank for Google accounts)" autoComplete="current-password" aria-label="Current password" className={inputCls}
             />
             <button type="submit" disabled={loading || !newEmail}
               className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 active:scale-[0.97] transition-transform duration-[120ms] disabled:opacity-60 disabled:active:scale-100">
@@ -166,7 +166,7 @@ const EmailSection = () => {
             <input
               type="text" inputMode="numeric" maxLength={6} value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="6-digit code" className={`${inputCls} tracking-[0.4em] text-center`} required
+              placeholder="6-digit code" aria-label="6-digit verification code" className={`${inputCls} tracking-[0.4em] text-center`} required
             />
             <div className="flex gap-2">
               <button type="button" onClick={() => setStep('idle')}
@@ -313,7 +313,7 @@ const SessionsSection = () => {
                     <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                       {label}
                       {s.isCurrent && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-[10px] font-semibold uppercase tracking-wide">
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-semibold uppercase tracking-wide">
                           This device
                         </span>
                       )}
@@ -572,7 +572,7 @@ const AccountTab = () => {
           ].map(({ to, icon: Icon, label }) => (
             <Link key={to} to={to} className="flex items-center justify-between p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[160ms]">
               <span className="flex items-center gap-3 text-sm font-medium text-neutral-800 dark:text-neutral-100">
-                <Icon className="w-4 h-4 text-primary-500" /> {label}
+                <Icon className="w-4 h-4 text-primary-500 dark:text-primary-400" /> {label}
               </span>
               <FiChevronRight className="w-4 h-4 text-neutral-400" />
             </Link>
@@ -876,7 +876,17 @@ const NotificationsTab = () => {
     return (
       <div className="space-y-4">
         <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
-        <div className="h-24 max-w-xl rounded-2xl skeleton" />
+        <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-w-xl">
+          {[0, 1].map((i) => (
+            <div key={i} className="py-3.5 flex items-center justify-between gap-4">
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+              <Skeleton variant="circle" className="w-11 h-6 flex-shrink-0" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -1039,7 +1049,7 @@ const VerificationTab = () => {
           <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700">
             <div className="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 text-xs font-bold flex items-center justify-center mb-2">{step}</div>
             <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-100">{title}</p>
-            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">{desc}</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{desc}</p>
           </div>
         ))}
       </div>
@@ -1390,7 +1400,7 @@ const DangerTab = ({ goToTab }) => {
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('account');
 
-  const TabContent = () => {
+  const renderTab = () => {
     switch (activeTab) {
       case 'account':       return <AccountTab />;
       case 'privacy':       return <PrivacyTab />;
@@ -1425,6 +1435,7 @@ export default function Settings() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
+                  aria-current={activeTab === id ? 'page' : undefined}
                   className={`flex items-center gap-3 w-full px-4 py-3.5 text-left transition-[color,background-color,transform] active:scale-[0.97] duration-[160ms] border-b border-neutral-100 dark:border-neutral-800 last:border-0 group cursor-pointer ${
                     activeTab === id
                       ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
@@ -1448,7 +1459,7 @@ export default function Settings() {
                     }`}>
                       {label}
                     </p>
-                    <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5 truncate">{desc}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">{desc}</p>
                   </div>
                 </button>
               ))}
@@ -1467,7 +1478,7 @@ export default function Settings() {
               violation; light mode keeps the shadow, dark mode reads the
               border instead. */}
           <div className="flex-1 min-w-0 w-full bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-6 md:p-8">
-            <TabContent />
+            {renderTab()}
           </div>
         </div>
       </div>

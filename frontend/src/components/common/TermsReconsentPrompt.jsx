@@ -17,6 +17,10 @@ export default function TermsReconsentPrompt() {
 
   if (!isAuthenticated || !user?.requiresReconsent) return null;
 
+  // An account our team set up for the member: they have not accepted anything
+  // yet, so "we have updated our Terms" would be untrue.
+  const assisted = user.termsVersion === 'assisted-signup';
+
   const accept = async () => {
     setBusy(true);
     try {
@@ -34,10 +38,12 @@ export default function TermsReconsentPrompt() {
     <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="reconsent-title">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-900 p-6 shadow-xl">
         <h2 id="reconsent-title" className="font-display text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-          We have updated our Terms
+          {assisted ? 'Welcome to TricityMatch' : 'We have updated our Terms'}
         </h2>
         <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-          Please read the updated Terms and Privacy Policy and accept them to keep using TricityMatch. Your profile and matches are unchanged.
+          {assisted
+            ? 'Our team set up this account for you. Before you start, please read the Terms and Privacy Policy and accept them.'
+            : 'Please read the updated Terms and Privacy Policy and accept them to keep using TricityMatch. Your profile and matches are unchanged.'}
         </p>
         <div className="mt-4">
           <CheckBox
@@ -46,7 +52,7 @@ export default function TermsReconsentPrompt() {
             size="md"
             label={
               <span className="text-sm text-neutral-600 dark:text-neutral-300">
-                I agree to the updated{' '}
+                I agree to the{assisted ? '' : ' updated'}{' '}
                 <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">Terms &amp; Conditions</a>{' '}and{' '}
                 <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">Privacy Policy</a>.
               </span>

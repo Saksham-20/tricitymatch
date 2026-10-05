@@ -38,7 +38,9 @@ describe('ProfileCard like / save toggles', () => {
 
   it('a like that the parent confirms stays liked, and reports true', async () => {
     const onLike = vi.fn().mockResolvedValue(true);
-    renderCard({ onLike, variant: 'compact', profile: { ...profile, matchStatus: null } });
+    // (The `compact` variant was retired from ProfileCard — dead in-app and a
+    // keyboard trap; the full variant carries the same like affordance.)
+    renderCard({ onLike, profile: { ...profile, matchStatus: null, profilePhoto: 'https://img.test/a.jpg' } });
     fireEvent.click(screen.getAllByLabelText(/^like$|express interest/i)[0]);
     await waitFor(() => expect(onLike).toHaveBeenCalledWith(true));
   });

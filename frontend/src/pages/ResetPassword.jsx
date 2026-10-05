@@ -22,15 +22,15 @@ const EditorialPanel = ({ headline, sub }) => (
     <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
       <div>
         <Logo variant="white" size="lg" linkTo="/" />
-        <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">Chandigarh · Mohali · Panchkula</p>
+        <p className="text-xs text-white/60 mt-1 uppercase tracking-widest">Chandigarh · Mohali · Panchkula</p>
       </div>
 
       <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-        <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">{headline}</h2>
+        <p className="font-display text-5xl font-bold leading-tight mb-5 text-white">{headline}</p>
         <p className="text-white/60 text-base leading-relaxed">{sub}</p>
       </motion.div>
 
-      <div className="flex items-center gap-5 text-xs text-white/40">
+      <div className="flex items-center gap-5 text-xs text-white/60">
         <div className="flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5" /><span>SSL Secured</span></div>
         <span className="w-px h-3 bg-white/20" />
         <div className="flex items-center gap-1.5"><FiHeart className="w-3.5 h-3.5" /><span>100% Privacy</span></div>
@@ -186,7 +186,7 @@ const ResetPassword = () => {
                     autoFocus={id === 'password'}
                     required
                     aria-invalid={errors[id] ? true : undefined}
-                    aria-describedby={`${id}-note`}
+                    aria-describedby={(errors[id] || hint) ? `${id}-note` : undefined}
                     className={`input-field dark:bg-surface-dark-2 dark:border-neutral-700 dark:placeholder:text-neutral-500 dark:focus:border-primary-400 dark:focus:ring-primary-400/20 pl-12 pr-12 ${errors[id] ? 'border-destructive focus:border-destructive focus:ring-destructive/20 dark:border-red-500 dark:focus:border-red-500 dark:focus:ring-red-500/20' : ''}`}
                     placeholder={placeholder}
                     value={formData[id]}

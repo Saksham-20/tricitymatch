@@ -49,12 +49,12 @@ export default function Unsubscribe() {
     body = 'Open the latest email from us and use the unsubscribe link at the bottom, or write to us and we will do it for you.';
   } else if (status === 'done') {
     icon = FiCheckCircle;
-    iconTone = 'bg-success-50 text-success';
+    iconTone = 'bg-success-50 dark:bg-success-500/20 text-success dark:text-success-100';
     title = 'You are unsubscribed';
     body = 'We will not send you reminder emails. Emails about payments, membership dates and account security will still reach you.';
   } else if (status === 'undone') {
     icon = FiCheckCircle;
-    iconTone = 'bg-success-50 text-success';
+    iconTone = 'bg-success-50 dark:bg-success-500/20 text-success dark:text-success-100';
     title = 'Reminder emails are back on';
     body = 'You will get our reminder emails again. You can turn them off from the link at the bottom of any of them.';
   } else if (status === 'error') {
@@ -124,7 +124,7 @@ export default function Unsubscribe() {
 
             <Link
               to="/"
-              className="w-full py-2.5 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors duration-150"
+              className="w-full min-h-[44px] py-3 flex items-center justify-center text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors duration-150"
             >
               Back to home
             </Link>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Tag, Save, RefreshCw, AlertCircle, Crown, Clock, Gift } from 'lucide-react';
+import { FiTag, FiSave, FiRefreshCw, FiAlertCircle, FiAward, FiClock, FiGift } from 'react-icons/fi';
 import apiClient from '../../api/apiClient';
 
 /**
@@ -123,7 +123,7 @@ export default function AdminLaunchOffer() {
     // The server refuses this too (saveOffer) — this is here so the admin is
     // told before the round-trip, not after.
     if (visibleCount === 0) {
-      setError('At least one plan must stay on sale — hiding every tier leaves members with no way to pay.');
+      setError('At least one plan must stay on sale. Hiding every tier leaves members with no way to pay.');
       return;
     }
     setSaving(true);
@@ -165,7 +165,7 @@ export default function AdminLaunchOffer() {
         },
       };
       const res = await apiClient.put('/admin/launch-offer', payload);
-      setSaved(res.data.state?.active ? 'Saved — launch pricing is live.' : 'Saved — regular pricing is in effect.');
+      setSaved(res.data.state?.active ? 'Saved. Launch pricing is live.' : 'Saved. Regular pricing is in effect.');
       await load();
     } catch (e) {
       setError(e.response?.data?.error?.message || 'Save failed');
@@ -187,7 +187,7 @@ export default function AdminLaunchOffer() {
     return (
       <div className="p-6">
         <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-4">
-          <AlertCircle className="w-5 h-5" /> {error || 'Launch offer unavailable'}
+          <FiAlertCircle className="w-5 h-5" /> {error || 'Launch offer unavailable'}
         </div>
         <button onClick={load} className="mt-4 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold">Retry</button>
       </div>
@@ -201,35 +201,35 @@ export default function AdminLaunchOffer() {
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-2">
-            <Tag className="w-6 h-6 text-primary-600" /> Launch Offer
+            <FiTag className="w-6 h-6 text-primary-600" /> Launch Offer
           </h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Time-boxed launch pricing. Changes apply immediately to checkout — no deploy needed.
+            Time-boxed launch pricing. Changes apply immediately to checkout. No deploy needed.
           </p>
         </div>
         <button onClick={load} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50">
-          <RefreshCw className="w-4 h-4" /> Reload
+          <FiRefreshCw className="w-4 h-4" /> Reload
         </button>
       </div>
 
       <div className={`mb-6 rounded-xl border px-4 py-3 flex items-center gap-3 ${
         state?.active ? 'bg-green-50 border-green-200 text-green-800' : 'bg-neutral-50 border-neutral-200 text-neutral-700'
       }`}>
-        <Clock className="w-4 h-4 flex-shrink-0" />
+        <FiClock className="w-4 h-4 flex-shrink-0" />
         <p className="text-sm">
           {state?.active
             ? <>Launch pricing is <strong>live</strong>{state.endsAt ? <> until {new Date(state.endsAt).toLocaleString('en-IN')}</> : ' (no end date set)'}.</>
-            : <>Launch pricing is <strong>off</strong> — members are charged the regular ladder.</>}
+            : <>Launch pricing is <strong>off</strong>. Members are charged the regular ladder.</>}
         </p>
       </div>
 
       {error && (
-        <div className="mb-4 flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-          <AlertCircle className="w-4 h-4" /> {error}
+        <div role="alert" className="mb-4 flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+          <FiAlertCircle className="w-4 h-4" /> {error}
         </div>
       )}
       {saved && (
-        <div className="mb-4 text-green-800 bg-green-50 border border-green-200 rounded-lg p-3 text-sm">{saved}</div>
+        <div aria-live="polite" className="mb-4 text-green-800 bg-green-50 border border-green-200 rounded-lg p-3 text-sm">{saved}</div>
       )}
 
       <form onSubmit={submit} className="space-y-8">
@@ -276,14 +276,14 @@ export default function AdminLaunchOffer() {
           </div>
           <p className="text-xs text-neutral-500 mb-4">
             Untick <strong>On sale</strong> to hide a card. Hidden plans are <strong>refused at checkout</strong>, not just
-            un-rendered, so a stale app build cannot buy one. Free always shows and is not editable here — that is why the
+            un-rendered, so a stale app build cannot buy one. Free always shows and is not editable here. That is why the
             count above is one higher than the ticks below, and why {MAX_CARDS} is the ceiling.
             <br />
             Prices in ₹, tenure in days. Leave unlocks blank for unlimited. MRP is the struck-through anchor shown to members.
           </p>
           {visibleCount === 0 && (
             <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
-              Every plan is withdrawn — members would have no way to pay. Put at least one back on sale before saving.
+              Every plan is withdrawn. Members would have no way to pay. Put at least one back on sale before saving.
             </p>
           )}
           <table className="w-full text-sm min-w-[720px]">
@@ -317,18 +317,22 @@ export default function AdminLaunchOffer() {
                     </td>
                     <td className="py-2 pr-3">
                       <input type="number" min="1" value={p.price} disabled={p.hidden} onChange={(e) => setPlanField(k, 'price', e.target.value)}
+                        aria-label={`${PLAN_LABELS[k]} launch price in rupees`}
                         className="w-24 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" required={!p.hidden} />
                     </td>
                     <td className="py-2 pr-3">
                       <input type="number" min="1" max="730" value={p.duration} disabled={p.hidden} onChange={(e) => setPlanField(k, 'duration', e.target.value)}
+                        aria-label={`${PLAN_LABELS[k]} duration in days`}
                         className="w-20 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" required={!p.hidden} />
                     </td>
                     <td className="py-2 pr-3">
                       <input type="number" min="0" value={p.contactUnlocks} placeholder="∞" disabled={p.hidden} onChange={(e) => setPlanField(k, 'contactUnlocks', e.target.value)}
+                        aria-label={`${PLAN_LABELS[k]} contact unlocks`}
                         className="w-20 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" />
                     </td>
                     <td className="py-2 pr-3">
                       <input type="number" min="0" value={p.mrp} disabled={p.hidden} onChange={(e) => setPlanField(k, 'mrp', e.target.value)}
+                        aria-label={`${PLAN_LABELS[k]} MRP in rupees`}
                         className="w-24 border border-neutral-200 rounded-lg px-2 py-1.5 disabled:bg-neutral-100 disabled:text-neutral-400" />
                     </td>
                     <td className="py-2 text-neutral-500 whitespace-nowrap">
@@ -372,11 +376,11 @@ export default function AdminLaunchOffer() {
         {/* Founding */}
         <section className="bg-white border border-neutral-200 rounded-xl p-5">
           <h2 className="font-semibold text-neutral-900 mb-1 flex items-center gap-2">
-            <Crown className="w-4 h-4 text-gold" /> Founding-member grant
+            <FiAward className="w-4 h-4 text-gold" /> Founding-member grant
           </h2>
           <p className="text-xs text-neutral-500 mb-4">
             Free premium-grade access granted automatically at signup while the window is open and the cap is not hit.
-            Unlocks must be a finite number — blank/unlimited here would let every signup harvest phone numbers.
+            Unlocks must be a finite number. Blank or unlimited here would let every signup harvest phone numbers.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
             <label className="flex items-center gap-2 text-neutral-700 col-span-2 md:col-span-1">
@@ -407,14 +411,14 @@ export default function AdminLaunchOffer() {
           <p className="text-xs text-neutral-400 mt-3">
             {data?.founding?.open
               ? `Currently OPEN · ${data.founding.grantDays} days · ${data.founding.contactUnlocks} unlocks · cap ${data.founding.memberCap || 'none'}`
-              : 'Currently CLOSED — no grants are issued at signup.'}
+              : 'Currently CLOSED. No grants are issued at signup.'}
           </p>
         </section>
 
         {/* Referral codes */}
         <section className="bg-white border border-neutral-200 rounded-xl p-5">
           <h2 className="font-semibold text-neutral-900 mb-1 flex items-center gap-2">
-            <Gift className="w-4 h-4 text-primary-600" /> Referral codes
+            <FiGift className="w-4 h-4 text-primary-600" /> Referral codes
           </h2>
           <p className="text-xs text-neutral-500 mb-4">
             A buyer who enters a code at checkout takes this much off their first plan (capped at 30% of the plan price).
@@ -445,7 +449,7 @@ export default function AdminLaunchOffer() {
         <div className="flex items-center gap-3">
           <button type="submit" disabled={saving}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold disabled:opacity-60">
-            <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save pricing'}
+            <FiSave className="w-4 h-4" /> {saving ? 'Saving…' : 'Save pricing'}
           </button>
           <span className="text-xs text-neutral-400">Every save is recorded in the admin audit log.</span>
         </div>

@@ -8,7 +8,7 @@
 
 const { Op, QueryTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const { User, Profile, ContactMessage, Verification } = require('../models');
+const { User, Profile, ContactMessage, Verification, MediaReview } = require('../models');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { deleteFromCloudinary } = require('../middlewares/upload');
@@ -269,11 +269,48 @@ exports.removePhoto = asyncHandler(async (req, res) => {
   logAudit('photo_removed', req.user.id, { targetUserId: userId, photoUrl, reason });
   await notify(
     userId,
-    'photo_removed',
+    'system', // 'photo_removed' is not a valid Notification ENUM type — would throw + silently drop the notice
     'A photo was removed from your profile',
     'One of your photos did not meet our photo guidelines and was removed. You can upload a new one anytime.'
   );
   res.json({ success: true, remaining: remaining.length });
+});
+
+// @route   POST /api/v1/admin/photos/flag
+// @desc    Flag a single photo for review WITHOUT removing it — files a
+//          MediaReview row (source 'admin') so the photo enters the Photo Review
+//          queue where a reviewer approves/keeps or removes it. The softer middle
+//          ground between "looks fine" and an immediate takedown.
+// @access  Private/Admin (scope: reports)
+exports.flagPhoto = asyncHandler(async (req, res) => {
+  const { userId, photoUrl } = req.body || {};
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 300) : '';
+  if (!userId || typeof photoUrl !== 'string' || !photoUrl) throw createError.badRequest('userId and photoUrl are required');
+
+  const profile = await Profile.findOne({ where: { userId } });
+  if (!profile) throw createError.notFound('Profile not found');
+  const photos = Array.isArray(profile.photos) ? profile.photos : [];
+  const onProfile = photos.includes(photoUrl) || profile.profilePhoto === photoUrl;
+  if (!onProfile) throw createError.notFound('Photo not found on this profile');
+
+  // Don't pile up duplicate open flags for the same image.
+  const existing = await MediaReview.findOne({ where: { userId, url: photoUrl, status: 'pending' } });
+  if (existing) {
+    return res.json({ success: true, review: existing, alreadyFlagged: true });
+  }
+
+  const review = await MediaReview.create({
+    userId,
+    url: photoUrl,
+    source: 'admin',
+    status: 'pending',
+    wasProfilePhoto: profile.profilePhoto === photoUrl,
+    labels: ['admin_flag'],
+    decisionNote: reason || null,
+  });
+
+  logAudit('photo_flagged', req.user.id, { targetUserId: userId, photoUrl, reason });
+  res.json({ success: true, review });
 });
 
 // @route   GET /api/v1/admin/support-staff

@@ -12,6 +12,10 @@ const { MarketingLead, ReferralCode, User } = require('../models');
 const { buildMarketingReport, getRepRevenue } = require('../utils/marketingReport');
 const { getPayoutLedger } = require('../utils/marketingPayouts');
 const { createManualLead } = require('../utils/manualLeads');
+const teamCtl = require('../controllers/marketingTeamController');
+const { getOnboarding, recordAgreement, requirePartnerAgreement } = require('../utils/partnerOnboarding');
+const { PARTNER_GUIDE_VERSION } = require('../constants/partnerProgramme');
+const { logAudit } = require('../middlewares/logger');
 const { param, body } = require('express-validator');
 
 // All marketing routes require authentication and marketing role
@@ -45,6 +49,37 @@ router.get('/dashboard', asyncHandler(async (req, res) => {
   });
 }));
 
+// @route   GET /api/marketing/onboarding
+// @desc    Where this partner is in getting set up (agreement, payout details,
+//          first code, first lead) so the portal can show a live checklist.
+// @access  Private/Marketing
+router.get('/onboarding', asyncHandler(async (req, res) => {
+  res.json({ success: true, onboarding: await getOnboarding(req.user.id) });
+}));
+
+// @route   POST /api/marketing/accept-agreement
+// @desc    Record that the partner has read and accepted the current Partner
+//          Guide. The version must match, so a stale tab cannot accept a guide
+//          the partner never saw.
+// @access  Private/Marketing
+router.post('/accept-agreement',
+  body('version').isString(),
+  body('accepted').custom((v) => v === true || v === 'true'),
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    if (req.body.version !== PARTNER_GUIDE_VERSION) {
+      throw createError.conflict('The Partner Guide has been updated. Reload and read the latest version.');
+    }
+    await recordAgreement(req.user.id, req);
+    logAudit('partner_agreement_accepted', req.user.id, { version: PARTNER_GUIDE_VERSION });
+    res.json({ success: true, onboarding: await getOnboarding(req.user.id) });
+  }));
+
+// @route   GET /api/marketing/team
+// @desc    Team overview for marketing managers (numbers only)
+// @access  Private/Marketing manager
+router.get('/team', teamCtl.requireTeamView, teamCtl.getTeam);
+
 // @route   GET /api/marketing/report
 // @desc    Own referral report: every invited member, whether they signed up,
 //          and whether they paid. Same builder the admin view uses, so a rep
@@ -67,6 +102,14 @@ router.get('/payouts', asyncHandler(async (req, res) => {
   ledger.payouts = ledger.payouts.map(({ voidReason, ...rest }) => rest);
   res.json({ success: true, ...ledger });
 }));
+
+// @route   GET/PUT /api/marketing/payout-details
+// @desc    Where the rep wants to be paid. Read back MASKED only; the full
+//          values are visible to admins through the audited payouts routes.
+// @access  Private/Marketing
+const payoutCtl = require('../controllers/marketingPayoutController');
+router.get('/payout-details', payoutCtl.getMyPayoutDetails);
+router.put('/payout-details', payoutCtl.saveMyPayoutDetails);
 
 // @route   GET /api/marketing/leads
 // @desc    Get own leads
@@ -114,6 +157,7 @@ router.get('/leads', asyncHandler(async (req, res) => {
 //          credited to this partner (see utils/manualLeads).
 // @access  Private/Marketing
 router.post('/leads',
+  requirePartnerAgreement,
   // Shape only; the specific, user-readable checks live in createManualLead so
   // the message survives production (validation details are dev-only).
   body('name').isString().trim().isLength({ min: 1, max: 100 }),
@@ -186,7 +230,7 @@ router.get('/referral-codes', asyncHandler(async (req, res) => {
 // @route   POST /api/marketing/referral-codes
 // @desc    Create a new referral code for self
 // @access  Private/Marketing
-router.post('/referral-codes', asyncHandler(async (req, res) => {
+router.post('/referral-codes', requirePartnerAgreement, asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { campaign, source } = req.body;
 

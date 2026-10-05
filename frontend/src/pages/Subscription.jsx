@@ -258,7 +258,7 @@ const StickyCtaBar = ({ show }) => {
     <div className="sm:hidden fixed bottom-20 inset-x-4 z-40">
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-full bg-gradient-hero text-white text-sm font-bold shadow-burgundy-lg"
+        className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-burgundy-lg"
       >
         <FaCrown className="w-4 h-4 text-gold-300" /> View plans
       </button>
@@ -349,7 +349,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
           )}
           <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{plan.name || cfg.label}</h3>
           {isCurrent && (
-            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-xs font-bold rounded-full uppercase tracking-wide">
               Active
             </span>
           )}
@@ -371,18 +371,18 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
         {displayPrice > 0 && (mrp || perMonth) && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {mrp && mrp > displayPrice && (
-              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+              <span className="text-sm text-neutral-500 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
             )}
             {discountPct > 0 && (
-              <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
+              <span className="text-xs font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
                 {plan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
               </span>
             )}
             {perMonth && (
-              <span className="text-xs text-neutral-400 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
+              <span className="text-xs text-neutral-600 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
             )}
             {plan.durationDays > 0 && displayPrice > 0 && (
-              <span className="text-xs text-neutral-400 dark:text-neutral-500">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
+              <span className="text-xs text-neutral-600 dark:text-neutral-500">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
             )}
           </div>
         )}
@@ -503,7 +503,7 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
         <div className="flex items-center gap-2.5">
           <h3 className="text-base font-bold text-neutral-600 dark:text-neutral-400">{freePlan.name || PLAN_CONFIG.free.label}</h3>
           {isCurrentFree && (
-            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-xs font-bold rounded-full uppercase tracking-wide">
               Active
             </span>
           )}
@@ -513,13 +513,15 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
         <ul className="space-y-3.5 mb-6 flex-1">
           {rows.map((row) => (
             <li key={row.label} className="flex items-start gap-3">
-              {/* Muted is the card's own weight (grey icons, no accent, no
-                  shadow); which rows Free has is carried by the icon shape
-                  alone, never by contrast, so both states stay readable. */}
+              {/* Which rows Free has is carried by the icon shape AND the label
+                  treatment (excluded rows are struck through), never by colour
+                  alone; the icons announce their state to screen readers
+                  (mirroring CompareCell) so an excluded feature is not heard as
+                  included. */}
               {row.free
-                ? <FiCheck className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-hidden="true" />
-                : <FiX className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" aria-hidden="true" />}
-              <span className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{row.label}</span>
+                ? <FiCheck className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-label="Included" />
+                : <FiX className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" aria-label="Not included" />}
+              <span className={`text-sm leading-relaxed ${row.free ? 'text-neutral-600 dark:text-neutral-400' : 'line-through text-neutral-400 dark:text-neutral-500'}`}>{row.label}</span>
             </li>
           ))}
         </ul>
@@ -544,7 +546,7 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
           )}
           <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{paidPlan.name || paidCfg.label}</h3>
           {isCurrentPaid && (
-            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-[10px] font-bold rounded-full uppercase tracking-wide">
+            <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-xs font-bold rounded-full uppercase tracking-wide">
               Active
             </span>
           )}
@@ -557,14 +559,14 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
         {(mrp || perMonth) && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {mrp && mrp > displayPrice && (
-              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+              <span className="text-sm text-neutral-500 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
             )}
             {discountPct > 0 && (
-              <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
+              <span className="text-xs font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
                 {paidPlan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
               </span>
             )}
-            {perMonth && <span className="text-xs text-neutral-400 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>}
+            {perMonth && <span className="text-xs text-neutral-600 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>}
           </div>
         )}
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Everything in Free, plus</p>
@@ -649,9 +651,9 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
           </div>
           {(mrp && mrp > price) && (
             <div className="flex items-center justify-center lg:justify-end gap-2 mt-1">
-              <span className="text-sm text-neutral-400 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+              <span className="text-sm text-neutral-500 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
               {discountPct > 0 && (
-                <span className="text-[11px] font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
                   {plan?.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
                 </span>
               )}
@@ -660,7 +662,7 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
           {local && (
             <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">≈ {local} <span className="text-neutral-400 dark:text-neutral-500">(indicative)</span></p>
           )}
-          <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-1">Billed in INR</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-500 mt-1">Billed in INR</p>
           <button
             onClick={() => !disabled && onSubscribe('nri')}
             disabled={disabled}
@@ -920,6 +922,9 @@ const Subscription = () => {
         amount: order.amount,
         currency: order.currency,
         name: 'TricityMatch',
+        // Absolute URL: Razorpay renders it from its own origin. Without it the
+        // checkout header showed a generic letter "T".
+        image: `${window.location.origin}/icons/icon-192x192.png`,
         description,
         order_id: order.id,
         handler: async (response) => {
@@ -932,7 +937,7 @@ const Subscription = () => {
             // a failed verify is a hiccup on OUR side (or the webhook beat us to
             // activating it), not a failed payment. Say so, and refresh: the plan
             // is often already active.
-            toast.error('We received your payment and are confirming it. Your plan will appear shortly — if it does not, contact support with your payment receipt.', { duration: 8000 });
+            toast.error('We received your payment and are confirming it. Your plan will appear shortly. If it does not, contact support with your payment receipt.', { duration: 8000 });
             try { await loadData(); } catch { /* the page shows its own error state */ }
           } finally {
             onSettle();
@@ -1322,7 +1327,7 @@ const Subscription = () => {
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Join the Tricity members already talking to their matches.</p>
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-full font-semibold hover:shadow-burgundy hover:scale-105 transition-[box-shadow,transform] duration-200"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-xl font-semibold hover:shadow-burgundy transition-[box-shadow,transform] duration-200"
           >
             <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? 'Go Premium' : 'Choose a plan'}
           </button>

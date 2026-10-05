@@ -68,14 +68,14 @@ export default function ReferralCodeField({ value, onChange, id = 'signup-referr
         onChange={(e) => onChange(e.target.value.toUpperCase().replace(/\s/g, ''))}
         aria-invalid={state.status === 'invalid'}
         aria-describedby={`${id}-status`}
-        className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-surface-dark-3 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-sm"
+        className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-surface-dark-3 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-base"
       />
       <p id={`${id}-status`} aria-live="polite" className="text-sm mt-1.5 min-h-[20px]">
         {state.status === 'checking' && <span className="text-neutral-500 dark:text-neutral-400">Checking…</span>}
         {state.status === 'valid' && (
           <span className="inline-flex items-center gap-1.5 text-success">
             <FiCheck className="w-4 h-4" aria-hidden="true" />
-            Code applied{state.referrerName ? ` — from ${state.referrerName}` : ''}
+            Code applied{state.referrerName ? ` from ${state.referrerName}` : ''}
             {state.discountPaise > 0 ? `. ${inr(state.discountPaise)} off your first plan.` : '.'}
           </span>
         )}

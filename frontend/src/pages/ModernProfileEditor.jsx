@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { OnboardingProvider, useOnboarding } from '../context/OnboardingContext';
 import api from '../api/axios';
 import { buildProfileFormData } from '../utils/profileSubmit';
+import { findContactInText, CONTACT_IN_TEXT_MESSAGES } from '../utils/contactInText';
 import { validateAge } from '../utils/validators';
 import { minAgeFor, minAgeMessage } from '../utils/marriageableAge';
 import useUnsavedChangesGuard from '../hooks/useUnsavedChangesGuard';
@@ -60,6 +61,26 @@ const SECTION_INDEX = {
   basic: 0, location: 1, religion: 2, horoscope: 3, marital: 4, education: 5,
   family: 6, lifestyle: 7, about: 8, social: 9, preferences: 10, photos: 11,
 };
+
+// Where each free-text field lives, so a refused save opens the right section.
+const TEXT_FIELD_SECTIONS = {
+  firstName: 'basic', lastName: 'basic',
+  city: 'location', state: 'location', familyLocation: 'location', residenceCountry: 'location', nationality: 'location',
+  religion: 'religion', caste: 'religion', subCaste: 'religion', gotra: 'religion', motherTongue: 'religion',
+  placeOfBirth: 'horoscope',
+  education: 'education', degree: 'education', profession: 'education', institution: 'education', industry: 'education',
+  fatherOccupation: 'family', motherOccupation: 'family',
+  interestTags: 'lifestyle', languages: 'lifestyle',
+  bio: 'about', profilePrompts: 'about',
+  preferredEducation: 'preferences', preferredProfession: 'preferences', preferredCity: 'preferences',
+};
+const TEXT_FIELD_LABELS = {
+  bio: 'About me', profilePrompts: 'Your prompts', fatherOccupation: "Father's occupation",
+  motherOccupation: "Mother's occupation", placeOfBirth: 'Place of birth', interestTags: 'Interests',
+};
+const stringsOf = (v) => (typeof v === 'string' ? [v]
+  : Array.isArray(v) ? v.flatMap(stringsOf)
+    : v && typeof v === 'object' ? Object.values(v).flatMap(stringsOf) : []);
 
 const ModernProfileEditorContent = () => {
   const navigate = useNavigate();
@@ -126,6 +147,21 @@ const ModernProfileEditorContent = () => {
     if (formData.dateOfBirth && !validateAge(formData.dateOfBirth, minAgeFor(formData.gender), 100)) {
       return { section: SECTION_INDEX.basic, message: minAgeMessage(formData.gender) };
     }
+    // Contact details belong only in the phone-number field (Settings). The
+    // whole form is sent on save and the server screens every text field, so
+    // older text with a number in it is caught here too and its section opened.
+    for (const [field, section] of Object.entries(TEXT_FIELD_SECTIONS)) {
+      const kind = stringsOf(formData[field]).map(findContactInText).find(Boolean);
+      if (kind) {
+        const label = TEXT_FIELD_LABELS[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+        return { section: SECTION_INDEX[section], message: `${label}: ${CONTACT_IN_TEXT_MESSAGES[kind]}` };
+      }
+    }
+    const badLink = stringsOf(formData.socialMediaLinks).some((t) => {
+      const kind = findContactInText(t);
+      return kind === 'phone' || kind === 'email' || kind === 'upi' || /(?:^|\/\/|\.)(?:wa\.me|t\.me|telegram\.me|whatsapp\.com)/i.test(t);
+    });
+    if (badLink) return { section: SECTION_INDEX.social, message: 'Social connections: add profile links only, not phone numbers, emails or chat links.' };
     const min = Number(formData.preferredAgeMin);
     const max = Number(formData.preferredAgeMax);
     if (formData.preferredAgeMin && formData.preferredAgeMax && min > max) {
@@ -202,8 +238,9 @@ const ModernProfileEditorContent = () => {
     <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-surface-dark-1 pb-16 md:pb-0">
       {/* Left Panel — LIGHT brand rail (burgundy accent, not a slab) */}
       <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-50/70 dark:from-primary-900/20 via-white dark:via-surface-dark-3 to-white dark:to-surface-dark-3 pointer-events-none" />
-        <div className="absolute -top-24 -left-24 w-72 h-72 border border-neutral-200/60 dark:border-neutral-700/40 rounded-full pointer-events-none" />
+        {/* Flat Operate surface — the pastel primary-50 wash and the decorative
+            bordered circle were banned decoration; burgundy stays an accent
+            only (the checkmarks and the progress bar below). */}
 
         {/* Content */}
         <div className="relative z-10 w-full h-full flex flex-col justify-between p-10">
@@ -256,7 +293,7 @@ const ModernProfileEditorContent = () => {
         {/* Header */}
         <div className="bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-neutral-900 lg:hidden">Edit profile</h1>
+            <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 lg:hidden">Edit profile</h1>
           </div>
           {/* Save is available from any step — no need to walk the whole wizard
               to change one field. Dirty-aware: nothing to save when clean.
@@ -298,7 +335,7 @@ const ModernProfileEditorContent = () => {
               id="section-jump"
               value={currentStep}
               onChange={(e) => handleGoTo(Number(e.target.value))}
-              className="flex-1 min-w-0 text-sm font-semibold text-neutral-900 dark:text-neutral-100 bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-300"
+              className="flex-1 min-w-0 text-base font-semibold text-neutral-900 dark:text-neutral-100 bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
             >
               {visibleSteps.map((step, idx) => (
                 <option key={idx} value={idx}>{step.title}</option>

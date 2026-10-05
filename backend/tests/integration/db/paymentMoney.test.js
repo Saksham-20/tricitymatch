@@ -213,7 +213,8 @@ describeDb('payment money paths', (t) => {
   t('two concurrent payouts of the whole balance: one is recorded, one refused', async () => {
     const r = await rep(); const buyer = await member();
     await lead(r, buyer);
-    await sub(buyer.id, { amount: 1000 }); // 20% -> 200 earned
+    // Past the 7-day refund window, so the whole 200 is payable.
+    await sub(buyer.id, { amount: 1000, startDate: new Date(Date.now() - 10 * DAY) }); // 20% -> 200 earned
     const attempt = () => payouts.recordPayout(r.id, { amount: 200, status: 'paid' }, null)
       .then(() => 'ok', (e) => (e instanceof payouts.PayoutValidationError ? 'refused' : `error:${e.message}`));
     const outcomes = await Promise.all([attempt(), attempt()]);
@@ -225,7 +226,7 @@ describeDb('payment money paths', (t) => {
   t('voiding a payout keeps the row, needs a reason, and frees the balance', async () => {
     const r = await rep(); const buyer = await member(); const admin = await member();
     await lead(r, buyer);
-    await sub(buyer.id, { amount: 1000 });
+    await sub(buyer.id, { amount: 1000, startDate: new Date(Date.now() - 10 * DAY) });
     const p = await payouts.recordPayout(r.id, { amount: 150, status: 'paid' }, admin.id);
 
     await expect(payouts.voidPayout(p.id, { reason: '  ', adminId: admin.id })).rejects.toBeInstanceOf(payouts.PayoutValidationError);

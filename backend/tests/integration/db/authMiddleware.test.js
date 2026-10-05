@@ -132,7 +132,7 @@ describeDb('auth and entitlement gates', (t) => {
   t('premium routes: an active paid plan passes; none, expired, cancelled or free do not', async () => {
     const paid = await member(); await sub(paid.id);
     const none = await member();
-    const expired = await member(); await sub(expired.id, { endDate: new Date(Date.now() - DAY) });
+    const expired = await member(); await sub(expired.id, { startDate: new Date(Date.now() - 31 * DAY), endDate: new Date(Date.now() - DAY) });
     const cancelled = await member(); await sub(cancelled.id, { status: 'cancelled' });
     const free = await member(); await sub(free.id, { planType: 'free', amount: 0, razorpayPaymentId: null });
     const status = async (u) => (await request(app).get('/premium').set('Authorization', `Bearer ${sign(u.id)}`)).status;

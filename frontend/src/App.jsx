@@ -41,9 +41,10 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner, { PageSkeleton } from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
-import AdminLayout, { AdminIndexRedirect, AdminScopeRoute } from './components/admin/AdminLayout';
+import AdminLayout, { AdminIndexRedirect, AdminScopeRoute, AdminNoAccess, AdminNotFound } from './components/admin/AdminLayout';
 import Navbar from './components/common/Navbar';
 import BottomNav from './components/common/BottomNav';
+import LaunchBanner from './components/common/LaunchBanner';
 import useRouteTitle from './components/common/RouteTitle';
 
 // ==================== LAZY LOADED PAGES ====================
@@ -89,6 +90,7 @@ const AdminMarketingUsers = lazy(() => import('./pages/admin/AdminMarketingUsers
 const AdminMarketingUserDetail = lazy(() => import('./pages/admin/AdminMarketingUserDetail'));
 const AdminReferralCodes = lazy(() => import('./pages/admin/AdminReferralCodes'));
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
+const AdminPayouts = lazy(() => import('./pages/admin/AdminPayouts'));
 const AdminSuccessStories = lazy(() => import('./pages/admin/AdminSuccessStories'));
 const AdminContactMessages = lazy(() => import('./pages/admin/AdminContactMessages'));
 const AdminLaunchOffer = lazy(() => import('./pages/admin/AdminLaunchOffer'));
@@ -104,6 +106,8 @@ const MarketingDashboard = lazy(() => import('./pages/marketing/MarketingDashboa
 const MarketingLeads = lazy(() => import('./pages/marketing/MarketingLeads'));
 const MarketingReferralCodes = lazy(() => import('./pages/marketing/MarketingReferralCodes'));
 const MarketingGuide = lazy(() => import('./pages/marketing/MarketingGuide'));
+const MarketingKit = lazy(() => import('./pages/marketing/MarketingKit'));
+const MarketingTeam = lazy(() => import('./pages/marketing/MarketingTeam'));
 const MarketingProtectedRoute = lazy(() => import('./pages/marketing/MarketingProtectedRoute'));
 
 // Protected pages (load on demand)
@@ -118,6 +122,7 @@ const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const PaymentFailed = lazy(() => import('./pages/PaymentFailed'));
 const PaymentHistory = lazy(() => import('./pages/PaymentHistory'));
 const Settings = lazy(() => import('./pages/Settings'));
+const CompleteBasics = lazy(() => import('./pages/CompleteBasics'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Verification = lazy(() => import('./pages/Verification'));
 const Guardian = lazy(() => import('./pages/Guardian'));
@@ -378,6 +383,16 @@ const AnimatedRoutes = () => {
             }
           />
           <Route
+            path="/welcome"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <CompleteBasics />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/settings"
             element={
               <ProtectedRoute>
@@ -471,6 +486,15 @@ const AnimatedRoutes = () => {
             <Route path="leads"         element={<MarketingLeads />} />
             <Route path="referral-codes" element={<MarketingReferralCodes />} />
             <Route path="guide"         element={<MarketingGuide />} />
+            <Route path="kit"           element={<MarketingKit />} />
+            <Route path="team"          element={<MarketingTeam />} />
+            <Route path="*" element={
+              <div className="max-w-md mx-auto mt-10 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-10 text-center">
+                <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Page not found</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">There is no partner page at this address.</p>
+                <Link to="/marketing/dashboard" className="inline-block px-4 py-2 rounded-xl bg-primary-700 text-white text-sm font-medium">Back to your dashboard</Link>
+              </div>
+            } />
           </Route>
 
           {/* Admin Routes - bypass Navbar/BottomNav via AppContent check */}
@@ -486,13 +510,13 @@ const AnimatedRoutes = () => {
             {/* Send a scoped sub-admin to the first section they may open instead
                 of a 'Not your section' card on every sign-in. */}
             <Route index element={<AdminIndexRedirect />} />
-            <Route path="no-access" element={<AdminScopeRoute scope="__none__"><div /></AdminScopeRoute>} />
+            <Route path="no-access" element={<AdminNoAccess />} />
             <Route path="dashboard"     element={<AdminScopeRoute scope="users"><AdminDashboard /></AdminScopeRoute>} />
             <Route path="users"         element={<AdminScopeRoute scope="users"><AdminUsers /></AdminScopeRoute>} />
             <Route path="users/create"  element={<AdminScopeRoute scope="users"><AdminCreateUser /></AdminScopeRoute>} />
             <Route path="users/:userId" element={<AdminScopeRoute scope="users"><AdminUserDetail /></AdminScopeRoute>} />
             <Route path="verifications" element={<AdminScopeRoute scope="verifications"><AdminVerifications /></AdminScopeRoute>} />
-            <Route path="subscriptions" element={<AdminScopeRoute scope="subscriptions"><AdminSubscriptions /></AdminScopeRoute>} />
+            <Route path="subscriptions" element={<AdminScopeRoute scope="subscriptions"><AdminScopeRoute scope="users"><AdminSubscriptions /></AdminScopeRoute></AdminScopeRoute>} />
             <Route path="revenue"       element={<AdminScopeRoute scope="revenue"><AdminRevenue /></AdminScopeRoute>} />
             <Route path="reports"       element={<AdminScopeRoute scope="reports"><AdminReports /></AdminScopeRoute>} />
             <Route path="safety"        element={<AdminScopeRoute scope="reports"><AdminSafety /></AdminScopeRoute>} />
@@ -502,6 +526,7 @@ const AnimatedRoutes = () => {
             <Route path="marketing-users/:userId"  element={<AdminScopeRoute scope="marketing"><AdminMarketingUserDetail /></AdminScopeRoute>} />
             <Route path="referral-codes"           element={<AdminScopeRoute scope="marketing"><AdminReferralCodes /></AdminScopeRoute>} />
             <Route path="leads"                    element={<AdminScopeRoute scope="marketing"><AdminLeads /></AdminScopeRoute>} />
+            <Route path="payouts"                  element={<AdminScopeRoute scope="payouts"><AdminPayouts /></AdminScopeRoute>} />
             <Route path="success-stories"          element={<AdminScopeRoute scope="stories"><AdminSuccessStories /></AdminScopeRoute>} />
             <Route path="contact-messages"         element={<AdminScopeRoute scope="support"><AdminContactMessages /></AdminScopeRoute>} />
             <Route path="launch-offer"             element={<AdminScopeRoute scope="pricing"><AdminLaunchOffer /></AdminScopeRoute>} />
@@ -509,6 +534,7 @@ const AnimatedRoutes = () => {
             <Route path="team"                     element={<AdminScopeRoute scope="team"><AdminTeam /></AdminScopeRoute>} />
             <Route path="funnel"                   element={<AdminScopeRoute scope="users"><AdminFunnel /></AdminScopeRoute>} />
             <Route path="audit-log"                element={<AdminScopeRoute scope="team"><AdminAuditLog /></AdminScopeRoute>} />
+            <Route path="*" element={<AdminNotFound />} />
           </Route>
 
           {/* 404 */}
@@ -529,6 +555,41 @@ const AnimatedRoutes = () => {
   );
 };
 
+// One toast host for the whole app. The staff shells (admin, marketing) return
+// before the member layout below, which used to be the ONLY place a Toaster was
+// mounted: sixteen admin and marketing pages call toast.success / toast.error
+// and none of it was ever visible there (a refund, a ban, a failed save — all
+// silent). Both branches render this same component.
+const AppToaster = () => (
+  <Toaster
+    position="top-right"
+    toastOptions={{
+      duration: 4000,
+      style: {
+        background: '#FFFFFF',
+        color: '#2D2D2D',
+        borderRadius: '12px',
+        border: '1px solid #E8E8E8',
+        boxShadow: '0 10px 30px rgba(139, 35, 70, 0.1)',
+        padding: '16px',
+        fontFamily: 'Inter, sans-serif',
+      },
+      success: {
+        iconTheme: {
+          primary: '#2E7D32',
+          secondary: '#FFFFFF',
+        },
+      },
+      error: {
+        iconTheme: {
+          primary: '#C62828',
+          secondary: '#FFFFFF',
+        },
+      },
+    }}
+  />
+);
+
 // ==================== APP CONTENT ====================
 
 const AppContent = () => {
@@ -548,6 +609,15 @@ const AppContent = () => {
 
   const showBottomNav = isAuthenticated && !isAdminRoute && !isMarketingRoute && !isFunnelRoute;
 
+  // The launch announcement belongs on the pages a first-time visitor lands on,
+  // not inside the member app. The funnel routes have no Navbar to sit under.
+  const showLaunchBanner = !isFunnelRoute && (
+    location.pathname === '/'
+    || ['/about', '/safety', '/help', '/success-stories', '/contact', '/matrimony'].some(
+      (p) => location.pathname === p || location.pathname.startsWith(`${p}/`)
+    )
+  );
+
   // Admin and marketing routes render without Navbar/BottomNav/Toaster
   if (isAdminRoute || isMarketingRoute) {
     return (
@@ -557,6 +627,7 @@ const AppContent = () => {
         </div>
       }>
         <AnimatedRoutes />
+        <AppToaster />
       </Suspense>
     );
   }
@@ -570,6 +641,7 @@ const AppContent = () => {
         Skip to main content
       </a>
       {!isFunnelRoute && <Navbar />}
+      {showLaunchBanner && <LaunchBanner authenticated={isAuthenticated} />}
       <main
         id="main-content"
         tabIndex="-1"
@@ -580,33 +652,7 @@ const AppContent = () => {
         </ErrorBoundary>
       </main>
       {showBottomNav && <BottomNav />}
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#FFFFFF',
-            color: '#2D2D2D',
-            borderRadius: '12px',
-            border: '1px solid #E8E8E8',
-            boxShadow: '0 10px 30px rgba(139, 35, 70, 0.1)',
-            padding: '16px',
-            fontFamily: 'Inter, sans-serif',
-          },
-          success: {
-            iconTheme: {
-              primary: '#2E7D32',
-              secondary: '#FFFFFF',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#C62828',
-              secondary: '#FFFFFF',
-            },
-          },
-        }}
-      />
+      <AppToaster />
     </>
   );
 };

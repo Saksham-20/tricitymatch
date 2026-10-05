@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { getUsers, updateSubscription } from '../../api/adminApi';
 import toast from 'react-hot-toast';
 import blobErrorMessage from '../../utils/blobError';
-import { FiSearch, FiEdit2, FiDownload } from 'react-icons/fi';
+import { FiSearch, FiEdit2, FiDownload, FiAlertCircle } from 'react-icons/fi';
 import { adminGetInvoice } from '../../api/adminApi';
 import usePlanOptions from '../../hooks/usePlanOptions';
 import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
@@ -17,19 +17,16 @@ const PLAN_LABELS = {
   elite:         'Elite',
   vip:           'VIP',
   nri:           'NRI Connect',
+  founding_premium: 'Founding',
 };
 
 const PlanBadge = ({ plan }) => {
-  const map = {
-    free:          'bg-gray-100 text-gray-600',
-    basic_premium: 'bg-blue-100 text-blue-700',
-    premium_plus:  'bg-amber-100 text-amber-700',
-    elite:         'bg-yellow-100 text-yellow-700',
-    vip:           'bg-yellow-100 text-yellow-800',
-    nri:           'bg-emerald-100 text-emerald-700',
-  };
+  // Doctrine: one neutral + one premium-gold is the whole allowed set. Free is
+  // neutral; every paid tier is gold (gold = premium). No blue/emerald/amber.
+  const isPaid = plan && plan !== 'free';
+  const cls = isPaid ? 'bg-gold-50 text-gold-700' : 'bg-gray-100 text-gray-600';
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${map[plan] || 'bg-gray-100 text-gray-500'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
       {PLAN_LABELS[plan] || plan}
     </span>
   );
@@ -38,6 +35,7 @@ const PlanBadge = ({ plan }) => {
 export default function AdminSubscriptions() {
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(false);
   const [search, setSearch]       = useState('');
   const [page, setPage]           = useState(1);
   const [totalPages, setTotal]    = useState(1);
@@ -48,14 +46,17 @@ export default function AdminSubscriptions() {
   // Options come from the API so they track what Pricing & Offers has on sale
   // AND the backend enum — a hardcoded list has drifted from the enum before.
   const { options: planOptions } = usePlanOptions();
+  const firstFieldRef = useRef(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const res = await getUsers({ page, limit: 20, search: search || undefined });
       setUsers(res.data.users || []);
       setTotal(res.data.pagination?.pages || 1);
     } catch {
+      setError(true);
       toast.error('Failed to load subscriptions');
     } finally {
       setLoading(false);
@@ -63,6 +64,16 @@ export default function AdminSubscriptions() {
   }, [page, search]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Dialog a11y: focus the first control when the override modal opens and let
+  // Escape close it.
+  useEffect(() => {
+    if (!overrideModal) return undefined;
+    firstFieldRef.current?.focus();
+    const onKey = (e) => { if (e.key === 'Escape') setModal(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [overrideModal]);
 
   const openOverride = (user) => {
     setModal(user);
@@ -115,7 +126,7 @@ export default function AdminSubscriptions() {
           placeholder="Search users…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
       </div>
 
@@ -136,10 +147,22 @@ export default function AdminSubscriptions() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={`sk-${i}`}>
+                    {Array.from({ length: 7 }).map((__, j) => (
+                      <td key={j} className="px-4 py-3">
+                        <div className="h-4 bg-gray-100 rounded animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : error ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12">
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+                  <td colSpan={7} className="py-12">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <FiAlertCircle className="w-7 h-7 text-gray-400" />
+                      <p className="text-sm text-gray-500">Couldn&apos;t load subscriptions.</p>
+                      <button onClick={fetchData} className="px-4 py-2 bg-primary-700 hover:bg-primary-600 text-white rounded-xl text-sm font-medium transition-colors">Retry</button>
                     </div>
                   </td>
                 </tr>
@@ -182,7 +205,7 @@ export default function AdminSubscriptions() {
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {sub?.endDate ? new Date(sub.endDate).toLocaleDateString('en-IN') : '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-4 py-3 text-xs text-gray-500 tabular-nums">
                       {sub?.amount != null ? `₹${Number(sub.amount).toLocaleString('en-IN')}` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -192,6 +215,7 @@ export default function AdminSubscriptions() {
                             onClick={() => downloadInvoice(invoiceSub.id)}
                             className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
                             title="Download Invoice"
+                            aria-label="Download invoice"
                           >
                             <FiDownload className="w-3.5 h-3.5" />
                           </button>
@@ -200,6 +224,7 @@ export default function AdminSubscriptions() {
                           onClick={() => openOverride(u)}
                           className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
                           title="Override Plan"
+                          aria-label="Override plan"
                         >
                           <FiEdit2 className="w-3.5 h-3.5" />
                         </button>
@@ -225,14 +250,24 @@ export default function AdminSubscriptions() {
 
       {/* Override Modal */}
       {overrideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Override Plan</h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="override-plan-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="override-plan-title" className="text-lg font-bold text-gray-900 mb-1">Override Plan</h3>
             <p className="text-sm text-gray-500 mb-4">{[overrideModal.Profile?.firstName, overrideModal.Profile?.lastName].filter(Boolean).join(' ') || overrideModal.email}</p>
             <select
+              ref={firstFieldRef}
               value={newPlan}
               onChange={(e) => setNewPlan(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
             >
               {planOptions.map((p) => (
                 <option key={p.planType} value={p.planType}>

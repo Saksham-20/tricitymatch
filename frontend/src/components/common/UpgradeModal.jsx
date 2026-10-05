@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -36,6 +36,11 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
   // withdrawn tier is simply absent from `plans`, the same contract
   // Subscription.jsx already relies on.
   const [status, setStatus] = useState('idle');
+  // Focus management (mirrors ImageLightbox): the element to restore focus to
+  // on close, the dialog to trap Tab within, and the first control to focus.
+  const dialogRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  const triggerRef = useRef(null);
 
   const fetchPlans = useCallback(() => {
     setStatus('loading');
@@ -51,14 +56,35 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
     if (isOpen && status === 'idle') fetchPlans();
   }, [isOpen, status, fetchPlans]);
 
-  // Doctrine §6: sheets and modals close on Escape.
+  // Doctrine §6: sheets and modals close on Escape. Focus is also managed here
+  // (mirrors ImageLightbox): remember what was focused, move focus into the
+  // dialog, trap Tab within it, and restore focus to the trigger on close.
   useEffect(() => {
     if (!isOpen) return undefined;
+    triggerRef.current = document.activeElement;
+    closeBtnRef.current?.focus();
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])')
+      ).filter((el) => !el.disabled);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (typeof triggerRef.current?.focus === 'function') triggerRef.current.focus();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -82,6 +108,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
         {/* Modal wrapper keeps dialog fully visible across viewports */}
         <div className="fixed inset-0 z-80 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <motion.div
+            ref={dialogRef}
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -91,28 +118,28 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
             aria-modal="true"
             aria-label="Upgrade to Premium"
           >
-            {/* Gradient header */}
-            <div
-              className="relative px-6 pt-8 pb-6 text-center"
-              style={{
-                background: 'linear-gradient(135deg, #8B2346 0%, #6B1D3A 60%, #401123 100%)',
-              }}
-            >
+            {/* Header — surface with burgundy carried as accents only (doctrine
+                §3: burgundy is never a large flat/gradient fill). A thin accent
+                bar echoes the plan cards; the icon and title hold the brand. */}
+            <div className="relative px-6 pt-8 pb-6 text-center border-b border-neutral-100 dark:border-neutral-800">
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary-500 to-primary-700" />
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+                ref={closeBtnRef}
+                aria-label="Close"
+                className="absolute top-4 right-4 w-8 h-8 rounded-full text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors"
               >
-                <FiX className="w-4 h-4 text-white" />
+                <FiX className="w-4 h-4" />
               </button>
 
-              <div className="w-14 h-14 mx-auto mb-4 bg-white/15 rounded-2xl flex items-center justify-center">
-                <FiLock className="w-7 h-7 text-white" />
+              <div className="w-14 h-14 mx-auto mb-4 bg-primary-100 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center">
+                <FiLock className="w-7 h-7 text-primary-600 dark:text-primary-400" />
               </div>
 
-              <h2 className="font-display text-xl font-bold text-white mb-1.5">
+              <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">
                 Upgrade to Premium
               </h2>
-              <p className="text-white/75 text-sm">
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm">
                 {description || `Unlock "${feature}" and get access to premium features`}
               </p>
             </div>

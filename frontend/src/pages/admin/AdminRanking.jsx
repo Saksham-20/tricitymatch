@@ -28,7 +28,7 @@ function Row({ label, hint, value, min, max, onChange, defaultValue }) {
         <input
           type="number" value={value} min={min} max={max} aria-label={label}
           onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-          className="w-20 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-20 border border-gray-200 rounded-lg px-2 py-1.5 text-base text-right focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
       </div>
     </div>
@@ -63,7 +63,15 @@ function ExperimentSection() {
   if (error) {
     return <p className="text-sm text-red-700">Could not load the experiment. <button className="underline" onClick={load}>Retry</button></p>;
   }
-  if (!state) return null;
+  if (!state) {
+    return (
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4 space-y-3" aria-busy="true">
+        <div className="skeleton h-4 w-40 rounded" />
+        <div className="skeleton h-3 w-full max-w-md rounded" />
+        <div className="skeleton h-9 w-40 rounded-xl" />
+      </section>
+    );
+  }
 
   const exp = state.experiment;
   const running = Boolean(exp && exp.enabled);
@@ -87,7 +95,7 @@ function ExperimentSection() {
     setBusy(true);
     try {
       await stopRankingExperiment();
-      toast.success('Stopped — everyone is back on the live weights');
+      toast.success('Stopped. Everyone is back on the live weights.');
       await load();
     } catch {
       toast.error('Could not stop');
@@ -153,20 +161,20 @@ function ExperimentSection() {
             <label className="text-xs text-gray-500">
               Name
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="verified-boost"
-                className="mt-1 block w-44 border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+                className="mt-1 block w-44 border border-gray-200 rounded-lg px-2 py-1.5 text-base" />
             </label>
             <label className="text-xs text-gray-500">
               % in the variant (1–{state.maxShare})
               <input type="number" min={1} max={state.maxShare} value={form.sharePct}
                 onChange={(e) => setForm({ ...form, sharePct: e.target.value })}
-                className="mt-1 block w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+                className="mt-1 block w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-base" />
             </label>
             {SIGNALS.map(([key, label]) => (
               <label key={key} className="text-xs text-gray-500">
                 {label} (blank = unchanged)
                 <input type="number" value={form.overrides[key] ?? ''}
                   onChange={(e) => setForm({ ...form, overrides: { ...form.overrides, [key]: e.target.value } })}
-                  className="mt-1 block w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+                  className="mt-1 block w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-base" />
               </label>
             ))}
           </div>
@@ -200,7 +208,27 @@ export default function AdminRanking() {
   if (error) {
     return <p className="text-sm text-red-700">Could not load ranking weights. <button className="underline" onClick={load}>Retry</button></p>;
   }
-  if (!data || !draft) return <p className="text-sm text-gray-400">Loading…</p>;
+  if (!data || !draft) {
+    return (
+      <div className="space-y-5 max-w-2xl" aria-busy="true">
+        <div className="space-y-2">
+          <div className="skeleton h-7 w-44 rounded-lg" />
+          <div className="skeleton h-4 w-full max-w-md rounded" />
+        </div>
+        {[0, 1].map((s) => (
+          <div key={s} className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4 space-y-4">
+            <div className="skeleton h-4 w-28 rounded" />
+            {[0, 1, 2].map((r) => (
+              <div key={r} className="flex items-center justify-between gap-4">
+                <div className="skeleton h-4 w-40 rounded" />
+                <div className="skeleton h-8 w-20 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const { defaults, limits } = data;
   const setPlan = (key, v) => setDraft({ ...draft, plans: { ...draft.plans, [key]: v } });
@@ -212,7 +240,7 @@ export default function AdminRanking() {
       const res = await saveRankingWeights(draft);
       setData({ ...data, weights: res.data.weights });
       setDraft(res.data.weights);
-      toast.success('Ranking updated — live now');
+      toast.success('Ranking updated. Live now.');
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Could not save');
     } finally {

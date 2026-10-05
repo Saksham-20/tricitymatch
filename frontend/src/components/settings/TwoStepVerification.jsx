@@ -94,7 +94,7 @@ const TwoStepVerification = () => {
   return (
     <div>
       <div className="mb-5">
-        <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Two-step verification</h3>
+        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Two-step verification</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
           Asks for a code from an authenticator app when you sign in, so a stolen password alone is not enough.
         </p>
@@ -102,7 +102,7 @@ const TwoStepVerification = () => {
 
       <div className="max-w-xl space-y-4">
         {loadError && (
-          <p className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300">
+          <p className="flex items-center gap-2 text-sm text-destructive">
             <FiAlertCircle className="w-4 h-4" /> Could not load your setting.{' '}
             <button type="button" onClick={load} className="underline">Retry</button>
           </p>
@@ -111,7 +111,7 @@ const TwoStepVerification = () => {
         {status && step === 'idle' && (
           <div className="flex items-center justify-between gap-4">
             <p className="flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
-              <FiShield className={`w-4 h-4 ${status.enabled ? 'text-green-600 dark:text-green-400' : 'text-neutral-400'}`} />
+              <FiShield className={`w-4 h-4 ${status.enabled ? 'text-success' : 'text-neutral-400'}`} />
               {status.enabled
                 ? `On${status.recoveryCodesRemaining ? ` · ${status.recoveryCodesRemaining} recovery codes left` : ''}`
                 : 'Off'}
@@ -129,7 +129,7 @@ const TwoStepVerification = () => {
         )}
 
         {status?.required && !status.enabled && step === 'idle' && (
-          <p className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
+          <p className="flex items-start gap-2 text-sm text-warning">
             <FiAlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> Your role needs this turned on before you can use the admin or marketing areas.
           </p>
         )}

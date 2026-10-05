@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import toast from 'react-hot-toast';
+import { assignLead } from '../../api/adminApi';
+import ReassignLeadsDialog from '../../components/admin/ReassignLeadsDialog';
+import { formatLeadPhone, leadEmail } from '../../utils/leadContact';
 
 const LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
 
 export default function AdminLeads() {
   const [savingId, setSavingId] = useState(null);
+  const [moving, setMoving] = useState(null); // the lead being given to another partner
 
   const handleStatusChange = async (leadId, status) => {
     setSavingId(leadId);
@@ -80,7 +84,7 @@ export default function AdminLeads() {
           <Filter size={20} />
           <h2 className="text-lg font-semibold">Filters</h2>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
@@ -136,14 +140,15 @@ export default function AdminLeads() {
                   <th className="border p-3 text-left">Payment</th>
                   <th className="border p-3 text-left">Amount</th>
                   <th className="border p-3 text-left">Marketer</th>
+                  <th className="border p-3 text-left"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
                 {leads.map(lead => (
                   <tr key={lead.id} className="hover:bg-gray-50">
                     <td className="border p-3">{lead.name}</td>
-                    <td className="border p-3">{lead.phone}</td>
-                    <td className="border p-3">{lead.email || '-'}</td>
+                    <td className="border p-3 whitespace-nowrap">{formatLeadPhone(lead.phone)}</td>
+                    <td className="border p-3">{leadEmail(lead.email) || '-'}</td>
                     <td className="border p-3">{lead.city || '-'}</td>
                     <td className="border p-3">
                       {/* Editable here, not just displayed: an admin covering for a
@@ -174,6 +179,21 @@ export default function AdminLeads() {
                     </td>
                     <td className="border p-3">{lead.amountPaid ? `₹${lead.amountPaid}` : '-'}</td>
                     <td className="border p-3">{lead.AssignedMarketer?.email || '-'}</td>
+                    <td className="border p-3 whitespace-nowrap">
+                      {/* Someone who already became a member stays with the partner
+                          who earned the commission, so there is nothing to offer. */}
+                      {lead.convertedUserId ? (
+                        <span className="text-xs text-gray-500">Stays with partner</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setMoving(lead)}
+                          className="min-h-[44px] px-2 text-sm font-medium text-primary-700 hover:underline"
+                        >
+                          Reassign<span className="sr-only"> {lead.name}</span>
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -192,6 +212,22 @@ export default function AdminLeads() {
             ))}
           </div>
         </>
+      )}
+
+      {moving && (
+        <ReassignLeadsDialog
+          title={`Reassign ${moving.name}`}
+          intro={moving.AssignedMarketer?.email ? `Currently with ${moving.AssignedMarketer.email}.` : 'This lead has no partner yet.'}
+          confirmLabel="Reassign"
+          currentOwnerId={moving.assignedToMarketingUserId}
+          onClose={() => setMoving(null)}
+          onConfirm={async (toUserId) => {
+            const res = await assignLead(moving.id, toUserId);
+            toast.success(res.data?.message || 'Lead moved');
+            setMoving(null);
+            fetchLeads();
+          }}
+        />
       )}
     </div>
   );

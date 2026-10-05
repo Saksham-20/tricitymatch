@@ -65,7 +65,7 @@ export default function PaymentFailed() {
               </a>
               <Link
                 to="/dashboard"
-                className="w-full py-2.5 text-sm text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                className="w-full min-h-[44px] inline-flex items-center justify-center py-2.5 text-sm text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
               >
                 Back to Dashboard
               </Link>

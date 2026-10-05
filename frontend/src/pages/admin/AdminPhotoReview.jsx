@@ -93,7 +93,9 @@ export default function AdminPhotoReview() {
                     <label htmlFor={`note-${r.id}`} className="sr-only">Reason shown to the member</label>
                     <textarea id={`note-${r.id}`} rows={2} value={note} onChange={(e) => setNote(e.target.value)}
                       placeholder="Reason shown to the member"
+                      aria-describedby={`note-hint-${r.id}`}
                       className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                    <p id={`note-hint-${r.id}`} className="text-xs text-gray-400">At least 5 characters.</p>
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => { setRejecting(null); setNote(''); }} className="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
                       <button disabled={busyId === r.id || note.trim().length < 5}

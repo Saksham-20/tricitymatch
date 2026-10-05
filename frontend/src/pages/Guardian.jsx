@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useId } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
@@ -172,16 +172,18 @@ export default function Guardian() {
                 id="guardian-invite-email"
                 ref={emailInputRef}
                 type="email"
+                required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('guardian.inviteByEmail')}
+                placeholder="parent@example.com"
                 className="w-full px-4 py-3 text-base rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-[border-color,box-shadow] duration-[160ms]"
               />
             </div>
             <button
               type="submit"
               disabled={inviting}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium transition-colors duration-[160ms]"
+              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium transition-colors duration-[160ms]"
             >
               <FiUserPlus className="w-4 h-4" /> {t('guardian.invite')}
             </button>
@@ -208,7 +210,7 @@ export default function Guardian() {
                 <li key={g.linkId} className="flex items-center justify-between bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3">
                   <div>
                     <p className="text-neutral-800 dark:text-neutral-100 font-medium">{g.email}</p>
-                    <span className={`text-xs ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>
+                    <span className={`text-sm ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>
                       {g.status === 'active'
                         ? 'Active'
                         : `Waiting for their reply${g.expiresAt ? ` · until ${new Date(g.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}`}
@@ -221,7 +223,7 @@ export default function Guardian() {
                       <button onClick={() => setConfirmRevoke(null)} className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]">No</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmRevoke(g.linkId)} className="inline-flex items-center gap-1.5 text-destructive hover:opacity-80 text-sm">
+                    <button onClick={() => setConfirmRevoke(g.linkId)} className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-destructive hover:opacity-80 text-sm">
                       <FiTrash2 className="w-4 h-4" /> {t('guardian.revoke')}
                     </button>
                   )}
@@ -271,10 +273,17 @@ function CandidateCard({ candidate }) {
   const [open, setOpen] = useState(null); // 'matches' | 'shortlist' | null
   const [matches, setMatches] = useState([]);
   const [shortlist, setShortlist] = useState([]);
+  // Per-panel loading/error so a slow or failed fetch is never rendered as
+  // "nothing here yet" — the empty line only shows after a fetch actually
+  // returns empty, and a failure gets its own retry instead of masquerading
+  // as no results.
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const panelId = useId();
 
-  const toggle = async (which) => {
-    if (open === which) { setOpen(null); return; }
-    setOpen(which);
+  const fetchList = async (which) => {
+    setLoading(true);
+    setError(false);
     try {
       if (which === 'matches') {
         const r = await api.get(`/guardian/candidate/${candidate.candidateId}/matches`);
@@ -284,8 +293,17 @@ function CandidateCard({ candidate }) {
         setShortlist(r.data.shortlisted || []);
       }
     } catch {
+      setError(true);
       toast.error('Could not load');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const toggle = (which) => {
+    if (open === which) { setOpen(null); return; }
+    setOpen(which);
+    fetchList(which);
   };
 
   const list = open === 'matches' ? matches : shortlist;
@@ -295,24 +313,46 @@ function CandidateCard({ candidate }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-neutral-800 dark:text-neutral-100 font-medium">{candidate.name}</p>
-          <p className="text-xs text-neutral-400">{candidate.city} · {t('guardian.readOnly')}</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-400">{candidate.city} · {t('guardian.readOnly')}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => toggle('matches')} className="inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400">
+          <button
+            onClick={() => toggle('matches')}
+            aria-expanded={open === 'matches'}
+            aria-controls={panelId}
+            className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-sm text-primary-600 dark:text-primary-400"
+          >
             <FiHeart className="w-4 h-4" /> {t('guardian.viewMatches')}
           </button>
           {/* Shortlisting is a free action — gold is reserved for premium
               marks (doctrine §3.1), so this matches "View matches" instead
               of standing out as a false premium cue. */}
-          <button onClick={() => toggle('shortlist')} className="inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400">
+          <button
+            onClick={() => toggle('shortlist')}
+            aria-expanded={open === 'shortlist'}
+            aria-controls={panelId}
+            className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-sm text-primary-600 dark:text-primary-400"
+          >
             <FiStar className="w-4 h-4" /> {t('guardian.viewShortlist')}
           </button>
         </div>
       </div>
       {open && (
-        <ul className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-1.5">
-          {list.length === 0 ? (
-            <li className="text-sm text-neutral-400 flex items-center gap-1.5"><FiEye className="w-4 h-4" /> {t('common.empty')}</li>
+        <ul id={panelId} className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-1.5">
+          {loading ? (
+            <>
+              <li><Skeleton className="h-4 w-48" /></li>
+              <li><Skeleton className="h-4 w-36" /></li>
+            </>
+          ) : error ? (
+            <li className="flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 text-sm text-destructive"><FiX className="w-4 h-4" /> Could not load</span>
+              <button onClick={() => fetchList(open)} className="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline">
+                {t('common.retry')}
+              </button>
+            </li>
+          ) : list.length === 0 ? (
+            <li className="text-sm text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5"><FiEye className="w-4 h-4" /> {t('common.empty')}</li>
           ) : list.map((m) => (
             <li key={m.matchId} className="text-sm text-neutral-600 dark:text-neutral-300">{m.name} · {m.city}</li>
           ))}

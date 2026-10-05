@@ -29,4 +29,24 @@ describeDb('profile views: repeat visits', (t) => {
     expect(await ProfileView.count({ where: { viewerId: sneaky.user.id } })).toBe(0);
     expect(Profile).toBeDefined();
   });
+
+  t('staff browsing a profile leave no view, and cannot send an interest', async () => {
+    const { getProfile } = require('../../../controllers/profileController');
+    const { matchAction } = require('../../../controllers/matchController');
+    const { ProfileView, Match } = require('../../../models');
+    const owner = await makeMember({ profile: { gender: 'male' } });
+    const partner = await makeMember({ user: { role: 'marketing' } });
+    const admin = await makeMember({ user: { role: 'admin' } });
+    ids.push(owner.user.id, partner.user.id, admin.user.id);
+
+    for (const staff of [partner, admin]) {
+      const seen = await call(getProfile, { user: staff.user, params: { userId: owner.user.id } });
+      expect(seen.statusCode).toBe(200);
+      expect(await ProfileView.count({ where: { viewerId: staff.user.id } })).toBe(0);
+      const liked = await call(matchAction, { user: staff.user, params: { userId: owner.user.id }, body: { action: 'like' } });
+      expect(liked.statusCode).toBe(403);
+      expect(await Match.count({ where: { userId: staff.user.id } })).toBe(0);
+    }
+  });
 });
+

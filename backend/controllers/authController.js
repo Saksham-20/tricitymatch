@@ -4,7 +4,7 @@
  */
 
 const jwt = require('jsonwebtoken');
-const { User, Profile, RefreshToken, ReferralCode, MarketingLead } = require('../models');
+const { User, Profile, RefreshToken } = require('../models');
 const { cleanName } = require('../constants/names');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
@@ -23,6 +23,7 @@ const smsService = require('../utils/smsService');
 const { TERMS_VERSION, needsReconsent } = require('../constants/legal');
 const { trackEvent } = require('../utils/trackEvent');
 const { grantFoundingIfOpen } = require('../utils/foundingGrant');
+const { resolveSignupAttribution, attributionUserFields, recordSignupAttribution, afterSignupAttribution } = require('../utils/signupAttribution');
 const { getActiveSubscription } = require('../utils/entitlements');
 const { spendEmailBudget } = require('../utils/emailBudget');
 const { markSessionsRevoked } = require('../utils/sessionRevocation');
@@ -367,88 +368,14 @@ exports.signup = asyncHandler(async (req, res) => {
     if (existingByPhone) throw createError.conflict('An account already exists with this phone number');
   }
 
-  // Validate and process referral code
-  let referralData = null;
-  const codeToUse = referralCode || codeFromQuery;
-  if (codeToUse && typeof codeToUse === 'string') {
-    const code = await ReferralCode.findOne({ where: { code: codeToUse.trim().toUpperCase(), isActive: true } });
-    // Same rule as checkout (utils/referral.js resolveCode): a code whose rep
-    // has been deactivated must not keep creating leads and boosting members.
-    const rep = code
-      ? await User.findByPk(code.marketingUserId, { attributes: ['id', 'status'] })
-      : null;
-    if (code && rep && rep.status === 'active') {
-      referralData = {
-        referralCodeUsed: code.code,
-        referredByMarketingUserId: code.marketingUserId,
-        isBoosted: true,
-        boostExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
-      };
-    }
-  }
-
-  // Resolve the member invite AT SIGNUP, not just when the landing page rendered
-  // the inviter's name: the inviter may have been deleted or deactivated in
-  // between, and `invitedBy` must never point at a dead account. Any failure
-  // (unknown token, inactive inviter, DB hiccup) resolves to null and the signup
-  // proceeds normally — a forged invite is silently ignored, never an error.
-  let invitedBy = null;
-
-  // A MEMBER's referral code (utils/referral.js) typed in the same box as a
-  // marketing code. Marketing codes resolve first (above); only when none
-  // matched do we look for a member, and it then behaves exactly like that
-  // member's invite link — same `invitedBy`, same signup reward.
-  if (codeToUse && !referralData) {
-    try {
-      const { normaliseCode } = require('../utils/referral');
-      const memberCode = normaliseCode(String(codeToUse));
-      if (memberCode) {
-        const referrer = await User.findOne({
-          where: { referralCode: memberCode, status: 'active' },
-          attributes: ['id'],
-        });
-        if (referrer) invitedBy = referrer.id;
-      }
-    } catch (err) {
-      log.warn('Member referral lookup failed at signup (ignored)', { error: err.message });
-    }
-  }
-
-  // No code typed: a partner who added this person as a lead by hand still
-  // gets the attribution (first touch, recent lead, active partner). No boost —
-  // that is the code's reward for a member who chose to use it.
-  let manualLead = null;
-  if (!referralData) {
-    try {
-      const { findManualLeadForSignup } = require('../utils/manualLeads');
-      manualLead = await findManualLeadForSignup({ phone: phoneToStore, email: emailToStore });
-      if (manualLead) {
-        referralData = {
-          referralCodeUsed: null,
-          referredByMarketingUserId: manualLead.assignedToMarketingUserId,
-          isBoosted: false,
-          boostExpiresAt: null,
-        };
-      }
-    } catch (err) {
-      log.warn('Manual lead lookup failed at signup (ignored)', { error: err.message });
-    }
-  }
-
-  if (inviteFromRequest && !invitedBy) {
-    try {
-      const token = String(inviteFromRequest).trim();
-      if (/^[0-9a-f]{16,128}$/i.test(token)) {
-        const inviter = await User.findOne({
-          where: { inviteToken: token, status: 'active' },
-          attributes: ['id'],
-        });
-        if (inviter) invitedBy = inviter.id;
-      }
-    } catch (err) {
-      log.warn('Invite lookup failed at signup (ignored)', { error: err.message });
-    }
-  }
+  // Partner code, member code or invite, or a partner's hand-added lead.
+  // Shared with Google signup (utils/signupAttribution) so both credit alike.
+  const attribution = await resolveSignupAttribution({
+    code: referralCode || codeFromQuery,
+    invite: inviteFromRequest,
+    phone: phoneToStore,
+    email: emailToStore,
+  });
 
   const sequelize = require('../config/database');
   let result;
@@ -470,8 +397,7 @@ exports.signup = asyncHandler(async (req, res) => {
         // out from the start, using the same switch the unsubscribe link flips
         // (a member can turn it back on from the link or their account).
         ...(marketingConsent ? {} : { lifecycleMail: { emailOptOut: new Date().toISOString() } }),
-        invitedBy,
-        ...(referralData && referralData)
+        ...attributionUserFields(attribution),
       }, { transaction: t });
 
       // Leave gender/dateOfBirth NULL when not supplied so a mobile account
@@ -489,34 +415,11 @@ exports.signup = asyncHandler(async (req, res) => {
         onboardingComplete: onboardedAtSignup
       }, { transaction: t });
 
-      if (manualLead) {
-        // `convertedUserId IS NULL` guard: two near-simultaneous signups
-        // matching the same lead cannot both convert it.
-        await MarketingLead.update(
-          { convertedUserId: user.id, status: 'contacted' },
-          { where: { id: manualLead.id, convertedUserId: null }, transaction: t }
-        );
-      } else if (referralData) {
-        await ReferralCode.update(
-          // Quote the column: Postgres folds an unquoted identifier to lower
-          // case, so `usageCount + 1` resolved to a non-existent `usagecount`
-          // and threw inside the signup transaction — every signup carrying a
-          // valid referral code rolled back with "Unable to create account",
-          // which killed the whole marketing-referral funnel silently.
-          { usageCount: sequelize.literal('"usageCount" + 1') },
-          { where: { code: referralData.referralCodeUsed }, transaction: t }
-        );
-
-        await MarketingLead.create({
-          name: [firstName, lastName].filter(Boolean).join(' ').trim() || 'New member',
-          phone: phoneToStore || 'N/A',
-          email: emailToStore || 'N/A',
-          assignedToMarketingUserId: referralData.referredByMarketingUserId,
-          referralCode: referralData.referralCodeUsed,
-          convertedUserId: user.id,
-          status: 'contacted'
-        }, { transaction: t });
-      }
+      await recordSignupAttribution(t, user, attribution, {
+        name: [firstName, lastName].filter(Boolean).join(' '),
+        phone: phoneToStore,
+        email: emailToStore,
+      });
 
       return user;
     });
@@ -531,15 +434,10 @@ exports.signup = asyncHandler(async (req, res) => {
   // Funnel stage 3 — account-bound, so the partial unique index makes it
   // once-per-user on its own. Fire-and-forget: never awaited.
   trackEvent(result.id, 'account_created');
-  if (invitedBy) {
-    trackEvent(result.id, 'invited_signup');
-    // Reward BOTH sides. Deliberately outside the signup transaction and
-    // never awaited into the response path's failure modes — rewardInvite
-    // swallows its own errors by contract, because a reward that fails must
-    // not cost anyone their account. Awaited so the grant below sees any
-    // credit that landed as pending.
-    await require('../utils/inviteReward').rewardInvite(result.id, invitedBy);
-  }
+  // Reward BOTH sides of an invite. Outside the transaction (a failed reward
+  // must not cost anyone their account); awaited so the founding grant below
+  // sees any credit that landed as pending.
+  await afterSignupAttribution(result.id, attribution);
 
   // Founding-member grant (Phase S). Deliberately OUTSIDE the signup
   // transaction: any error raised inside a Postgres transaction poisons it, so
@@ -992,7 +890,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, config.auth.jwtSecret);
+    decoded = jwt.verify(token, config.auth.jwtSecret, { algorithms: ['HS256'] });
   } catch (err) {
     throw createError.badRequest('Invalid or expired reset token');
   }
@@ -1650,24 +1548,26 @@ exports.googleAuth = asyncHandler(async (req, res) => {
       // New user — create account + profile in one transaction
       // A NEW account needs acceptance stated in the request, exactly like email
       // signup. An existing member signing in with Google is not creating one.
+      // The code lets the client show its consent step and send the same
+      // Google credential again with the box ticked (the token stays valid).
       if (!truthy(req.body.termsAccepted)) {
-        throw createError.badRequest('Please accept the Terms and Privacy Policy to create an account');
+        const err = createError.badRequest('Please accept the Terms and Privacy Policy to create an account');
+        err.code = 'GOOGLE_CONSENT_REQUIRED';
+        throw err;
       }
       isNewUser = true;
-      // Same hand-added-lead attribution as the email/phone signup: Google has
-      // proved the email, so it can match a partner's lead.
-      let manualLead = null;
-      try {
-        const { findManualLeadForSignup } = require('../utils/manualLeads');
-        manualLead = await findManualLeadForSignup({ phone: null, email });
-      } catch (err) {
-        log.warn('Manual lead lookup failed at Google signup (ignored)', { error: err.message });
-      }
+      // Same credit rules as email/phone signup: partner code, member code or
+      // invite, or a partner's hand-added lead for this email.
+      const attribution = await resolveSignupAttribution({
+        code: req.body.referralCode || req.body.ref,
+        invite: req.body.invite,
+        email: canonicalEmail(email),
+      });
       user = await sequelize.transaction(async (t) => {
         const newUser = await User.create({
           email: canonicalEmail(email),
           googleId,
-          ...(manualLead ? { referredByMarketingUserId: manualLead.assignedToMarketingUserId } : {}),
+          ...attributionUserFields(attribution),
           password: null,
           status: 'active',
           emailVerified: true,
@@ -1686,18 +1586,17 @@ exports.googleAuth = asyncHandler(async (req, res) => {
           // they edited it. Onboarding collects the real values.
         }, { transaction: t });
 
-        if (manualLead) {
-          await MarketingLead.update(
-            { convertedUserId: newUser.id, status: 'contacted' },
-            { where: { id: manualLead.id, convertedUserId: null }, transaction: t }
-          );
-        }
+        await recordSignupAttribution(t, newUser, attribution, {
+          name: [firstName, lastName].filter(Boolean).join(' '),
+          email: canonicalEmail(email),
+        });
 
         return newUser;
       });
 
       // Same funnel stage 3 for the Google first-time signup path.
       trackEvent(user.id, 'account_created');
+      await afterSignupAttribution(user.id, attribution);
 
       // …and the same founding grant. Leaving it off this path would mean two
       // people signing up the same day get different entitlements purely by
@@ -1736,11 +1635,15 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   if (!isNewUser) alertIfNewDevice(req, user, sessionId);
   setAuthCookies(res, accessToken, refreshToken);
 
+  // The full user, as password login returns it, so the client needs no
+  // second /auth/me and sees onboardingComplete (false for a new Google member,
+  // who still has to give gender and date of birth).
+  const fullUser = await User.findByPk(user.id, { attributes: { exclude: ['password'] }, include: [{ model: Profile }] });
   res.status(isNewUser ? 201 : 200).json({
     success: true,
     message: isNewUser ? 'Account created successfully' : 'Logged in successfully',
     isNewUser,
-    user: { id: user.id, email: user.email, role: user.role },
+    user: await withDerivedUserFields(fullUser),
     tokens: { accessToken, refreshToken, expiresIn: config.auth.jwtExpiry },
   });
 });

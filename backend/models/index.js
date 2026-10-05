@@ -14,6 +14,7 @@ const ContactUnlock = require('./ContactUnlock');
 const ReferralCode = require('./ReferralCode');
 const MarketingLead = require('./MarketingLead');
 const MarketingPayout = require('./MarketingPayout');
+const MarketingPayoutDetail = require('./MarketingPayoutDetail');
 const CallSession = require('./CallSession');
 const GuardianLink = require('./GuardianLink');
 const Astrologer = require('./Astrologer');
@@ -84,6 +85,10 @@ Report.belongsTo(User, { foreignKey: 'reportedUserId', as: 'ReportedUser' });
 Report.belongsTo(User, { foreignKey: 'reviewedBy', as: 'Reviewer' });
 Report.belongsTo(User, { foreignKey: 'assignedTo', as: 'Assignee' });
 
+// Appeal relationships (listAppeals eager-loads the appellant)
+Appeal.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Appeal, { foreignKey: 'userId', onDelete: 'CASCADE' });
+
 // Notification relationships
 User.hasMany(Notification, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
@@ -114,6 +119,8 @@ MarketingLead.belongsTo(User, { foreignKey: 'convertedUserId', as: 'ConvertedUse
 User.hasMany(MarketingPayout, { foreignKey: 'marketingUserId', as: 'MarketingPayouts', onDelete: 'CASCADE' });
 MarketingPayout.belongsTo(User, { foreignKey: 'marketingUserId', as: 'MarketingUser' });
 MarketingPayout.belongsTo(User, { foreignKey: 'createdBy', as: 'RecordedBy' });
+User.hasOne(MarketingPayoutDetail, { foreignKey: 'marketingUserId', as: 'PayoutDetail', onDelete: 'CASCADE' });
+MarketingPayoutDetail.belongsTo(User, { foreignKey: 'marketingUserId', as: 'MarketingUser' });
 
 // CallSession relationships
 User.hasMany(CallSession, { foreignKey: 'callerId', as: 'CallsMade', onDelete: 'CASCADE' });
@@ -181,6 +188,7 @@ module.exports = {
   ReferralCode,
   MarketingLead,
   MarketingPayout,
+  MarketingPayoutDetail,
   CallSession,
   GuardianLink,
   Astrologer,

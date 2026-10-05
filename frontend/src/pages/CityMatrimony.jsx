@@ -70,7 +70,7 @@ export default function CityMatrimony() {
           >
             Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
-          <span className="text-sm text-neutral-500 dark:text-neutral-400">
+          <span className="text-sm text-neutral-600 dark:text-neutral-400">
             Free to join · Verified with a live selfie
           </span>
         </div>
@@ -90,7 +90,7 @@ export default function CityMatrimony() {
             {!founding.loading && (
               <>
                 :{' '}
-                <em className="italic text-gold-400">
+                <em className={`italic ${founding.open ? 'text-gold-400' : 'text-[#FDF8F2]'}`}>
                   {founding.open ? 'founding members join free.' : 'and doing it in the open.'}
                 </em>
               </>
@@ -105,7 +105,7 @@ export default function CityMatrimony() {
           </p>
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms]"
+            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FDF8F2]"
           >
             Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
@@ -166,16 +166,17 @@ export default function CityMatrimony() {
                   type="button"
                   onClick={() => setOpenFaq(isOpen ? -1 : i)}
                   aria-expanded={isOpen}
-                  className="w-full flex items-center justify-between gap-4 text-left min-h-[56px] py-4"
+                  aria-controls={`faq-panel-${i}`}
+                  className="w-full flex items-center justify-between gap-4 text-left min-h-[56px] py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
                 >
-                  <span className="font-medium text-[15px]">{faq.q}</span>
+                  <span className="font-medium text-base">{faq.q}</span>
                   <FiChevronDown
                     aria-hidden="true"
                     className={`w-4 h-4 flex-shrink-0 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {isOpen && (
-                  <p className="pb-5 -mt-1 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+                  <p id={`faq-panel-${i}`} className="pb-5 -mt-1 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
                     {faq.a}
                   </p>
                 )}
@@ -187,7 +188,7 @@ export default function CityMatrimony() {
 
       {/* ── Closing CTA + sibling cities (internal linking) ──────────────── */}
       <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
-        <div className="rounded-3xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-8 sm:p-10 text-center">
+        <div className="rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-8 sm:p-10 text-center">
           <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
             Start with a profile your family would stand behind
           </h2>

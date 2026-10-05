@@ -11,6 +11,7 @@ const {
   bulkUpdateStatus,
   getPhotoQueue,
   removePhoto,
+  flagPhoto,
   getSupportStaff,
   assignContactMessage,
 } = require('../controllers/adminSafetyController');
@@ -66,9 +67,14 @@ const {
   getAdmins,
   createAdmin,
   updateUserRole,
+  updateMarketingUser,
+  assignLead,
+  reassignPartnerLeads,
+  resetMarketingUserPassword,
+  resendPartnerWelcome,
 } = require('../controllers/adminController');
 const { auth, adminAuth, requireAdminScope } = require('../middlewares/auth');
-const { getFunnel, getAuditLog } = require('../controllers/analyticsController');
+const { getFunnel, getAuditLog, getAuditActions } = require('../controllers/analyticsController');
 const { handleValidationErrors, asyncHandler } = require('../middlewares/errorHandler');
 const { adminLimiter } = require('../middlewares/security');
 const { sendPushNotification } = require('../utils/fcm');
@@ -83,7 +89,7 @@ const {
   updateVerificationValidation, 
   adminSearchValidation 
 } = require('../validators');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const { listAppeals, decideAppeal, listEvidence, getEvidence } = require('../controllers/appealController');
 const { listMediaReviews, decideMediaReview } = require('../controllers/mediaReviewController');
 
@@ -150,6 +156,7 @@ router.put('/users/:userId/subscription', requireAdminScope('subscriptions'),
 // ==================== MEASUREMENT ====================
 
 router.get('/funnel', requireAdminScope('users'), getFunnel);
+router.get('/audit-log/actions', requireAdminScope('team'), getAuditActions);
 router.get('/audit-log', requireAdminScope('team'), getAuditLog);
 
 // ==================== PLAN OPTIONS (grantable plans) ====================
@@ -186,6 +193,7 @@ router.get('/suspicious', requireAdminScope('reports'), getSuspicious);
 router.get('/moderation-stats', requireAdminScope('reports'), getModerationStats);
 router.get('/photos', requireAdminScope('reports'), getPhotoQueue);
 router.delete('/photos', requireAdminScope('reports'), removePhoto);
+router.post('/photos/flag', requireAdminScope('reports'), flagPhoto);
 router.put('/reports/:reportId', requireAdminScope('reports'),
   param('reportId').isUUID(4),
   body('status').isIn(['reviewing', 'resolved', 'reviewed', 'dismissed']),
@@ -216,6 +224,34 @@ router.post('/subscriptions/:subscriptionId/refund', requireAdminScope('subscrip
 
 router.get('/marketing-users', requireAdminScope('marketing'), getMarketingUsers);
 router.post('/marketing-users', requireAdminScope('marketing'), adminCreateMarketingUserValidation, handleValidationErrors, createMarketingUser);
+router.put('/marketing-users/:userId', requireAdminScope('marketing'),
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  updateMarketingUser
+);
+router.post('/marketing-users/:userId/reset-password', requireAdminScope('marketing'),
+  param('userId').isUUID(4),
+  body('password').isString().isLength({ min: 12, max: 100 }).withMessage('Password must be 12-100 characters'),
+  handleValidationErrors,
+  resetMarketingUserPassword
+);
+router.post('/marketing-users/:userId/resend-welcome', requireAdminScope('marketing'),
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  resendPartnerWelcome
+);
+router.post('/marketing-users/:userId/reassign-leads', requireAdminScope('marketing'),
+  param('userId').isUUID(4),
+  body('toUserId').isUUID(4).withMessage('Choose the partner to move the leads to'),
+  handleValidationErrors,
+  reassignPartnerLeads
+);
+router.put('/leads/:leadId/assign', requireAdminScope('marketing'),
+  param('leadId').isUUID(4),
+  body('marketingUserId').isUUID(4).withMessage('Choose the partner to move the lead to'),
+  handleValidationErrors,
+  assignLead
+);
 router.put('/marketing-users/:userId/status', requireAdminScope('marketing'),
   param('userId').isUUID(4),
   body('status').isIn(['active', 'inactive']),
@@ -246,6 +282,7 @@ router.post('/marketing-users/:userId/payouts', requireAdminScope('payouts'),
 router.put('/marketing-payouts/:payoutId', requireAdminScope('payouts'),
   param('payoutId').isUUID(4),
   body('status').isIn(['pending', 'paid']),
+  body('reference').optional({ nullable: true }).isString().isLength({ max: 128 }),
   handleValidationErrors,
   updateMarketingPayout
 );
@@ -254,6 +291,36 @@ router.delete('/marketing-payouts/:payoutId', requireAdminScope('payouts'),
   body('reason').isString().trim().isLength({ min: 5, max: 300 }).withMessage('A reason (5-300 characters) is required to void a payout'),
   handleValidationErrors,
   deleteMarketingPayout
+);
+const payoutCtl = require('../controllers/marketingPayoutController');
+router.get('/marketing-payouts/overview', requireAdminScope('payouts'), payoutCtl.getPayoutOverview);
+router.get('/marketing-payout-settings', requireAdminScope('payouts'), payoutCtl.getPayoutSettingsAdmin);
+router.put('/marketing-payout-settings', requireAdminScope('payouts'),
+  body('holdDays').optional().isInt({ min: 0, max: 90 }),
+  body('minPayout').optional().isFloat({ min: 0, max: 100000 }),
+  body('tdsRate').optional().isFloat({ min: 0, max: 30 }),
+  handleValidationErrors,
+  payoutCtl.updatePayoutSettingsAdmin
+);
+router.post('/marketing-payouts/prepare', requireAdminScope('payouts'),
+  body('repIds').optional().isArray({ max: 500 }),
+  body('repIds.*').optional().isUUID(4),
+  handleValidationErrors,
+  payoutCtl.prepareBatch
+);
+router.get('/marketing-payouts/queued', requireAdminScope('payouts'), payoutCtl.getQueued);
+router.get('/marketing-payouts/queued.csv', requireAdminScope('payouts'), payoutCtl.queuedCsv);
+router.post('/marketing-payouts/mark-paid', requireAdminScope('payouts'),
+  body('items').isArray({ min: 1, max: 500 }),
+  body('items.*.id').isUUID(4),
+  body('items.*.reference').optional({ nullable: true }).isString().isLength({ max: 128 }),
+  handleValidationErrors,
+  payoutCtl.markPaid
+);
+router.get('/marketing-users/:userId/payout-details', requireAdminScope('payouts'),
+  param('userId').isUUID(4),
+  handleValidationErrors,
+  payoutCtl.getRepPayoutDetails
 );
 router.get('/marketing-users/:userId/report', requireAdminScope('marketing'),
   param('userId').isUUID(4),
@@ -268,7 +335,7 @@ router.get('/marketing-users/:userId/stats', requireAdminScope('marketing'),
 
 // ==================== REFERRAL CODES ====================
 
-router.get('/referral-codes', requireAdminScope('marketing'), getReferralCodes);
+router.get('/referral-codes', requireAdminScope('marketing'), query('marketingUserId').optional().isUUID(4), handleValidationErrors, getReferralCodes);
 router.post('/referral-codes', requireAdminScope('marketing'),
   body('code').isString().trim().isLength({ min: 3, max: 32 }).withMessage('Code must be 3-32 characters'),
   body('marketingUserId').isUUID(4),
@@ -283,7 +350,7 @@ router.put('/referral-codes/:id/toggle', requireAdminScope('marketing'),
 
 // ==================== MARKETING LEADS ====================
 
-router.get('/leads', requireAdminScope('marketing'), getLeads);
+router.get('/leads', requireAdminScope('marketing'), query('marketingUserId').optional().isUUID(4), handleValidationErrors, getLeads);
 router.put('/leads/:leadId/status',
   requireAdminScope('marketing'),
   param('leadId').isUUID(4),

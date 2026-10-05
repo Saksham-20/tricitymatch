@@ -96,7 +96,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
     >
       {canApply && (
         <div>
-          <h3 className="font-serif text-lg text-neutral-900 dark:text-neutral-100 leading-tight">Have a referral code?</h3>
+          <h2 className="font-display text-lg text-neutral-900 dark:text-neutral-100 leading-tight">Have a referral code?</h2>
           <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">
             Take {inr(info.discountPaise / 100)} off your first plan.
           </p>
@@ -108,7 +108,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                  {applied.code} — {inr(applied.discount)} off
+                  {applied.code} · {inr(applied.discount)} off
                 </p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
                   You pay {inr(applied.finalPrice)} instead of {inr(applied.price)}
@@ -141,7 +141,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
                   onChange={(e) => { setInput(e.target.value.toUpperCase()); setError(''); }}
                   placeholder="Enter code"
                   maxLength={32}
-                  className="flex-1 min-w-0 min-h-[44px] px-3 rounded-xl border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-surface-dark-3 text-sm uppercase tracking-wider text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="flex-1 min-w-0 min-h-[44px] px-3 rounded-xl border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-surface-dark-3 text-base uppercase tracking-wider text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <button
                   type="submit"
@@ -160,7 +160,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
       )}
 
       <div className={canApply ? 'md:border-l md:border-neutral-200 md:dark:border-neutral-700 md:pl-5' : 'md:col-span-2'}>
-        <h3 className="font-serif text-lg text-neutral-900 dark:text-neutral-100 leading-tight">Refer a friend</h3>
+        <h2 className="font-display text-lg text-neutral-900 dark:text-neutral-100 leading-tight">Refer a friend</h2>
         <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">
           They get {inr(info.discountPaise / 100)} off their first plan
           {info.referrerUnlocks > 0
@@ -169,7 +169,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
         </p>
         {info.code && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 min-h-[44px] px-3 rounded-xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-700 font-mono text-sm tracking-widest text-neutral-900 dark:text-neutral-100">
+            <span className="inline-flex items-center gap-2 min-h-[44px] px-3 rounded-xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-700 text-sm tracking-widest tabular-nums text-neutral-900 dark:text-neutral-100">
               <FiGift className="w-4 h-4 text-primary-600" aria-hidden="true" />
               {info.code}
             </span>

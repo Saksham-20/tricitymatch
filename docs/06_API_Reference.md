@@ -50,7 +50,7 @@ Register new user. Rate: signupLimiter (3/hr).
 
 **Body:**
 ```json
-{ "email": "user@example.com", "password": "Pass@1234" }
+{ "email": "user@example.com", "password": "your-password" }
 ```
 
 **Response 201:**
@@ -66,7 +66,7 @@ Login with email + password. Rate: authLimiter (5/15min) + lockout check.
 
 **Body:**
 ```json
-{ "email": "user@example.com", "password": "Pass@1234" }
+{ "email": "user@example.com", "password": "your-password" }
 ```
 
 **Response 200:**
@@ -114,7 +114,7 @@ Send password reset email. Rate: passwordResetLimiter (3/hr).
 ### `POST /auth/reset-password`
 Reset password using token from email.
 
-**Body:** `{ "token": "...", "password": "NewPass@1234" }`
+**Body:** `{ "token": "...", "password": "your-new-password" }`
 
 **Response 200:** `{ "success": true }`
 
@@ -163,7 +163,7 @@ Verify OTP. Rate: otpLimiter.
 ### `POST /auth/change-password`
 🔒 Auth required.
 
-**Body:** `{ "currentPassword": "...", "newPassword": "NewPass@1234" }`
+**Body:** `{ "currentPassword": "...", "newPassword": "your-new-password" }`
 
 **Response 200:** `{ "success": true }`
 

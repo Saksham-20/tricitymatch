@@ -81,8 +81,11 @@ describe('Dashboard first-run variant', () => {
     routeApi(okEmpty(thinProfile));
     renderDash();
 
-    await waitFor(() => expect(screen.getByText(/add your photo/i)).toBeInTheDocument());
-    expect(screen.getByText(/set partner preferences/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/set partner preferences/i)).toBeInTheDocument());
+    expect(screen.getByText(/write about yourself/i)).toBeInTheDocument();
+    // The photo is asked for once (the PhotoNudge), not again as a checklist tile.
+    expect(screen.getAllByText(/add a photo to your profile/i)).toHaveLength(1);
+    expect(screen.queryByText(/^add your photo$/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Profile Views')).not.toBeInTheDocument();
   });
 

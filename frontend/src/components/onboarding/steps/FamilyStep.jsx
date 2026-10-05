@@ -92,29 +92,6 @@ const FamilyStep = () => {
         />
       </motion.div>
 
-      <motion.div variants={fadeRise} className="grid grid-cols-2 gap-4">
-        <FormField
-          label="Brothers"
-          type="number"
-          inputMode="numeric"
-          placeholder="Optional"
-          value={formData.brothers}
-          onChange={(value) => updateFormData('brothers', value)}
-          min="0"
-          max="15"
-        />
-        <FormField
-          label="Sisters"
-          type="number"
-          inputMode="numeric"
-          placeholder="Optional"
-          value={formData.sisters}
-          onChange={(value) => updateFormData('sisters', value)}
-          min="0"
-          max="15"
-        />
-      </motion.div>
-
       <motion.div variants={fadeRise}>
         <Select
           label="Family values"

@@ -10,8 +10,8 @@ import Skeleton from '../components/ui/Skeleton';
 import { fadeRise, staggerContainer, DUR, EASE_OUT } from '../utils/animations';
 
 const STATUS_META = {
-  approved:      { icon: FiCheckCircle, cls: 'text-success bg-success-50 border border-success-100',         key: 'statusApproved', ringCls: 'text-success' },
-  pending:       { icon: FiClock,       cls: 'text-warning bg-warning-light border border-warning/20',       key: 'statusPending',  ringCls: 'text-warning' },
+  approved:      { icon: FiCheckCircle, cls: 'text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30', key: 'statusApproved', ringCls: 'text-success' },
+  pending:       { icon: FiClock,       cls: 'text-warning bg-warning-light dark:bg-warning/15 border border-warning/20 dark:border-warning/30', key: 'statusPending',  ringCls: 'text-warning' },
   // Staff flagged it for a closer look: neutral wording, no resubmit form.
   flagged:       { icon: FiClock,       cls: 'text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700', key: 'statusInReview', ringCls: 'text-neutral-400' },
   rejected:      { icon: FiXCircle,     cls: 'text-destructive bg-destructive-light border border-destructive/20', key: 'statusRejected', ringCls: 'text-destructive' },
@@ -130,7 +130,7 @@ export default function Verification() {
       <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-6">
-            <FiShield className="w-7 h-7 text-primary-600" />
+            <FiShield className="w-7 h-7 text-primary-600 dark:text-primary-400" />
             <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">{t('verification.title')}</h1>
           </div>
           <ErrorState
@@ -147,7 +147,7 @@ export default function Verification() {
     <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-16">
       <motion.div initial="initial" animate="animate" variants={staggerContainer} className="max-w-3xl mx-auto px-4 py-8">
         <motion.div variants={fadeRise} className="flex items-center gap-3 mb-1">
-          <FiShield className="w-7 h-7 text-primary-600" />
+          <FiShield className="w-7 h-7 text-primary-600 dark:text-primary-400" />
           <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">{t('verification.title')}</h1>
         </motion.div>
         <motion.p variants={fadeRise} className="text-neutral-500 mb-6">{t('verification.subtitle')}</motion.p>
@@ -175,7 +175,7 @@ export default function Verification() {
                 h4-h6 scale the two real <h2>s below use, so it never reads as
                 a heading of equal weight (doctrine §3.2, audit finding). */}
             <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Trust Score</p>
-            <p className="text-sm text-neutral-500">Complete each tier to boost your trust and get more responses.</p>
+            <p className="text-sm text-neutral-500">Verify your profile to build trust and get more responses.</p>
           </div>
         </motion.div>
 
@@ -241,11 +241,11 @@ export default function Verification() {
           )}
 
           {selfieStatus === 'approved' ? (
-            <div className="flex items-center gap-2 text-success bg-success-50 border border-success-100 rounded-xl p-4 text-sm font-medium">
+            <div className="flex items-center gap-2 text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 rounded-xl p-4 text-sm font-medium">
               <FiCheckCircle className="w-5 h-5" /> Your profile is verified. The badge is live for other members.
             </div>
           ) : selfieStatus === 'pending' ? (
-            <div className="flex items-center gap-2 text-warning bg-warning-light border border-warning/20 rounded-xl p-4 text-sm font-medium">
+            <div className="flex items-center gap-2 text-warning bg-warning-light dark:bg-warning/15 border border-warning/20 dark:border-warning/30 rounded-xl p-4 text-sm font-medium">
               <FiClock className="w-5 h-5" /> Your selfie is with our team for review. We'll notify you once it's done.
             </div>
           ) : selfieStatus === 'flagged' ? (
@@ -262,9 +262,9 @@ export default function Verification() {
                   { step: '3', title: 'Get the badge', desc: 'Verified tick on your profile' },
                 ].map(({ step, title, desc }) => (
                   <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-100 dark:border-neutral-700">
-                    <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs font-bold flex items-center justify-center mb-1.5">{step}</div>
+                    <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 text-xs font-bold flex items-center justify-center mb-1.5">{step}</div>
                     <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{title}</p>
-                    <p className="text-[11px] text-neutral-500 mt-0.5">{desc}</p>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">{desc}</p>
                   </div>
                 ))}
               </div>
@@ -280,7 +280,7 @@ export default function Verification() {
               <button
                 type="submit"
                 disabled={submitting || !selfie}
-                className="mt-2 w-full sm:w-auto min-h-[44px] btn-primary"
+                className="mt-2 w-full sm:w-auto min-h-11 btn-primary"
               >
                 {submitting ? t('common.loading') : 'Submit for review'}
               </button>

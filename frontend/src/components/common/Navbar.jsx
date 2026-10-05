@@ -137,7 +137,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
         className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-[160ms]"
         aria-label="Profile menu"
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm">
+        <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 text-xs font-display font-semibold flex-shrink-0 ring-1 ring-primary-500/10">
           {initials}
         </div>
         <span className="hidden lg:block text-sm font-medium text-neutral-700 max-w-[100px] truncate">
@@ -356,12 +356,17 @@ const Navbar = () => {
                 whileTap={{ scale: 0.93 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-expanded={isMobileMenuOpen}
-                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-                className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors"
+                aria-label={isMobileMenuOpen ? 'Close menu' : (unreadCount > 0 ? `Open menu, ${unreadCount} unread notifications` : 'Open menu')}
+                className="relative md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors"
               >
                 {isMobileMenuOpen
                   ? <FiX className="w-5 h-5" />
                   : <FiMenu className="w-5 h-5" />}
+                {/* On a phone the bell lives inside this menu; without a mark
+                    here a new notification was invisible until opened. */}
+                {!isMobileMenuOpen && unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-primary-600 ring-2 ring-white dark:ring-neutral-900" aria-hidden="true" />
+                )}
               </motion.button>
             </div>
           </div>
@@ -404,7 +409,7 @@ const Navbar = () => {
               {/* User info (auth) */}
               {isAuthenticated && user && (
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b] bg-neutral-50 dark:bg-surface-dark-1">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 text-sm font-display font-semibold flex-shrink-0 ring-1 ring-primary-500/10">
                     {((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || 'U'}
                   </div>
                   <div className="min-w-0">

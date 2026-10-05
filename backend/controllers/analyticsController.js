@@ -101,26 +101,100 @@ exports.getFunnel = asyncHandler(async (req, res) => {
 });
 
 // @route   GET /api/v1/admin/audit-log
-// @desc    Privileged actions, newest first
+// @desc    Privileged actions, newest first. Filters: action, actor, target
+//          (a user id OR part of an email), from/to (YYYY-MM-DD, India days).
+//          `format=csv` streams the whole filtered log as a file.
 // @access  Private/Admin (scope: team)
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const IST_OFFSET = '+05:30';
+const isYmd = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+const escapeLike = (v) => String(v).replace(/[%_\\]/g, '\\$&');
+const AUDIT_EXPORT_BATCH = 1000;
+
+/** Sequelize where + required joins for the audit filters in a query string. */
+const auditFilters = (query) => {
+  const { Op } = require('sequelize');
+  const { User } = require('../models');
+  const where = {};
+  const joins = {};
+
+  if (query.action) where.action = String(query.action).slice(0, 64);
+
+  // "Who did it" / "who was it about": a pasted user id matches exactly, anything
+  // else is treated as part of an email address.
+  const person = (raw, idField, alias, key) => {
+    const v = String(raw || '').trim().slice(0, 120);
+    if (!v) return;
+    if (UUID.test(v)) { where[idField] = v; return; }
+    joins[key] = { model: User, as: alias, attributes: ['id', 'email', 'role'], required: true, where: { email: { [Op.iLike]: `%${escapeLike(v)}%` } } };
+  };
+  person(query.actor || query.actorId, 'actorId', 'Actor', 'actor');
+  person(query.target || query.targetUserId, 'targetUserId', 'TargetUser', 'target');
+
+  // Whole India calendar days, matching how the rest of the panel reads dates.
+  const range = {};
+  if (isYmd(query.from)) range[Op.gte] = new Date(`${query.from}T00:00:00.000${IST_OFFSET}`);
+  if (isYmd(query.to)) range[Op.lte] = new Date(`${query.to}T23:59:59.999${IST_OFFSET}`);
+  if (Object.getOwnPropertySymbols(range).length) where.createdAt = range;
+
+  return { where, joins };
+};
+
+const auditIncludes = (joins) => {
+  const { User, Profile } = require('../models');
+  return [
+    joins.actor || { model: User, as: 'Actor', attributes: ['id', 'email', 'role'], required: false, include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }] },
+    joins.target || { model: User, as: 'TargetUser', attributes: ['id', 'email', 'role'], required: false },
+  ];
+};
+
 exports.getAuditLog = asyncHandler(async (req, res) => {
-  const { AuditLog, User, Profile } = require('../models');
+  const { AuditLog } = require('../models');
+  const { where, joins } = auditFilters(req.query);
+
+  if (req.query.format === 'csv') {
+    const { streamCsv } = require('../utils/csvStream');
+    const { Op } = require('sequelize');
+    const { logAudit, log } = require('../middlewares/logger');
+    const total = await AuditLog.count({ where, include: Object.values(joins).map((j) => ({ ...j, attributes: [] })) });
+    const when = (d) => new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' });
+
+    const result = await streamCsv(res, {
+      filename: `tricitymatch-audit-log-${new Date().toISOString().slice(0, 10)}.csv`,
+      header: ['When (IST)', 'Action', 'By', 'By role', 'About', 'Details'],
+      total,
+      log,
+      fetchBatch: async (cursor) => {
+        const and = [where];
+        if (cursor) {
+          and.push({ [Op.or]: [{ createdAt: { [Op.lt]: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { [Op.lt]: cursor.id } }] });
+        }
+        const rows = await AuditLog.findAll({
+          where: { [Op.and]: and },
+          include: auditIncludes(joins),
+          order: [['createdAt', 'DESC'], ['id', 'DESC']],
+          limit: AUDIT_EXPORT_BATCH,
+        });
+        const last = rows[rows.length - 1];
+        return { rows, next: rows.length === AUDIT_EXPORT_BATCH ? { createdAt: last.createdAt, id: last.id } : null };
+      },
+      toRow: (e) => [when(e.createdAt), e.action, e.Actor?.email || '', e.Actor?.role || '', e.TargetUser?.email || '', e.details ? JSON.stringify(e.details) : ''],
+    });
+    // Reading the audit trail in bulk is itself worth a line in it.
+    logAudit('audit_log_exported', req.user.id, { rows: result.rows, filters: Object.keys(req.query).filter((k) => req.query[k] && k !== 'format') });
+    return undefined;
+  }
+
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
   const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-  const where = {};
-  if (req.query.action) where.action = String(req.query.action).slice(0, 64);
-  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (req.query.actorId && uuid.test(String(req.query.actorId))) where.actorId = String(req.query.actorId);
-  if (req.query.targetUserId && uuid.test(String(req.query.targetUserId))) where.targetUserId = String(req.query.targetUserId);
 
   const { count, rows } = await AuditLog.findAndCountAll({
     where,
-    include: [
-      { model: User, as: 'Actor', attributes: ['id', 'email', 'role'], include: [{ model: Profile, attributes: ['firstName', 'lastName'] }] },
-    ],
-    order: [['createdAt', 'DESC']],
+    include: auditIncludes(joins),
+    order: [['createdAt', 'DESC'], ['id', 'DESC']],
     limit,
     offset: (page - 1) * limit,
+    distinct: true,
   });
 
   res.json({
@@ -128,6 +202,18 @@ exports.getAuditLog = asyncHandler(async (req, res) => {
     entries: rows,
     pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
   });
+});
+
+// @route   GET /api/v1/admin/audit-log/actions
+// @desc    Every action that has been recorded, with counts, for the filter
+//          dropdown (so it lists what actually exists, not a hand-kept list).
+// @access  Private/Admin (scope: team)
+exports.getAuditActions = asyncHandler(async (req, res) => {
+  const rows = await sequelize.query(
+    'SELECT "action", COUNT(*)::int AS count FROM "AuditLogs" GROUP BY "action" ORDER BY "action" ASC',
+    { type: QueryTypes.SELECT }
+  );
+  res.json({ success: true, actions: rows });
 });
 
 exports.FUNNEL = FUNNEL;

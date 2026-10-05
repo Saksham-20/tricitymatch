@@ -3,6 +3,7 @@ const { asyncHandler, createError } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const { sendEmail } = require('../utils/email');
 const config = require('../config/env');
+const { findContactInText } = require('../utils/contactInText');
 
 // Enquiry text is stored as typed; escape it where it is placed into HTML.
 const esc = (v) => String(v ?? '')
@@ -69,6 +70,12 @@ const submitSuccessStory = asyncHandler(async (req, res) => {
 
   if (!names || !text) {
     throw createError.badRequest('Couple names and your story are required');
+  }
+
+  // Published stories are public pages: no phone numbers, emails or handles in
+  // them, the same rule as profile text.
+  if ([names, text, location].some((v) => typeof v === 'string' && findContactInText(v))) {
+    throw createError.badRequest('Please take out phone numbers, email addresses, links and handles. Stories are published on the website for everyone to read.');
   }
 
   const record = await SuccessStory.create({

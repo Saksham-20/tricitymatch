@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ const DURATIONS = [10, 15, 30, 45];
 
 export default function AstrologerDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [ast, setAst] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +69,7 @@ export default function AstrologerDetail() {
           order_id: b.razorpayOrderId,
           amount: b.amountPaise,
           name: 'TricityMatch',
+          image: `${window.location.origin}/icons/icon-192x192.png`,
           description: `Consultation with ${b.astrologerName}`,
           handler: async (resp) => {
             try {
@@ -133,7 +135,7 @@ export default function AstrologerDetail() {
           title="Astrologer not found"
           description="This listing may have been removed."
           actionLabel="Back to astrologers"
-          onAction={() => window.history.back()}
+          onAction={() => navigate('/astrologers')}
         />
       </div>
     );
@@ -153,7 +155,7 @@ export default function AstrologerDetail() {
           onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
         />
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-100">{ast.name}</h1>
+          <h1 className="font-display text-2xl font-semibold text-neutral-800 dark:text-neutral-100">{ast.name}</h1>
           <p className="text-neutral-500 dark:text-neutral-400">{(ast.speciality || []).join(', ')}</p>
           <div className="flex items-center gap-4 mt-2 text-sm text-neutral-600 dark:text-neutral-300">
             <span className="inline-flex items-center gap-1"><FiStar className="w-4 h-4 text-warning fill-warning" /> {ast.rating} ({ast.reviewCount})</span>
@@ -175,10 +177,10 @@ export default function AstrologerDetail() {
         </div>
       ) : (
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
-          <h2 className="font-semibold text-neutral-800 dark:text-neutral-100 mb-4">{t('astrologers.book')} · {t('astrologers.perMin', { price: ast.pricePerMin })}</h2>
+          <h2 className="font-display font-semibold text-neutral-800 dark:text-neutral-100 mb-4">{t('astrologers.book')} · {t('astrologers.perMin', { price: ast.pricePerMin })}</h2>
 
           <label className="block text-sm text-neutral-600 dark:text-neutral-300 mb-1">Duration</label>
-          <div className="flex gap-2 mb-4">
+          <div role="group" aria-label="Duration" className="flex gap-2 mb-4">
             {DURATIONS.map((d) => (
               <button
                 key={d}
@@ -202,7 +204,7 @@ export default function AstrologerDetail() {
 
           <div className="flex items-center justify-between mb-4">
             <span className="text-neutral-500 dark:text-neutral-400 text-sm">Total</span>
-            <span className="font-semibold text-neutral-800 dark:text-neutral-100">₹{ast.pricePerMin * duration}</span>
+            <span className="font-semibold text-neutral-800 dark:text-neutral-100 tabular-nums">₹{ast.pricePerMin * duration}</span>
           </div>
 
           <button

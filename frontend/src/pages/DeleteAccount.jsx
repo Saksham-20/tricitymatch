@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Seo from '../components/common/Seo';
+import { support } from '../config';
 
 // Public account-deletion page. Google Play's Data-Safety / account-deletion
 // policy requires a URL reachable outside the app that explains how a user can
@@ -20,7 +21,7 @@ export default function DeleteAccount() {
           <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Delete your account</h1>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-8">Applies to the TricityMatch website and mobile apps</p>
 
-          <div className="prose prose-sm max-w-none text-neutral-700 dark:text-neutral-300 space-y-6">
+          <div className="max-w-none text-base leading-relaxed text-neutral-700 dark:text-neutral-300 space-y-6">
             <section>
               <p>
                 You can delete your TricityMatch account at any time. Your profile is hidden
@@ -35,7 +36,7 @@ export default function DeleteAccount() {
                 <li>Log in at <Link to="/login" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">tricitymatch.com/login</Link></li>
                 <li>Go to <strong>Settings</strong></li>
                 <li>Open the <strong>Pause or delete</strong> tab and choose <strong>Delete My Account</strong></li>
-                <li>Confirm with your password. To erase everything at once instead of after 30 days, tick <strong>Delete immediately</strong></li>
+                <li>Confirm with your password (if you signed in with Google, use the email request below instead). To erase everything at once instead of after 30 days, tick <strong>Delete immediately</strong></li>
                 <li>Changed your mind? Sign in and choose <strong>Cancel deletion</strong> on the same tab</li>
               </ol>
             </section>
@@ -53,7 +54,7 @@ export default function DeleteAccount() {
             <section>
               <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2">Can't log in?</h2>
               <p>
-                Email us at <a href="mailto:support@tricitymatch.com" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">support@tricitymatch.com</a> from
+                Email us at <a href={`mailto:${support.email}`} className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">{support.email}</a> from
                 the email address registered to your account (or include the mobile number
                 you signed up with) and request deletion. We will verify it is really you
                 before deleting, and confirm once it is done.

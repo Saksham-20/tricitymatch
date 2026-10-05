@@ -14,11 +14,12 @@
  *   2. WHAT is disclosed -> redactForViewer()
  */
 
-const { Op } = require('sequelize');
+const { Op, literal } = require('sequelize');
 const { Block, Match, Profile, User } = require('../models');
 const { getActiveSubscription } = require('./entitlements');
 const { applyFieldVisibility } = require('../constants/fieldVisibility');
 const { normalizeGotra, gotraSql } = require('./gotra');
+const { maskProfileText } = require('./contactInText');
 const { AGE_VERIFIABLE_WHERE } = require('./ageVerifiable');
 
 // Keys that belong to the owner and are never useful to anyone else. Note
@@ -130,6 +131,14 @@ const gotraClause = (ctx) => {
  *        the member chose to share, so it does not hide incognito members the
  *        way discovery does.
  */
+// Staff are not candidates. Admin and partner accounts are created with
+// placeholder identity (partners get gender 'other', DOB 1990-01-01), and an
+// admin promoted from a personal account can read every member's data — none of
+// them belongs in a member's search results or daily matches.
+const STAFF_EXCLUDED = {
+  userId: { [Op.notIn]: literal(`(SELECT id FROM "Users" WHERE role <> 'user')`) },
+};
+
 const listingScope = (ctx, { includeIncognito = false, applyGotra = true } = {}) => {
   const gotra = applyGotra ? gotraClause(ctx) : null;
   return {
@@ -141,7 +150,7 @@ const listingScope = (ctx, { includeIncognito = false, applyGotra = true } = {})
       [Op.ne]: ctx.viewerId,
       ...(ctx.blockedIds.length ? { [Op.notIn]: ctx.blockedIds } : {}),
     },
-    [Op.and]: [matchesOnlyClause(ctx), ...(gotra ? [gotra] : [])],
+    [Op.and]: [matchesOnlyClause(ctx), STAFF_EXCLUDED, ...(gotra ? [gotra] : [])],
   };
 };
 
@@ -238,6 +247,8 @@ const redactForViewer = (raw, { isMutual = false, isSelf = false, hasPaidAccess 
 
   stripOwnerOnlyKeys(out);
   delete out.User;
+  // Contact details saved in profile text before they were refused at save.
+  maskProfileText(out);
   return out;
 };
 

@@ -63,7 +63,7 @@ const Input = forwardRef(
               'w-full px-4 py-3 text-base rounded-xl border bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100',
               'transition-[border-color,box-shadow] duration-[160ms]',
               'focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
-              'placeholder:text-neutral-400',
+              'placeholder:text-neutral-500',
               leftIcon && 'pl-10',
               (rightIcon || isPassword) && 'pr-10',
               error
@@ -82,7 +82,6 @@ const Input = forwardRef(
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none"
-              tabIndex={-1}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (

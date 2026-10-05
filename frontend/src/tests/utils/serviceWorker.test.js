@@ -177,3 +177,25 @@ describe('service worker caching policy', () => {
     expect(await click(undefined)).toEqual(['/']);
   });
 });
+
+describe('service worker registration', () => {
+  const MAIN = readFileSync(resolve(__dirname, '../../main.jsx'), 'utf8');
+
+  // Cloudflare kept a year-immutable copy of the first worker under bare
+  // `/sw.js`; registering that URL again would re-adopt it and break every
+  // Cloudinary photo. The registered URL must carry a version.
+  it('registers a versioned script URL that bypasses the edge copy of /sw.js', () => {
+    expect(MAIN).toMatch(/serviceWorker\.register\(`\/sw\.js\?v=\$\{SW_VERSION\}`/);
+    expect(MAIN).not.toMatch(/serviceWorker\.register\(['"]\/sw\.js['"]/);
+  });
+
+  it('the shipped worker never intercepts cross-origin requests (Cloudinary photos)', async () => {
+    const w = boot();
+    let responded = false;
+    w.listeners.fetch({
+      request: { method: 'GET', url: 'https://res.cloudinary.com/x/image/upload/a.jpg', mode: 'no-cors', headers: makeHeaders() },
+      respondWith: () => { responded = true; },
+    });
+    expect(responded).toBe(false);
+  });
+});

@@ -44,6 +44,28 @@ async function getRepRevenue(marketingUserId) {
 }
 
 /**
+ * Net revenue from a rep's members split by whether the refund window has
+ * passed: `clear` is money paid at least `holdDays` ago (commission on it is
+ * payable), `total` is everything. Same predicate and lead join as
+ * getRepRevenue, so the two cannot drift. The payment moment is the plan's
+ * startDate (activation), falling back to createdAt.
+ */
+async function getRepRevenueSplit(marketingUserId, holdDays = 7) {
+  const [row] = await sequelize.query(
+    `SELECT COALESCE(SUM(GREATEST(amount - "refundedAmount", 0)), 0)::float AS total,
+            COALESCE(SUM(GREATEST(amount - "refundedAmount", 0))
+              FILTER (WHERE COALESCE("startDate", "createdAt") <= NOW() - (:holdDays || ' days')::interval), 0)::float AS clear
+       FROM "Subscriptions"
+      WHERE ${PAID_SUBSCRIPTION_SQL}
+        AND "userId" IN (
+              SELECT "convertedUserId" FROM "MarketingLeads"
+               WHERE "assignedToMarketingUserId" = :marketingUserId AND "convertedUserId" IS NOT NULL)`,
+    { replacements: { marketingUserId, holdDays: String(Math.max(0, Math.round(Number(holdDays) || 0))) }, type: sequelize.QueryTypes.SELECT }
+  );
+  return { total: Number(row?.total) || 0, clear: Number(row?.clear) || 0 };
+}
+
+/**
  * @param {string} marketingUserId
  * @param {{ page?: number, limit?: number, status?: string, paymentStatus?: string }} opts
  */
@@ -186,4 +208,4 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
   };
 }
 
-module.exports = { buildMarketingReport, getRepRevenue, PAID_SUBSCRIPTION_WHERE };
+module.exports = { buildMarketingReport, getRepRevenue, getRepRevenueSplit, PAID_SUBSCRIPTION_WHERE };

@@ -1,18 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiHome, FiSearch, FiMessageCircle, FiUser } from 'react-icons/fi';
+import api from '../../api/axios';
 
 const NAV_ITEMS = [
-  { path: '/dashboard',  label: 'Home',    icon: FiHome          },
-  { path: '/search',     label: 'Search',  icon: FiSearch        },
-  { path: '/chat',       label: 'Chat',    icon: FiMessageCircle },
-  { path: '/profile',    label: 'Profile', icon: FiUser          },
+  { path: '/dashboard',  labelKey: 'navbar.dashboard', icon: FiHome          },
+  { path: '/search',     labelKey: 'navbar.findMatch', icon: FiSearch        },
+  { path: '/chat',       labelKey: 'navbar.messages',  icon: FiMessageCircle },
+  { path: '/profile',    labelKey: 'navbar.myProfile', icon: FiUser          },
 ];
 
-const BottomNav = ({ unreadCount = 0 }) => {
+const BottomNav = ({ unreadCount: unreadCountProp = 0 }) => {
   const location = useLocation();
+  const { t } = useTranslation();
   const isActive = (path) => location.pathname === path;
+
+  // The Messages badge counts unread MESSAGES. It used to show the general
+  // notification count, so a like lit up "Messages" with a 1 and tapping it led
+  // to an empty inbox. The interval is torn down when the member signs out and
+  // the nav unmounts. An explicit prop still wins if a parent ever supplies one.
+  const [fetchedCount, setFetchedCount] = useState(0);
+  useEffect(() => {
+    const fetchCount = () => {
+      api.get('/chat/unread-count')
+        .then((r) => setFetchedCount(r.data?.count || 0))
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+  const unreadCount = unreadCountProp || fetchedCount;
 
   return (
     <nav
@@ -33,6 +53,7 @@ const BottomNav = ({ unreadCount = 0 }) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             const showBadge = item.path === '/chat' && unreadCount > 0;
+            const label = t(item.labelKey);
 
             return (
               <Link
@@ -40,7 +61,7 @@ const BottomNav = ({ unreadCount = 0 }) => {
                 to={item.path}
                 viewTransition
                 aria-current={active ? 'page' : undefined}
-                aria-label={item.label}
+                aria-label={label}
                 className="relative flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors duration-200"
               >
                 {/* Active background pill */}
@@ -80,7 +101,7 @@ const BottomNav = ({ unreadCount = 0 }) => {
                     active ? 'text-primary-500' : 'text-neutral-400'
                   }`}
                 >
-                  {item.label}
+                  {label}
                 </span>
               </Link>
             );

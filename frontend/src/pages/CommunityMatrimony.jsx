@@ -48,8 +48,8 @@ export default function CommunityMatrimony() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
-        <nav aria-label="Breadcrumb" className="text-xs text-neutral-500 dark:text-neutral-400">
-          <Link to={`/matrimony/${city.slug}`} className="hover:text-primary-700 dark:hover:text-primary-300">
+        <nav aria-label="Breadcrumb" className="text-sm text-neutral-500 dark:text-neutral-400">
+          <Link to={`/matrimony/${city.slug}`} className="text-neutral-600 dark:text-neutral-300 hover:text-primary-700 dark:hover:text-primary-300">
             Matrimony in {city.name}
           </Link>
           <span className="mx-2" aria-hidden="true">/</span>
@@ -73,7 +73,7 @@ export default function CommunityMatrimony() {
           >
             Create your profile <FiArrowRight aria-hidden="true" />
           </Link>
-          <span className="text-sm text-neutral-500 dark:text-neutral-400">
+          <span className="text-sm text-neutral-600 dark:text-neutral-400">
             Free to join · Verified with a live selfie
           </span>
         </div>
@@ -123,7 +123,7 @@ export default function CommunityMatrimony() {
             {!founding.loading && (
               <>
                 :{' '}
-                <em className="italic text-gold-400">
+                <em className={`italic ${founding.open ? 'text-gold-400' : 'text-[#FDF8F2]'}`}>
                   {founding.open ? 'and founding members join free.' : 'checked by a person, not a score.'}
                 </em>
               </>
@@ -137,7 +137,7 @@ export default function CommunityMatrimony() {
           </p>
           <Link
             to="/onboarding"
-            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms]"
+            className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FDF8F2]"
           >
             <FiShield className="w-4 h-4" aria-hidden="true" /> Create your profile
           </Link>
@@ -154,6 +154,7 @@ export default function CommunityMatrimony() {
                 type="button"
                 onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
                 aria-expanded={openFaq === i}
+                aria-controls={`faq-panel-${i}`}
                 className="w-full flex items-start justify-between gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
               >
                 <span className="text-base font-medium">{faq.q}</span>
@@ -163,7 +164,7 @@ export default function CommunityMatrimony() {
                 />
               </button>
               {openFaq === i && (
-                <p className="pb-5 -mt-1 text-sm sm:text-base leading-relaxed text-neutral-600 dark:text-neutral-400">
+                <p id={`faq-panel-${i}`} className="pb-5 -mt-1 text-sm sm:text-base leading-relaxed text-neutral-600 dark:text-neutral-400">
                   {faq.a}
                 </p>
               )}

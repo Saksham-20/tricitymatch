@@ -117,7 +117,7 @@ export default function InviteLink({ variant = 'card', className = '' }) {
         type="button"
         onClick={handleCopy}
         disabled={state === 'loading'}
-        className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-primary-200 text-primary-700 bg-white hover:bg-primary-50 text-sm font-medium transition-colors disabled:opacity-60 ${className}`}
+        className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-primary-200 text-primary-700 dark:text-primary-300 bg-white dark:bg-primary-900/40 hover:bg-primary-50 dark:hover:bg-primary-900/50 text-sm font-medium transition-colors disabled:opacity-60 ${className}`}
       >
         {copied ? <FiCheck className="w-4 h-4" /> : <FiLink className="w-4 h-4" />}
         {state === 'loading' ? 'Getting your link…' : copied ? 'Link copied' : 'Invite someone you know'}
@@ -168,7 +168,7 @@ export default function InviteLink({ variant = 'card', className = '' }) {
   return (
     <div className={`bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-5 ${className}`}>
       <div className="flex items-start gap-3">
-        <span className="w-9 h-9 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center flex-shrink-0">
+        <span className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center flex-shrink-0">
           <FiLink className="w-4 h-4" />
         </span>
         <div className="min-w-0">
@@ -189,7 +189,7 @@ export default function InviteLink({ variant = 'card', className = '' }) {
         <div className="mt-4 flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
           <FiAlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
           <span>Could not load your invite link.</span>
-          <button type="button" onClick={load} className="text-primary-700 underline underline-offset-2 min-h-[44px]">
+          <button type="button" onClick={load} className="text-primary-700 dark:text-primary-300 underline underline-offset-2 min-h-[44px]">
             Try again
           </button>
         </div>

@@ -49,7 +49,7 @@ const scrollbarStyles = `
 // Typing indicator component. Elevation declared once — shadow only, no
 // border (doctrine §3.4: never both on the same element).
 const TypingIndicator = () => (
-  <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl rounded-bl-sm shadow-sm w-fit">
+  <div className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-surface-dark-3 rounded-2xl rounded-bl-sm shadow-sm w-fit">
     <div className="typing-indicator flex gap-1">
       <span className="w-2 h-2 bg-primary-300 rounded-full"></span>
       <span className="w-2 h-2 bg-primary-300 rounded-full"></span>
@@ -94,12 +94,12 @@ const ConversationAvatar = ({ name, photo, size = 'w-14 h-14', textSize = 'text-
           if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex';
         }}
       />
-      <div className={`${size} rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold ${textSize} ring-2 ring-white shadow-md hidden`} aria-hidden="true">
+      <div className={`${size} rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 font-display ${textSize} ring-2 ring-white shadow-md hidden`} aria-hidden="true">
         {(name || '?')[0]}
       </div>
     </>
   ) : (
-    <div className={`${size} rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold ${textSize} ring-2 ring-white shadow-md`}>
+    <div className={`${size} rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 font-display ${textSize} ring-2 ring-white shadow-md`}>
       {(name || '?')[0]}
     </div>
   )
@@ -147,6 +147,10 @@ const Chat = () => {
   const [showFirstReplyUpsell, setShowFirstReplyUpsell] = useState(false);
 
   const chatEverWorked = useRef(false);
+  const lastSocketRef = useRef(null);
+  // Who the open thread is with, read by in-flight loads so a slow response
+  // for the previous person never fills the new thread.
+  const openThreadRef = useRef(null);
   const messagesEndRef = useRef(null);
   const editInputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -197,11 +201,33 @@ const Chat = () => {
     return () => clearTimeout(t);
   }, [replyWindow?.active, replyWindow?.expiresAt]);
 
+  // The thread loads over REST whether or not the socket is up: a blocked or
+  // slow websocket must never leave the pane on its loading skeleton. Keyed on
+  // the person, not the row object, so a refreshed row for the same person
+  // does not reload (and flash) the thread.
+  useEffect(() => {
+    openThreadRef.current = selected?.userId || null;
+    if (selected && !selected.locked) loadMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.userId, selected?.locked]);
+
   useEffect(() => {
     if (selected && !selected.locked && socket) {
-      loadMessages();
+      // A new socket after a drop may have missed messages: refetch quietly.
+      if (lastSocketRef.current && lastSocketRef.current !== socket) loadMessages({ quiet: true });
+      lastSocketRef.current = socket;
       const roomId = [user.id, selected.userId].sort().join('_room_');
       socket.emit('join-room', roomId);
+      // After a dropped connection the server has forgotten the room and the
+      // thread may have missed messages: rejoin and refetch quietly. The first
+      // connect is skipped (the emit above is buffered until then).
+      let connectedBefore = socket.connected;
+      const onReconnect = () => {
+        if (!connectedBefore) { connectedBefore = true; return; }
+        socket.emit('join-room', roomId);
+        loadMessages({ quiet: true });
+      };
+      socket.on('connect', onReconnect);
 
       const isForThread = (m) => m.senderId === selected.userId || m.receiverId === selected.userId;
 
@@ -243,6 +269,7 @@ const Chat = () => {
 
       return () => {
         socket.emit('leave-room', roomId);
+        socket.off('connect', onReconnect);
         socket.off('message:new', onNew);
         socket.off('message:edited', onEdited);
         socket.off('message:deleted', onDeleted);
@@ -253,7 +280,7 @@ const Chat = () => {
     }
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, socket, user.id]);
+  }, [selected?.userId, selected?.locked, socket, user.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -317,12 +344,17 @@ const Chat = () => {
     }
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async ({ quiet = false } = {}) => {
     if (!selected) return;
-    setMessagesLoading(true);
-    setMessagesError(false);
+    if (!quiet) {
+      setMessagesLoading(true);
+      setMessagesError(false);
+    }
+    const threadId = selected.userId;
+    const stale = () => openThreadRef.current !== threadId;
     try {
-      const response = await api.get(`/chat/messages/${selected.userId}`);
+      const response = await api.get(`/chat/messages/${threadId}`);
+      if (stale()) return;
       setMessages(response.data.messages || []);
       // D1: the thread response carries {reason, replyWindow} — drives the
       // composer state machine (normal / meter / paywalled).
@@ -333,6 +365,9 @@ const Chat = () => {
       setRevoked(false);
     } catch (error) {
       if (isDev) console.error('Failed to load messages:', error.response?.data || error.message);
+      if (stale()) return;
+      // A background refresh that fails leaves the thread as it was.
+      if (quiet && error.response?.status !== 403) return;
       if (error.response?.status === 403) {
         const code = error.response?.data?.error?.code;
         if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
@@ -351,7 +386,7 @@ const Chat = () => {
         setMessagesError(true);
       }
     } finally {
-      setMessagesLoading(false);
+      if (!quiet && !stale()) setMessagesLoading(false);
     }
   };
 
@@ -495,8 +530,14 @@ const Chat = () => {
     return messageAge < 15 * 60 * 1000;
   };
 
+  // Scroll the message list only. scrollIntoView also scrolls every scrollable
+  // ancestor, which moved the whole page and slid the thread header (name,
+  // View profile, safety menu) under the fixed navbar.
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const list = chatContainerRef.current;
+    if (!list) return;
+    if (typeof list.scrollTo === 'function') list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    else list.scrollTop = list.scrollHeight;
   };
 
   const typingTimeoutRef = useRef(null);
@@ -542,6 +583,12 @@ const Chat = () => {
       setShowUpgradeModal(true);
       return;
     }
+    // Tapping the conversation that is already open just shows it (on mobile,
+    // closes the list); it must not blank the thread it is showing.
+    if (selected && row.userId === selected.userId) {
+      setShowMobileSidebar(false);
+      return;
+    }
     setSelected(row);
     setMessages([]);
     setMessagesLoading(true);
@@ -561,7 +608,7 @@ const Chat = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex">
+      <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex">
         {/* Skeleton mirrors the real two-pane layout, not a spinner. */}
         <div className="hidden md:flex w-80 lg:w-96 h-full flex-col bg-white dark:bg-surface-dark-3 border-r border-neutral-200 dark:border-neutral-800 p-4 space-y-4">
           <Skeleton className="h-6 w-32" />
@@ -597,7 +644,7 @@ const Chat = () => {
   if (accessDenied) {
     return (
       <>
-        <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
+        <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 dark:bg-gold-900/20 border border-gold-100 dark:border-gold-800/40 rounded-full flex items-center justify-center">
               <FiLock className="w-12 h-12 text-gold-600 dark:text-gold-400" />
@@ -621,7 +668,7 @@ const Chat = () => {
 
   if (loadError) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
+      <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <ErrorState
           title="Couldn't load your conversations"
           description="The connection dropped before this finished loading. Your messages are safe. Try again."
@@ -634,7 +681,7 @@ const Chat = () => {
 
   if (conversations.length === 0) {
     return (
-      <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
+      <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <EmptyState
           icon={FiMessageCircle}
           title="Chat opens when you both match"
@@ -654,11 +701,11 @@ const Chat = () => {
   const endReason = replyWindow?.messagesRemaining === 0 ? 'exhausted' : 'expired';
 
   return (
-    <div className="h-[calc(100dvh-8rem)] md:h-[100dvh] -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-surface-dark-2 overflow-hidden">
+    <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] -mb-24 md:mb-0 flex bg-neutral-100 dark:bg-surface-dark-2 overflow-hidden">
       {/* Conversations Sidebar */}
       <div className={`
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        absolute md:relative z-20 w-full md:w-80 lg:w-96 h-full
+        absolute md:relative z-[70] w-full md:w-80 lg:w-96 h-full
         bg-white dark:bg-surface-dark-3 border-r border-neutral-200 dark:border-neutral-800 flex flex-col
         transition-transform duration-300 ease-[var(--ease-drawer)]
       `}>
@@ -707,10 +754,10 @@ const Chat = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className={`font-semibold truncate flex items-center gap-1.5 ${isSelected ? 'text-primary-600' : 'text-neutral-800 dark:text-neutral-100'}`}>
+                      <span className={`font-semibold truncate flex items-center gap-1.5 ${isSelected ? 'text-primary-600' : 'text-neutral-800 dark:text-neutral-100'}`}>
                         {row.name}
                         {row.locked && <FiLock className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" aria-label="Premium required" />}
-                      </h3>
+                      </span>
                       <span className="text-xs text-neutral-400 flex-shrink-0">
                         {row.lastMessage?.createdAt
                           ? new Date(row.lastMessage.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -739,15 +786,15 @@ const Chat = () => {
                   <button
                     onClick={() => setShowMobileSidebar(true)}
                     aria-label="Back to conversations"
-                    className="md:hidden p-3 -ml-3 hover:bg-neutral-100 rounded-full transition-colors"
+                    className="md:hidden p-3 -ml-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
                   >
-                    <FiChevronLeft className="w-5 h-5 text-neutral-600" />
+                    <FiChevronLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigate(`/profile/${selected.userId}`)}
-                    className="flex items-center gap-3 -m-1 p-1 rounded-xl hover:bg-neutral-100 transition-colors text-left"
+                    className="flex items-center gap-3 -m-1 p-1 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-left"
                     aria-label={`View ${selected.firstName || 'match'}'s profile`}
                   >
                     <div className="relative">
@@ -756,7 +803,7 @@ const Chat = () => {
                     <div>
                       <h3 className="font-semibold text-neutral-800 dark:text-neutral-100">{selected.name}</h3>
                       <p className="text-xs text-neutral-400 font-medium">
-                        {isTyping ? <span className="text-success">typing…</span> : 'View profile'}
+                        {isTyping ? <span className="text-primary-600 dark:text-primary-300">typing…</span> : 'View profile'}
                       </p>
                     </div>
                   </button>
@@ -793,14 +840,14 @@ const Chat = () => {
                 <ErrorState
                   title="Couldn't load this conversation"
                   description="The connection dropped before this finished loading. Nothing here was lost. Try again."
-                  onRetry={loadMessages}
+                  onRetry={() => loadMessages()}
                   className="max-w-md mx-auto mt-10"
                 />
               ) : (
                 <>
                   <div className="flex justify-center mb-6">
-                    <div className="px-4 py-2 bg-white/90 backdrop-blur rounded-full shadow-sm border border-gold-200">
-                      <p className="text-xs text-neutral-600">
+                    <div className="px-4 py-2 bg-white/90 dark:bg-surface-dark-3 backdrop-blur rounded-full shadow-sm border border-neutral-200 dark:border-neutral-700">
+                      <p className="text-xs text-neutral-600 dark:text-neutral-300">
                         You matched with {selected.firstName}. Make a meaningful connection...
                       </p>
                     </div>
@@ -914,8 +961,8 @@ const Chat = () => {
                         type="text"
                         value={newMessage}
                         onChange={(e) => handleTyping(e.target.value)}
-                        placeholder="Make a meaningful connection..."
-                        className="w-full px-5 py-3 text-base bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-neutral-900 transition-[background-color,box-shadow] duration-[160ms]"
+                        placeholder="Type a message"
+                        className="w-full px-5 py-3 text-base bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-800 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-neutral-900 transition-[background-color,box-shadow] duration-[160ms]"
                         disabled={sending}
                       />
                     </div>
@@ -962,8 +1009,8 @@ const Chat = () => {
               <div className="w-32 h-32 mx-auto mb-6 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
                 <FiMessageCircle className="w-16 h-16 text-primary-400" />
               </div>
-              <h3 className="text-xl font-semibold font-display text-neutral-700 mb-2">Start a conversation</h3>
-              <p className="text-neutral-500 max-w-sm">
+              <h3 className="text-xl font-semibold font-display text-neutral-700 dark:text-neutral-100 mb-2">Start a conversation</h3>
+              <p className="text-neutral-500 dark:text-neutral-300 max-w-sm">
                 Select a match from the sidebar to begin your journey of meaningful connection.
               </p>
             </div>
@@ -973,7 +1020,7 @@ const Chat = () => {
 
       {/* Mobile overlay */}
       {showMobileSidebar && selected && (
-        <div className="md:hidden fixed inset-0 bg-black/50 z-10" onClick={() => setShowMobileSidebar(false)} />
+        <div className="md:hidden fixed inset-0 bg-black/50 z-[60]" onClick={() => setShowMobileSidebar(false)} />
       )}
 
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature={upgradeFeature} />

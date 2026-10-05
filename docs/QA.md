@@ -25,8 +25,8 @@
 | Prod | https://tricitymatch.com | same origin `/api` | VPS `178.16.138.82`, containers `tricitymatch-*` (FE 3002→80, BE 5002→5000) |
 
 **Credentials / fixtures**
-- Admin: `admin@tricitymatch.com` / `Pass@1234` (seeded; → `/admin/dashboard`).
-- Fresh user: signup via API `POST /api/v1/auth/signup` (email/password/phoneNumber/firstName/lastName/gender/dateOfBirth) or onboarding UI; seeded password `Pass@1234`.
+- Admin: `admin@tricitymatch.com` / `<password>` (seeded; → `/admin/dashboard`).
+- Fresh user: signup via API `POST /api/v1/auth/signup` (email/password/phoneNumber/firstName/lastName/gender/dateOfBirth) or onboarding UI; seeded password `<password>`.
 - Premium-gated screens need a user with `planType` ∈ `basic_premium`/`premium_plus`/`vip`.
 - OTP bypass (dev + ALLOW_INSECURE_PROD): `000000` / `123456`.
 - Mark test data `qa.*@tricitymatch.com`; delete after.

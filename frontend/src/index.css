@@ -983,6 +983,25 @@ html.dark .bg-white\/70 { background-color: rgb(var(--surface-dark-3) / 0.70) !i
 html.dark .bg-white\/60 { background-color: rgb(var(--surface-dark-3) / 0.60) !important; }
 html.dark .bg-white\/40 { background-color: rgb(var(--surface-dark-3) / 0.45) !important; }
 
+/* Secondary/outline CTA in dark mode. `.btn-secondary` @apply's bg-white, which
+   Tailwind (important:true) bakes in as `background:#fff !important` — but the
+   element never carries the `.bg-white` class, so the generic white→dark invert
+   above can't catch it. It stayed a white slab in dark mode, and the per-site
+   `dark:text-primary-300` patches then painted light text onto that white.
+   Make it a proper burgundy outline on dark. Placed after the invert block so
+   source order wins among equal-specificity !important rules. */
+html.dark .btn-secondary {
+  background-color: transparent !important;
+  color: #E5A3B8 !important;
+  border-color: #E5A3B8 !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.dark .btn-secondary:hover {
+    background-color: rgba(229, 163, 184, 0.12) !important;
+    box-shadow: 0 4px 15px rgba(229, 163, 184, 0.12);
+  }
+}
+
 /* Light status/brand tint surfaces → dark tints (were missing; lightened text
    was landing on still-light boxes in dark mode) */
 html.dark .bg-primary-50 { background-color: rgba(139,35,70,0.14) !important; }
@@ -1188,6 +1207,8 @@ html.dark .admin-panel .border-primary-200 { border-color: rgba(224,166,184,0.35
 html.dark .admin-panel .hover\:bg-red-100:hover,
 html.dark .admin-panel .hover\:bg-red-200:hover   { background-color: rgba(198,40,40,0.35) !important; }
 html.dark .admin-panel .hover\:bg-amber-200:hover { background-color: rgba(245,124,0,0.35) !important; }
+html.dark .admin-panel .hover\:bg-red-50:hover   { background-color: rgba(198,40,40,0.22) !important; }
+html.dark .admin-panel .hover\:bg-amber-50:hover { background-color: rgba(245,124,0,0.22) !important; }
 html.dark .admin-panel .hover\:bg-primary-100:hover { background-color: rgba(139,35,70,0.45) !important; }
 
 /* Recharts grid: stroke="currentColor" + this class so it follows the theme */
