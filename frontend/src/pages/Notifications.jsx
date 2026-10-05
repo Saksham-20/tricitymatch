@@ -3,101 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  FiBell, FiHeart, FiMessageCircle, FiEye, FiStar,
-  FiCheckCircle, FiShield, FiInfo, FiCheck, FiClock, FiX,
-} from 'react-icons/fi';
+import { FiBell, FiCheck, FiX } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { listRow } from '../utils/animations';
+import {
+  notifLink, iconFor, colorFor, timeAgo, announceNotificationsChanged,
+} from '../components/notifications/notificationMeta';
 
-const TYPE_ICONS = {
-  new_match:             FiHeart,
-  match:                 FiHeart,
-  message:               FiMessageCircle,
-  new_message:           FiMessageCircle,
-  profile_view:          FiEye,
-  interest:              FiStar,
-  verification_approved: FiCheckCircle,
-  verification_rejected: FiShield,
-  verification:          FiShield,
-  subscription:          FiCheckCircle,
-  subscription_expiring: FiClock,
-  report_reviewed:       FiShield,
-  system:                FiInfo,
-  admin:                 FiShield,
-};
-
-const TYPE_COLORS = {
-  new_match:             'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
-  match:                 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
-  // Message is a type-category tag, not a real info/warning/success/error
-  // state of the notification — semantic `info` (blue) is reserved for an
-  // actual state and is also a banned accent (doctrine §3.1), so this uses
-  // the same neutral tone as the other purely-decorative categories below.
-  message:               'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
-  new_message:           'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
-  profile_view:          'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
-  // Interest ("someone liked you") is a match signal, not a premium mark —
-  // gold is reserved for paid-tier state (doctrine §3.1).
-  interest:              'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
-  verification_approved: 'bg-success-50 dark:bg-success/15 text-success',
-  verification_rejected: 'bg-destructive-light dark:bg-destructive/15 text-destructive',
-  verification:          'bg-success-50 dark:bg-success/15 text-success',
-  subscription:          'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
-  // The one legitimate gold here: this is specifically about a PAID
-  // subscription's own expiry, not a generic event.
-  subscription_expiring: 'bg-gold-100 dark:bg-gold-900/30 text-gold-700 dark:text-gold-400',
-  report_reviewed:       'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
-  system:                'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300',
-  admin:                 'bg-destructive-light dark:bg-destructive/15 text-destructive',
-};
-
-function timeAgo(date) {
-  const diff = Date.now() - new Date(date).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1)    return 'Just now';
-  if (minutes < 60)   return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24)     return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7)       return `${days}d ago`;
-  return new Date(date).toLocaleDateString('en-IN');
-}
-
-// Where a notification should take the user when tapped.
-//
-// This map must cover every value of the Notifications.type ENUM
-// (backend/models/Notification.js). A type that falls through to `default`
-// silently becomes a dead tap: the row marks itself read and nothing happens,
-// which reads as a broken app rather than as a deliberate no-destination.
-//
-// `subscription_expiring` and `report_reviewed` were both missing — the first
-// is emitted at renewal time, the second by the admin report review, and both
-// landed on `default`. The old 'subscription' / 'verification' / 'message' keys
-// are not ENUM values at all; they are kept as harmless aliases in case an
-// older client or a future emitter uses the short form.
-//
-// `new_match` carries a MATCH id in relatedId, NOT a userId, so it cannot route
-// to a profile — it goes to the Mutual tab of the matches hub, which is the
-// thing the notification is actually about.
-export const notifLink = (n) => {
-  switch (n.type) {
-    case 'new_match':            return '/matches?tab=mutual';
-    case 'message':
-    case 'new_message':          return '/chat';
-    case 'profile_view':         return n.relatedId ? `/profile/${n.relatedId}` : '/profile';
-    case 'verification_approved':
-    case 'verification_rejected':
-    case 'verification':         return '/verification';
-    case 'subscription_expiring':
-    case 'subscription':         return '/subscription';
-    // The reporter has no "my reports" view to land on, and inventing one is
-    // out of scope here; Safety is where reporting is explained, so the tap at
-    // least goes somewhere related instead of dying.
-    case 'report_reviewed':      return '/safety';
-    default:                     return null; // 'system' + unknown: just mark read
-  }
-};
+// Kept as a named export: the link map moved to notificationMeta so the navbar
+// bell shares it, and existing imports of it from this page still work.
+export { notifLink };
 
 export default function Notifications() {
   const navigate = useNavigate();
@@ -148,6 +63,7 @@ export default function Notifications() {
       const wasUnread = notifications.some((n) => n.id === id && !n.isRead);
       if (wasUnread) setServerUnread((c) => (c == null ? c : Math.max(0, c - 1)));
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+      announceNotificationsChanged();
     } catch {
       // Marking-as-read fires as a side effect of opening a notification. A
       // toast here would interrupt the thing the member actually clicked on;
@@ -160,6 +76,7 @@ export default function Notifications() {
       await api.put('/notifications/read-all');
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setServerUnread(0);
+      announceNotificationsChanged();
       toast.success('All notifications marked as read');
     } catch {
       toast.error('Failed to mark all as read');
@@ -171,6 +88,7 @@ export default function Notifications() {
       await api.delete(`/notifications/${id}`);
       if (notifications.some((n) => n.id === id && !n.isRead)) setServerUnread((c) => (c == null ? c : Math.max(0, c - 1)));
       setNotifs((prev) => prev.filter((n) => n.id !== id));
+      announceNotificationsChanged();
     } catch {
       // Delete is an explicit, destructive tap — silence made it look dead.
       toast.error('Could not delete that notification');
@@ -247,8 +165,8 @@ export default function Notifications() {
             <div className="space-y-2">
               <AnimatePresence>
                 {notifications.map((n) => {
-                  const Icon  = TYPE_ICONS[n.type]  || FiBell;
-                  const color = TYPE_COLORS[n.type] || 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300';
+                  const Icon  = iconFor(n);
+                  const color = colorFor(n);
                   return (
                     <motion.div
                       key={n.id}

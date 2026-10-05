@@ -85,6 +85,9 @@ const ForgotPassword = () => {
               <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
                 If an account with <strong className="text-neutral-700 dark:text-neutral-300">{email}</strong> exists, we've sent a reset link. Check your inbox and spam folder.
               </p>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm -mt-3 mb-6 leading-relaxed">
+                Signed up with Google? There is no password to reset. Go back and choose <strong className="text-neutral-700 dark:text-neutral-300">Sign in with Google</strong>.
+              </p>
               <Link to="/login" className="btn-primary inline-flex items-center gap-2">
                 <FiArrowLeft className="w-4 h-4" /> Back to login
               </Link>

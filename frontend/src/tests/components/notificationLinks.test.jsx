@@ -6,8 +6,8 @@
  * the map to the backend ENUM (backend/models/Notification.js) so adding a type
  * server-side without giving it a destination fails here instead of shipping.
  *
- * `system` is the one deliberate exception — it carries arbitrary admin copy
- * with no single place to land.
+ * `system` notices are routed by title (see notificationMeta); one with no
+ * known title has nowhere to land and only marks itself read.
  */
 import { describe, it, expect } from 'vitest';
 import { notifLink } from '../../pages/Notifications';
@@ -36,8 +36,9 @@ describe('every backend notification type resolves', () => {
     }
   );
 
-  it('system stays destination-less on purpose', () => {
+  it('a system notice with no known title only marks itself read', () => {
     expect(notifLink({ type: 'system' })).toBeNull();
+    expect(notifLink({ type: 'system', title: 'Something we never planned for' })).toBeNull();
   });
 
   it('an unknown type degrades to mark-read rather than a bad route', () => {

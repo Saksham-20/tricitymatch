@@ -5,6 +5,8 @@ import { popIn, backdrop, DUR, EASE_DRAWER } from '../../utils/animations';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
+import NotificationBell from '../notifications/NotificationBell';
+import { NOTIFICATIONS_CHANGED } from '../notifications/notificationMeta';
 import api from '../../api/axios';
 import useDarkMode from '../../hooks/useDarkMode';
 import useElderMode from '../../hooks/useElderMode';
@@ -14,88 +16,6 @@ import {
   FiClock, FiSun, FiMoon,
 } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
-
-// ─── Notification Bell ───────────────────────
-const NotificationBell = ({ count = 0 }) => {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const handleMarkAllRead = async () => {
-    try {
-      await api.patch('/notifications/read-all');
-    } catch (_) { /* silent */ }
-  };
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="relative w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:text-primary-500 hover:bg-primary-50 transition-[color,background-color] duration-[160ms]"
-        aria-label={`Notifications${count > 0 ? `, ${count} unread` : ''}`}
-      >
-        <FiBell className="w-5 h-5" />
-        {count > 0 && (
-          <motion.span
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
-          >
-            {count > 9 ? '9+' : count}
-          </motion.span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            {...popIn}
-            className="absolute right-0 top-12 w-80 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-2xl dark:shadow-[0_25px_50px_rgba(0,0,0,0.6)] border border-neutral-100 dark:border-[#252b3b] overflow-hidden z-60 origin-top-right"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-[#252b3b]">
-              <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{t('navbar.notifications')}</span>
-              {count > 0 && (
-                <button
-                  onClick={handleMarkAllRead}
-                  className="text-xs text-primary-500 font-medium hover:text-primary-700 transition-colors"
-                >
-                  {t('navbar.markAllRead')}
-                </button>
-              )}
-            </div>
-
-            <div className="divide-y divide-neutral-100 dark:divide-[#252b3b] max-h-72 overflow-y-auto">
-              <div className="px-4 py-8 text-center">
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  {count > 0 ? t('navbar.unreadCount', { count }) : t('navbar.allCaughtUp')}
-                </p>
-              </div>
-            </div>
-
-            <div className="px-4 py-2.5 border-t border-neutral-100">
-              <Link
-                to="/notifications"
-                onClick={() => setOpen(false)}
-                className="text-xs text-primary-500 hover:text-primary-700 font-medium transition-colors"
-              >
-                {t('navbar.viewAll')}
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
 
 // ─── Profile Dropdown ────────────────────────
 // Staff who also hold a member account get a way back to their own portal.
@@ -245,7 +165,16 @@ const Navbar = () => {
     };
     fetchCount();
     const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+    // Reading or clearing notifications anywhere updates the badge at once,
+    // and coming back to the tab picks up what arrived meanwhile.
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchCount(); };
+    window.addEventListener(NOTIFICATIONS_CHANGED, fetchCount);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_CHANGED, fetchCount);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isAuthenticated]);
 
   // framer-motion's scroll tracker (doctrine §8: no raw scroll listeners)
@@ -341,9 +270,9 @@ const Navbar = () => {
                   >
                     {isDark ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
                   </button>
-                  <div className="hidden md:block">
-                    <NotificationBell count={unreadCount} />
-                  </div>
+                  {/* Visible at every width: on a phone it used to live inside
+                      the menu, where nobody found it. */}
+                  <NotificationBell count={unreadCount} onCountChange={setUnreadCount} />
                   <div className="hidden md:block">
                     <ProfileDropdown user={user} onLogout={handleLogout} />
                   </div>
@@ -356,17 +285,12 @@ const Navbar = () => {
                 whileTap={{ scale: 0.93 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-expanded={isMobileMenuOpen}
-                aria-label={isMobileMenuOpen ? 'Close menu' : (unreadCount > 0 ? `Open menu, ${unreadCount} unread notifications` : 'Open menu')}
+                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
                 className="relative md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors"
               >
                 {isMobileMenuOpen
                   ? <FiX className="w-5 h-5" />
                   : <FiMenu className="w-5 h-5" />}
-                {/* On a phone the bell lives inside this menu; without a mark
-                    here a new notification was invisible until opened. */}
-                {!isMobileMenuOpen && unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-primary-600 ring-2 ring-white dark:ring-neutral-900" aria-hidden="true" />
-                )}
               </motion.button>
             </div>
           </div>
@@ -423,9 +347,6 @@ const Navbar = () => {
                       </div>
                     )}
                   </div>
-                  <div className="ml-auto flex-shrink-0">
-                    <NotificationBell count={unreadCount} />
-                  </div>
                 </div>
               )}
 
@@ -475,6 +396,7 @@ const Navbar = () => {
                     {/* Extra links */}
                     <div className="pt-3 mt-3 border-t border-neutral-100 dark:border-[#252b3b] space-y-0.5">
                       {[
+                        { path: '/notifications', label: t('navbar.notifications'), icon: FiBell },
                         { path: '/profile', label: t('navbar.myProfile'), icon: FiUser },
                         { path: '/settings', label: t('navbar.settings'), icon: FiSettings },
                         { path: '/subscription', label: t('navbar.subscription'), icon: FiCreditCard },

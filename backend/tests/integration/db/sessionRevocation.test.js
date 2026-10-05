@@ -57,7 +57,8 @@ describeDb('session revocation and security notices', (t) => {
     return { access: res.body.tokens.accessToken, refresh: res.body.tokens.refreshToken };
   };
   const me = (access) => request(app).get('/api/auth/me').set('Authorization', `Bearer ${access}`);
-  const flush = () => new Promise((r) => setImmediate(r));
+  // Mail goes out off the request path, after a profile lookup for the name.
+  const flush = () => new Promise((r) => setTimeout(r, 150));
   // The reset link forgot-password mails (the token is only echoed in dev).
   const resetLinkFor = async (u) => {
     const crypto = require('crypto');

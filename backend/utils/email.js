@@ -303,6 +303,23 @@ const templates = {
     text: `Hi ${name}, Reset your password: ${resetLink} — this link expires in 1 hour. If you didn't request this, ignore this email.`,
   }),
 
+  // Asked to reset a password on an account that signs in with Google and has
+  // none. Silence here read as "the email is broken", so say what to do instead.
+  googleSignInHelp: (name, loginLink) => ({
+    subject: 'How to sign in to TricityMatch',
+    html: brandLayout({
+      eyebrow: 'Signing In',
+      preheader: 'Your TricityMatch account signs in with Google, so there is no password to reset.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+        <p>We received a request to reset the password for this email address. Your TricityMatch account does not use a password: you created it with Google.</p>
+        ${panel(`On the sign-in page, choose <strong>Sign in with Google</strong> and pick this email address.`, { accent: BRAND.gold })}
+        <p style="color:${BRAND.soft};font-size:13px;">If you didn't ask for this, you can ignore this email. Nothing has changed on your account.</p>`,
+      cta: { href: loginLink, label: 'Go to sign in' },
+    }),
+    text: `Hi ${name}, your TricityMatch account signs in with Google, so there is no password to reset. Go to ${loginLink} and choose "Sign in with Google" with this email address. If you didn't ask for this, ignore this email.`,
+  }),
+
   matchNotification: (name, matchName) => ({
     subject: `You matched with ${matchName} — TricityMatch`,
     html: brandLayout({
@@ -627,6 +644,9 @@ const sendWelcomeEmail = (to, name) => sendEmail(to, 'welcome', { name });
 // Send password reset email
 const sendPasswordResetEmail = (to, name, resetLink) => sendEmail(to, 'passwordReset', { name, resetLink });
 
+// Reset requested on a Google-only account (no password exists)
+const sendGoogleSignInHelpEmail = (to, name, loginLink) => sendEmail(to, 'googleSignInHelp', { name, loginLink });
+
 // Send match notification
 const sendMatchNotification = (to, name, matchName) => sendEmail(to, 'matchNotification', { name, matchName });
 
@@ -698,6 +718,7 @@ module.exports = {
   sendPartnerWelcome,
   sendWelcomeEmail,
   sendPasswordResetEmail,
+  sendGoogleSignInHelpEmail,
   sendMatchNotification,
   sendSubscriptionConfirmation,
   sendVerificationApproved,

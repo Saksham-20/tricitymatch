@@ -6,7 +6,7 @@
 const jwt = require('jsonwebtoken');
 const { User, Profile, RefreshToken } = require('../models');
 const { cleanName } = require('../constants/names');
-const { sendWelcomeEmail, sendPasswordResetEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
+const { sendWelcomeEmail, sendPasswordResetEmail, sendGoogleSignInHelpEmail, sendEmail, sendOtpEmail, sendSecurityAlert } = require('../utils/email');
 const config = require('../config/env');
 const { eraseAccount } = require('../utils/accountErasure');
 const { createError, asyncHandler, AppError } = require('../middlewares/errorHandler');
@@ -817,6 +817,17 @@ exports.getMe = asyncHandler(async (req, res) => {
   });
 });
 
+// The name lives on the Profile, not the User row: `user.firstName` was always
+// undefined, so every reset mail opened "Hi User".
+const memberFirstName = async (userId) => {
+  try {
+    const profile = await Profile.findOne({ where: { userId }, attributes: ['firstName'] });
+    return profile?.firstName?.trim() || 'there';
+  } catch {
+    return 'there';
+  }
+};
+
 // @route   POST /api/auth/forgot-password
 // @desc    Initiate password reset
 // @access  Public
@@ -836,6 +847,10 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
   // Legacy accounts that have no verified phone either keep their (only) mail
   // route, so nobody is locked out by this rule.
   const eligible = Boolean(user && user.password && (user.emailVerified || !user.phoneVerified));
+  // Created with Google, so there is no password to reset. Saying nothing read
+  // as "the email is broken"; the address is Google-verified, so tell its owner
+  // how they actually sign in (nothing about the account changes).
+  const googleOnly = Boolean(user && !user.password && user.googleId && user.emailVerified);
 
   // Both outcomes do the same synchronous work (sign a token) and neither waits
   // on mail delivery, so response time does not distinguish them either.
@@ -853,7 +868,7 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
     { expiresIn: config.auth.resetTokenExpiry }
   );
 
-  if (eligible) {
+  if (eligible || googleOnly) {
     const resetUrl = `${config.server.frontendUrl}/reset-password?token=${resetToken}`;
     // Off the request path. A per-member budget (3/hour, shared machinery with
     // OTP mail) and the global daily ceiling both fail SILENTLY: the caller
@@ -866,10 +881,15 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
           log.warn('Password reset mail skipped: daily account-mail budget spent', { userId: user.id });
           return;
         }
-        await sendPasswordResetEmail(user.email, user.firstName || 'User', resetUrl);
+        const name = await memberFirstName(user.id);
+        if (eligible) {
+          await sendPasswordResetEmail(user.email, name, resetUrl);
+        } else {
+          await sendGoogleSignInHelpEmail(user.email, name, `${config.server.frontendUrl}/login`);
+        }
       } catch (error) {
         // Includes the 429 from an exhausted per-member budget.
-        log.warn('Password reset email not sent', { error: error.message, userId: user.id });
+        log.warn('Password reset email not sent', { error: error.message, userId: user.id, googleOnly });
       }
     });
   }
@@ -946,7 +966,7 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   try {
     await sendSecurityAlert(
       user.email,
-      user.firstName || 'User',
+      await memberFirstName(user.id),
       'Your password was changed',
       'Your TricityMatch account password was just changed.',
       new Date().toUTCString()

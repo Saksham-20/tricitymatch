@@ -26,12 +26,13 @@ jest.mock('../../config/env', () => ({
 }));
 jest.mock('../../models', () => ({
   User: { findByPk: jest.fn(), findOne: jest.fn() },
-  Profile: {}, RefreshToken: {}, ReferralCode: {}, MarketingLead: {},
+  Profile: { findOne: jest.fn().mockResolvedValue({ firstName: 'Asha' }) }, RefreshToken: {}, ReferralCode: {}, MarketingLead: {},
 }));
 jest.mock('../../utils/accountErasure', () => ({ eraseAccount: jest.fn() }));
 jest.mock('../../utils/entitlements', () => ({ getActiveSubscription: jest.fn() }));
 jest.mock('../../utils/email', () => ({
   sendWelcomeEmail: jest.fn(), sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+  sendGoogleSignInHelpEmail: jest.fn().mockResolvedValue(undefined),
   sendEmail: jest.fn(), sendOtpEmail: jest.fn(), sendSecurityAlert: jest.fn(),
 }));
 jest.mock('../../utils/smsService', () => ({ sendOtp: jest.fn(), verifyOtp: jest.fn(), normalizePhone: (p) => p }));
@@ -43,7 +44,7 @@ jest.mock('../../middlewares/logger', () => ({
 }));
 
 const { User } = require('../../models');
-const { sendPasswordResetEmail } = require('../../utils/email');
+const { sendPasswordResetEmail, sendGoogleSignInHelpEmail } = require('../../utils/email');
 const security = require('../../middlewares/security');
 const {
   canonicalEmail, legacyNormalizedEmail, emailLookupCandidates, emailIdentityKey,
@@ -120,12 +121,30 @@ describe('login lookup', () => {
 describe('members with no password (Google-only)', () => {
   const googleOnly = { id: 'g1', email: 'g@example.com', password: null, comparePassword: jest.fn() };
 
-  it('forgot-password answers the same generic 200 and sends nothing', async () => {
-    User.findOne.mockResolvedValue(googleOnly);
+  it('forgot-password answers the same generic 200 and sends nothing for an account with no way in by mail', async () => {
+    User.findOne.mockResolvedValue(googleOnly); // no googleId, so not a Google account either
     const { res, error } = await run(authController.forgotPassword, { body: { email: 'g@example.com' } });
     expect(error).toBeUndefined();
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, message: 'If the email exists, a reset link has been sent.' }));
     expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(sendGoogleSignInHelpEmail).not.toHaveBeenCalled();
+  });
+
+  it('forgot-password on a Google account mails how to sign in instead of staying silent', async () => {
+    User.findOne.mockResolvedValue({ ...googleOnly, id: 'g2', googleId: 'gsub-1', emailVerified: true });
+    const { res, error } = await run(authController.forgotPassword, { body: { email: 'g@example.com' } });
+    expect(error).toBeUndefined();
+    // Same answer as every other case, so it still says nothing about who exists.
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, message: 'If the email exists, a reset link has been sent.' }));
+    expect(res.json.mock.calls[0][0].resetToken).toBeUndefined();
+    expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(sendGoogleSignInHelpEmail).toHaveBeenCalledWith('g@example.com', 'Asha', 'http://localhost:3000/login');
+  });
+
+  it('forgot-password on a password account greets the member by their profile name', async () => {
+    User.findOne.mockResolvedValue({ id: 'p1', email: 'p@example.com', password: '$2a$hash', emailVerified: true });
+    await run(authController.forgotPassword, { body: { email: 'p@example.com' } });
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith('p@example.com', 'Asha', expect.stringContaining('/reset-password?token='));
   });
 
   it('change-password is a clear 400, not a 500 from bcrypt', async () => {
