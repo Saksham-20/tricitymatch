@@ -228,6 +228,7 @@
     "PUT /api/v1/admin/users/:userId/role",
     "PUT /api/v1/admin/users/:userId/status",
     "PUT /api/v1/admin/users/:userId/subscription",
+    "PUT /api/v1/admin/users/:userId/visibility",
     "PUT /api/v1/admin/users/bulk-status",
     "PUT /api/v1/admin/verifications/:verificationId",
     "PUT /api/v1/calls/:id/accept",

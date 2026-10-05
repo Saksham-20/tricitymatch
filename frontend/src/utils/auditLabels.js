@@ -87,6 +87,8 @@ export const ACTION_LABELS = {
   user_created_by_admin: 'Member created',
   user_reported: 'Member reported',
   user_status_changed: 'Member status changed',
+  member_hidden: 'Member made invisible',
+  member_unhidden: 'Member made visible again',
   user_unblocked: 'Member unblocked',
   users_bulk_status_changed: 'Members status changed (bulk)',
   users_exported: 'Members exported',
@@ -131,6 +133,7 @@ const SUMMARISERS = {
     return `${sentence}${d.complete === false ? ' · INCOMPLETE file' : ''}${filters}`;
   },
   audit_log_exported: (d) => `${plural(d.rows ?? 0, 'row', 'rows')}${Array.isArray(d.filters) && d.filters.length ? ` · filtered by ${d.filters.join(', ')}` : ''}`,
+  member_hidden: (d) => (has(d.reason) ? `"${d.reason}"` : ''),
   user_status_changed: (d) => `${words(d.previousStatus || '?')} → ${words(d.newStatus || '?')}${has(d.reason) ? ` · "${d.reason}"` : ''}`,
   marketing_user_status_changed: (d) => `${words(d.previousStatus || '?')} → ${words(d.newStatus || '?')}${d.codesDeactivated ? ` · ${plural(d.codesDeactivated, 'code', 'codes')} switched off` : ''}`,
   users_bulk_status_changed: (d) => `${plural(d.count ?? 0, 'member', 'members')} set to ${words(d.status || '?')}`,

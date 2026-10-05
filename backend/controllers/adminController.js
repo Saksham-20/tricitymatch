@@ -153,7 +153,7 @@ const isYmd = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !
 const buildUserWhere = (query) => {
   const {
     status, role, search, joinedFrom, joinedTo, joinedWithin, plan, verified,
-    hasPhoto, gender, city, emailVerified, phoneVerified, inactiveDays, testAccounts,
+    hasPhoto, gender, city, emailVerified, phoneVerified, inactiveDays, testAccounts, visibility,
   } = query;
   const and = [];
   const yes = (v) => v === 'yes';
@@ -207,6 +207,10 @@ const buildUserWhere = (query) => {
     and.push({ [Op.or]: [{ lastLogin: null }, { lastLogin: { [Op.lt]: new Date(Date.now() - idle * 86400000) } }] });
   }
 
+  // Members an admin made invisible (quiet hide).
+  if (visibility === 'hidden') and.push({ hiddenAt: { [Op.ne]: null } });
+  if (visibility === 'visible') and.push({ hiddenAt: null });
+
   if (testAccounts === 'only' || testAccounts === 'exclude') {
     const testOr = { [Op.or]: TEST_EMAIL_PATTERNS.map((pat) => ({ email: { [Op.iLike]: pat } })) };
     and.push(testAccounts === 'only' ? testOr : { [Op.not]: testOr });
@@ -244,6 +248,9 @@ exports.getUsers = asyncHandler(async (req, res) => {
   });
 
   await attachActivePlans(users);
+  for (const u of users) {
+    u.dataValues.invisible = u.hiddenAt ? { since: u.hiddenAt, reason: u.hiddenReason } : null;
+  }
 
   res.json({
     success: true,
@@ -279,6 +286,52 @@ exports.deleteUsers = asyncHandler(async (req, res) => {
   });
 
   res.json({ success: true, ...result });
+});
+
+// @route   PUT /api/admin/users/:userId/visibility   body { hidden, reason }
+// @desc    Make a member invisible to other members, or visible again
+// @access  Private/Admin (scope: users)
+//
+// A "quiet hide": the member is left out of search, daily matches, profile-code
+// lookups, saved-search alerts and the weekly digest, but can still sign in, and
+// anyone they like or message can still see them (as with incognito). They are
+// not told. Staff are never listed anyway, so only member accounts take this.
+exports.updateUserVisibility = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { hidden } = req.body || {};
+  if (typeof hidden !== 'boolean') throw createError.badRequest('hidden must be true or false');
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 300) : '';
+  if (hidden && reason.length < 3) {
+    throw createError.badRequest('Add a short reason so the next admin knows why this member is hidden');
+  }
+
+  const user = await User.findByPk(userId, { attributes: ['id', 'role', 'hiddenAt', 'hiddenBy', 'hiddenReason'] });
+  if (!user) throw createError.notFound('User not found');
+  if (user.role !== 'user') {
+    throw createError.badRequest('Staff accounts are never shown to members, so there is nothing to hide');
+  }
+
+  const wasHidden = Boolean(user.hiddenAt);
+  if (hidden) {
+    // Re-hiding keeps the original time but takes the new reason.
+    await user.update({ hiddenAt: user.hiddenAt || new Date(), hiddenBy: req.user.id, hiddenReason: reason });
+  } else if (wasHidden) {
+    await user.update({ hiddenAt: null, hiddenBy: null, hiddenReason: null });
+  }
+
+  if (hidden || wasHidden) {
+    logAudit(hidden ? 'member_hidden' : 'member_unhidden', req.user.id, {
+      targetUserId: userId,
+      reason: hidden ? reason : undefined,
+    });
+  }
+
+  res.json({
+    success: true,
+    invisible: user.hiddenAt
+      ? { since: user.hiddenAt, reason: user.hiddenReason, byEmail: req.user.email || null }
+      : null,
+  });
 });
 
 // @route   PUT /api/admin/users/:userId/status
@@ -940,6 +993,16 @@ exports.getUser = asyncHandler(async (req, res) => {
     attributes: ['id', 'reason', 'status', 'createdAt'],
   });
 
+  // Invisible-to-members state for the admin banner (User.toJSON strips the
+  // raw columns so a member never receives them). The admin's email, because
+  // an id means nothing to the next admin reading the record.
+  if (user.hiddenAt) {
+    const by = user.hiddenBy ? await User.findByPk(user.hiddenBy, { attributes: ['email'] }) : null;
+    user.dataValues.invisible = { since: user.hiddenAt, reason: user.hiddenReason, byEmail: by?.email || null };
+  } else {
+    user.dataValues.invisible = null;
+  }
+
   // Opening a member's full record is itself a privileged read.
   auditViewOnce('member_record_viewed', req.user.id, userId);
 
@@ -1202,6 +1265,7 @@ exports.exportUsers = asyncHandler(async (req, res) => {
     'Name', 'Email', 'Phone', 'City', 'Gender', 'Role', 'Status', 'Plan', 'Has photo', 'Joined',
     // Appended after the original columns so a saved spreadsheet layout still lines up.
     'Last active', 'Email verified', 'Phone verified', 'Profile code', 'Member ID',
+    'Hidden from members',
   ];
 
   const result = await streamCsv(res, {
@@ -1252,6 +1316,7 @@ exports.exportUsers = asyncHandler(async (req, res) => {
         user.phoneVerified ? 'yes' : 'no',
         toProfileCode(user.id),
         user.id,
+        user.hiddenAt ? `yes (${ymd(user.hiddenAt)})` : 'no',
       ];
     },
   });

@@ -10,7 +10,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 const api = vi.hoisted(() => ({
   getUser: vi.fn(), getModerationHistory: vi.fn(), updateSubscription: vi.fn(), updateVerification: vi.fn(),
-  cancelSubscription: vi.fn(), refundSubscription: vi.fn(), deleteUsers: vi.fn(), updateUserStatus: vi.fn(),
+  cancelSubscription: vi.fn(), refundSubscription: vi.fn(), deleteUsers: vi.fn(), updateUserStatus: vi.fn(), updateUserVisibility: vi.fn(),
   removePhoto: vi.fn(), flagPhoto: vi.fn(), getPlanOptions: vi.fn(),
   updateMarketingUser: vi.fn(), resetMarketingUserPassword: vi.fn(), resendPartnerWelcome: vi.fn(),
 }));

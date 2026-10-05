@@ -6,6 +6,8 @@ export const getUser = (userId) => api.get(`/admin/users/${userId}`);
 export const getModerationHistory = (userId) => api.get(`/admin/users/${userId}/moderation-history`);
 export const createUser = (data) => api.post('/admin/users', data);
 export const updateUserStatus = (userId, data) => api.put(`/admin/users/${userId}/status`, data);
+// Quiet hide: { hidden: boolean, reason }. Not shown to the member.
+export const updateUserVisibility = (userId, data) => api.put(`/admin/users/${userId}/visibility`, data);
 export const updateSubscription = (userId, data) => api.put(`/admin/users/${userId}/subscription`, data);
 
 // Verifications

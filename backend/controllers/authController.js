@@ -868,6 +868,14 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
     { expiresIn: config.auth.resetTokenExpiry }
   );
 
+  if (!eligible && !googleOnly) {
+    // The caller gets the generic answer either way. Say why in the log so a
+    // "the reset mail never came" report can be traced (the address is hashed
+    // by the logger, as everywhere).
+    const reason = !user ? 'no_account' : !user.password ? 'no_password' : 'email_not_verified';
+    log.info('Password reset mail not sent', { reason, email: normalizedEmail || '' });
+  }
+
   if (eligible || googleOnly) {
     const resetUrl = `${config.server.frontendUrl}/reset-password?token=${resetToken}`;
     // Off the request path. A per-member budget (3/hour, shared machinery with

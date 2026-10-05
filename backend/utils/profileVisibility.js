@@ -135,8 +135,12 @@ const gotraClause = (ctx) => {
 // placeholder identity (partners get gender 'other', DOB 1990-01-01), and an
 // admin promoted from a personal account can read every member's data — none of
 // them belongs in a member's search results or daily matches.
+//
+// Members an admin made invisible (Users.hiddenAt) are left out the same way,
+// everywhere a listing is built, including a profile-code lookup.
+const UNLISTED_USERS_SQL = `(SELECT id FROM "Users" WHERE role <> 'user' OR "hiddenAt" IS NOT NULL)`;
 const STAFF_EXCLUDED = {
-  userId: { [Op.notIn]: literal(`(SELECT id FROM "Users" WHERE role <> 'user')`) },
+  userId: { [Op.notIn]: literal(UNLISTED_USERS_SQL) },
 };
 
 const listingScope = (ctx, { includeIncognito = false, applyGotra = true } = {}) => {
@@ -253,6 +257,8 @@ const redactForViewer = (raw, { isMutual = false, isSelf = false, hasPaidAccess 
 };
 
 module.exports = {
+  UNLISTED_USERS_SQL,
+  STAFF_EXCLUDED,
   OWNER_ONLY_KEYS,
   CARD_KEYS,
   toCardProfile,

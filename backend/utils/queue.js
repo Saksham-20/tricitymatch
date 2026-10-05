@@ -317,6 +317,8 @@ const setupCleanupProcessor = (queue) => {
           incognitoMode: { [Op.ne]: true },
           gender: oppositeGender,
           userId: { [Op.ne]: user.id, ...(interactedIds.length > 0 ? { [Op.notIn]: interactedIds } : {}) },
+          // Staff and members an admin made invisible are not "someone new".
+          [Op.and]: [require('./profileVisibility').STAFF_EXCLUDED],
           ...(Object.keys(ageWhere).length > 0 ? { dateOfBirth: ageWhere } : {})
         };
 

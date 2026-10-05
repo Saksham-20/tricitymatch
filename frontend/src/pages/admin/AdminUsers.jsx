@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getUsers, updateUserStatus, exportUsers, deleteUsers, bulkUpdateStatus } from '../../api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark, FiUsers } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiEyeOff, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark, FiUsers } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
 import { saveCsv, describeExport } from '../../utils/saveCsv';
 
@@ -25,7 +25,7 @@ const SORT_OPTIONS = [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['
 const EMPTY_FILTERS = {
   plan: 'all', joinedWithin: '', joinedFrom: '', joinedTo: '', verified: 'all', hasPhoto: 'all',
   gender: 'all', city: '', emailVerified: 'all', phoneVerified: 'all', inactiveDays: '',
-  testAccounts: 'all', sort: 'newest', joinedTouched: false,
+  testAccounts: 'all', visibility: 'all', sort: 'newest', joinedTouched: false,
 };
 const selectCls = 'px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2';
 
@@ -355,6 +355,11 @@ export default function AdminUsers() {
               <option value="all">Show all</option><option value="exclude">Hide test accounts</option><option value="only">Only test accounts</option>
             </select>
           </Field>
+          <Field label="Visible to members">
+            <select value={filters.visibility} onChange={(e) => setFilter('visibility', e.target.value)} className={selectCls}>
+              <option value="all">Any</option><option value="visible">Visible</option><option value="hidden">Invisible (hidden by admin)</option>
+            </select>
+          </Field>
           <Field label="Sort by">
             <select value={filters.sort} onChange={(e) => setFilter('sort', e.target.value)} className={selectCls}>
               {SORT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -465,7 +470,14 @@ export default function AdminUsers() {
                           {((u.Profile?.firstName?.[0] || '') + (u.Profile?.lastName?.[0] || '')).toUpperCase() || 'U'}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800">{[u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
+                          <p className="font-medium text-gray-800">
+                            {[u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' ') || '—'}
+                            {u.invisible && (
+                              <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[11px] font-semibold align-middle" title={u.invisible.reason ? `Invisible: ${u.invisible.reason}` : 'Invisible to members'}>
+                                <FiEyeOff className="w-3 h-3" aria-hidden="true" /> Invisible
+                              </span>
+                            )}
+                          </p>
                           <p className="text-xs text-gray-500">{u.email}</p>
                         </div>
                       </div>

@@ -8,6 +8,7 @@ const { Op } = require('sequelize');
 const { Profile, User } = require('../models');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const cache = require('../utils/cache');
+const { STAFF_EXCLUDED } = require('../utils/profileVisibility');
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const CACHE_KEY = 'stats:community:v1';
@@ -17,6 +18,8 @@ exports.getCommunityStats = asyncHandler(async (req, res) => {
   const stats = await cache.getOrSet(CACHE_KEY, async () => {
     const visibleWhere = {
       isActive: true,
+      // Staff and members an admin made invisible cannot be found in Search.
+      [Op.and]: [STAFF_EXCLUDED],
       [Op.or]: [
         { profileVisibility: { [Op.is]: null } },
         { profileVisibility: { [Op.ne]: 'matches_only' } },

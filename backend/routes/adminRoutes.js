@@ -22,6 +22,7 @@ const {
   getModerationHistory,
   createUser,
   updateUserStatus,
+  updateUserVisibility,
   changeMemberIdentity,
   updateSubscription,
   getVerifications,
@@ -111,6 +112,7 @@ router.get('/users/export', requireAdminScope('users'), exportUsers);
 router.get('/users/:userId', requireAdminScope('users'), param('userId').isUUID(4), handleValidationErrors, getUser);
 router.get('/users/:userId/moderation-history', requireAdminScope('reports'), param('userId').isUUID(4), handleValidationErrors, getModerationHistory);
 router.put('/users/:userId/status', requireAdminScope('users'), updateUserStatusValidation, handleValidationErrors, updateUserStatus);
+router.put('/users/:userId/visibility', requireAdminScope('users'), param('userId').isUUID().withMessage('Invalid user id'), handleValidationErrors, updateUserVisibility);
 // Appeals and preserved evidence belong to the moderation desk (`reports` scope).
 router.get('/appeals', requireAdminScope('reports'), listAppeals);
 router.put('/appeals/:id', requireAdminScope('reports'),

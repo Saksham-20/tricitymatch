@@ -97,6 +97,24 @@ const User = sequelize.define('User', {
     allowNull: true,
     defaultValue: null
   },
+  // Admin "quiet hide": left out of every listing other members browse, while
+  // the member can still sign in and anyone they contact can still see them.
+  // Not shown to the member. See migration 000093 and utils/profileVisibility.
+  hiddenAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null
+  },
+  hiddenBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    defaultValue: null
+  },
+  hiddenReason: {
+    type: DataTypes.STRING(300),
+    allowNull: true,
+    defaultValue: null
+  },
   // How consent was given (ip, user agent, optional choices, guardian
   // attestation). See utils/consentRecord.
   consent: {
@@ -258,6 +276,12 @@ User.prototype.toJSON = function() {
 
   // Internal mail bookkeeping.
   delete values.lifecycleMail;
+
+  // Admin "quiet hide" is never shown to the member, and the reason is an
+  // admin's private note. Admin endpoints attach `invisible` explicitly.
+  delete values.hiddenAt;
+  delete values.hiddenBy;
+  delete values.hiddenReason;
 
   // Consent evidence carries the IP and user agent of the acceptance. The member
   // can read it through the data export; it never rides the generic user shape.

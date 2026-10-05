@@ -128,6 +128,17 @@ describe('members with no password (Google-only)', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, message: 'If the email exists, a reset link has been sent.' }));
     expect(sendPasswordResetEmail).not.toHaveBeenCalled();
     expect(sendGoogleSignInHelpEmail).not.toHaveBeenCalled();
+    // ...but the log says why, so a "the mail never came" report can be traced.
+    const { log } = require('../../middlewares/logger');
+    expect(log.info).toHaveBeenCalledWith('Password reset mail not sent', expect.objectContaining({ reason: 'no_password' }));
+  });
+
+  it('forgot-password for an unknown address logs no_account and answers the same', async () => {
+    User.findOne.mockResolvedValue(null);
+    const { res } = await run(authController.forgotPassword, { body: { email: 'nobody@example.com' } });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, message: 'If the email exists, a reset link has been sent.' }));
+    const { log } = require('../../middlewares/logger');
+    expect(log.info).toHaveBeenCalledWith('Password reset mail not sent', expect.objectContaining({ reason: 'no_account' }));
   });
 
   it('forgot-password on a Google account mails how to sign in instead of staying silent', async () => {

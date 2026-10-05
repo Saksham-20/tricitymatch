@@ -46,7 +46,8 @@ describeDb('members CSV export', (t) => {
     expect(res.headers['x-total-rows']).toBe('7');
     for (const id of made) expect(res.body).toContain(id); // none dropped at a batch boundary
     // No member repeated across batches.
-    expect(new Set(rows.slice(1).map((r) => r.split(',').pop())).size).toBe(7);
+    const idCol = rows[0].split(',').indexOf('Member ID');
+    expect(new Set(rows.slice(1).map((r) => r.split(',')[idCol])).size).toBe(7);
     expect(res.headers['content-disposition']).toMatch(/tricitymatch-members-\d{4}-\d{2}-\d{2}\.csv/);
   });
 
@@ -56,7 +57,7 @@ describeDb('members CSV export', (t) => {
     const res = await callStream(ctl.exportUsers, { user: admin, query: { search: m.user.email } });
     const [header, row] = lines(res.body);
     expect(header.split(',').slice(0, 10).join(',')).toBe('Name,Email,Phone,City,Gender,Role,Status,Plan,Has photo,Joined');
-    expect(header).toMatch(/Last active,Email verified,Phone verified,Profile code,Member ID$/);
+    expect(header).toMatch(/Last active,Email verified,Phone verified,Profile code,Member ID,Hidden from members$/);
     expect(row).toContain(`TCS-${m.user.id.split('-')[0].toUpperCase()}`);
     expect(row).toContain(',yes,no,'); // email verified, phone not
   });

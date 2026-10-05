@@ -85,9 +85,21 @@ const ForgotPassword = () => {
               <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
                 If an account with <strong className="text-neutral-700 dark:text-neutral-300">{email}</strong> exists, we've sent a reset link. Check your inbox and spam folder.
               </p>
-              <p className="text-neutral-500 dark:text-neutral-400 text-sm -mt-3 mb-6 leading-relaxed">
-                Signed up with Google? There is no password to reset. Go back and choose <strong className="text-neutral-700 dark:text-neutral-300">Sign in with Google</strong>.
-              </p>
+              {/* Most members signed up with their mobile number, and a reset link
+                  is only ever mailed to an address that was verified. Without this
+                  they waited for a mail that was never going to come. */}
+              <div className="text-left rounded-2xl bg-neutral-100 dark:bg-neutral-800/60 p-4 mb-6 space-y-2">
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">No email after a few minutes?</p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                  If you signed up with your mobile number, your email may not be verified, so we can't send a link there.{' '}
+                  <Link to="/forgot-password/phone" className="font-semibold text-primary-600 dark:text-primary-300 underline underline-offset-2 hover:text-primary-700">
+                    Reset with a code by SMS
+                  </Link>
+                </p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                  Signed up with Google? There is no password to reset. Choose <strong className="text-neutral-700 dark:text-neutral-300">Sign in with Google</strong> on the login page.
+                </p>
+              </div>
               <Link to="/login" className="btn-primary inline-flex items-center gap-2">
                 <FiArrowLeft className="w-4 h-4" /> Back to login
               </Link>
@@ -214,7 +226,7 @@ const ForgotPassword = () => {
 
             <div className="text-center space-y-2">
               <Link to="/forgot-password/phone" className="block text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-300 font-medium transition-colors">
-                No email on your account? Reset with your mobile number
+                Signed up with your mobile number? Reset with a code by SMS
               </Link>
               <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 font-medium inline-flex items-center gap-1 transition-colors">
                 <FiArrowLeft className="w-4 h-4" /> Back to login

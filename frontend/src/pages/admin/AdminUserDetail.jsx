@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, refundSubscription, deleteUsers, updateUserStatus, removePhoto, flagPhoto } from '../../api/adminApi';
+import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, refundSubscription, deleteUsers, updateUserStatus, updateUserVisibility, removePhoto, flagPhoto } from '../../api/adminApi';
 import { useAdminScopes } from '../../components/admin/AdminLayout';
 import usePlanOptions from '../../hooks/usePlanOptions';
 import planLabel from '../../utils/planLabel';
 import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
 import toast from 'react-hot-toast';
 import RetryImage from '../../components/ui/RetryImage';
-import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
 const Section = ({ title, children }) => (
@@ -123,6 +123,10 @@ export default function AdminUserDetail() {
   const [statusTarget, setStatusTarget] = useState(null); // 'banned' | 'active' when the ban modal is open
   const [statusReason, setStatusReason] = useState('');
   const [statusBusy, setStatusBusy]     = useState(false);
+  // Invisible to members (quiet hide): true = hide, false = show again.
+  const [visTarget, setVisTarget] = useState(null);
+  const [visReason, setVisReason] = useState('');
+  const [visBusy, setVisBusy]     = useState(false);
 
   const submitPhotoAction = async () => {
     if (!photoAction) return;
@@ -157,6 +161,20 @@ export default function AdminUserDetail() {
     } finally { setStatusBusy(false); }
   };
 
+  const submitVisibility = async () => {
+    if (visTarget === null) return;
+    if (visTarget && visReason.trim().length < 3) { toast.error('Add a short reason so the next admin knows why'); return; }
+    setVisBusy(true);
+    try {
+      await updateUserVisibility(userId, { hidden: visTarget, reason: visReason.trim() });
+      toast.success(visTarget ? 'Member is now invisible to other members' : 'Member is visible to other members again');
+      setVisTarget(null); setVisReason('');
+      fetchUser();
+    } catch (err) {
+      toast.error(err?.response?.data?.error?.message || err?.response?.data?.message || 'Action failed');
+    } finally { setVisBusy(false); }
+  };
+
   const fetchUser = async () => {
     setLoading(true);
     try {
@@ -188,16 +206,17 @@ export default function AdminUserDetail() {
 
   // Escape closes the photo-action / ban / lightbox overlays.
   useEffect(() => {
-    if (!photoAction && !statusTarget && !lightbox) return undefined;
+    if (!photoAction && !statusTarget && !lightbox && visTarget === null) return undefined;
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
       if (lightbox) setLightbox(null);
       else if (photoAction) setPhotoAction(null);
+      else if (visTarget !== null) setVisTarget(null);
       else setStatusTarget(null);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [photoAction, statusTarget, lightbox]);
+  }, [photoAction, statusTarget, lightbox, visTarget]);
 
   const handleUpdateSubscription = async () => {
     setSaving(true);
@@ -396,6 +415,11 @@ export default function AdminUserDetail() {
                 <FaCrown className="w-3 h-3" /> {subscription.planType}
               </span>
             )}
+            {user.invisible && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-semibold">
+                <FiEyeOff className="w-3 h-3" aria-hidden="true" /> Invisible
+              </span>
+            )}
           </div>
           <p className="text-gray-500 text-sm">{user.email}</p>
           <p className="text-gray-500 text-xs mt-1">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
@@ -409,6 +433,23 @@ export default function AdminUserDetail() {
             >
               <FiShield className="w-3.5 h-3.5" aria-hidden="true" /> Audit trail
             </Link>
+          )}
+          {can('users') && user.role === 'user' && (
+            user.invisible ? (
+              <button
+                onClick={() => { setVisReason(''); setVisTarget(false); }}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
+              >
+                <FiEye className="w-3.5 h-3.5" aria-hidden="true" /> Make visible
+              </button>
+            ) : (
+              <button
+                onClick={() => { setVisReason(''); setVisTarget(true); }}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
+              >
+                <FiEyeOff className="w-3.5 h-3.5" aria-hidden="true" /> Make invisible
+              </button>
+            )
           )}
           {can('users') && user.role === 'user' && (
             user.status === 'banned' ? (
@@ -455,6 +496,20 @@ export default function AdminUserDetail() {
           )}
         </div>
       </div>
+
+      {user.invisible && (
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-start gap-3" role="status">
+          <FiEyeOff className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="text-sm text-gray-700">
+            <p className="font-semibold text-gray-900">
+              Invisible to other members since {new Date(user.invisible.since).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {user.invisible.byEmail ? <span className="font-normal text-gray-600"> · by {user.invisible.byEmail}</span> : null}
+            </p>
+            {user.invisible.reason && <p className="mt-0.5">Reason: {user.invisible.reason}</p>}
+            <p className="mt-1 text-gray-600">Not shown in search, daily matches or profile-code lookups. They can still sign in, and anyone they like or message can still see them. They have not been told.</p>
+          </div>
+        </div>
+      )}
 
       {/* Photos — the whole gallery the member shows, plus their verification
           selfie, so an admin can review what is actually on the profile and act
@@ -858,6 +913,48 @@ export default function AdminUserDetail() {
                 className={`flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-colors disabled:opacity-50 ${photoAction.type === 'remove' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-500 hover:bg-amber-600'}`}
               >
                 {photoBusy ? 'Working…' : (photoAction.type === 'remove' ? 'Remove photo' : 'Flag photo')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invisible / visible (quiet hide) */}
+      {visTarget !== null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-label={visTarget ? 'Make this member invisible' : 'Make this member visible'} className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              {visTarget ? 'Make this member invisible' : 'Make this member visible'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-3">
+              {visTarget
+                ? 'Other members will no longer find them in search, daily matches or by profile code. They can still sign in, and anyone they like or message can still see them. They are not told.'
+                : 'They will appear in search and daily matches again.'}
+            </p>
+            {visTarget && (
+              <>
+                <label htmlFor="vis-reason" className="block text-xs font-medium text-gray-600 mb-1">Reason (only admins see this)</label>
+                <textarea
+                  id="vis-reason"
+                  value={visReason}
+                  onChange={(e) => setVisReason(e.target.value)}
+                  rows={3}
+                  maxLength={300}
+                  autoFocus
+                  placeholder="e.g. test account, details being checked"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
+                />
+              </>
+            )}
+            <div className="flex gap-3">
+              <button onClick={() => setVisTarget(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors">Cancel</button>
+              <button
+                onClick={submitVisibility}
+                disabled={visBusy || (visTarget && visReason.trim().length < 3)}
+                autoFocus={!visTarget}
+                className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {visBusy ? 'Working…' : (visTarget ? 'Make invisible' : 'Make visible')}
               </button>
             </div>
           </div>
