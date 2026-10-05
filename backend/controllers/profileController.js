@@ -19,6 +19,7 @@ const recheckVerification = async (userId) => {
 const { applyIdentityRules } = require('../utils/identityLock');
 const { blockedIdsFor } = require('../utils/blocks');
 const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibility');
+const { ACTIVE_MEMBER_WHERE, notStaffId } = require('../utils/memberRole');
 const { sanitizeMustHaves } = require('../utils/preferenceFit');
 const { invalidateDailyMatches } = require('../utils/dailyMatchesCache');
 const { applyFieldVisibility, sanitizeFieldVisibility } = require('../constants/fieldVisibility');
@@ -668,13 +669,17 @@ const assertProfileVisible = async (
   targetUserId,
   { viewerRole, enforceVisibilityPreference = true } = {}
 ) => {
+  // Staff accounts (admins, partners) are not members: to anyone else their
+  // profile does not exist, exactly like a deleted one. Their own view of
+  // themselves is unaffected.
+  const isSelfView = viewerId === targetUserId;
   const profile = await Profile.findOne({
     where: { userId: targetUserId, isActive: true },
     include: [
       {
         model: User,
         attributes: ['id', 'status'],
-        where: { status: 'active' },
+        where: isSelfView ? { status: 'active' } : ACTIVE_MEMBER_WHERE,
         required: true,
       },
     ],
@@ -688,7 +693,7 @@ const assertProfileVisible = async (
   // short-circuiting to getMyProfile, and without the equivalent here a member
   // whose own profile is set to matches_only got a 403 on their OWN
   // compatibility/horoscope.
-  if (viewerId === targetUserId) {
+  if (isSelfView) {
     return { profile, isMutual: false, isSelf: true };
   }
 
@@ -933,9 +938,10 @@ exports.getProfileStats = asyncHandler(async (req, res) => {
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // Same scope as the lists these numbers sit beside: no one in a block
-  // relationship with the member, and no one whose account is no longer active.
+  // relationship with the member, no one whose account is no longer active, and
+  // no staff account (an admin's look at a profile is not a member's interest).
   const blockedIds = [...(await blockedIdsFor(userId))];
-  const activeUser = (as) => ({ model: User, as, attributes: [], required: true, where: { status: 'active' } });
+  const activeUser = (as) => ({ model: User, as, attributes: [], required: true, where: ACTIVE_MEMBER_WHERE });
   const notBlocked = (col) => (blockedIds.length ? { [col]: { [Op.notIn]: blockedIds } } : {});
 
   const [viewsThisWeek, totalViews, likesReceived, likesByCity] = await Promise.all([
@@ -954,7 +960,7 @@ exports.getProfileStats = asyncHandler(async (req, res) => {
     Match.findAll({
       where: { matchedUserId: userId, action: 'like', ...notBlocked('userId') },
       include: [{
-        model: User, as: 'User', attributes: ['id'], required: true, where: { status: 'active' },
+        model: User, as: 'User', attributes: ['id'], required: true, where: ACTIVE_MEMBER_WHERE,
         include: [{ model: Profile, attributes: ['city'] }]
       }],
       attributes: ['id']
@@ -1213,7 +1219,8 @@ exports.getProfileViewers = asyncHandler(async (req, res) => {
       ...(blockedIds.length ? { viewerId: { [Op.notIn]: blockedIds } } : {})
     },
     include: [{
-      model: User, as: 'Viewer', attributes: ['id'], where: { status: 'active' },
+      // Members only: a staff account's visit is not shown as a viewer.
+      model: User, as: 'Viewer', attributes: ['id'], where: ACTIVE_MEMBER_WHERE,
       include: [{
         model: Profile, where: { isActive: true },
         attributes: ['firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession']
@@ -1249,8 +1256,10 @@ exports.getRecentlyViewed = asyncHandler(async (req, res) => {
   const offset = (page - 1) * limit;
 
   // Distinct viewed users, most-recent view first (dedup repeated views)
+  // Staff profiles never count as "recently viewed" (kept out before paging so
+  // they do not take a page slot and then vanish).
   const grouped = await ProfileView.findAll({
-    where: { viewerId: userId },
+    where: { viewerId: userId, viewedUserId: notStaffId() },
     attributes: [
       'viewedUserId',
       [sequelize.fn('MAX', sequelize.col('createdAt')), 'lastViewedAt'],
@@ -1283,8 +1292,9 @@ exports.getRecentlyViewed = asyncHandler(async (req, res) => {
     ? await Profile.findAll({
         where: { userId: { [Op.in]: finalIds }, isActive: true },
         attributes: ['userId', 'firstName', 'lastName', 'city', 'profilePhoto', 'photoBlurUntilMatch', 'gender', 'dateOfBirth', 'education', 'profession'],
-        // A member who has since been banned or deleted is not shown.
-        include: [{ model: User, attributes: [], where: { status: 'active' }, required: true }],
+        // A member who has since been banned or deleted is not shown, nor a
+        // staff account.
+        include: [{ model: User, attributes: [], where: ACTIVE_MEMBER_WHERE, required: true }],
       })
     : [];
   const mutualRows = await Match.findAll({ where: { userId, isMutual: true }, attributes: ['matchedUserId'] });

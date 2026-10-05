@@ -18,6 +18,7 @@ const { User, Profile } = require('../models');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const config = require('../config/env');
 const { getOrCreateInviteToken, buildInviteUrl } = require('../utils/inviteToken');
+const { MEMBER_ROLE, isMember } = require('../utils/memberRole');
 
 // One shared shape for every failure mode — valid-but-inactive must be
 // indistinguishable from never-existed.
@@ -32,8 +33,10 @@ exports.resolveInvite = asyncHandler(async (req, res) => {
   // Cheap shape check before touching the DB — the token is 32 hex chars.
   if (!/^[0-9a-f]{16,128}$/i.test(token)) throw notFound();
 
+  // A staff account's token (minted before staff were refused one) resolves to
+  // nobody, like any other dead token.
   const user = await User.findOne({
-    where: { inviteToken: token, status: 'active' },
+    where: { inviteToken: token, status: 'active', role: MEMBER_ROLE },
     attributes: ['id'],
     include: [{ model: Profile, attributes: ['firstName', 'isActive'] }],
   });
@@ -50,6 +53,11 @@ exports.resolveInvite = asyncHandler(async (req, res) => {
 // @desc    The caller's own invite token + shareable signup URL (minted on first use)
 // @access  Private
 exports.getMyInviteLink = asyncHandler(async (req, res) => {
+  // Invites bring in members on a member's word. A staff account inviting people
+  // would appear to them as a member they know.
+  if (!isMember(req.user)) {
+    throw createError.forbidden('Staff accounts do not have a member invite link.');
+  }
   const token = await getOrCreateInviteToken(req.user.id);
   if (!token) throw createError.internal('Could not create your invite link. Please try again.');
 

@@ -26,6 +26,7 @@ const { PAID_PLANS } = require('../constants/plans');
 const { FREE_REPLY_MAX_MESSAGES, FREE_REPLY_WINDOW_MS } = require('../constants/chat');
 const config = require('../config/env');
 const { log } = require('../middlewares/logger');
+const { bothMembers } = require('./memberRole');
 
 /**
  * The user's live paid subscription, or null.
@@ -56,7 +57,10 @@ const getActiveSubscription = async (userId) => {
 
 const hasPaidPlan = async (userId) => Boolean(await getActiveSubscription(userId));
 
-/** Mutual match in either direction. */
+/**
+ * Mutual match in either direction, between two MEMBERS. A staff account's old
+ * Match row never counts (utils/memberRole).
+ */
 const isMutualMatch = async (userId, otherUserId) => {
   if (!userId || !otherUserId || userId === otherUserId) return false;
   try {
@@ -69,7 +73,8 @@ const isMutualMatch = async (userId, otherUserId) => {
       },
       attributes: ['id'],
     });
-    return Boolean(match);
+    if (!match) return false;
+    return await bothMembers(userId, otherUserId);
   } catch (error) {
     log.error('Mutual match check failed', { userId, otherUserId, error: error.message });
     return false;

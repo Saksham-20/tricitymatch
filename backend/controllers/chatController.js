@@ -14,6 +14,7 @@ const { assessMessage, recordHighSignal } = require('../utils/chatSafety');
 const { log, logAudit } = require('../middlewares/logger');
 const { sendEmail } = require('../utils/email');
 const { assertNotBlocked, blockedIdsFor, isBlockedBetween } = require('../utils/blocks');
+const { ACTIVE_MEMBER_WHERE, ACTIVE_MEMBERS_SQL, bothMembers } = require('../utils/memberRole');
 const { getActiveSubscription, grantWindowState } = require('../utils/entitlements');
 const { REACTION_EMOJIS, VOICE_MESSAGE_MAX_DURATION_MS } = require('../constants/chat');
 const { assertActorAgeVerifiable } = require('../utils/ageVerifiable');
@@ -122,8 +123,10 @@ const verifyMutualMatch = async (userId1, userId2, transaction = null) => {
     },
     ...options
   });
+  if (!match) return false;
 
-  return !!match;
+  // A staff account is never a chat partner, whatever an old Match row says.
+  return bothMembers(userId1, userId2, options);
 };
 
 // @route   GET /api/chat/conversations
@@ -140,7 +143,12 @@ exports.getUnreadMessageCount = asyncHandler(async (req, res) => {
     where: {
       receiverId: userId,
       isRead: false,
-      ...(blocked.length ? { senderId: { [Op.notIn]: blocked } } : {}),
+      // Same people the conversation list shows: active members only (a staff
+      // account or a banned member's thread is not listed, so it is not counted).
+      senderId: {
+        [Op.in]: sequelize.literal(ACTIVE_MEMBERS_SQL),
+        ...(blocked.length ? { [Op.notIn]: blocked } : {}),
+      },
     },
   });
   res.json({ success: true, count });
@@ -173,6 +181,10 @@ exports.getConversations = asyncHandler(async (req, res) => {
       model: User,
       as: 'MatchedUser',
       attributes: ['id'],
+      // Active members only. With no condition here a banned member's thread and
+      // a staff account's old "match" were listed (and paged and counted).
+      where: ACTIVE_MEMBER_WHERE,
+      required: true,
       include: [{
         model: Profile,
         attributes: ['firstName', 'lastName', 'profilePhoto'],
@@ -289,9 +301,17 @@ exports.getConversations = asyncHandler(async (req, res) => {
       return new Date(dateB) - new Date(dateA);
     });
 
-  // Get total count for pagination
+  // Get total count for pagination (same scope as the page above)
   const totalMatches = await Match.count({
-    where: { userId, isMutual: true, ...notBlocked }
+    where: { userId, isMutual: true, ...notBlocked },
+    include: [{
+      model: User,
+      as: 'MatchedUser',
+      attributes: [],
+      where: ACTIVE_MEMBER_WHERE,
+      required: true,
+      include: [{ model: Profile, attributes: [], required: true }]
+    }]
   });
 
   res.json({

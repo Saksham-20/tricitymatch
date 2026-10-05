@@ -16,6 +16,7 @@
 const { User, ReferralCode, MarketingLead } = require('../models');
 const { log } = require('../middlewares/logger');
 const { trackEvent } = require('./trackEvent');
+const { MEMBER_ROLE } = require('./memberRole');
 
 const BOOST_MS = 48 * 60 * 60 * 1000;
 
@@ -55,7 +56,8 @@ async function resolveSignupAttribution({ code, invite, phone = null, email = nu
       const { normaliseCode } = require('./referral');
       const memberCode = normaliseCode(String(code));
       if (memberCode) {
-        const referrer = await User.findOne({ where: { referralCode: memberCode, status: 'active' }, attributes: ['id'] });
+        // A staff account's code (if one was ever minted) credits nobody.
+        const referrer = await User.findOne({ where: { referralCode: memberCode, status: 'active', role: MEMBER_ROLE }, attributes: ['id'] });
         if (referrer) invitedBy = referrer.id;
       }
     } catch (err) {
@@ -90,7 +92,7 @@ async function resolveSignupAttribution({ code, invite, phone = null, email = nu
     try {
       const token = String(invite).trim();
       if (/^[0-9a-f]{16,128}$/i.test(token)) {
-        const inviter = await User.findOne({ where: { inviteToken: token, status: 'active' }, attributes: ['id'] });
+        const inviter = await User.findOne({ where: { inviteToken: token, status: 'active', role: MEMBER_ROLE }, attributes: ['id'] });
         if (inviter) invitedBy = inviter.id;
       }
     } catch (err) {

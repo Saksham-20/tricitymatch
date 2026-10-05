@@ -11,6 +11,7 @@ const { asyncHandler, createError } = require('../middlewares/errorHandler');
 const { log } = require('../middlewares/logger');
 const config = require('../config/env');
 const { assertNotBlocked } = require('../utils/blocks');
+const { bothMembers, notStaffId } = require('../utils/memberRole');
 
 // GET /calls/agora-token?channel=<name>&type=voice|video
 //
@@ -89,8 +90,9 @@ exports.initiateCall = asyncHandler(async (req, res) => {
 
   if (calleeId === req.user.id) throw createError.validation('You cannot call yourself');
 
-  const callee = await User.findByPk(calleeId, { attributes: ['id'] });
-  if (!callee) throw createError.notFound('User not found');
+  // A banned, deactivated or deleted account cannot be rung.
+  const callee = await User.findByPk(calleeId, { attributes: ['id', 'status'] });
+  if (!callee || callee.status !== 'active') throw createError.notFound('User not found');
 
   await assertNotBlocked(req.user.id, calleeId);
   await assertActorAgeVerifiable(req.user.id);
@@ -107,7 +109,11 @@ exports.initiateCall = asyncHandler(async (req, res) => {
     },
     attributes: ['id'],
   });
-  if (!mutual) throw createError.forbidden('You can only call your mutual matches');
+  // ...between two members: a staff account's old Match row does not count
+  // (same rule as chat).
+  if (!mutual || !(await bothMembers(req.user.id, calleeId))) {
+    throw createError.forbidden('You can only call your mutual matches');
+  }
 
   const channelName = `call_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
   const call = await CallSession.create({
@@ -231,7 +237,11 @@ exports.getCallHistory = asyncHandler(async (req, res) => {
 
   const calls = await CallSession.findAndCountAll({
     where: {
-      [Op.or]: [{ callerId: req.user.id }, { calleeId: req.user.id }],
+      // A call with a staff account is not shown in a member's history.
+      [Op.or]: [
+        { callerId: req.user.id, calleeId: notStaffId() },
+        { calleeId: req.user.id, callerId: notStaffId() },
+      ],
     },
     include: [
       {

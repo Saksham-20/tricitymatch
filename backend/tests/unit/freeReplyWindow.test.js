@@ -22,6 +22,8 @@ jest.mock('../../models', () => ({
   Subscription: { findOne: jest.fn() },
   Match: { findOne: jest.fn() },
   ChatGrant: { findOne: jest.fn(), count: jest.fn() },
+  // bothMembers (utils/memberRole): both sides are member accounts.
+  User: { count: jest.fn(async () => 2) },
 }));
 
 jest.mock('../../middlewares/logger', () => ({

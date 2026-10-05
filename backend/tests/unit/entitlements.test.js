@@ -24,6 +24,8 @@ jest.mock('../../config/env', () => ({
 jest.mock('../../models', () => ({
   Subscription: { findOne: jest.fn() },
   Match: { findOne: jest.fn() },
+  // bothMembers (utils/memberRole): how many of the pair are member accounts.
+  User: { count: jest.fn() },
 }));
 
 jest.mock('../../middlewares/logger', () => ({
@@ -34,7 +36,7 @@ jest.mock('../../middlewares/logger', () => ({
 
 const { Op } = require('sequelize');
 const config = require('../../config/env');
-const { Subscription, Match } = require('../../models');
+const { Subscription, Match, User } = require('../../models');
 const { getActiveSubscription, hasChatAccess, isMutualMatch } = require('../../utils/entitlements');
 const { PAID_PLANS, FOUNDING_PLAN } = require('../../constants/plans');
 
@@ -45,6 +47,7 @@ beforeEach(() => {
   config.features.freeChatForMutuals = false;
   Subscription.findOne.mockResolvedValue(null);
   Match.findOne.mockResolvedValue(null);
+  User.count.mockResolvedValue(2);
 });
 
 describe('getActiveSubscription', () => {
@@ -85,6 +88,13 @@ describe('isMutualMatch', () => {
       { userId: 'a', matchedUserId: 'b', isMutual: true },
       { userId: 'b', matchedUserId: 'a', isMutual: true },
     ]);
+  });
+
+  it('is false when either side is a staff account, whatever the Match row says', async () => {
+    Match.findOne.mockResolvedValue({ id: 'm1' });
+    User.count.mockResolvedValue(1);
+    await expect(isMutualMatch('a', 'b')).resolves.toBe(false);
+    expect(User.count.mock.calls[0][0].where.role).toBe('user');
   });
 
   it('is false for self and for missing ids without a query', async () => {

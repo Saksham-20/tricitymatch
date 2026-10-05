@@ -21,6 +21,9 @@ const { applyFieldVisibility } = require('../constants/fieldVisibility');
 const { normalizeGotra, gotraSql } = require('./gotra');
 const { maskProfileText } = require('./contactInText');
 const { AGE_VERIFIABLE_WHERE } = require('./ageVerifiable');
+// Member-vs-staff rule for relationship lists, direct profile reads, chat and
+// calls (role only; see utils/memberRole). Re-exported below.
+const memberRole = require('./memberRole');
 
 // Keys that belong to the owner and are never useful to anyone else. Note
 // `dateOfBirth` stays: clients derive age from it today. Replacing it with a
@@ -257,6 +260,7 @@ const redactForViewer = (raw, { isMutual = false, isSelf = false, hasPaidAccess 
 };
 
 module.exports = {
+  ...memberRole,
   UNLISTED_USERS_SQL,
   STAFF_EXCLUDED,
   OWNER_ONLY_KEYS,

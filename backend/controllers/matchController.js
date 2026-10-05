@@ -12,6 +12,7 @@ const {
   viewerHasPaidAccess,
   redactForViewer,
 } = require('../utils/profileVisibility');
+const { ACTIVE_MEMBER_WHERE, isMember } = require('../utils/memberRole');
 const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
@@ -103,7 +104,7 @@ exports.matchAction = asyncHandler(async (req, res) => {
     throw createError.badRequest('You cannot act on your own profile');
   }
   const [targetUser, targetProfile, actorProfile] = await Promise.all([
-    User.findByPk(userId, { attributes: ['id', 'status'] }),
+    User.findByPk(userId, { attributes: ['id', 'status', 'role'] }),
     Profile.findOne({ where: { userId }, attributes: ['isActive', 'profileVisibility', 'dateOfBirth', 'gender'] }),
     Profile.findOne({ where: { userId: currentUserId }, attributes: ['isActive', 'pausedAt', 'dateOfBirth', 'gender'] }),
   ]);
@@ -125,7 +126,10 @@ exports.matchAction = asyncHandler(async (req, res) => {
       'PROFILE_HIDDEN'
     );
   }
-  if (!targetUser || targetUser.status !== 'active' || !targetProfile || !targetProfile.isActive || !hasVerifiableAge(targetProfile)) {
+  // A staff account is not a member: it cannot receive an interest and, to a
+  // member, does not exist. ('undo' of the member's own row returned above.)
+  if (!targetUser || targetUser.status !== 'active' || !isMember(targetUser)
+      || !targetProfile || !targetProfile.isActive || !hasVerifiableAge(targetProfile)) {
     throw createError.notFound('Profile not found');
   }
   if (targetProfile.profileVisibility === 'matches_only') {
@@ -580,7 +584,8 @@ exports.getLikes = asyncHandler(async (req, res) => {
         model: User,
         as: 'User',
         attributes: ['id'],
-        where: { status: 'active' },
+        // Active members only: a staff account's old like is not shown.
+        where: ACTIVE_MEMBER_WHERE,
         include: [{
           model: Profile,
           where: { isActive: true },
@@ -657,7 +662,7 @@ exports.getShortlist = asyncHandler(async (req, res) => {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
-        where: { status: 'active' },
+        where: ACTIVE_MEMBER_WHERE,
         include: [{
           model: Profile,
           where: { isActive: true, [Op.and]: [matchesOnlyClause(viewerCtx)] },
@@ -715,7 +720,7 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
-        where: { status: 'active' },
+        where: ACTIVE_MEMBER_WHERE,
         include: [{
           model: Profile,
           where: { isActive: true, [Op.and]: [matchesOnlyClause(viewerCtx)] },
@@ -775,7 +780,7 @@ exports.getMutualMatches = asyncHandler(async (req, res) => {
         model: User,
         as: 'MatchedUser',
         attributes: ['id'],
-        where: { status: 'active' },
+        where: ACTIVE_MEMBER_WHERE,
         include: [{
           model: Profile,
           where: { isActive: true },
