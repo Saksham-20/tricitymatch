@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import FormField from '../components/ui/FormField';
+import ContactNumberVerify from '../components/common/ContactNumberVerify';
 import DobField from '../components/ui/DobField';
 import Seo from '../components/common/Seo';
 import { validateName, validateAge } from '../utils/validators';
@@ -22,9 +23,17 @@ const dateOnly = (v) => (v ? String(v).slice(0, 10) : '');
  * gender and date of birth (the age rule depends on both). A Google sign-up
  * arrives with only a name, so it lands here; so does any older account that
  * never finished. Same rules as the signup form's Basic Info step.
+ *
+ * Step 2 verifies a mobile number when the account has none (every Google
+ * sign-up): it is the number members call after unlocking the profile. It used
+ * to appear only as a blocking pop-up on the next page.
  */
 export default function CompleteBasics() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, updateUser, logout } = useAuth();
+  // Held locally: saving the basics flips onboardingComplete, which would
+  // otherwise redirect away before the phone step shows.
+  const [stage, setStage] = useState('basics'); // basics | phone
+  const [phone, setPhone] = useState(user?.phone || '');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const profile = user?.Profile || {};
@@ -44,7 +53,7 @@ export default function CompleteBasics() {
   const raw = searchParams.get('returnTo') || '';
   const returnTo = raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/welcome') ? raw : '/dashboard';
 
-  if (user && (user.role !== 'user' || user.onboardingComplete !== false)) {
+  if (stage === 'basics' && user && (user.role !== 'user' || user.onboardingComplete !== false)) {
     return <Navigate to={returnTo} replace />;
   }
 
@@ -73,14 +82,56 @@ export default function CompleteBasics() {
       fd.append('gender', form.gender);
       fd.append('dateOfBirth', form.dateOfBirth);
       await api.put('/profile/me', fd);
-      await refreshUser();
-      navigate(returnTo, { replace: true });
+      if (user?.phoneVerified === false) {
+        setStage('phone');
+        refreshUser();
+      } else {
+        await refreshUser();
+        navigate(returnTo, { replace: true });
+      }
     } catch (err) {
       setSaveError(apiErrorMessage(err, 'Could not save. Please try again.'));
     } finally {
       setSaving(false);
     }
   };
+
+  if (stage === 'phone') {
+    return (
+      <div className="min-h-[calc(100dvh-4rem)] bg-neutral-50 dark:bg-surface-dark-1 px-4 py-10">
+        <Seo title="Verify your mobile number" noindex />
+        <div className="mx-auto max-w-lg rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-6 sm:p-8 space-y-5">
+          <div>
+            <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Step 2 of 2</p>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-50 mt-1">Verify your mobile number</h1>
+            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+              When a member unlocks your contact, this is the number they call, so every member needs a verified one. You choose who can unlock it in Settings → Privacy.
+            </p>
+          </div>
+          <ContactNumberVerify
+            flow="account"
+            value={phone}
+            verified={false}
+            onChange={setPhone}
+            onVerified={(d) => {
+              updateUser({ phone: d, phoneVerified: true });
+              navigate(returnTo, { replace: true });
+            }}
+          />
+          <div className="rounded-xl bg-neutral-100 dark:bg-neutral-800/60 p-4 text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="font-medium text-neutral-800 dark:text-neutral-200">Already joined with this number?</p>
+            <p className="mt-1">
+              Then you have two accounts. Sign out and sign in with your mobile number instead. You can delete this new account from{' '}
+              <a href="/settings" className="font-medium text-primary-600 dark:text-primary-300 underline underline-offset-2">Settings</a>.
+            </p>
+            <button type="button" onClick={() => logout()} className="mt-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 underline underline-offset-2">
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100dvh-4rem)] bg-neutral-50 dark:bg-surface-dark-1 px-4 py-10">

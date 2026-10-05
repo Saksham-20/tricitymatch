@@ -12,14 +12,20 @@ const RESEND_SECONDS = 60;
 const toTen = (v) => String(v || '').replace(/\D/g, '').slice(-10);
 
 /**
- * Password reset by text message, for accounts that were created with a mobile
- * number and have no verified email to receive a link. The server answers the
- * first step identically for every number, so this page can only say "if it can
- * be reset, a code was sent".
+ * Password reset for members who joined with their mobile number.
+ *
+ * Email first: the member gives their mobile number AND the email on their
+ * account; when both match one account we email a reset link (free for us,
+ * and using it verifies the email). A text message code is the fallback. The
+ * server answers each step identically whatever happens, so this page can only
+ * say "if it matches, we sent it".
  */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function ForgotPasswordPhone() {
-  const [step, setStep] = useState('phone'); // phone | code | done
+  const [step, setStep] = useState('phone'); // phone | emailSent | code | done
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -34,8 +40,23 @@ export default function ForgotPasswordPhone() {
     return () => clearTimeout(id);
   }, [cooldown]);
 
-  const sendCode = async (e) => {
+  const sendLink = async (e) => {
     e.preventDefault();
+    if (!PHONE_RE.test(toTen(phone))) { setError('Enter your 10-digit mobile number'); return; }
+    if (!EMAIL_RE.test(email.trim())) { setError('Enter the email address on your account, or get a code by text instead'); return; }
+    setError(''); setBusy(true);
+    try {
+      await api.post('/auth/forgot-password/phone-email', { phone: toTen(phone), email: email.trim() });
+      setStep('emailSent');
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not send the link. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendCode = async (e) => {
+    e?.preventDefault?.();
     if (!PHONE_RE.test(toTen(phone))) { setError('Enter your 10-digit mobile number'); return; }
     setError(''); setBusy(true);
     try {
@@ -86,11 +107,31 @@ export default function ForgotPasswordPhone() {
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center p-6 bg-[#FDF8F2] dark:bg-surface-dark-1">
-      <Seo title="Reset password by mobile" description="Reset your TricityMatch password with a code sent to your mobile number." path="/forgot-password/phone" noindex />
+      <Seo title="Reset password" description="Reset your TricityMatch password if you joined with your mobile number." path="/forgot-password/phone" noindex />
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8"><Logo size="lg" linkTo="/" /></div>
 
-        {step === 'done' ? (
+        {step === 'emailSent' ? (
+          <div className="card dark:bg-surface-dark-3 dark:border-neutral-800 text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mx-auto"><FiCheck className="w-7 h-7 text-success" /></div>
+            <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100">Check your email</h1>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              If <strong className="text-neutral-700 dark:text-neutral-300">{email.trim()}</strong> is the email on the account with this mobile number, we&apos;ve sent a reset link. Check your inbox and spam folder. Using the link also verifies your email.
+            </p>
+            <div className="rounded-2xl bg-neutral-100 dark:bg-neutral-800/60 p-4 text-left">
+              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">No email after a few minutes?</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">The email may be different from the one on your account. Get a code by text message instead.</p>
+              <button type="button" onClick={() => sendCode()} disabled={busy}
+                className="mt-3 w-full btn-secondary text-sm disabled:opacity-60">
+                {busy ? 'Please wait…' : 'Text me a code instead'}
+              </button>
+              {error && <p role="alert" className="mt-2 text-sm text-destructive dark:text-red-300">{error}</p>}
+            </div>
+            <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 font-medium inline-flex items-center gap-1">
+              <FiArrowLeft className="w-4 h-4" /> Back to sign in
+            </Link>
+          </div>
+        ) : step === 'done' ? (
           <div className="card dark:bg-surface-dark-3 dark:border-neutral-800 text-center">
             <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4"><FiCheck className="w-7 h-7 text-success" /></div>
             <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Password updated</h1>
@@ -98,12 +139,12 @@ export default function ForgotPasswordPhone() {
             <Link to="/login" className="btn-primary inline-flex">Sign in</Link>
           </div>
         ) : (
-          <form onSubmit={step === 'phone' ? sendCode : reset} noValidate className="card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5">
+          <form onSubmit={step === 'phone' ? sendLink : reset} noValidate className="card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5">
             <div className="text-center">
-              <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-1">Reset by mobile</h1>
+              <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-1">Signed up with your mobile?</h1>
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
                 {step === 'phone'
-                  ? 'For accounts created with a mobile number and no email. We text you a code.'
+                  ? 'Enter your mobile number and the email you gave when you joined. We\'ll email you a reset link.'
                   : 'If this number can be reset, we sent a code to it. Enter it with a new password.'}
               </p>
             </div>
@@ -111,11 +152,18 @@ export default function ForgotPasswordPhone() {
             {error && <p role="alert" className="px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm">{error}</p>}
 
             {step === 'phone' ? (
-              <div>
-                <label htmlFor="reset-phone" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">Mobile number</label>
-                <input id="reset-phone" type="tel" inputMode="numeric" autoComplete="tel-national" autoFocus className={field}
-                  placeholder="10-digit number" value={phone} onChange={(e) => { setPhone(e.target.value); setError(''); }} />
-              </div>
+              <>
+                <div>
+                  <label htmlFor="reset-phone" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">Mobile number</label>
+                  <input id="reset-phone" type="tel" inputMode="numeric" autoComplete="tel-national" autoFocus className={field}
+                    placeholder="10-digit number" value={phone} onChange={(e) => { setPhone(e.target.value); setError(''); }} />
+                </div>
+                <div>
+                  <label htmlFor="reset-email" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">Email on your account</label>
+                  <input id="reset-email" type="email" inputMode="email" autoComplete="email" className={field}
+                    placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} />
+                </div>
+              </>
             ) : (
               <>
                 <div>
@@ -141,8 +189,17 @@ export default function ForgotPasswordPhone() {
             )}
 
             <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60">
-              {busy ? 'Please wait…' : step === 'phone' ? 'Send code' : 'Set new password'}
+              {busy ? 'Please wait…' : step === 'phone' ? 'Email me a reset link' : 'Set new password'}
             </button>
+
+            {step === 'phone' && (
+              <div className="text-center">
+                <button type="button" onClick={() => sendCode()} disabled={busy}
+                  className="text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 underline underline-offset-2 disabled:opacity-60 py-2">
+                  No email on your account? Text me a code instead
+                </button>
+              </div>
+            )}
 
             {step === 'code' && (
               <div className="text-center space-y-2">
@@ -154,7 +211,7 @@ export default function ForgotPasswordPhone() {
                   </button>
                 </p>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Accounts that have an email address are reset by email, not text. Use the email link below if no code arrives.
+                  Codes are sent only to the mobile number you verified when you joined.
                 </p>
                 <button type="button" onClick={() => { setStep('phone'); setCode(''); setError(''); setCooldown(0); }} className="block mx-auto text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 font-medium">
                   Use a different number
@@ -164,7 +221,7 @@ export default function ForgotPasswordPhone() {
 
             <div className="text-center">
               <Link to="/forgot-password" className="text-sm text-primary-500 dark:text-primary-300 font-medium inline-flex items-center gap-1">
-                <FiArrowLeft className="w-4 h-4" /> Reset by email instead
+                <FiArrowLeft className="w-4 h-4" /> Reset with just your email
               </Link>
             </div>
           </form>

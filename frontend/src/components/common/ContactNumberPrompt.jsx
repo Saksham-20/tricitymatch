@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import ContactNumberVerify from './ContactNumberVerify';
 
 // Signing up/in and the pages a member must always be able to read stay usable.
+// /settings too: a member whose number already belongs to another account
+// (a second account made with Google, or a parent's number on a sibling's
+// account) could otherwise only sign out, never delete the duplicate. /welcome
+// verifies the number itself as step 2.
 const EXEMPT = [
-  '/onboarding', '/login', '/signup', '/forgot-password', '/reset-password',
+  '/onboarding', '/login', '/signup', '/forgot-password', '/reset-password', '/welcome', '/settings',
   '/terms', '/privacy', '/refund-policy', '/delete-account', '/contact', '/help', '/safety', '/about',
 ];
 
@@ -55,7 +59,11 @@ export default function ContactNumberPrompt() {
             }}
           />
         </div>
-        <button type="button" onClick={() => logout()} className="mt-5 text-sm text-neutral-500 hover:underline">
+        <div className="mt-5 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 p-3 text-sm text-neutral-600 dark:text-neutral-400">
+          Already joined with this number? Sign out and sign in with your mobile number instead. You can delete this account from{' '}
+          <Link to="/settings" className="font-medium text-primary-600 dark:text-primary-300 underline underline-offset-2">Settings</Link>.
+        </div>
+        <button type="button" onClick={() => logout()} className="mt-4 text-sm text-neutral-600 dark:text-neutral-300 hover:underline py-2">
           Sign out
         </button>
       </div>

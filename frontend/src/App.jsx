@@ -607,7 +607,10 @@ const AppContent = () => {
   // condition covers them safely.
   const isFunnelRoute = ['/onboarding', '/login', '/forgot-password', '/reset-password'].includes(location.pathname);
 
-  const showBottomNav = isAuthenticated && !isAdminRoute && !isMarketingRoute && !isFunnelRoute;
+  // /welcome is a gate: every tab would bounce straight back to it, and on a
+  // phone the floating bar sat over its Continue button.
+  const showBottomNav = isAuthenticated && !isAdminRoute && !isMarketingRoute && !isFunnelRoute
+    && location.pathname !== '/welcome';
 
   // The launch announcement belongs on the pages a first-time visitor lands on,
   // not inside the member app. The funnel routes have no Navbar to sit under.

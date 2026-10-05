@@ -19,10 +19,31 @@ const typeCode = (code) => {
 };
 
 describe('ForgotPasswordPhone', () => {
+  it('emails a reset link when given the mobile number and the email on the account (preferred: no SMS cost)', async () => {
+    api.post.mockResolvedValue({ data: { success: true } });
+    render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '98765 43210' } });
+    fireEvent.change(screen.getByLabelText('Email on your account'), { target: { value: 'asha@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /email me a reset link/i }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/forgot-password/phone-email', { phone: '9876543210', email: 'asha@example.com' }));
+    expect(await screen.findByText('Check your email')).toBeInTheDocument();
+    // SMS stays one tap away if the mail does not come.
+    fireEvent.click(screen.getByRole('button', { name: /text me a code instead/i }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/forgot-password/phone', { phone: '9876543210' }));
+  });
+
+  it('asks for the email before sending a link', async () => {
+    render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '9876543210' } });
+    fireEvent.click(screen.getByRole('button', { name: /email me a reset link/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/email address on your account/);
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
   it('rejects a number that is not a 10-digit Indian mobile', async () => {
     render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
     fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '12345' } });
-    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    fireEvent.click(screen.getByRole('button', { name: /text me a code instead/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/10-digit/);
     expect(api.post).not.toHaveBeenCalled();
   });
@@ -31,7 +52,7 @@ describe('ForgotPasswordPhone', () => {
     api.post.mockResolvedValue({ data: { success: true } });
     render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
     fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '+91 98765 43210' } });
-    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    fireEvent.click(screen.getByRole('button', { name: /text me a code instead/i }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/forgot-password/phone', { phone: '9876543210' }));
 
     await screen.findByLabelText('New password');
@@ -46,7 +67,7 @@ describe('ForgotPasswordPhone', () => {
     api.post.mockResolvedValue({ data: { success: true } });
     render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
     fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '9876543210' } });
-    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    fireEvent.click(screen.getByRole('button', { name: /text me a code instead/i }));
     await screen.findByLabelText('New password');
     typeCode('4821');
     fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'weak' } });
@@ -59,19 +80,19 @@ describe('ForgotPasswordPhone', () => {
     api.post.mockResolvedValue({ data: { success: true } });
     render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
     fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '9876543210' } });
-    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    fireEvent.click(screen.getByRole('button', { name: /text me a code instead/i }));
     await screen.findByLabelText('New password');
 
     // Cooling down right after the first send: the resend control is disabled.
     expect(screen.getByRole('button', { name: /resend in \d+s/i })).toBeDisabled();
-    expect(screen.getByRole('link', { name: /reset by email instead/i })).toHaveAttribute('href', '/forgot-password');
+    expect(screen.getByRole('link', { name: /reset with just your email/i })).toHaveAttribute('href', '/forgot-password');
   });
 
   it('accepts a password whose only symbol is outside the old @$!%*?& set', async () => {
     api.post.mockResolvedValue({ data: { success: true } });
     render(<MemoryRouter><ForgotPasswordPhone /></MemoryRouter>);
     fireEvent.change(screen.getByLabelText('Mobile number'), { target: { value: '9876543210' } });
-    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    fireEvent.click(screen.getByRole('button', { name: /text me a code instead/i }));
     await screen.findByLabelText('New password');
     typeCode('4821');
     fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'Hello#1234' } });

@@ -86,6 +86,66 @@ const GroupHeader = ({ title, desc }) => (
 
 // ─── File upload dropzone ─────────────────────────────────────────────────────
 // ─── Account tab ──────────────────────────────────────────────────────────────
+// Members who joined with their mobile number typed an email that was never
+// checked. Until it is, password-reset links are not sent to it and Google
+// sign-in will not link to it. Change-email refused "that is already your
+// email", so nothing let them prove it.
+const VerifyCurrentEmail = ({ email }) => {
+  const { setUser } = useAuth();
+  const [step, setStep] = useState('idle'); // idle | code
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const msg = (err, fallback) => err.response?.data?.error?.message || err.response?.data?.message || fallback;
+
+  const send = async () => {
+    setBusy(true);
+    try {
+      await api.post('/auth/email/verify/request');
+      toast.success(`We sent a 6-digit code to ${email}`);
+      setStep('code');
+    } catch (err) {
+      toast.error(msg(err, 'Could not send the code'));
+    } finally { setBusy(false); }
+  };
+  const confirm = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const res = await api.post('/auth/email/verify/confirm', { code: code.trim() });
+      if (res.data?.user && setUser) setUser(res.data.user);
+      toast.success('Email verified');
+      setStep('idle'); setCode('');
+    } catch (err) {
+      toast.error(msg(err, 'That code is not right or has expired'));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-xl bg-neutral-100 dark:bg-neutral-800/60 p-4 space-y-3">
+      <p className="text-sm text-neutral-700 dark:text-neutral-300">
+        Verify this email so you can reset your password by email and sign in with Google.
+      </p>
+      {step === 'idle' ? (
+        <button type="button" onClick={send} disabled={busy} className="btn-secondary text-sm disabled:opacity-60">
+          {busy ? 'Sending…' : 'Verify this email'}
+        </button>
+      ) : (
+        <form onSubmit={confirm} className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text" inputMode="numeric" maxLength={6} value={code} autoComplete="one-time-code"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="6-digit code" aria-label="6-digit code from the email"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-base tracking-[0.4em] text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+          <button type="submit" disabled={busy || code.length !== 6} className="btn-primary text-sm disabled:opacity-60">
+            {busy ? 'Checking…' : 'Confirm'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+};
+
 const EmailSection = () => {
   const { user, setUser } = useAuth();
   const currentEmail = user?.email || null;
@@ -140,9 +200,13 @@ const EmailSection = () => {
           ~584px-wide desktop panel — widened to max-w-xl (576px) here and at
           every other capped block in this file. */}
       <div className="max-w-xl space-y-3">
-        <div className="text-sm text-neutral-600 dark:text-neutral-300">
-          Current: <span className="font-medium text-neutral-900 dark:text-neutral-100">{currentEmail || 'No email set (phone-only account)'}</span>
+        <div className="text-sm text-neutral-600 dark:text-neutral-300 flex flex-wrap items-center gap-2">
+          <span>Current: <span className="font-medium text-neutral-900 dark:text-neutral-100">{currentEmail || 'No email set (phone-only account)'}</span></span>
+          {currentEmail && user?.emailVerified === false && (
+            <span className="px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-100 text-xs font-semibold">Not verified</span>
+          )}
         </div>
+        {currentEmail && user?.emailVerified === false && <VerifyCurrentEmail email={currentEmail} />}
 
         {step === 'idle' ? (
           <form onSubmit={requestCode} className="space-y-3">
@@ -465,6 +529,43 @@ const ContactNumberCard = () => {
   );
 };
 
+// Members who joined with Google have no password, so "Change password" asked
+// for a current one they never had. The app has no Google sign-in, so without a
+// password they could not use it at all. The link goes to their Google inbox,
+// the same proof Google sign-in rests on.
+const SetPasswordByEmail = ({ email }) => {
+  const [state, setState] = useState('idle'); // idle | sending | sent | error
+  const send = async () => {
+    setState('sending');
+    try {
+      await api.post('/auth/forgot-password', { email });
+      setState('sent');
+    } catch {
+      setState('error');
+    }
+  };
+  return (
+    <div>
+      <GroupHeader title="Password" desc="You sign in with Google, so there is no password on your account." />
+      <div className="max-w-xl space-y-3">
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          Want a password as well, for example to use the TricityMatch app? We&apos;ll email <strong className="text-neutral-800 dark:text-neutral-100">{email}</strong> a link to set one.
+        </p>
+        {state === 'sent' ? (
+          <p role="status" className="text-sm text-success dark:text-green-300 flex items-center gap-1.5">
+            <FiCheck className="w-4 h-4" aria-hidden="true" /> Sent. The link works once and expires in an hour.
+          </p>
+        ) : (
+          <button type="button" onClick={send} disabled={state === 'sending' || !email} className="btn-secondary disabled:opacity-60">
+            {state === 'sending' ? 'Sending…' : 'Email me a link to set a password'}
+          </button>
+        )}
+        {state === 'error' && <p role="alert" className="text-sm text-destructive dark:text-red-300">Could not send the email. Please try again in a minute.</p>}
+      </div>
+    </div>
+  );
+};
+
 const AccountTab = () => {
   const { user } = useAuth();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -586,6 +687,9 @@ const AccountTab = () => {
 
       <DownloadMyData />
 
+      {user?.hasPassword === false ? (
+        <SetPasswordByEmail email={user?.email} />
+      ) : (
       <div>
         <GroupHeader title="Change Password" desc="Must be 8+ characters with uppercase, lowercase, number, and special character." />
         <form onSubmit={handleChangePassword} className="space-y-4 max-w-xl">
@@ -631,6 +735,7 @@ const AccountTab = () => {
           </button>
         </form>
       </div>
+      )}
 
       <SessionsSection />
     </div>

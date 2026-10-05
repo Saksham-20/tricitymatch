@@ -149,7 +149,7 @@ describe('members with no password (Google-only)', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, message: 'If the email exists, a reset link has been sent.' }));
     expect(res.json.mock.calls[0][0].resetToken).toBeUndefined();
     expect(sendPasswordResetEmail).not.toHaveBeenCalled();
-    expect(sendGoogleSignInHelpEmail).toHaveBeenCalledWith('g@example.com', 'Asha', 'http://localhost:3000/login');
+    expect(sendGoogleSignInHelpEmail).toHaveBeenCalledWith('g@example.com', 'Asha', 'http://localhost:3000/login', expect.stringContaining('/reset-password?token='));
   });
 
   it('forgot-password on a password account greets the member by their profile name', async () => {

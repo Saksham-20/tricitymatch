@@ -21,10 +21,18 @@ const revealablePhone = (user) => {
   return user.phoneVerified && user.phone ? user.phone : null;
 };
 
+/**
+ * The email to reveal: only one the owner proved. Members who joined by phone
+ * typed an address that was never checked; handing that out on an unlock gave
+ * a stranger a possibly-wrong address (and it is the address a reset goes to).
+ * Callers must load `emailVerified`; if they do not, nothing is revealed.
+ */
+const revealableEmail = (user) => (user && user.email && user.emailVerified === true ? user.email : null);
+
 /** `{ phone, email }` as returned from an unlock. */
 const contactOf = (user) => ({
   phone: revealablePhone(user),
-  email: user?.email || null,
+  email: revealableEmail(user),
 });
 
 /**
@@ -43,4 +51,4 @@ const contactShareFor = async (ownerFieldVisibility, ownerId, viewerId) => {
   };
 };
 
-module.exports = { revealablePhone, contactOf, contactShareFor };
+module.exports = { revealablePhone, revealableEmail, contactOf, contactShareFor };

@@ -105,16 +105,23 @@ describeDb('phone-OTP password reset', (t) => {
     expect(unknown.body).toEqual(knownRes.body);
 
     sms.sendOtp.mockClear();
-    const withEmail = await phoneOnly({ email: `has-email-${Date.now()}@example.test`, emailVerified: true });
     const staff = await phoneOnly({ role: 'admin' });
     const googleOnly = await phoneOnly({ password: null });
     const unverified = await phoneOnly({ phoneVerified: false });
     const banned = await phoneOnly({ status: 'banned' });
-    for (const c of [withEmail, staff, googleOnly, unverified, banned]) {
+    for (const c of [staff, googleOnly, unverified, banned]) {
       const r = await ask(c.number);
       expect(r.body).toEqual(knownRes.body);
     }
     expect(sms.sendOtp).not.toHaveBeenCalled();
+  });
+
+  t('a member who also verified an email can still reset by text (SMS is the fallback, owner 2026-10-05)', async () => {
+    sms.sendOtp.mockClear();
+    const withEmail = await phoneOnly({ email: `has-email-${Date.now()}@example.test`, emailVerified: true });
+    const r = await ask(withEmail.number);
+    expect(r.status).toBe(200);
+    expect(sms.sendOtp).toHaveBeenCalledTimes(1);
   });
 
   t('the reset step gives one answer whether the account exists, is ineligible, or the code is wrong', async () => {

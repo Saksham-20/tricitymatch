@@ -91,9 +91,9 @@ const ForgotPassword = () => {
               <div className="text-left rounded-2xl bg-neutral-100 dark:bg-neutral-800/60 p-4 mb-6 space-y-2">
                 <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">No email after a few minutes?</p>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                  If you signed up with your mobile number, your email may not be verified, so we can't send a link there.{' '}
+                  If you signed up with your mobile number, your email isn&apos;t verified yet, so we can&apos;t send a link to it from here.{' '}
                   <Link to="/forgot-password/phone" className="font-semibold text-primary-600 dark:text-primary-300 underline underline-offset-2 hover:text-primary-700">
-                    Reset with a code by SMS
+                    Reset with your mobile number and email
                   </Link>
                 </p>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
@@ -226,7 +226,7 @@ const ForgotPassword = () => {
 
             <div className="text-center space-y-2">
               <Link to="/forgot-password/phone" className="block text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-300 font-medium transition-colors">
-                Signed up with your mobile number? Reset with a code by SMS
+                Signed up with your mobile number? Reset here
               </Link>
               <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 font-medium inline-flex items-center gap-1 transition-colors">
                 <FiArrowLeft className="w-4 h-4" /> Back to login

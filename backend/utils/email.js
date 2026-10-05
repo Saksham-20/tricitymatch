@@ -305,7 +305,7 @@ const templates = {
 
   // Asked to reset a password on an account that signs in with Google and has
   // none. Silence here read as "the email is broken", so say what to do instead.
-  googleSignInHelp: (name, loginLink) => ({
+  googleSignInHelp: (name, loginLink, setPasswordLink) => ({
     subject: 'How to sign in to TricityMatch',
     html: brandLayout({
       eyebrow: 'Signing In',
@@ -314,10 +314,11 @@ const templates = {
         <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
         <p>We received a request to reset the password for this email address. Your TricityMatch account does not use a password: you created it with Google.</p>
         ${panel(`On the sign-in page, choose <strong>Sign in with Google</strong> and pick this email address.`, { accent: BRAND.gold })}
+        ${setPasswordLink ? `<p>Would you also like a password, for example to use the TricityMatch app? <a href="${setPasswordLink}" style="color:${BRAND.burgundy};font-weight:600;">Set a password</a> (this link works once and expires in 1 hour).</p>` : ''}
         <p style="color:${BRAND.soft};font-size:13px;">If you didn't ask for this, you can ignore this email. Nothing has changed on your account.</p>`,
       cta: { href: loginLink, label: 'Go to sign in' },
     }),
-    text: `Hi ${name}, your TricityMatch account signs in with Google, so there is no password to reset. Go to ${loginLink} and choose "Sign in with Google" with this email address. If you didn't ask for this, ignore this email.`,
+    text: `Hi ${name}, your TricityMatch account signs in with Google, so there is no password to reset. Go to ${loginLink} and choose "Sign in with Google" with this email address.${setPasswordLink ? ` To also set a password (for the app), use this link once within 1 hour: ${setPasswordLink}` : ''} If you didn't ask for this, ignore this email.`,
   }),
 
   matchNotification: (name, matchName) => ({
@@ -645,7 +646,8 @@ const sendWelcomeEmail = (to, name) => sendEmail(to, 'welcome', { name });
 const sendPasswordResetEmail = (to, name, resetLink) => sendEmail(to, 'passwordReset', { name, resetLink });
 
 // Reset requested on a Google-only account (no password exists)
-const sendGoogleSignInHelpEmail = (to, name, loginLink) => sendEmail(to, 'googleSignInHelp', { name, loginLink });
+const sendGoogleSignInHelpEmail = (to, name, loginLink, setPasswordLink = null) =>
+  sendEmail(to, 'googleSignInHelp', { name, loginLink, setPasswordLink });
 
 // Send match notification
 const sendMatchNotification = (to, name, matchName) => sendEmail(to, 'matchNotification', { name, matchName });

@@ -11,7 +11,7 @@ const config = require('../config/env');
 const { eraseAccount } = require('../utils/accountErasure');
 const { createError, asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { recordFailedLogin, clearLoginAttempts, loginLookupKey } = require('../middlewares/security');
-const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
+const { canonicalEmail, emailLookupCandidates, emailIdentityKey } = require('../utils/emailAddress');
 const { issueProof, consumeProof } = require('../utils/otpProof');
 const otpStore = require('../utils/otpStore');
 const { buildConsent, renewConsent, truthy } = require('../utils/consentRecord');
@@ -55,7 +55,18 @@ const withDerivedUserFields = async (userInstance) => {
   // up with Google have none and must confirm sensitive actions (account
   // deletion) with a fresh Google credential instead. Only stated when the
   // column was actually loaded: `undefined` means "unknown", never "no password".
-  if (userInstance.password !== undefined) user.hasPassword = Boolean(userInstance.password);
+  // Every caller loads the user WITHOUT the password column, so this used to be
+  // unknown everywhere and the web always showed a password box to Google
+  // members (who then could not delete their account or export their data).
+  if (userInstance.password !== undefined) {
+    user.hasPassword = Boolean(userInstance.password);
+  } else {
+    try {
+      user.hasPassword = (await User.count({ where: { id: userInstance.id, password: { [require('sequelize').Op.ne]: null } } })) > 0;
+    } catch {
+      // Unknown stays unknown (undefined), never a false "no password".
+    }
+  }
   // Read through utils/entitlements — the SAME query every gate uses, including
   // its endDate predicate. Filtering on `status:'active'` alone (what this did
   // until 2026-08-10) meant that between a subscription's expiry and the hourly
@@ -218,6 +229,28 @@ const findUserByEmail = async (email, options = {}) => {
   for (const candidate of emailLookupCandidates(email)) {
     const found = await User.findOne({ ...options, where: { ...(options.where || {}), email: candidate } });
     if (found) return found;
+  }
+  // Gmail ignores dots and anything after "+", so first.last@, firstlast@ and
+  // firstlast+tm@ are one mailbox. The candidates above only fold one way (to
+  // the dotless form), so an account stored as `first.last@gmail.com` was not
+  // found when Google reported `firstlast@gmail.com`, and a second account was
+  // created. Matched only when exactly one account has that mailbox.
+  const key = emailIdentityKey(email);
+  if (key && /@gmail\.com$/.test(key)) {
+    const sequelize = require('../config/database');
+    const local = key.split('@')[0];
+    const rows = await User.findAll({
+      ...options,
+      where: {
+        ...(options.where || {}),
+        [require('sequelize').Op.and]: [
+          sequelize.literal(`lower("User"."email") ~ '@(gmail|googlemail)\\.com$'`),
+          sequelize.literal(`regexp_replace(split_part(lower("User"."email"), '@', 1), '\\.|\\+.*$', '', 'g') = ${sequelize.escape(local)}`),
+        ],
+      },
+      limit: 2,
+    });
+    if (rows.length === 1) return rows[0];
   }
   return null;
 };
@@ -817,6 +850,16 @@ exports.getMe = asyncHandler(async (req, res) => {
   });
 });
 
+// Ties a reset token to the password it was issued against, so it works once:
+// setting a password changes the fingerprint. An account with no password
+// (Google sign-up) gets a per-account stand-in, so its "set a password" link
+// also dies the moment a password exists.
+const passwordFingerprint = (user) => require('crypto')
+  .createHash('sha256')
+  .update(user.password ? user.password : `no-password:${user.id}`)
+  .digest('hex')
+  .substring(0, 16);
+
 // The name lives on the Profile, not the User row: `user.firstName` was always
 // undefined, so every reset mail opened "Hi User".
 const memberFirstName = async (userId) => {
@@ -893,7 +936,19 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
         if (eligible) {
           await sendPasswordResetEmail(user.email, name, resetUrl);
         } else {
-          await sendGoogleSignInHelpEmail(user.email, name, `${config.server.frontendUrl}/login`);
+          // A Google member has no password, so they could never use the
+          // mobile app (which has no Google sign-in). The mail also carries a
+          // one-time "set a password" link; the inbox is the same proof Google
+          // sign-in rests on.
+          const setToken = jwt.sign(
+            { userId: user.id, type: 'password_reset', pwdFp: passwordFingerprint(user), em: emailFingerprint(user.email) },
+            config.auth.jwtSecret,
+            { expiresIn: config.auth.resetTokenExpiry }
+          );
+          await sendGoogleSignInHelpEmail(
+            user.email, name, `${config.server.frontendUrl}/login`,
+            `${config.server.frontendUrl}/reset-password?token=${setToken}`
+          );
         }
       } catch (error) {
         // Includes the 429 from an exhausted per-member budget.
@@ -941,14 +996,9 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   if (!decoded.pwdFp) {
     throw createError.badRequest('Reset token is malformed or is no longer valid');
   }
-  if (!user.password) {
-    throw createError.badRequest('Reset token has already been used or is no longer valid');
-  }
-  const currentFp = require('crypto')
-    .createHash('sha256')
-    .update(user.password)
-    .digest('hex')
-    .substring(0, 16);
+  // A Google member with no password can set one through the link in the
+  // "how to sign in" mail; the stand-in fingerprint makes that link single-use.
+  const currentFp = passwordFingerprint(user);
   // timingSafeEqual over equal-length hex; both sides are 16 chars by construction.
   const fpMatches = currentFp.length === decoded.pwdFp.length
     && require('crypto').timingSafeEqual(Buffer.from(currentFp), Buffer.from(decoded.pwdFp));
@@ -964,6 +1014,11 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
   // Update password (will be hashed by model hook)
   user.password = password;
+  // The link reached this inbox and was used, which proves the member owns the
+  // address (the `em` check above already tied the token to it). Members who
+  // joined by phone get their email verified here, so Google sign-in links and
+  // the free email reset works from now on.
+  if (decoded.em && !user.emailVerified && user.email) user.emailVerified = true;
   await user.save();
 
   // Revoke all refresh tokens for security
@@ -1008,13 +1063,74 @@ const findPhoneResetCandidate = async (phone10) => {
   if (!/^[6-9]\d{9}$/.test(phone10)) return null;
   const user = await User.findOne({ where: { phone: { [Op.in]: phoneVariants(phone10) } } });
   if (!user) return null;
+  // A verified email no longer turns SMS reset off: the owner keeps SMS as the
+  // fallback for every member who joined by phone (email is offered first
+  // because it costs nothing). Verifying the email through the reset link used
+  // to remove the member's only proven way back in.
   const eligible = user.status === 'active'
     && user.role === 'user'
     && Boolean(user.password)
-    && user.phoneVerified
-    && !(user.email && user.emailVerified);
+    && user.phoneVerified;
   return eligible ? user : null;
 };
+
+const PHONE_EMAIL_RESET_GENERIC = 'If that mobile number and email belong to the same account, we have emailed a reset link.';
+
+// @route   POST /api/auth/forgot-password/phone-email
+// @desc    Email a reset link to a member who joined by phone, when the mobile
+//          number AND the email on the account both match
+// @access  Public
+//
+// Most members joined with their mobile number and typed an email that was
+// never proved, so the plain email reset (which only mails verified addresses)
+// never reached them, and SMS costs money. Asking for both the verified number
+// and the address on file means a stranger who merely owns a mistyped mailbox
+// cannot start this; using the link proves the mailbox and verifies the email.
+// Same generic answer and the same synchronous work whatever happens.
+exports.forgotPasswordPhoneEmail = asyncHandler(async (req, res) => {
+  const phone10 = toPhone10(req.body.phone);
+  const typed = canonicalEmail(req.body.email);
+  const candidate = await findPhoneResetCandidate(phone10);
+  const user = candidate && typed && candidate.email && emailIdentityKey(candidate.email) === emailIdentityKey(typed)
+    ? candidate
+    : null;
+
+  const pwdFingerprint = require('crypto')
+    .createHash('sha256')
+    .update(user ? user.password : 'no-such-account')
+    .digest('hex')
+    .substring(0, 16);
+  const resetToken = jwt.sign(
+    { userId: user ? user.id : '00000000-0000-0000-0000-000000000000', type: 'password_reset', pwdFp: pwdFingerprint, em: emailFingerprint(user ? user.email : '') },
+    config.auth.jwtSecret,
+    { expiresIn: config.auth.resetTokenExpiry }
+  );
+
+  if (user) {
+    const resetUrl = `${config.server.frontendUrl}/reset-password?token=${resetToken}`;
+    setImmediate(async () => {
+      try {
+        await otpStore.spendSend('reset', user.id);
+        if (!(await spendEmailBudget())) {
+          log.warn('Password reset mail skipped: daily account-mail budget spent', { userId: user.id });
+          return;
+        }
+        await sendPasswordResetEmail(user.email, await memberFirstName(user.id), resetUrl);
+      } catch (error) {
+        log.warn('Password reset email not sent', { error: error.message, userId: user.id, route: 'phone-email' });
+      }
+    });
+  } else {
+    const reason = !candidate ? 'no_eligible_phone_account' : !candidate.email ? 'no_email_on_account' : 'email_mismatch';
+    log.info('Password reset mail not sent', { reason, route: 'phone-email', email: typed || '' });
+  }
+
+  res.json({
+    success: true,
+    message: PHONE_EMAIL_RESET_GENERIC,
+    ...(config.isDevelopment && user ? { resetToken } : {}),
+  });
+});
 
 // @route   POST /api/auth/forgot-password/phone
 // @desc    Text a reset code to a verified mobile number (phone-only accounts)
@@ -1550,27 +1666,52 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   // Find existing user by googleId or email
   let user = await User.findOne({ where: { googleId } });
   let isNewUser = false;
+  // Changes to an EXISTING account are applied only after its status and
+  // two-step checks below pass. They used to be saved first, so a banned or
+  // two-step account was altered and then refused, and a two-step member whose
+  // password had just been wiped was told to sign in with that password.
+  let linkChanges = null;
+  let takeover = false;
 
   if (!user) {
     user = await findUserByEmail(email);
     if (user) {
-      // Link Google to the existing account with this email.
-      //
-      // If that account's email was never verified, whoever created it may not
-      // own the address (they signed up with a victim's email, then waited for
-      // the victim to arrive via Google). Google has now proven the address, so
-      // the rightful owner takes the account: drop any password the earlier
-      // registrant set and end every session they hold.
-      const takeover = !user.emailVerified;
-      user.googleId = googleId;
-      if (takeover) {
-        user.emailVerified = true;
-        user.password = null;
+      if (user.googleId && user.googleId !== googleId) {
+        // Silently swapping the linked Google account handed a Google-only
+        // member's account to whoever held the other Google account.
+        throw createError.conflict(
+          'This email is already linked to a different Google account. Sign in with that Google account, or with your password.',
+          'GOOGLE_ACCOUNT_MISMATCH'
+        );
       }
-      await user.save();
-      if (takeover) {
-        await RefreshToken.revokeAllUserTokens(user.id, 'google_link_unverified_email');
-        log.warn('Google link took over an unverified-email account', { userId: user.id });
+      if (user.role !== 'user') {
+        // Staff emails are typed by an admin and stored as verified without
+        // proof; a typo would let that mailbox's owner into a staff account.
+        throw createError.forbidden('Staff accounts sign in with email and password.', 'STAFF_PASSWORD_LOGIN');
+      }
+      if (user.emailVerified) {
+        // The member proved this address before: Google is the same person.
+        linkChanges = { googleId };
+      } else if (user.phoneVerified) {
+        // Joined with their mobile number and typed this email, never proved
+        // it. Linking here used to wipe their password and end their sessions,
+        // locking a real member out of phone login, the app (which has no
+        // Google sign-in) and both password resets, and handing the account to
+        // whoever owned the mailbox if the email was mistyped. They sign in
+        // with their number instead; once they verify the email in Settings,
+        // Google links on its own next time.
+        throw createError.conflict(
+          'An account with this email already exists. Sign in with your mobile number and password. To use Google next time, verify this email in Settings first.',
+          'GOOGLE_LINK_REQUIRES_SIGNIN'
+        );
+      } else {
+        // No proved contact at all: whoever registered may not own the address
+        // (they signed up with a victim's email, then waited for the victim to
+        // arrive via Google). Google has now proven it, so the rightful owner
+        // takes the account: drop any password the earlier registrant set and
+        // end every session they hold.
+        takeover = true;
+        linkChanges = { googleId, emailVerified: true, password: null };
       }
     } else {
       // New user — create account + profile in one transaction
@@ -1639,8 +1780,9 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   }
 
   // Google carries no second factor, so it cannot stand in for one: an account
-  // with two-step verification on must sign in with its password and code.
-  if (user.mfaEnabledAt) {
+  // with two-step verification on (or a staff account that must have it) signs
+  // in with its password and code.
+  if (user.mfaEnabledAt || (config.features.staffMfaRequired && user.role !== 'user')) {
     throw createError.unauthorized('This account uses two-step verification. Sign in with your password and code.', 'MFA_REQUIRED_PASSWORD_LOGIN');
   }
 
@@ -1649,6 +1791,17 @@ exports.googleAuth = asyncHandler(async (req, res) => {
   // through Google.
   if (user.status !== 'active') {
     throw createError.forbidden('Account is not active. Please contact support.');
+  }
+
+  if (linkChanges) {
+    user.set(linkChanges);
+    await user.save();
+    if (takeover) {
+      await RefreshToken.revokeAllUserTokens(user.id, 'google_link_unverified_email');
+      log.warn('Google link took over an account with no proved contact', { userId: user.id });
+    } else {
+      logSecurityEvent('google_linked', req, { userId: user.id });
+    }
   }
 
   user.lastLogin = new Date();
@@ -1674,6 +1827,58 @@ exports.googleAuth = asyncHandler(async (req, res) => {
     user: await withDerivedUserFields(fullUser),
     tokens: { accessToken, refreshToken, expiresIn: config.auth.jwtExpiry },
   });
+});
+
+// @route   POST /api/auth/email/verify/request
+// @desc    Authenticated: email a 6-digit code to the address ALREADY on the account
+// @access  Private
+//
+// Members who joined with their mobile number typed an email that was never
+// proved, so a reset link is never mailed to it (it could be anyone's) and
+// Google sign-in will not link to it. Change-email refused "that is already
+// your email", and nothing else offered a way to prove it.
+exports.requestCurrentEmailVerification = asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.user.id, { attributes: ['id', 'email', 'emailVerified'] });
+  if (!user) throw createError.unauthorized('Not authenticated');
+  if (!user.email) throw createError.badRequest('There is no email on your account. Add one first.');
+  if (user.emailVerified) throw createError.badRequest('Your email is already verified.');
+
+  await otpStore.spendSend('email-verify', user.id);
+  if (!(await spendEmailBudget())) {
+    throw new AppError('We cannot send verification codes right now. Please try again later.', 503);
+  }
+  const target = `${user.id}:${user.email}`;
+  const code = await otpStore.issue('email-verify', target, { digits: 6 });
+  try {
+    await sendOtpEmail(user.email, code, 'verify your email address');
+  } catch (err) {
+    await otpStore.discard('email-verify', target);
+    throw err;
+  }
+  if (!config.email.isConfigured() && config.isDevelopment) {
+    log.info(`[EMAIL-VERIFY DEV] Code for ${user.email}: ${code}`);
+  }
+  res.json({ success: true, message: 'We sent a 6-digit code to your email' });
+});
+
+// @route   POST /api/auth/email/verify/confirm
+// @desc    Authenticated: confirm the code and mark the current email verified
+// @access  Private
+exports.confirmCurrentEmailVerification = asyncHandler(async (req, res) => {
+  const code = String(req.body?.code || '').trim();
+  if (!/^\d{6}$/.test(code)) throw createError.badRequest('Enter the 6-digit code from the email');
+  const user = await User.findByPk(req.user.id);
+  if (!user || !user.email) throw createError.badRequest('There is no email on your account.');
+  // Bound to member + address: a code sent before an email change cannot
+  // verify the new address.
+  await otpStore.verify('email-verify', `${user.id}:${user.email}`, code);
+  if (!user.emailVerified) {
+    user.emailVerified = true;
+    await user.save();
+    logSecurityEvent('email_verified', req, { userId: user.id });
+  }
+  const fullUser = await User.findByPk(user.id, { attributes: { exclude: ['password'] }, include: [{ model: Profile }] });
+  res.json({ success: true, message: 'Email verified', user: await withDerivedUserFields(fullUser) });
 });
 
 // @route   POST /api/auth/change-email/request

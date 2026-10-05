@@ -21,6 +21,7 @@ const {
   scheduleAccountDeletion,
   cancelAccountDeletion,
   forgotPasswordPhone,
+  forgotPasswordPhoneEmail,
   resetPasswordPhone,
   revokeSession,
   deleteAccount,
@@ -30,6 +31,8 @@ const {
   checkReferralCode,
   googleAuth,
   requestEmailChange,
+  requestCurrentEmailVerification,
+  confirmCurrentEmailVerification,
   verifyEmailChange,
   requestContactNumber,
   verifyContactNumber,
@@ -114,6 +117,16 @@ router.post('/forgot-password/phone',
   forgotPasswordPhone
 );
 
+// Members who joined by phone: email a reset link when the mobile number and
+// the email on the account both match (preferred over SMS: no per-message cost).
+router.post('/forgot-password/phone-email',
+  passwordResetLimiter,
+  body('phone').isString().isLength({ min: 10, max: 16 }),
+  body('email').isString().isLength({ min: 3, max: 254 }).isEmail(),
+  handleValidationErrors,
+  forgotPasswordPhoneEmail
+);
+
 router.post('/reset-password/phone',
   passwordResetSubmitLimiter,
   phoneResetSubmitValidation,
@@ -192,6 +205,16 @@ router.post('/change-password',
   ],
   handleValidationErrors,
   changePassword
+);
+
+// Verify the email already on the account (members who joined by phone)
+router.post('/email/verify/request', auth, otpLimiter, requestCurrentEmailVerification);
+router.post('/email/verify/confirm',
+  auth,
+  otpLimiter,
+  body('code').isString().isLength({ min: 6, max: 6 }).isNumeric(),
+  handleValidationErrors,
+  confirmCurrentEmailVerification
 );
 
 // Change email (2-step, OTP-verified to the new address)

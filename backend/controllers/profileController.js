@@ -22,7 +22,7 @@ const { redactForViewer, stripOwnerOnlyKeys } = require('../utils/profileVisibil
 const { sanitizeMustHaves } = require('../utils/preferenceFit');
 const { invalidateDailyMatches } = require('../utils/dailyMatchesCache');
 const { applyFieldVisibility, sanitizeFieldVisibility } = require('../constants/fieldVisibility');
-const { revealablePhone, contactOf, contactShareFor } = require('../utils/contactDetails');
+const { revealablePhone, revealableEmail, contactOf, contactShareFor } = require('../utils/contactDetails');
 const { sameGotra } = require('../utils/gotra');
 const { levelFor, canSee } = require('../constants/fieldVisibility');
 const { getActiveSubscription } = require('../utils/entitlements');
@@ -852,15 +852,15 @@ exports.getProfile = asyncHandler(async (req, res) => {
   const contactShared = canSee(contactLevel, { isMutual });
 
   if (hasPremiumAccess && isContactUnlocked && contactShared) {
-    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email', 'phoneVerified', 'contactPhone'] });
+    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email', 'emailVerified', 'phoneVerified', 'contactPhone'] });
     // Only a number the owner proved they control is ever revealed.
     const revealedPhone = revealablePhone(targetUser);
     if (profileData.User) {
       profileData.User.phone = revealedPhone ?? null;
-      profileData.User.email = targetUser?.email ?? null;
+      profileData.User.email = revealableEmail(targetUser);
     } else {
       profileData.contactPhone = revealedPhone ?? null;
-      profileData.contactEmail = targetUser?.email ?? null;
+      profileData.contactEmail = revealableEmail(targetUser);
     }
   } else {
     if (profileData.User) {
@@ -1020,7 +1020,7 @@ exports.unlockContact = asyncHandler(async (req, res) => {
   if (existing) {
     const tp = await Profile.findOne({
       where: { userId: targetUserId },
-      include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }]
+      include: [{ model: User, attributes: ['email', 'emailVerified', 'phone', 'phoneVerified', 'contactPhone'] }]
     });
     return res.json({
       success: true,
@@ -1065,7 +1065,7 @@ exports.unlockContact = asyncHandler(async (req, res) => {
         // Another request created it; charge nothing and report it as unlocked.
         const tpDup = await Profile.findOne({
           where: { userId: targetUserId },
-          include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }],
+          include: [{ model: User, attributes: ['email', 'emailVerified', 'phone', 'phoneVerified', 'contactPhone'] }],
           transaction: t
         });
         return {
@@ -1149,7 +1149,7 @@ exports.unlockContact = asyncHandler(async (req, res) => {
 
       const tp = await Profile.findOne({
         where: { userId: targetUserId },
-        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }],
+        include: [{ model: User, attributes: ['email', 'emailVerified', 'phone', 'phoneVerified', 'contactPhone'] }],
         transaction: t
       });
 
@@ -1165,7 +1165,7 @@ exports.unlockContact = asyncHandler(async (req, res) => {
     if (err?.name === 'SequelizeUniqueConstraintError') {
       const tp = await Profile.findOne({
         where: { userId: targetUserId },
-        include: [{ model: User, attributes: ['email', 'phone', 'phoneVerified', 'contactPhone'] }]
+        include: [{ model: User, attributes: ['email', 'emailVerified', 'phone', 'phoneVerified', 'contactPhone'] }]
       });
       return res.json({
         success: true,

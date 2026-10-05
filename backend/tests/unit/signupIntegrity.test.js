@@ -139,13 +139,23 @@ describe('Google sign-in linking to an existing email account', () => {
   };
 
   it('drops the registrant\'s password and revokes their sessions when the email was never verified', async () => {
-    const squatter = { id: 'u1', email: 'victim@example.com', password: 'squatter-hash', emailVerified: false, status: 'active', save: jest.fn().mockResolvedValue(undefined) };
+    const squatter = { id: 'u1', role: 'user', email: 'victim@example.com', password: 'squatter-hash', emailVerified: false, phoneVerified: false, status: 'active', set(o) { Object.assign(this, o); }, save: jest.fn().mockResolvedValue(undefined) };
     linkTo(squatter);
     await run(authController.googleAuth, { body: { credential: 'cred' } });
     expect(squatter.password).toBeNull();
     expect(squatter.emailVerified).toBe(true);
     expect(squatter.googleId).toBe('g-1');
     expect(RefreshToken.revokeAllUserTokens).toHaveBeenCalledWith('u1', expect.any(String));
+  });
+
+  it('does not take over a member who joined by phone and never proved the email', async () => {
+    const member = { id: 'u7', role: 'user', email: 'victim@example.com', password: 'member-hash', emailVerified: false, phoneVerified: true, status: 'active', set(o) { Object.assign(this, o); }, save: jest.fn() };
+    linkTo(member);
+    const { error } = await run(authController.googleAuth, { body: { credential: 'cred' } });
+    expect(error).toMatchObject({ statusCode: 409, code: 'GOOGLE_LINK_REQUIRES_SIGNIN' });
+    expect(member.password).toBe('member-hash');
+    expect(member.googleId).toBeUndefined();
+    expect(member.save).not.toHaveBeenCalled();
   });
 
   it('refuses Google sign-in to an account that has a second factor on', async () => {
@@ -158,10 +168,11 @@ describe('Google sign-in linking to an existing email account', () => {
   });
 
   it('leaves a verified account alone', async () => {
-    const owner = { id: 'u2', email: 'victim@example.com', password: 'real-hash', emailVerified: true, status: 'active', save: jest.fn().mockResolvedValue(undefined) };
+    const owner = { id: 'u2', role: 'user', email: 'victim@example.com', password: 'real-hash', emailVerified: true, status: 'active', set(o) { Object.assign(this, o); }, save: jest.fn().mockResolvedValue(undefined) };
     linkTo(owner);
     await run(authController.googleAuth, { body: { credential: 'cred' } });
     expect(owner.password).toBe('real-hash');
+    expect(owner.googleId).toBe('g-1'); // linked: same person, proved address
     expect(RefreshToken.revokeAllUserTokens).not.toHaveBeenCalled();
   });
 
