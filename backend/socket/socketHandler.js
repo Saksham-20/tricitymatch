@@ -11,6 +11,7 @@ const config = require('../config/env');
 const { log, logSecurityEvent } = require('../middlewares/logger');
 const { hasChatAccess } = require('../utils/entitlements');
 const { isBlockedBetween } = require('../utils/blocks');
+const { bothMembers, MEMBER_ROLE } = require('../utils/memberRole');
 
 // Socket rate limiting map
 const socketRateLimits = new Map();
@@ -146,7 +147,8 @@ const authenticateSocket = async (socket, next) => {
 };
 
 // Verify mutual match between users. A block in either direction severs the
-// relationship for every socket purpose, whatever the Match row still says.
+// relationship for every socket purpose, whatever the Match row still says, and
+// so does a staff account on either side (same rule as the REST chat gate).
 const verifyMutualMatch = async (userId1, userId2) => {
   try {
     if (await isBlockedBetween(userId1, userId2)) return false;
@@ -158,7 +160,8 @@ const verifyMutualMatch = async (userId1, userId2) => {
         ]
       }
     });
-    return !!match;
+    if (!match) return false;
+    return await bothMembers(userId1, userId2);
   } catch (error) {
     log.error('Mutual match check failed', { userId1, userId2, error: error.message });
     return false;
@@ -465,9 +468,12 @@ const initializeSocket = (io) => {
         return;
       }
 
+      // Presence is never reported for a staff account, whatever an old Match
+      // row says.
       const visible = await Profile.findAll({
         where: { userId: { [Op.in]: [...allowed] }, showOnlineStatus: true },
         attributes: ['userId'],
+        include: [{ model: User, attributes: [], where: { role: MEMBER_ROLE }, required: true }],
       });
 
       const onlineStatuses = {};

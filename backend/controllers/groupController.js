@@ -13,6 +13,7 @@ const { notify } = require('../utils/notifyUser');
 const { isBlockedBetween } = require('../utils/blocks');
 const { cleanMessageText } = require('../utils/messageText');
 const { evictGroupRoom } = require('../utils/relationship');
+const { isMember } = require('../utils/memberRole');
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_MEMBERS = 20;
@@ -40,6 +41,15 @@ const phoneLookupForms = (raw) => {
 
 const groupRoom = (groupId) => `group_${groupId}`;
 
+// Family groups are a member feature. A staff account can browse the member
+// site, but a group it created or an invitation it sent would put it in front
+// of members as if it were family (same rule as interests).
+const assertMemberActor = (user) => {
+  if (!isMember(user)) {
+    throw createError.forbidden('Staff accounts cannot create or invite to family groups');
+  }
+};
+
 // Flatten a GroupMessage (+ included Sender/Profile) into the shape clients use:
 // { id, groupId, senderId, senderName, content, createdAt, editedAt }.
 const serializeMessage = (m) => {
@@ -63,14 +73,15 @@ const serializeMessage = (m) => {
 exports.createGroup = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { name, description, candidateUserId } = req.body;
+  assertMemberActor(req.user);
 
   const cleanName = typeof name === 'string' ? name.trim() : '';
   if (!cleanName) throw createError.badRequest('Group name is required');
   if (cleanName.length > 100) throw createError.badRequest('Group name too long (max 100)');
 
   if (candidateUserId) {
-    const candidate = await User.findByPk(candidateUserId, { attributes: ['id'] });
-    if (!candidate) throw createError.badRequest('Candidate user not found');
+    const candidate = await User.findByPk(candidateUserId, { attributes: ['id', 'role'] });
+    if (!candidate || !isMember(candidate)) throw createError.badRequest('Candidate user not found');
   }
 
   const group = await Group.create({
@@ -159,6 +170,7 @@ exports.getGroup = asyncHandler(async (req, res) => {
 exports.addMember = asyncHandler(async (req, res) => {
   const { groupId } = req.params;
   const { userId: bodyUserId, phone } = req.body;
+  assertMemberActor(req.user);
   const membership = await requireMembership(groupId, req.user.id);
   if (membership.role !== 'owner') throw createError.forbidden('Only the group owner can add members');
 
@@ -174,13 +186,15 @@ exports.addMember = asyncHandler(async (req, res) => {
 
   let target = null;
   if (bodyUserId) {
-    target = await User.findByPk(bodyUserId, { attributes: ['id', 'status'] });
+    target = await User.findByPk(bodyUserId, { attributes: ['id', 'status', 'role'] });
   } else {
-    target = await User.findOne({ where: { phone: { [Op.in]: phoneLookupForms(phone) } }, attributes: ['id', 'status'] });
+    target = await User.findOne({ where: { phone: { [Op.in]: phoneLookupForms(phone) } }, attributes: ['id', 'status', 'role'] });
   }
 
+  // A staff account is not invitable, and is answered exactly like a miss.
   const invitable = target
     && target.status === 'active'
+    && isMember(target)
     && target.id !== req.user.id
     && !(await isBlockedBetween(req.user.id, target.id))
     && !(await GroupMember.findOne({ where: { groupId, userId: target.id }, attributes: ['id'] }));

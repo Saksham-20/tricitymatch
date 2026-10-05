@@ -19,6 +19,24 @@ const { passwordField } = require('../utils/passwordPolicy');
 const invites = require('../utils/guardianInvites');
 const { issueHandover, completeHandover } = require('../utils/accountHandover');
 const { sendGuardianInvite, sendAccountHandover, sendSecurityAlert } = require('../utils/email');
+const { ACTIVE_MEMBER_WHERE } = require('../utils/memberRole');
+const { blockedIdsFor } = require('../utils/blocks');
+
+// The candidate's own relationship lists, read-only: the same people the
+// candidate sees — active members (no staff account, nobody banned or deleted)
+// and no one in a block relationship with the candidate.
+const candidateRelationshipWhere = async (candidateId, where) => {
+  const blocked = [...(await blockedIdsFor(candidateId))];
+  return blocked.length ? { ...where, matchedUserId: { [Op.notIn]: blocked } } : where;
+};
+const matchedMemberInclude = () => ({
+  model: User,
+  as: 'MatchedUser',
+  attributes: ['id'],
+  where: ACTIVE_MEMBER_WHERE,
+  required: true,
+  include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city', 'dateOfBirth'] }],
+});
 
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 
@@ -241,13 +259,8 @@ router.get('/candidate/:candidateId/matches', auth, uuidParam('candidateId'), as
   if (!link) throw new AppError('No active guardian access to this candidate', 403);
 
   const matches = await Match.findAll({
-    where: { userId: candidateId, action: 'like', isMutual: true },
-    include: [{
-      model: User,
-      as: 'MatchedUser',
-      attributes: ['id'],
-      include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city', 'dateOfBirth'] }],
-    }],
+    where: await candidateRelationshipWhere(candidateId, { userId: candidateId, action: 'like', isMutual: true }),
+    include: [matchedMemberInclude()],
     limit: 50,
     order: [['createdAt', 'DESC']],
   });
@@ -275,13 +288,8 @@ router.get('/candidate/:candidateId/shortlisted', auth, uuidParam('candidateId')
   if (!link) throw new AppError('No active guardian access to this candidate', 403);
 
   const shortlisted = await Match.findAll({
-    where: { userId: candidateId, action: 'shortlist' },
-    include: [{
-      model: User,
-      as: 'MatchedUser',
-      attributes: ['id'],
-      include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city', 'dateOfBirth'] }],
-    }],
+    where: await candidateRelationshipWhere(candidateId, { userId: candidateId, action: 'shortlist' }),
+    include: [matchedMemberInclude()],
     limit: 50,
     order: [['createdAt', 'DESC']],
   });

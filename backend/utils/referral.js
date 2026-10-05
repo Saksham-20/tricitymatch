@@ -40,6 +40,7 @@ const sequelize = require('../config/database');
 const { log } = require('../middlewares/logger');
 const config = require('../config/env');
 const { getReferralState } = require('./launchOffer');
+const { MEMBER_ROLE } = require('./memberRole');
 
 // No 0/O/1/I — read aloud over a phone call or copied off a screenshot.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -80,8 +81,10 @@ const getOrCreateMemberCode = async (userId) => {
   if (!userId) return null;
   const { User, ReferralCode } = require('../models');
 
-  const user = await User.findByPk(userId, { attributes: ['id', 'referralCode'] });
-  if (!user) return null;
+  const user = await User.findByPk(userId, { attributes: ['id', 'referralCode', 'role'] });
+  // Member codes are for members: a staff account has none (partners have their
+  // own marketing codes), and one minted earlier is never handed out.
+  if (!user || user.role !== MEMBER_ROLE) return null;
   if (user.referralCode) return user.referralCode;
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -123,7 +126,7 @@ const resolveCode = async (rawCode, buyerId) => {
   }
 
   const owner = await User.findOne({
-    where: { referralCode: code, status: 'active' },
+    where: { referralCode: code, status: 'active', role: MEMBER_ROLE },
     attributes: ['id'],
     include: [{ model: Profile, attributes: ['firstName'], required: false }],
   });
@@ -337,7 +340,7 @@ const getReferralSummary = async (userId) => {
   }
   if (!prefill && me?.invitedBy) {
     const inviter = await User.findOne({
-      where: { id: me.invitedBy, status: 'active' },
+      where: { id: me.invitedBy, status: 'active', role: MEMBER_ROLE },
       attributes: ['id'],
       include: [{ model: Profile, attributes: ['firstName'], required: false }],
     });

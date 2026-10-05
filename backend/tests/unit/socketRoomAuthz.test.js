@@ -19,7 +19,7 @@ jest.mock('../../middlewares/logger', () => ({
   logSecurityEvent: jest.fn(),
 }));
 
-const mockUser = { findByPk: jest.fn() };
+const mockUser = { findByPk: jest.fn(), count: jest.fn() };
 const mockMatch = { findOne: jest.fn(), findAll: jest.fn() };
 const mockBlock = { findOne: jest.fn(), findAll: jest.fn() };
 jest.mock('../../models', () => ({
@@ -82,6 +82,8 @@ const matchOnlyWithOther = ({ where }) => {
 
 beforeEach(() => {
   mockUser.findByPk.mockResolvedValue({ id: ME, status: 'active' });
+  // bothMembers (utils/memberRole): both sides of the pair are member accounts.
+  mockUser.count.mockResolvedValue(2);
   mockMatch.findOne.mockImplementation(matchOnlyWithOther);
   mockMatch.findAll.mockResolvedValue([]);
   mockBlock.findOne.mockResolvedValue(null);
@@ -98,6 +100,14 @@ describe('join-room authorization', () => {
     const { socket, handlers } = await connect();
     await handlers['join-room'](room(ME, OTHER));
     expect(socket.join).toHaveBeenCalledWith(room(ME, OTHER));
+  });
+
+  it('refuses the room when the "mutual match" is a staff account', async () => {
+    mockUser.count.mockResolvedValue(1); // only one of the pair is a member
+    const { socket, handlers } = await connect();
+    await handlers['join-room'](room(ME, OTHER));
+    expect(socket.join).not.toHaveBeenCalled();
+    expect(socket.emit).toHaveBeenCalledWith('error', expect.objectContaining({ code: 'NOT_MATCHED' }));
   });
 
   it("refuses a room between two OTHER members, even when the caller is matched with one of them", async () => {

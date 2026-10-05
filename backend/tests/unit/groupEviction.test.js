@@ -114,7 +114,7 @@ describe('CHAT-19 invite by phone matches every stored form', () => {
     models.GroupMember.findOne.mockResolvedValue({ role: 'owner' });
     models.GroupMember.count.mockResolvedValue(2);
     models.User.findOne.mockResolvedValue(null);
-    await run(groups.addMember, { params: { groupId: GROUP }, body: { phone: '9876543210' }, user: { id: OWNER } });
+    await run(groups.addMember, { params: { groupId: GROUP }, body: { phone: '9876543210' }, user: { id: OWNER, role: 'user' } });
     const where = models.User.findOne.mock.calls[0][0].where;
     const values = Object.getOwnPropertySymbols(where.phone).map((s) => where.phone[s]).flat();
     expect(values).toEqual(expect.arrayContaining(['9876543210', '919876543210', '+919876543210']));

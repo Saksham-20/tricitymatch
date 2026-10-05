@@ -245,7 +245,7 @@ describe('POST /match/:userId target checks', () => {
 
   beforeEach(() => {
     models.Block.findOne.mockResolvedValue(null);
-    models.User.findByPk.mockResolvedValue({ id: A, status: 'active' });
+    models.User.findByPk.mockResolvedValue({ id: A, status: 'active', role: 'user' });
     targetProfile({ isActive: true, profileVisibility: 'everyone', ...ADULT });
   });
 
@@ -257,7 +257,8 @@ describe('POST /match/:userId target checks', () => {
 
   it.each([
     ['no such user', () => models.User.findByPk.mockResolvedValue(null)],
-    ['banned user', () => models.User.findByPk.mockResolvedValue({ id: A, status: 'banned' })],
+    ['banned user', () => models.User.findByPk.mockResolvedValue({ id: A, status: 'banned', role: 'user' })],
+    ['staff account', () => models.User.findByPk.mockResolvedValue({ id: A, status: 'active', role: 'admin' })],
     ['no profile', () => targetProfile(null)],
     ['deactivated profile', () => targetProfile({ isActive: false })],
   ])('404s for %s, with no write', async (_label, setup) => {

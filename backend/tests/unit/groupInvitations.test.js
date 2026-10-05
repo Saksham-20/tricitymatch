@@ -48,15 +48,15 @@ const membershipLookups = ({ caller, existingForTarget = null }) => ({ where }) 
   return Promise.resolve(existingForTarget);
 };
 
-const invite = (body) => ({ params: { groupId: GROUP }, body, user: { id: OWNER } });
+const invite = (body) => ({ params: { groupId: GROUP }, body, user: { id: OWNER, role: 'user' } });
 
 beforeEach(() => {
   jest.clearAllMocks();
   models.GroupMember.findOne.mockImplementation(membershipLookups({ caller: { role: 'owner' } }));
   models.GroupMember.count.mockResolvedValue(2);
   models.GroupMember.create.mockResolvedValue({});
-  models.User.findByPk.mockResolvedValue({ id: TARGET, status: 'active' });
-  models.User.findOne.mockResolvedValue({ id: TARGET, status: 'active' });
+  models.User.findByPk.mockResolvedValue({ id: TARGET, status: 'active', role: 'user' });
+  models.User.findOne.mockResolvedValue({ id: TARGET, status: 'active', role: 'user' });
   models.Group.findByPk.mockResolvedValue({ name: 'Sharma family' });
   models.Block.findOne.mockResolvedValue(null);
 });
@@ -86,17 +86,18 @@ describe('inviting a member', () => {
       return { status: res.status.mock.calls[0]?.[0], body: res.json.mock.calls[0]?.[0], thrown };
     };
 
-    it('same status and body for: found, not found, blocked, banned, self, already-in-group', async () => {
+    it('same status and body for: found, not found, blocked, banned, staff, self, already-in-group', async () => {
       const found = await reply(() => {});
       const notFound = await reply(() => models.User.findOne.mockResolvedValue(null));
       const blocked = await reply(() => models.Block.findOne.mockResolvedValue({ id: 'b1' }));
-      const banned = await reply(() => models.User.findOne.mockResolvedValue({ id: TARGET, status: 'banned' }));
-      const self = await reply(() => models.User.findOne.mockResolvedValue({ id: OWNER, status: 'active' }));
+      const banned = await reply(() => models.User.findOne.mockResolvedValue({ id: TARGET, status: 'banned', role: 'user' }));
+      const staff = await reply(() => models.User.findOne.mockResolvedValue({ id: TARGET, status: 'active', role: 'admin' }));
+      const self = await reply(() => models.User.findOne.mockResolvedValue({ id: OWNER, status: 'active', role: 'user' }));
       const already = await reply(() => models.GroupMember.findOne.mockImplementation(
         membershipLookups({ caller: { role: 'owner' }, existingForTarget: { id: 'x' } })
       ));
 
-      for (const r of [found, notFound, blocked, banned, self, already]) {
+      for (const r of [found, notFound, blocked, banned, staff, self, already]) {
         expect(r.thrown).toBeNull();
         expect(r.status).toBe(202);
         expect(r.body).toEqual(found.body);
@@ -112,7 +113,7 @@ describe('inviting a member', () => {
       models.User.findOne.mockResolvedValue(null);
       await run(groups.addMember, invite({ phone: '9876543210' }));
       models.Block.findOne.mockResolvedValue({ id: 'b1' });
-      models.User.findOne.mockResolvedValue({ id: TARGET, status: 'active' });
+      models.User.findOne.mockResolvedValue({ id: TARGET, status: 'active', role: 'user' });
       await run(groups.addMember, invite({ phone: '9876543210' }));
       expect(models.GroupMember.create).not.toHaveBeenCalled();
       expect(notify).not.toHaveBeenCalled();
