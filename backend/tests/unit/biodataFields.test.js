@@ -7,12 +7,12 @@
 const PDFDocument = require('pdfkit');
 const { generateBiodataPDF } = require('../../utils/biodata');
 
-const render = (profile) => {
+const render = (profile, template = 'classic') => {
   const printed = [];
   const spy = jest.spyOn(PDFDocument.prototype, 'text').mockImplementation(function text(t) { printed.push(String(t)); return this; });
   const chunks = [];
   const res = { setHeader: jest.fn(), write: jest.fn((c) => chunks.push(c)), end: jest.fn(), on: jest.fn(), once: jest.fn(), emit: jest.fn() };
-  try { generateBiodataPDF(res, { profile, template: 'classic', photoBuffer: null, profileCode: 'TCS-TEST0001' }); } finally { spy.mockRestore(); }
+  try { generateBiodataPDF(res, { profile, template, photoBuffer: null, profileCode: 'TCS-TEST0001' }); } finally { spy.mockRestore(); }
   return printed.join('\n');
 };
 
@@ -64,3 +64,21 @@ describe('biodata PDF content', () => {
     expect(t).not.toContain('ABOUT');
   });
 });
+
+describe('both templates print the same content', () => {
+  // The two layouts are genuinely different now (framed + centred vs sidebar +
+  // grid), but they render one list of sections, so nothing a member filled in
+  // may appear in one and not the other.
+  it.each(['Loves hiking and reading.', 'Bank manager', 'Panjab University', 'FAMILY DETAILS', 'Time of Birth', 'TCS-TEST0001'])(
+    'modern prints %s too',
+    (needle) => {
+      expect(render(FULL, 'modern').toLowerCase()).toContain(needle.toLowerCase());
+    }
+  );
+
+  it('does not print the city twice when the state is the same', () => {
+    const t = render({ ...FULL, city: 'chandigarh', state: 'chandigarh' }, 'modern');
+    expect(t).not.toContain('Chandigarh, Chandigarh');
+  });
+});
+
