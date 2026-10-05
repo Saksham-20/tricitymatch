@@ -993,21 +993,6 @@ exports.unlockContact = asyncHandler(async (req, res) => {
   // Check if already unlocked
   const existing = await ContactUnlock.findOne({ where: { userId, targetUserId } });
 
-  // The owner's own choice about who gets their contact details. It is checked
-  // before anything else and it applies to an unlock that was already paid for
-  // too: a setting that left every earlier buyer with the number would not be
-  // hiding it. Nothing is spent when it blocks.
-  const ownerProfile = await Profile.findOne({ where: { userId: targetUserId }, attributes: ['fieldVisibility'] });
-  const share = await contactShareFor(ownerProfile?.fieldVisibility, targetUserId, userId);
-  if (!share.allowed) {
-    throw createError.forbidden(
-      share.reason === 'CONTACT_NOT_SHARED'
-        ? 'This member has chosen not to share their contact details. No unlock was used.'
-        : 'This member shares contact details only with their matches. Send an interest first. No unlock was used.',
-      share.reason
-    );
-  }
-
   // Validate the target BEFORE any quota is consumed. This handler used to go
   // straight to the INSERT, so unlocking a deleted/suspended/nonexistent user
   // burned one of the plan's paid unlocks permanently and returned
@@ -1023,6 +1008,23 @@ exports.unlockContact = asyncHandler(async (req, res) => {
     viewerRole: req.user.role,
     enforceVisibilityPreference: !existing,
   });
+  // The owner's own choice about who gets their contact details. It applies to
+  // an unlock that was already paid for too: a setting that left every earlier
+  // buyer with the number would not be hiding it. Nothing is spent when it
+  // blocks. Checked after the profile gate, so a profile the viewer may not see
+  // (deleted, blocked, a staff account) answers 404 and never reveals its
+  // contact setting.
+  const ownerProfile = await Profile.findOne({ where: { userId: targetUserId }, attributes: ['fieldVisibility'] });
+  const share = await contactShareFor(ownerProfile?.fieldVisibility, targetUserId, userId);
+  if (!share.allowed) {
+    throw createError.forbidden(
+      share.reason === 'CONTACT_NOT_SHARED'
+        ? 'This member has chosen not to share their contact details. No unlock was used.'
+        : 'This member shares contact details only with their matches. Send an interest first. No unlock was used.',
+      share.reason
+    );
+  }
+
   if (existing) {
     const tp = await Profile.findOne({
       where: { userId: targetUserId },
