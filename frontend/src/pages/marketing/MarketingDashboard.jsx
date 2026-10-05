@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { FiRefreshCw } from 'react-icons/fi';
 import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
@@ -7,8 +8,11 @@ import ReportSummary from '../../components/marketing/ReportSummary';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
 import PayoutSection from '../../components/marketing/PayoutSection';
 import PayoutDetailsCard from '../../components/marketing/PayoutDetailsCard';
+import PartnerChecklist from '../../components/marketing/PartnerChecklist';
 
 export default function MarketingDashboard() {
+  // Provided by MarketingLayout; absent only if the page is rendered on its own.
+  const { onboarding, refreshOnboarding } = useOutletContext() || {};
   const [report, setReport] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +31,7 @@ export default function MarketingDashboard() {
       ]);
       setReport(reportRes.data);
       setLedger(payoutRes.data);
+      refreshOnboarding?.();
       setLastUpdated(new Date());
       setError('');
     } catch (err) {
@@ -35,7 +40,7 @@ export default function MarketingDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [refreshOnboarding]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
   useAutoRefresh(() => fetchReport({ quiet: true }), 20000);
@@ -83,6 +88,8 @@ export default function MarketingDashboard() {
         </div>
       )}
 
+      <PartnerChecklist onboarding={onboarding} className="mb-8" />
+
       {report?.summary && <ReportSummary summary={report.summary} className="mb-8" />}
 
       {ledger && (
@@ -91,8 +98,8 @@ export default function MarketingDashboard() {
         </div>
       )}
 
-      <div className="mb-8">
-        <PayoutDetailsCard />
+      <div id="payout-details" className="mb-8 scroll-mt-6">
+        <PayoutDetailsCard onSaved={refreshOnboarding} />
       </div>
 
       {report?.members?.length > 0 && (

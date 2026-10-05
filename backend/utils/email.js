@@ -535,6 +535,33 @@ const templates = {
     text: `Hi ${name || 'there'}, Security alert: ${title}. ${detail}${when ? ' When: ' + when + '.' : ''} If this wasn't you, reset your password immediately at ${config.server.frontendUrl}/settings.`,
   }),
 
+  // Sent once, when an admin creates a partner account. Deliberately carries NO
+  // password: the admin hands that over separately, and a credential in an inbox
+  // is a credential that lives in an inbox. It tells the partner what to do
+  // first so the account does not sit unused.
+  partnerWelcome: (name) => ({
+    subject: 'Your TricityMatch partner account is ready',
+    html: brandLayout({
+      eyebrow: 'Partner programme',
+      preheader: 'Sign in, accept the Partner Guide and get your referral code.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name || 'there')},</p>
+        <p>Your TricityMatch partner account has been created. Sign in with this email address and the password the TricityMatch team shared with you, then change it from Settings &rarr; Account.</p>
+        <p style="margin-bottom:8px;">To get set up (about ten minutes):</p>
+        <ol style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
+          <li style="margin-bottom:4px;">Read the Partner Guide and accept it. It explains what you earn, when you are paid and the rules.</li>
+          <li style="margin-bottom:4px;">Add your payout details (UPI or bank account, and your PAN).</li>
+          <li style="margin-bottom:4px;">Generate your referral code and copy your share link.</li>
+          <li>Share it, and add the people you already know under My Members.</li>
+        </ol>
+        ${panel(`<strong>The Outreach Kit</strong> in your portal has ready-to-send messages and a short list of what to say and what never to promise. Use it before your first conversation.`)}
+        <p style="margin-bottom:0;">Questions? Reply to this email or write to ${escapeHtml(config.email.support)}.</p>
+      `,
+      cta: { href: `${config.server.frontendUrl}/login`, label: 'Sign in to your portal' },
+    }),
+    text: `Hi ${name || 'there'},\n\nYour TricityMatch partner account has been created. Sign in at ${config.server.frontendUrl}/login with this email address and the password the TricityMatch team shared with you, then change it from Settings > Account.\n\nTo get set up: 1) read and accept the Partner Guide, 2) add your payout details, 3) generate your referral code, 4) share it and add people you already know under My Members.\n\nQuestions? ${config.email.support}`,
+  }),
+
   // Support agent's answer to a contact-form enquiry. `replyTo` is the support
   // address so the member can simply hit Reply and continue the thread — the
   // whole point of the reply path is that support stops being write-only.
@@ -624,6 +651,9 @@ const sendOtpEmail = (to, code, purpose) => sendEmail(to, 'otpCode', { code, pur
 const sendSecurityAlert = (to, name, title, detail, when) =>
   sendEmail(to, 'securityAlert', { name, title, detail, when });
 
+// Welcome a newly created marketing partner (no credentials in the mail).
+const sendPartnerWelcome = (to, name) => sendEmail(to, 'partnerWelcome', { name });
+
 // Reply to a contact-form enquiry (admin support inbox).
 const sendSupportReply = (to, name, replyBody, originalMessage) =>
   sendEmail(to, 'supportReply', { name, replyBody, originalMessage });
@@ -665,6 +695,7 @@ module.exports = {
   sendWinBack,
   sendAddPhotoNudge,
   sendSupportReply,
+  sendPartnerWelcome,
   sendWelcomeEmail,
   sendPasswordResetEmail,
   sendMatchNotification,

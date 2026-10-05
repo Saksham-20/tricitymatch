@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiRefreshCw } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw, FiCheckCircle, FiCircle, FiUsers } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
+import { reassignPartnerLeads } from '../../api/adminApi';
+import ReassignLeadsDialog from '../../components/admin/ReassignLeadsDialog';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import ReportSummary from '../../components/marketing/ReportSummary';
 import MemberReportTable from '../../components/marketing/MemberReportTable';
 import PayoutSection from '../../components/marketing/PayoutSection';
 import RecordPayoutForm from '../../components/admin/RecordPayoutForm';
+import PartnerAccountCard from '../../components/admin/PartnerAccountCard';
 import { useAdminScopes } from '../../components/admin/AdminLayout';
 
 export default function AdminMarketingUserDetail() {
@@ -16,6 +20,9 @@ export default function AdminMarketingUserDetail() {
   const canPayouts = !scopes || scopes.includes('payouts');
   const [user, setUser] = useState(null);
   const [report, setReport] = useState(null);
+  const [onboarding, setOnboarding] = useState(null);
+  const [openLeads, setOpenLeads] = useState(0);
+  const [handingOver, setHandingOver] = useState(false);
   const [codes, setCodes] = useState([]);
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +42,8 @@ export default function AdminMarketingUserDetail() {
       ]);
       setUser(reportRes.data.user);
       setReport(reportRes.data);
+      setOnboarding(reportRes.data.onboarding || null);
+      setOpenLeads(reportRes.data.openLeads || 0);
       setCodes(codesRes.data.codes);
       setLedger(payoutRes.data);
       setLastUpdated(new Date());
@@ -135,6 +144,65 @@ export default function AdminMarketingUserDetail() {
         </button>
       </div>
 
+      {user && <PartnerAccountCard user={user} onChanged={() => fetchAll({ quiet: true })} />}
+
+      {onboarding && (
+        <section aria-label="Partner setup" className="mb-8 bg-white border border-gray-200 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">
+            Setup · {onboarding.completed} of {onboarding.total} done
+          </h2>
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            {[
+              ['agreement', onboarding.agreementAcceptedAt
+                ? `Accepted the Partner Guide on ${new Date(onboarding.agreementAcceptedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                : (onboarding.needsReacceptance ? 'Must re-accept the updated guide' : 'Has not accepted the Partner Guide')],
+              ['payout', onboarding.steps.payout ? 'Payout details saved' : 'No payout details yet'],
+              ['code', onboarding.steps.code ? 'Has a referral code' : 'No referral code yet'],
+              ['outreach', onboarding.steps.outreach ? 'Has members or leads' : 'No members or leads yet'],
+            ].map(([key, text]) => {
+              const done = Boolean(onboarding.steps[key]);
+              const Icon = done ? FiCheckCircle : FiCircle;
+              return (
+                <li key={key} className={`inline-flex items-center gap-1.5 ${done ? 'text-gray-700' : 'text-amber-800 font-medium'}`}>
+                  <Icon size={15} aria-hidden="true" className={done ? 'text-green-600' : 'text-amber-600'} />
+                  {text}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {openLeads > 0 && user && (
+        <section
+          aria-label="Open leads"
+          className={`mb-8 rounded-2xl p-5 border flex flex-wrap items-center justify-between gap-4 ${
+            user.status === 'active' ? 'bg-white border-gray-200' : 'bg-amber-50 border-amber-200'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <FiUsers className={`mt-0.5 ${user.status === 'active' ? 'text-gray-500' : 'text-amber-700'}`} size={18} aria-hidden="true" />
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">
+                {openLeads} open {openLeads === 1 ? 'lead' : 'leads'}
+              </h2>
+              <p className="text-sm text-gray-700 mt-0.5">
+                {user.status === 'active'
+                  ? 'People this partner added who have not joined yet.'
+                  : 'This partner is not active, so nobody is following these people up and a signup from them earns no one commission. Give them to another partner.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setHandingOver(true)}
+            className="min-h-[44px] px-4 rounded-lg bg-primary-700 text-white text-sm font-medium hover:bg-primary-800"
+          >
+            Move to another partner
+          </button>
+        </section>
+      )}
+
       {report?.summary && <ReportSummary summary={report.summary} className="mb-8" commissionLabel="Rep commission" />}
 
       {ledger && (
@@ -209,6 +277,22 @@ export default function AdminMarketingUserDetail() {
           </div>
         )}
       </div>
+
+      {handingOver && (
+        <ReassignLeadsDialog
+          title="Move open leads"
+          intro={`Gives ${user?.email || 'this partner'}'s ${openLeads} open ${openLeads === 1 ? 'lead' : 'leads'} to another active partner.`}
+          confirmLabel={`Move ${openLeads} ${openLeads === 1 ? 'lead' : 'leads'}`}
+          excludeId={userId}
+          onClose={() => setHandingOver(false)}
+          onConfirm={async (toUserId) => {
+            const res = await reassignPartnerLeads(userId, toUserId);
+            toast.success(res.data?.message || 'Leads moved');
+            setHandingOver(false);
+            fetchAll({ quiet: true });
+          }}
+        />
+      )}
     </div>
   );
 }

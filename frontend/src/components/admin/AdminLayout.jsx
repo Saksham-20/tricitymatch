@@ -12,12 +12,17 @@ import {
 // `scope` is the permission the server requires for that section. A sub-admin
 // only sees what it can actually open — but the hiding is cosmetic: every one
 // of these routes is gated again by requireAdminScope on the API.
+// A nav item is openable when the account holds its scope (and `also`, when the
+// page leans on a second permission to load its data).
+const canOpenItem = (item, scopes) => scopes.includes(item.scope) && (!item.also || scopes.includes(item.also));
+
 const navItems = [
   { to: '/admin/dashboard',        label: 'Dashboard',         icon: FiGrid,        scope: 'users' },
   { to: '/admin/funnel',           label: 'Funnel',            icon: FiFilter,      scope: 'users' },
   { to: '/admin/users',            label: 'Users',             icon: FiUsers,       scope: 'users' },
   { to: '/admin/verifications',    label: 'Verifications',     icon: FiCheckCircle, scope: 'verifications' },
-  { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard,  scope: 'subscriptions' },
+  // The page lists members through GET /admin/users, so it needs `users` as well.
+  { to: '/admin/subscriptions',    label: 'Subscriptions',     icon: FiCreditCard,  scope: 'subscriptions', also: 'users' },
   { to: '/admin/launch-offer',     label: 'Pricing & Offers',  icon: FiTag,         scope: 'pricing' },
   { to: '/admin/ranking',          label: 'Search Ranking',    icon: FiSliders,     scope: 'ranking' },
   { to: '/admin/revenue',          label: 'Revenue',           icon: FiTrendingUp,  scope: 'revenue' },
@@ -54,7 +59,7 @@ export const useAdminScopes = () => {
 
 export function AdminIndexRedirect() {
   const scopes = useAdminScopes();
-  const first = scopes ? navItems.find((i) => scopes.includes(i.scope)) : navItems[0];
+  const first = scopes ? navItems.find((i) => canOpenItem(i, scopes)) : navItems[0];
   return <Navigate to={first ? first.to : '/admin/no-access'} replace />;
 }
 
@@ -68,7 +73,7 @@ export function AdminIndexRedirect() {
 export function AdminScopeRoute({ scope, children }) {
   const scopes = useAdminScopes();
   if (scopes && !scopes.includes(scope)) {
-    const first = navItems.find((i) => scopes.includes(i.scope));
+    const first = navItems.find((i) => canOpenItem(i, scopes));
     return (
       <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10">
         <FiShield className="w-8 h-8 text-gray-300 mx-auto mb-3" />
@@ -202,7 +207,7 @@ export default function AdminLayout() {
   // Full-access roles have no `adminScopes` restriction; a sub_admin gets the
   // list the server resolved for it on /auth/me.
   const scopes = user?.role === 'sub_admin' ? (user.adminScopes || []) : null;
-  const visibleNav = scopes ? navItems.filter((i) => scopes.includes(i.scope)) : navItems;
+  const visibleNav = scopes ? navItems.filter((i) => canOpenItem(i, scopes)) : navItems;
 
   // The mobile drawer is a modal: move focus into it on open, trap Tab inside
   // it, close on Escape, and return focus to the trigger on close. Without this

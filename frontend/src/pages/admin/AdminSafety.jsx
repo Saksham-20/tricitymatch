@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FiAlertTriangle, FiImage, FiActivity, FiRefreshCw } from 'react-icons/fi';
+import { useAdminScopes } from '../../components/admin/AdminLayout';
 import {
   getSuspicious, getModerationStats, getPhotoQueue, removePhoto, updateUserStatus,
 } from '../../api/adminApi';
@@ -27,6 +28,10 @@ const Loading = () => (
 const scoreTone = (score) => (score >= 60 ? 'bg-red-100 text-red-700' : score >= 35 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600');
 
 function Suspicious() {
+  // Banning needs the `users` scope on the server; a reports-only sub-admin can
+  // review but would get a 403 on every Ban, so the button is not offered.
+  const scopes = useAdminScopes();
+  const canBan = scopes === null || scopes.includes('users');
   const [accounts, setAccounts] = useState(null);
   const [includeTest, setIncludeTest] = useState(false);
 
@@ -92,7 +97,7 @@ function Suspicious() {
               </div>
               <div className="flex items-center gap-2">
                 <Link to={`/admin/users/${a.id}`} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700">Review</Link>
-                <button onClick={() => ban(a)} className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-medium text-red-700">Ban</button>
+                {canBan && <button onClick={() => ban(a)} className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-medium text-red-700">Ban</button>}
               </div>
             </div>
           ))}

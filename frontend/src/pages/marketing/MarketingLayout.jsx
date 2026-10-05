@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { FiBarChart2, FiUsers, FiZap, FiBookOpen, FiLogOut, FiGlobe, FiSearch, FiMoon, FiSun, FiMenu, FiX } from 'react-icons/fi';
+import { useState, useEffect, useCallback } from 'react';
+import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
+import { FiBarChart2, FiUsers, FiZap, FiBookOpen, FiLogOut, FiGlobe, FiSearch, FiMoon, FiSun, FiMenu, FiX, FiMessageSquare, FiLock, FiAlertCircle, FiGrid } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import useDarkMode from '../../hooks/useDarkMode';
+import apiClient from '../../api/apiClient';
 
 // The portal is a second home for a real person who also uses the site: a rep
 // showing a prospect a profile should not have to log out and back in, so the
@@ -11,10 +12,18 @@ const navItems = [
   { to: '/marketing/dashboard', label: 'Dashboard', icon: FiBarChart2 },
   { to: '/marketing/leads', label: 'My Members', icon: FiUsers },
   { to: '/marketing/referral-codes', label: 'Referral Codes', icon: FiZap },
+  { to: '/marketing/kit', label: 'Outreach Kit', icon: FiMessageSquare },
   { to: '/marketing/guide', label: 'Partner Guide', icon: FiBookOpen },
 ];
 
+// Only managers (and admins looking in) see the whole team's numbers.
+const teamItem = { to: '/marketing/team', label: 'Team', icon: FiGrid };
+const canSeeTeam = (role) => ['marketing_manager', 'admin', 'super_admin'].includes(role);
+
+// Settings holds change-password and two-step verification. A partner's password
+// was chosen by an admin, so the way to replace it has to be one click from here.
 const siteItems = [
+  { to: '/settings', label: 'Account & security', icon: FiLock },
   { to: '/search', label: 'Browse Profiles', icon: FiSearch },
   { to: '/dashboard', label: 'Open the Website', icon: FiGlobe },
 ];
@@ -31,6 +40,26 @@ export default function MarketingLayout() {
   // content gets the full width instead of ~119px beside a fixed 256px sidebar.
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = () => setDrawerOpen(false);
+
+  // Setup progress is read once here and handed to every page through the
+  // Outlet, so the checklist, the guide's accept button and the strip below all
+  // move together the moment something is saved. Admins browsing the portal are
+  // not partners and have nothing to set up.
+  const isPartner = ['marketing', 'marketing_manager'].includes(user?.role);
+  const [onboarding, setOnboarding] = useState(null);
+  const refreshOnboarding = useCallback(async () => {
+    if (!isPartner) return null;
+    try {
+      const res = await apiClient.get('/marketing/onboarding');
+      setOnboarding(res.data.onboarding);
+      return res.data.onboarding;
+    } catch {
+      // A failed read must not block the portal; the server still enforces the gate.
+      return null;
+    }
+  }, [isPartner]);
+  useEffect(() => { refreshOnboarding(); }, [refreshOnboarding]);
+  const needsAgreement = isPartner && onboarding && !onboarding.steps.agreement;
 
   const handleLogout = async () => {
     await logout();
@@ -77,7 +106,7 @@ export default function MarketingLayout() {
         </div>
 
         <nav className="p-4 space-y-1">
-          {navItems.map(({ to, label, icon: Icon }) => (
+          {(canSeeTeam(user?.role) ? [...navItems.slice(0, 3), teamItem, ...navItems.slice(3)] : navItems).map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={linkCls} onClick={closeDrawer}>
               <Icon size={20} /> {label}
             </NavLink>
@@ -126,7 +155,20 @@ export default function MarketingLayout() {
         </div>
 
         <div className="flex-1 overflow-auto">
-          <Outlet />
+          {needsAgreement && (
+            <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 px-6 py-3 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-sm text-amber-900 dark:text-amber-100">
+              <FiAlertCircle size={16} className="flex-shrink-0" aria-hidden="true" />
+              <p className="flex-1 min-w-[16rem]">
+                {onboarding.needsReacceptance
+                  ? 'The Partner Guide has changed. Please read and accept the new version to keep creating codes and adding members.'
+                  : 'Read and accept the Partner Guide to start generating codes and adding members.'}
+              </p>
+              <Link to="/marketing/guide" className="inline-flex items-center min-h-[44px] font-semibold underline underline-offset-2">
+                Open the guide
+              </Link>
+            </div>
+          )}
+          <Outlet context={{ onboarding, refreshOnboarding }} />
         </div>
       </div>
     </div>

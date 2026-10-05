@@ -5,6 +5,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { getAnalytics } from '../../api/adminApi';
+import { useAdminScopes } from '../../components/admin/AdminLayout';
+import planLabel from '../../utils/planLabel';
 import { FiUsers, FiCheckCircle, FiCreditCard, FiTrendingUp, FiFlag, FiAlertCircle } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
 
@@ -29,7 +31,20 @@ const KpiCard = ({ icon: Icon, label, value, sub, color = 'rose' }) => {
   );
 };
 
+// Which scope each quick link needs, so a scoped sub-admin is not offered links
+// that land on "Not your section".
+const LINK_SCOPE = {
+  '/admin/verifications': 'verifications',
+  '/admin/reports': 'reports',
+  '/admin/contact-messages': 'support',
+  '/admin/users': 'users',
+  '/admin/funnel': 'users',
+  '/admin/revenue': 'revenue',
+};
+
 export default function AdminDashboard() {
+  const scopes = useAdminScopes();
+  const canOpen = (to) => scopes === null || scopes.includes(LINK_SCOPE[to.split('?')[0]]);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -170,7 +185,7 @@ export default function AdminDashboard() {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} formatter={(value) => <span className="text-gray-700">{planLabel(value)}</span>} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -188,10 +203,10 @@ export default function AdminDashboard() {
               // An enquiry could previously sit unanswered indefinitely: nothing
               // anywhere in the panel said one had arrived.
               { label: 'Unread Support',        to: '/admin/contact-messages', badge: stats.unreadSupport },
-              { label: 'Profiles With No Photo', to: '/admin/users',        badge: stats.profilesWithoutPhoto },
+              { label: 'Profiles With No Photo', to: '/admin/users?hasPhoto=no', badge: stats.profilesWithoutPhoto },
               { label: 'Funnel',                to: '/admin/funnel' },
               { label: 'View Revenue',          to: '/admin/revenue' },
-            ].map(({ label, to, badge }) => (
+            ].filter(({ to }) => canOpen(to)).map(({ label, to, badge }) => (
               <Link
                 key={to}
                 to={to}

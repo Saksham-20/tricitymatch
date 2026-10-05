@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getUsers, updateUserStatus, exportUsers, deleteUsers, bulkUpdateStatus } from '../../api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark, FiUsers } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
+import { saveCsv, describeExport } from '../../utils/saveCsv';
 
 // Must match User model status enum: active/inactive/banned/pending/deleted.
 const STATUS_OPTIONS   = ['all', 'active', 'inactive', 'banned', 'pending', 'deleted'];
@@ -60,14 +61,12 @@ export default function AdminUsers() {
       if (roleFilter   !== 'all') params.role   = roleFilter;
       Object.assign(params, activeFilterParams(filters));
       const res = await exportUsers(params);
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv;charset=utf-8' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      // No row cap: the file holds every matching member. The toast states the
+      // count so an admin can check it, and warns if the stream broke part-way.
+      const outcome = describeExport('members', await saveCsv(res, `tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv`));
+      (outcome.ok ? toast.success : toast.error)(outcome.text);
     } catch {
-      toast.error('Export failed');
+      toast.error('Export failed. Try again.');
     }
   };
 
@@ -79,8 +78,16 @@ export default function AdminUsers() {
   const [roleFilter, setRole]     = useState('all');
   const { user: me } = useAuth();
   const canDelete = me?.role === 'admin' || me?.role === 'super_admin';
-  const [filters, setFilters]     = useState(EMPTY_FILTERS);
-  const [showAdv, setShowAdv]     = useState(false);
+  // The dashboard's "Profiles With No Photo" tile deep-links here; honour it
+  // instead of opening the unfiltered list under a misleading count.
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters]     = useState(() => {
+    const hasPhoto = searchParams.get('hasPhoto');
+    return hasPhoto === 'no' || hasPhoto === 'yes' ? { ...EMPTY_FILTERS, hasPhoto } : EMPTY_FILTERS;
+  });
+  // Open the advanced filters when we arrived with one applied, so the filter
+  // that is narrowing the list is visible rather than silent.
+  const [showAdv, setShowAdv]     = useState(() => searchParams.get('hasPhoto') === 'no' || searchParams.get('hasPhoto') === 'yes');
   const [selected, setSelected]   = useState(new Set());
   const [views, setViews]     = useState(loadViews);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -122,8 +129,10 @@ export default function AdminUsers() {
       await updateUserStatus(userId, { status: newStatus });
       toast.success('Status updated');
       fetchUsers();
-    } catch {
-      toast.error('Update failed');
+    } catch (err) {
+      // Say what the server said (for example the staff-account guard) rather
+      // than a generic failure the admin cannot act on.
+      toast.error(err?.response?.data?.error?.message || err?.response?.data?.message || 'Update failed');
     }
   };
 
@@ -446,7 +455,7 @@ export default function AdminUsers() {
                     {canDelete && (
                       <td className="w-10 px-4 py-3">
                         {u.role === 'user' && (
-                          <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} aria-label={`Select ${u.email}`} />
+                          <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} aria-label={`Select ${u.email || u.phone || 'member'}`} />
                         )}
                       </td>
                     )}
@@ -474,7 +483,7 @@ export default function AdminUsers() {
                       <select
                         value={u.status}
                         onChange={(e) => handleStatusChange(u.id, e.target.value)}
-                        aria-label={`Status for ${u.email}`}
+                        aria-label={`Status for ${u.email || u.phone || 'member'}`}
                         className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
                       >
                         {SETTABLE_STATUSES.map((s) => (

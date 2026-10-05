@@ -10,6 +10,7 @@ import {
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import api from '../api/axios';
 import useFoundingWindow from '../hooks/useFoundingWindow';
+import { launchPhase } from '../utils/launchDate';
 import { support } from '../config';
 import { revealOnce, staggerIndex } from '../utils/animations';
 import { EDITORIAL_IMAGES } from '../data/editorialImages';
@@ -229,8 +230,6 @@ const FontLoader = () => (
       .cta-section { padding: 48px 20px !important; }
     }
     @media (max-width: 900px) {
-      nav .nav-links-wrap { display: none !important; }
-      nav { padding: 16px 20px !important; }
       /* Trust */
       .trust-section { padding: 40px 20px !important; }
       .trust-header { grid-template-columns: 1fr !important; }
@@ -326,12 +325,6 @@ const FontLoader = () => (
       }
     }
 
-    /* Fixed global navbar is taller on mobile (~89px) than the desktop bar the
-       announcement clears by default → its first line hid under the navbar.
-       Give the announcement explicit top clearance on small screens. */
-    @media (max-width: 767px) {
-      .home-announce { margin-top: 40px; }
-    }
   `}</style>
 );
 
@@ -541,7 +534,7 @@ const Home = () => {
           only while the server confirms the window is open, and simply does
           not render otherwise rather than showing a claim nobody can redeem. */}
       <AnimatePresence>
-        {announcementOn && founding.open && (
+        {announcementOn && founding.open && launchPhase().phase === 'after' && (
           <motion.div
             className="home-announce"
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}

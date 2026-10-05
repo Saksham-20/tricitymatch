@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, deleteUsers, updateUserStatus, removePhoto, flagPhoto } from '../../api/adminApi';
+import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, refundSubscription, deleteUsers, updateUserStatus, removePhoto, flagPhoto } from '../../api/adminApi';
 import { useAdminScopes } from '../../components/admin/AdminLayout';
 import usePlanOptions from '../../hooks/usePlanOptions';
+import planLabel from '../../utils/planLabel';
 import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
 const Section = ({ title, children }) => (
@@ -99,6 +100,12 @@ export default function AdminUserDetail() {
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling]   = useState(false);
+  // Refund: money leaves through Razorpay and cannot be recalled, so it has its
+  // own modal that states the amount and needs a reason.
+  const [refundTarget, setRefundTarget] = useState(null); // the Subscription row
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [refunding, setRefunding]       = useState(false);
   const planPanelRef   = useRef(null);
   const cancelPanelRef = useRef(null);
   const { options: planOptions } = usePlanOptions();
@@ -242,6 +249,28 @@ export default function AdminUserDetail() {
     }
   };
 
+  const openRefund = (row) => {
+    const left = Math.max(0, (Number(row.amount) || 0) - (Number(row.refundedAmount) || 0));
+    setRefundAmount(String(left));
+    setRefundReason('');
+    setRefundTarget(row);
+  };
+
+  const handleRefund = async () => {
+    setRefunding(true);
+    try {
+      await refundSubscription(refundTarget.id, { amount: Number(refundAmount), reason: refundReason.trim() });
+      toast.success('Refund issued. It reaches the member in five to seven working days.');
+      setRefundTarget(null);
+      fetchUser();
+    } catch (err) {
+      const e = err?.response?.data?.error;
+      toast.error(e?.details?.[0]?.message || e?.message || 'Could not issue the refund');
+    } finally {
+      setRefunding(false);
+    }
+  };
+
   const handleVerification = async (verificationId, action) => {
     try {
       await updateVerification(verificationId, { status: action, adminNotes: '' });
@@ -345,6 +374,15 @@ export default function AdminUserDetail() {
           <p className="text-gray-500 text-xs mt-1">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Everything staff have done to or looked at on this member. */}
+          {can('team') && (
+            <Link
+              to={`/admin/audit-log?target=${user.id}`}
+              className="flex items-center gap-2 px-4 py-2 min-h-[40px] bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
+            >
+              <FiShield className="w-3.5 h-3.5" aria-hidden="true" /> Audit trail
+            </Link>
+          )}
           {can('users') && user.role === 'user' && (
             user.status === 'banned' ? (
               <button
@@ -370,15 +408,17 @@ export default function AdminUserDetail() {
               <FiTrash2 className="w-3.5 h-3.5" /> Delete
             </button>
           )}
+          {can('subscriptions') && (
           <button
             onClick={() => { setNewPlan(subscription?.planType || 'free'); setReason(''); setPlanModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl text-sm font-medium transition-colors"
           >
             <FaCrown className="w-3.5 h-3.5" /> Override Plan
           </button>
+          )}
           {/* Only where there is something to end — a mis-grant or a refunded
               payment previously had no in-product remedy at all. */}
-          {subscription && (
+          {subscription && can('subscriptions') && (
             <button
               onClick={() => { setCancelReason(''); setCancelModal(true); }}
               className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-medium transition-colors"
@@ -473,8 +513,10 @@ export default function AdminUserDetail() {
               <div className="pt-2 mt-1 border-t border-gray-100">
                 <p className="text-xs text-gray-500 mb-1">Privacy</p>
                 <InfoRow label="Profile visibility" value={profile.profileVisibility === 'matches_only' ? 'Matches only' : 'Everyone'} />
-                <InfoRow label="Shows phone" value={profile.showPhone ? 'Yes' : 'No'} />
-                <InfoRow label="Shows email" value={profile.showEmail ? 'Yes' : 'No'} />
+                <InfoRow
+                  label="Phone and email"
+                  value={{ everyone: 'Anyone who unlocks', matches: 'Matches only', hidden: 'Hidden from everyone' }[profile.fieldVisibility?.contact || 'everyone']}
+                />
                 {profile.incognitoMode && <InfoRow label="Incognito" value="On" />}
               </div>
             </>
@@ -507,13 +549,31 @@ export default function AdminUserDetail() {
             <div className="mt-4 pt-3 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-500 mb-2">History</p>
               <div className="space-y-1">
-                {subscriptionHistory.map((h) => (
-                  <div key={h.id} className="flex items-center justify-between text-xs text-gray-500">
-                    <span className="capitalize">{String(h.planType).replace(/_/g, ' ')}</span>
-                    <span>{h.status}</span>
-                    <span>{h.endDate ? new Date(h.endDate).toLocaleDateString('en-IN') : '—'}</span>
-                  </div>
-                ))}
+                {subscriptionHistory.map((h) => {
+                  const paid = Boolean(h.razorpayPaymentId) && Number(h.amount) > 0;
+                  const refunded = Number(h.refundedAmount) || 0;
+                  // A Google Play purchase stores its token in razorpayPaymentId;
+                  // those are refunded from the Play Console, not here.
+                  const refundable = paid && h.razorpaySignature !== 'GOOGLE_PLAY' && !h.refundedAt && refunded < Number(h.amount);
+                  return (
+                    <div key={h.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-gray-500">
+                      <span className="capitalize">{String(h.planType).replace(/_/g, ' ')}</span>
+                      <span>{h.status}</span>
+                      <span>{paid ? `₹${Number(h.amount).toLocaleString('en-IN')}` : (Number(h.amount) > 0 ? 'granted' : '—')}</span>
+                      <span>{h.endDate ? new Date(h.endDate).toLocaleDateString('en-IN') : '—'}</span>
+                      {(h.refundedAt || refunded > 0) && <span className="text-red-700 font-medium">{h.refundedAt ? 'Refunded in full' : `Refunded ₹${refunded.toLocaleString('en-IN')}`}</span>}
+                      {refundable && can('subscriptions') && (
+                        <button
+                          type="button"
+                          onClick={() => openRefund(h)}
+                          className="inline-flex items-center min-h-[32px] px-2 rounded-lg text-red-700 font-medium hover:bg-red-50"
+                        >
+                          Refund
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -536,7 +596,7 @@ export default function AdminUserDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {v.status === 'pending' ? (
+                    {v.status === 'pending' && can('verifications') ? (
                       <>
                         <button
                           onClick={() => handleVerification(v.id, 'approved')}
@@ -597,7 +657,7 @@ export default function AdminUserDetail() {
       {/* Override Plan Modal */}
       {planModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-label="Override subscription plan" className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Override Subscription Plan</h3>
             <p className="text-sm text-gray-500 mb-4">Manually set the subscription plan for this user.</p>
             <select
@@ -670,6 +730,58 @@ export default function AdminUserDetail() {
         </div>
       )}
 
+      {/* Refund (real money, via Razorpay) */}
+      {refundTarget && (() => {
+        const left = Math.max(0, (Number(refundTarget.amount) || 0) - (Number(refundTarget.refundedAmount) || 0));
+        const amt = Number(refundAmount);
+        const problem = !Number.isFinite(amt) || amt <= 0 ? 'Enter an amount above zero'
+          : amt > left ? `The most that can be refunded is ₹${left.toLocaleString('en-IN')}`
+          : refundReason.trim().length < 5 ? 'Give a reason of at least 5 characters (it is kept in the audit log)'
+          : null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div role="dialog" aria-modal="true" aria-labelledby="refund-title" className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+              <h3 id="refund-title" className="text-lg font-bold text-gray-900 mb-1">Refund this payment</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Paid ₹{Number(refundTarget.amount).toLocaleString('en-IN')} for {planLabel(refundTarget.planType)}.
+                This sends money back to the member&apos;s original payment method through Razorpay and cannot be undone. It does not end their plan; use End plan for that.
+              </p>
+              <label htmlFor="refund-amount" className="block text-sm font-medium text-gray-700 mb-1">Amount to refund (₹)</label>
+              <input
+                id="refund-amount"
+                type="number"
+                min="1"
+                max={left}
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
+              />
+              <label htmlFor="refund-reason" className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+              <textarea
+                id="refund-reason"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                rows={3}
+                placeholder="e.g. within the 7-day window, duplicate payment"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-2"
+              />
+              {problem && <p role="status" className="text-xs text-amber-800 mb-3">{problem}</p>}
+              <div className="flex gap-3 mt-2">
+                <button onClick={() => setRefundTarget(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors">Cancel</button>
+                <button
+                  onClick={handleRefund}
+                  disabled={refunding || Boolean(problem)}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {refunding ? 'Refunding…' : `Refund ₹${Number.isFinite(amt) && amt > 0 ? amt.toLocaleString('en-IN') : ''}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Full-size photo viewer */}
       {lightbox && (
         <div
@@ -728,7 +840,7 @@ export default function AdminUserDetail() {
       {/* Ban / reinstate */}
       {statusTarget && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-label={statusTarget === 'banned' ? 'Ban this user' : 'Reinstate this user'} className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 mb-1">
               {statusTarget === 'banned' ? 'Ban this user' : 'Reinstate this user'}
             </h3>

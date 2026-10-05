@@ -12,7 +12,7 @@ const field = 'w-full px-3 py-2 border border-neutral-300 dark:border-neutral-70
 const label = 'block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1';
 const EMPTY = { method: 'upi', upiId: '', accountHolder: '', accountNumber: '', ifsc: '', pan: '' };
 
-export default function PayoutDetailsCard() {
+export default function PayoutDetailsCard({ onSaved }) {
   const [saved, setSaved] = useState(undefined); // undefined = loading, null = none
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -44,6 +44,7 @@ export default function PayoutDetailsCard() {
       setSaved(res.data.details);
       setForm(EMPTY);
       setEditing(false);
+      onSaved?.();
     } catch (err) {
       setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not save your payout details');
     } finally {

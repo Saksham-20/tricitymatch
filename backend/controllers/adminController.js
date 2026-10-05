@@ -28,6 +28,7 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
 const { buildModerationHistory } = require('../utils/moderationHistory');
 const { csvCell } = require('../utils/csv');
+const { streamCsv } = require('../utils/csvStream');
 const { isSystemReview } = require('../utils/underageFlag');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
@@ -35,7 +36,13 @@ const { marriageableAgeProblem } = require('../constants/marriageableAge');
 const { invoiceBlocker } = require('../utils/invoiceEligibility');
 const { recordRefund } = require('../utils/paymentRefunds');
 const { notify } = require('../utils/notifyUser');
-const { sendVerificationApproved, sendVerificationRejected, sendSupportReply } = require('../utils/email');
+const { sendVerificationApproved, sendVerificationRejected, sendSupportReply, sendPartnerWelcome } = require('../utils/email');
+const { getOnboarding, getOnboardingBatch } = require('../utils/partnerOnboarding');
+const { reassignLeads, countOpenLeads, LeadReassignError } = require('../utils/leadReassignment');
+const { normalizePhone } = require('../utils/smsService');
+const { RefreshToken } = require('../models');
+const { markUserRevoked } = require('../utils/sessionRevocation');
+const { passwordProblem } = require('../utils/passwordPolicy');
 const { fingerprintOf } = require('../utils/verificationFingerprint');
 const {
   ADMIN_SCOPES,
@@ -76,6 +83,50 @@ const attachActivePlans = async (users) => {
     user.dataValues.activePlan = sub ? sub.planType : 'free';
   }
   return users;
+};
+
+// ---- read-audit de-duplication ---------------------------------------------
+// Opening a member page fires several reads (and the page reloads after every
+// action on it), and each used to write its own audit row — the trail filled with
+// identical "record viewed" lines and drowned the actions that matter. One row
+// per admin, member and kind inside a short window still answers "who looked at
+// this member, and when".
+const VIEW_AUDIT_WINDOW_MS = 5 * 60 * 1000;
+const recentViews = new Map();
+const auditViewOnce = (action, actorId, targetUserId) => {
+  const key = `${action}:${actorId}:${targetUserId}`;
+  const now = Date.now();
+  const last = recentViews.get(key);
+  if (last && now - last < VIEW_AUDIT_WINDOW_MS) return;
+  recentViews.set(key, now);
+  if (recentViews.size > 5000) {
+    for (const [k, t] of recentViews) if (now - t >= VIEW_AUDIT_WINDOW_MS) recentViews.delete(k);
+  }
+  logAudit(action, actorId, { targetUserId });
+};
+
+// ---- phone handling for admin-created accounts ------------------------------
+// Admin forms used to store whatever was typed and never checked the number was
+// free, so a duplicate surfaced as a 500 ("current transaction is aborted") from
+// the unique index inside the create transaction. Normalise to the same canonical
+// digits signup stores, and say plainly when the number is taken.
+const cleanPhone = (raw) => {
+  if (raw == null || String(raw).trim() === '') return null;
+  // The Users.phone column holds the bare 10-digit national number (model
+  // validator ^[6-9]\d{9}$); signup and login compare against that form.
+  const national = (normalizePhone(String(raw)) || '').replace(/^91(?=\d{10}$)/, '');
+  if (!/^[6-9]\d{9}$/.test(national)) throw createError.badRequest('Enter a valid 10-digit Indian mobile number');
+  return national;
+};
+
+const assertPhoneFree = async (phone, exceptUserId = null) => {
+  if (!phone) return;
+  // Be generous about what else could already be on file for the same number.
+  const candidates = [phone, `91${phone}`, `+91${phone}`];
+  const where = { phone: { [Op.in]: candidates } };
+  if (exceptUserId) where.id = { [Op.ne]: exceptUserId };
+  const taken = await User.findOne({ where, attributes: ['id'] });
+  if (taken) throw createError.conflict('That mobile number is already used by another account');
 };
 
 // Escape special characters for LIKE patterns
@@ -533,12 +584,14 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // are counted here — the number is "members with premium entitlements", not
     // "members who paid". Revenue is unaffected (founding rows carry amount 0),
     // and planDistribution below breaks the two apart.
+    // Erased members keep their rows; they are not subscribers any more.
     Subscription.count({
       where: {
         status: 'active',
         planType: { [Op.in]: PAID_PLANS },
         [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: now } }],
       },
+      include: [{ model: User, attributes: [], required: true, where: { status: { [Op.ne]: 'deleted' } } }],
     }),
 
     // Revenue collected this calendar month. "Collected" means a real payment
@@ -589,15 +642,20 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     ),
 
     // Subscription plan distribution
-    !canSeeRevenue ? Promise.resolve([]) : Subscription.findAll({
-      where: { status: 'active' },
-      attributes: [
-        'planType',
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count'],
-      ],
-      group: ['planType'],
-      raw: true,
-    }),
+    // Same predicate as the "active subscribers" tile above: a row that is still
+    // flagged active but past its end date (the daily sweep has not run) or that
+    // belongs to an erased member is not a live plan, and the chart used to count
+    // both, so it disagreed with the tile beside it.
+    !canSeeRevenue ? Promise.resolve([]) : sequelize.query(
+      `SELECT s."planType" AS "planType", COUNT(*)::int AS count
+         FROM "Subscriptions" s
+         JOIN "Users" u ON u.id = s."userId"
+        WHERE s.status = 'active'
+          AND (s."endDate" IS NULL OR s."endDate" > :now)
+          AND u.status <> 'deleted'
+        GROUP BY s."planType"`,
+      { replacements: { now }, type: sequelize.QueryTypes.SELECT }
+    ),
 
     // Unread support enquiries. The inbox had no badge anywhere, so a message
     // could sit unanswered indefinitely unless somebody thought to look.
@@ -623,6 +681,7 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
         planType: FOUNDING_PLAN,
         [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: now } }],
       },
+      include: [{ model: User, attributes: [], required: true, where: { status: { [Op.ne]: 'deleted' } } }],
     }),
   ]);
 
@@ -804,12 +863,14 @@ exports.createUser = asyncHandler(async (req, res) => {
   const normalisedEmail = canonicalEmail(email) || String(email).trim().toLowerCase();
   const existing = await User.findOne({ where: { email: { [Op.in]: emailLookupCandidates(normalisedEmail) } }, attributes: ['id'] });
   if (existing) throw createError.conflict('User already exists with this email');
+  const phoneValue = cleanPhone(phone);
+  await assertPhoneFree(phoneValue);
 
   const result = await sequelize.transaction(async (t) => {
     const user = await User.create({
       email: normalisedEmail,
       password,
-      phone: phone || null,
+      phone: phoneValue,
       role,
       status: safeStatus,
       emailVerified: true,
@@ -871,7 +932,7 @@ exports.getUser = asyncHandler(async (req, res) => {
   });
 
   // Opening a member's full record is itself a privileged read.
-  logAudit('member_record_viewed', req.user.id, { targetUserId: userId });
+  auditViewOnce('member_record_viewed', req.user.id, userId);
 
   res.json({ success: true, user, reports });
 });
@@ -884,7 +945,7 @@ exports.getModerationHistory = asyncHandler(async (req, res) => {
   const exists = await User.count({ where: { id: userId } });
   if (!exists) throw createError.notFound('User not found');
   const history = await buildModerationHistory(userId);
-  logAudit('moderation_history_viewed', req.user.id, { targetUserId: userId });
+  auditViewOnce('moderation_history_viewed', req.user.id, userId);
   res.json({ success: true, ...history });
 });
 
@@ -1110,48 +1171,156 @@ exports.cancelSubscription = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Subscription cancelled', subscription: active });
 });
 
-// @route   GET /api/admin/users/export
-// @desc    Members as CSV
+// @route   GET /api/v1/admin/users/export
+// @desc    Download the (filtered) member list as CSV
 // @access  Private/Admin (scope: users)
 //
-// Capped at 5,000 rows: this is an operational export for a launch-scale
-// directory, not a data-warehouse dump, and an uncapped CSV of every row is a
-// memory spike waiting for the day the table is large.
+// Streamed in batches, so there is no row cap: the file is as long as the list
+// is. It used to stop at 5,000 rows with nothing to say rows were missing.
+// `X-Total-Rows` tells the client how many to expect, and a failure part-way is
+// marked inside the file rather than leaving a short file that looks complete.
+const EXPORT_BATCH = 1000;
+// Test seam: lets a test export across several batches without creating 1,000+ rows.
+const exportBatchSize = () => exports.__exportBatchForTests || EXPORT_BATCH;
+
 exports.exportUsers = asyncHandler(async (req, res) => {
-  const users = await User.findAll({
-    where: buildUserWhere(req.query),
-    include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city', 'gender', 'dateOfBirth', 'photos'] }],
-    order: [['createdAt', 'DESC']],
-    limit: 5000,
+  const baseWhere = buildUserWhere(req.query);
+  const total = await User.count({ where: baseWhere });
+  const { toProfileCode } = require('../utils/profileCode');
+  const ymd = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+
+  const header = [
+    'Name', 'Email', 'Phone', 'City', 'Gender', 'Role', 'Status', 'Plan', 'Has photo', 'Joined',
+    // Appended after the original columns so a saved spreadsheet layout still lines up.
+    'Last active', 'Email verified', 'Phone verified', 'Profile code', 'Member ID',
+  ];
+
+  const result = await streamCsv(res, {
+    filename: `tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv`,
+    header,
+    total,
+    log,
+    // Keyset paging on (createdAt DESC, id DESC): each batch costs the same on a
+    // large table and the export stays consistent if members join while it runs.
+    fetchBatch: async (cursor) => {
+      const and = [baseWhere];
+      if (cursor) {
+        and.push({
+          [Op.or]: [
+            { createdAt: { [Op.lt]: cursor.createdAt } },
+            { createdAt: cursor.createdAt, id: { [Op.lt]: cursor.id } },
+          ],
+        });
+      }
+      const rows = await User.findAll({
+        where: { [Op.and]: and },
+        include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city', 'gender', 'dateOfBirth', 'photos'] }],
+        order: [['createdAt', 'DESC'], ['id', 'DESC']],
+        limit: exportBatchSize(),
+      });
+      await attachActivePlans(rows);
+      const last = rows[rows.length - 1];
+      return {
+        rows,
+        next: rows.length === exportBatchSize() ? { createdAt: last.createdAt, id: last.id } : null,
+      };
+    },
+    toRow: (user) => {
+      const p = user.Profile;
+      return [
+        [p?.firstName, p?.lastName].filter(Boolean).join(' '),
+        user.email,
+        user.phone,
+        p?.city,
+        p?.gender,
+        user.role,
+        user.status,
+        user.dataValues.activePlan,
+        Array.isArray(p?.photos) && p.photos.length > 0 ? 'yes' : 'no',
+        ymd(user.createdAt),
+        ymd(user.lastLogin),
+        user.emailVerified ? 'yes' : 'no',
+        user.phoneVerified ? 'yes' : 'no',
+        toProfileCode(user.id),
+        user.id,
+      ];
+    },
   });
-  await attachActivePlans(users);
 
-  const esc = csvCell;
+  // The filters used are recorded as names only, never the search text (which
+  // can be an email or phone number).
+  logAudit('users_exported', req.user.id, {
+    rows: result.rows,
+    expected: total,
+    complete: !result.aborted && result.rows === total,
+    filters: Object.keys(req.query || {}).filter((k) => req.query[k] !== '' && k !== 'format'),
+  });
+});
 
-  const header = ['Name', 'Email', 'Phone', 'City', 'Gender', 'Role', 'Status', 'Plan', 'Has photo', 'Joined'];
-  const lines = [header.join(',')];
-  for (const user of users) {
-    const p = user.Profile;
-    lines.push([
-      esc([p?.firstName, p?.lastName].filter(Boolean).join(' ')),
-      esc(user.email),
-      esc(user.phone),
-      esc(p?.city),
-      esc(p?.gender),
-      esc(user.role),
-      esc(user.status),
-      esc(user.dataValues.activePlan),
-      esc(Array.isArray(p?.photos) && p.photos.length > 0 ? 'yes' : 'no'),
-      esc(user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : ''),
-    ].join(','));
+// ---- moving leads between partners -----------------------------------------
+
+const leadReassignResponse = (r) => ({
+  moved: r.moved,
+  skippedConverted: r.skippedConverted,
+  skippedDuplicate: r.skippedDuplicate,
+  skippedSame: r.skippedSame,
+});
+
+const leadReassignMessage = (r) => {
+  if (r.moved === 0 && r.requested === 0) return 'There were no open leads to move';
+  const bits = [`Moved ${r.moved} lead${r.moved === 1 ? '' : 's'}`];
+  if (r.skippedDuplicate) bits.push(`${r.skippedDuplicate} skipped (the new partner already has them)`);
+  if (r.skippedConverted) bits.push(`${r.skippedConverted} skipped (already became members, so they stay with their partner)`);
+  if (r.skippedSame) bits.push(`${r.skippedSame} already theirs`);
+  return `${bits.join('; ')}.`;
+};
+
+// @route   PUT /api/v1/admin/leads/:leadId/assign
+// @desc    Move one lead to another active partner
+// @access  Private/Admin (scope: marketing)
+exports.assignLead = asyncHandler(async (req, res) => {
+  const lead = await MarketingLead.findByPk(req.params.leadId, { attributes: ['id', 'assignedToMarketingUserId'] });
+  if (!lead) throw createError.notFound('Lead not found');
+  try {
+    const r = await reassignLeads({ toUserId: req.body?.marketingUserId, leadIds: [lead.id] });
+    if (r.skippedConverted) throw createError.conflict('This lead has already become a member, so it stays with the partner who earned it');
+    if (r.skippedDuplicate) throw createError.conflict('That partner already has this person in their list');
+    if (r.skippedSame) throw createError.badRequest('This lead already belongs to that partner');
+    logAudit('lead_reassigned', req.user.id, {
+      targetUserId: req.body.marketingUserId,
+      leadId: lead.id,
+      fromUserId: lead.assignedToMarketingUserId,
+    });
+    res.json({ success: true, message: leadReassignMessage(r), ...leadReassignResponse(r) });
+  } catch (err) {
+    if (err instanceof LeadReassignError) throw err.statusCode === 404 ? createError.notFound(err.message) : createError.badRequest(err.message);
+    throw err;
   }
+});
 
-  logAudit('users_exported', req.user.id, { rows: users.length });
-
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv"`);
-  // BOM so Excel opens the ₹ sign and Indian names correctly rather than as mojibake.
-  res.send('\uFEFF' + lines.join('\n'));
+// @route   POST /api/v1/admin/marketing-users/:userId/reassign-leads
+// @desc    Hand every OPEN lead of one partner to another active partner
+//          (typically when the first is leaving or deactivated).
+// @access  Private/Admin (scope: marketing)
+exports.reassignPartnerLeads = asyncHandler(async (req, res) => {
+  const from = await User.findByPk(req.params.userId, { attributes: ['id', 'role'] });
+  if (!from || !['marketing', 'marketing_manager'].includes(from.role)) throw createError.notFound('Marketing user not found');
+  if (req.body?.toUserId === from.id) throw createError.badRequest('Choose a different partner to move the leads to');
+  try {
+    const r = await reassignLeads({ fromUserId: from.id, toUserId: req.body?.toUserId });
+    logAudit('leads_reassigned', req.user.id, {
+      targetUserId: req.body.toUserId,
+      fromUserId: from.id,
+      moved: r.moved,
+      skippedDuplicate: r.skippedDuplicate,
+      skippedConverted: r.skippedConverted,
+      leadIds: (r.movedIds || []).slice(0, 50),
+    });
+    res.json({ success: true, message: leadReassignMessage(r), ...leadReassignResponse(r) });
+  } catch (err) {
+    if (err instanceof LeadReassignError) throw err.statusCode === 404 ? createError.notFound(err.message) : createError.badRequest(err.message);
+    throw err;
+  }
 });
 
 // @route   PUT /api/admin/leads/:leadId/status
@@ -1361,11 +1530,14 @@ exports.createAdmin = asyncHandler(async (req, res) => {
     );
   }
 
+  const phoneValue = cleanPhone(phone);
+  await assertPhoneFree(phoneValue);
+
   const created = await sequelize.transaction(async (t) => {
     const user = await User.create({
       email: email.toLowerCase(),
       password,
-      phone: phone || null,
+      phone: phoneValue,
       role,
       status: 'active',
       emailVerified: true,
@@ -1686,9 +1858,17 @@ exports.getMarketingUsers = asyncHandler(async (req, res) => {
     order: [['createdAt', 'DESC']]
   });
 
+  // How far each partner has got in setting up, so an admin can see who still
+  // needs a nudge instead of finding out when a payout has nowhere to go.
+  const [onboarding, openLeads] = await Promise.all([
+    getOnboardingBatch(users.map((u) => u.id)),
+    countOpenLeads(users.map((u) => u.id)),
+  ]);
+  const withOnboarding = users.map((u) => ({ ...u.toJSON(), onboarding: onboarding[u.id] || null, openLeads: openLeads[u.id] || 0 }));
+
   res.json({
     success: true,
-    users,
+    users: withOnboarding,
     pagination: {
       page,
       limit,
@@ -1719,12 +1899,14 @@ exports.createMarketingUser = asyncHandler(async (req, res) => {
   const normalisedEmail = canonicalEmail(email) || String(email).trim().toLowerCase();
   const existing = await User.findOne({ where: { email: { [Op.in]: emailLookupCandidates(normalisedEmail) } }, attributes: ['id'] });
   if (existing) throw createError.conflict('User already exists with this email');
+  const phoneValue = cleanPhone(phone);
+  await assertPhoneFree(phoneValue);
 
   const result = await sequelize.transaction(async (t) => {
     const user = await User.create({
       email: normalisedEmail,
       password,
-      phone: phone || null,
+      phone: phoneValue,
       role,
       status: 'active',
       emailVerified: true,
@@ -1748,7 +1930,18 @@ exports.createMarketingUser = asyncHandler(async (req, res) => {
     attributes: { exclude: ['password'] },
   });
 
-  res.status(201).json({ success: true, message: 'Marketing user created', user });
+  // Tell the partner what to do first. Best effort: the account exists either
+  // way, and the admin is told if the mail did not go so they can follow up.
+  // No password is ever included (the admin shares that separately).
+  let welcomeEmailSent = false;
+  try {
+    const sent = await sendPartnerWelcome(user.email, firstName);
+    welcomeEmailSent = Boolean(sent && sent.success !== false);
+  } catch (err) {
+    log.warn('Partner welcome email failed', { userId: user.id, error: err.message });
+  }
+
+  res.status(201).json({ success: true, message: 'Marketing user created', user, welcomeEmailSent });
 });
 
 // @route   PUT /api/admin/marketing-users/:userId/status
@@ -1926,6 +2119,117 @@ exports.deleteMarketingPayout = asyncHandler(async (req, res) => {
   }
 });
 
+// ---- partner account care ----------------------------------------------------
+
+const findPartner = async (userId) => {
+  const user = await User.findByPk(userId, {
+    include: [{ model: Profile, attributes: ['id', 'firstName', 'lastName', 'city'] }],
+    attributes: { exclude: ['password'] },
+  });
+  if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
+    throw createError.notFound('Marketing user not found');
+  }
+  return user;
+};
+
+// @route   PUT /api/v1/admin/marketing-users/:userId
+// @desc    Correct a partner's name, email or mobile number. A typo'd email is
+//          otherwise permanent: it is the sign-in, the welcome mail and the
+//          password-reset address all at once.
+// @access  Private/Admin (marketing scope)
+exports.updateMarketingUser = asyncHandler(async (req, res) => {
+  const user = await findPartner(req.params.userId);
+  const { firstName, lastName, email, phone } = req.body || {};
+  const changed = [];
+
+  const nameOk = (v) => typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= 50;
+  if (firstName !== undefined && !nameOk(firstName)) throw createError.badRequest('First name must be 1-50 characters');
+  if (lastName !== undefined && !nameOk(lastName)) throw createError.badRequest('Last name must be 1-50 characters');
+
+  if (email !== undefined) {
+    const next = canonicalEmail(email) || null;
+    if (!next) throw createError.badRequest('Enter a valid email address');
+    if (next !== user.email) {
+      const clash = await User.findOne({
+        where: { email: { [Op.in]: emailLookupCandidates(next) }, id: { [Op.ne]: user.id } },
+        attributes: ['id'],
+      });
+      if (clash) throw createError.conflict('Another account already uses this email');
+      user.email = next;
+      changed.push('email');
+    }
+  }
+
+  if (phone !== undefined) {
+    const next = cleanPhone(phone);
+    if ((next || null) !== (user.phone || null)) {
+      await assertPhoneFree(next, user.id);
+      user.phone = next;
+      changed.push('phone');
+    }
+  }
+
+  await sequelize.transaction(async (t) => {
+    if (changed.includes('email') || changed.includes('phone')) await user.save({ transaction: t });
+    const profile = user.Profile;
+    if (profile && ((firstName !== undefined && firstName.trim() !== profile.firstName) || (lastName !== undefined && lastName.trim() !== profile.lastName))) {
+      if (firstName !== undefined) profile.firstName = firstName.trim();
+      if (lastName !== undefined) profile.lastName = lastName.trim();
+      await profile.save({ transaction: t });
+      changed.push('name');
+    }
+  });
+
+  // Field names only: the audit row records that something changed, not the PII.
+  logAudit('marketing_user_updated', req.user.id, { targetUserId: user.id, fields: changed });
+
+  const fresh = await findPartner(user.id);
+  res.json({ success: true, message: changed.length ? 'Partner updated' : 'Nothing to change', user: fresh });
+});
+
+// @route   POST /api/v1/admin/marketing-users/:userId/reset-password
+// @desc    Set a new password for a partner who is locked out. Signs them out
+//          everywhere. The password is never stored, logged or emailed; the
+//          admin hands it over.
+// @access  Private/Admin (marketing scope)
+exports.resetMarketingUserPassword = asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.params.userId);
+  if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
+    throw createError.notFound('Marketing user not found');
+  }
+  // Staff accounts hold the 12-character floor, same as when they were created.
+  const problem = passwordProblem(req.body?.password, { minLength: 12 });
+  if (problem) throw createError.badRequest(problem);
+
+  user.password = req.body.password;
+  await user.save();
+
+  await RefreshToken.update(
+    { isRevoked: true, revokedAt: new Date(), revokedReason: 'admin_password_reset' },
+    { where: { userId: user.id, isRevoked: false } }
+  );
+  await markUserRevoked(user.id);
+
+  logAudit('marketing_user_password_reset', req.user.id, { targetUserId: user.id });
+  res.json({ success: true, message: 'Password updated. The partner has been signed out everywhere.' });
+});
+
+// @route   POST /api/v1/admin/marketing-users/:userId/resend-welcome
+// @desc    Send the partner welcome email again (first steps, no password).
+// @access  Private/Admin (marketing scope)
+exports.resendPartnerWelcome = asyncHandler(async (req, res) => {
+  const user = await findPartner(req.params.userId);
+  let welcomeEmailSent = false;
+  try {
+    const sent = await sendPartnerWelcome(user.email, user.Profile?.firstName);
+    welcomeEmailSent = Boolean(sent && sent.success !== false);
+  } catch (err) {
+    log.warn('Partner welcome resend failed', { userId: user.id, error: err.message });
+  }
+  logAudit('marketing_user_welcome_resent', req.user.id, { targetUserId: user.id, welcomeEmailSent });
+  res.json({ success: true, welcomeEmailSent });
+});
+
 // @route   GET /api/v1/admin/marketing-users/:userId/report
 // @desc    Full referral report for one rep — every invited member, whether
 //          they signed up, and whether they paid. Same builder as the rep's
@@ -1942,8 +2246,12 @@ exports.getMarketingUserReport = asyncHandler(async (req, res) => {
     throw createError.notFound('Marketing user not found');
   }
 
-  const report = await buildMarketingReport(userId, req.query);
-  res.json({ success: true, user, ...report });
+  const [report, onboarding, openLeads] = await Promise.all([
+    buildMarketingReport(userId, req.query),
+    getOnboarding(userId),
+    countOpenLeads(userId),
+  ]);
+  res.json({ success: true, user, onboarding, openLeads: openLeads[userId] || 0, ...report });
 });
 
 exports.getMarketingUserStats = asyncHandler(async (req, res) => {

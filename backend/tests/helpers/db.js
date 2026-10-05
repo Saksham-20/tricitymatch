@@ -124,4 +124,24 @@ const call = async (handler, { user, params = {}, body = {}, query = {} }) => {
   });
 };
 
-module.exports = { describeDb, makeMember, removeMembers, call, uniq };
+/**
+ * Like `call`, for a handler that STREAMS its response (res.write / res.end),
+ * such as the CSV exports. Resolves once the response ends, with the whole body.
+ */
+const callStream = (handler, { user, params = {}, body = {}, query = {} }) => new Promise((resolve, reject) => {
+  const { PassThrough } = require('stream');
+  const res = new PassThrough();
+  res.statusCode = 200;
+  res.headers = {};
+  res.setHeader = (k, v) => { res.headers[k.toLowerCase()] = v; return res; };
+  res.status = (c) => { res.statusCode = c; return res; };
+  let text = '';
+  res.setEncoding('utf8');
+  res.on('data', (d) => { text += d; });
+  res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, body: text }));
+  res.on('error', reject);
+  const next = (err) => resolve({ statusCode: (err && err.statusCode) || 500, headers: res.headers, body: { error: err } });
+  handler({ user, params, body, query, headers: {}, ip: '127.0.0.1', get: () => '', app: { get: () => null } }, res, next);
+});
+
+module.exports = { describeDb, makeMember, removeMembers, call, callStream, uniq };

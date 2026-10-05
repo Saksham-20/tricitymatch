@@ -53,8 +53,12 @@ export const updateUserRole = (userId, data) => api.put(`/admin/users/${userId}/
 // Measurement
 export const getFunnel = (params) => api.get('/admin/funnel', { params });
 export const getAuditLog = (params) => api.get('/admin/audit-log', { params });
+export const getAuditActions = () => api.get('/admin/audit-log/actions');
+// Same filters as the table, but streamed back as one CSV with no row cap.
+export const exportAuditLog = (params) => api.get('/admin/audit-log', { params: { ...params, format: 'csv' }, responseType: 'blob' });
 
 // Subscription lifecycle
+export const refundSubscription = (subscriptionId, data) => api.post(`/admin/subscriptions/${subscriptionId}/refund`, data);
 export const cancelSubscription = (userId, data) => api.delete(`/admin/users/${userId}/subscription`, { data });
 
 // Member export (CSV — blob so the browser saves it rather than rendering it)
@@ -70,3 +74,16 @@ export const removePhoto = (data) => api.delete('/admin/photos', { data });
 // Flag a photo for review without removing it (files a MediaReview → Photo Review queue)
 export const flagPhoto = (data) => api.post('/admin/photos/flag', data);
 export const bulkUpdateStatus = (ids, status) => api.put('/admin/users/bulk-status', { ids, status });
+
+// Marketing partner account care
+export const updateMarketingUser = (userId, data) => api.put(`/admin/marketing-users/${userId}`, data);
+export const resetMarketingUserPassword = (userId, password) =>
+  api.post(`/admin/marketing-users/${userId}/reset-password`, { password });
+export const resendPartnerWelcome = (userId) => api.post(`/admin/marketing-users/${userId}/resend-welcome`);
+
+// Moving leads between partners (converted leads never move: that partner earned them)
+export const assignLead = (leadId, marketingUserId) => api.put(`/admin/leads/${leadId}/assign`, { marketingUserId });
+export const reassignPartnerLeads = (fromUserId, toUserId) => api.post(`/admin/marketing-users/${fromUserId}/reassign-leads`, { toUserId });
+
+// Marketing manager's whole-team numbers (numbers only: no member details, no payouts)
+export const getMarketingTeam = () => api.get('/marketing/team');

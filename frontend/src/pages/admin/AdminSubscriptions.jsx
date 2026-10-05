@@ -17,6 +17,7 @@ const PLAN_LABELS = {
   elite:         'Elite',
   vip:           'VIP',
   nri:           'NRI Connect',
+  founding_premium: 'Founding',
 };
 
 const PlanBadge = ({ plan }) => {

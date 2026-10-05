@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import planLabel from '../../utils/planLabel';
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -196,7 +197,7 @@ export default function AdminRevenue() {
               <tbody className="divide-y divide-gray-50">
                 {byPlan.map((p) => (
                   <tr key={p.plan} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 font-medium text-gray-800 capitalize">{p.plan}</td>
+                    <td className="px-4 py-2.5 font-medium text-gray-800">{planLabel(p.plan)}</td>
                     <td className="px-4 py-2.5 text-gray-600 tabular-nums">{p.count}</td>
                     <td className="px-4 py-2.5 text-gray-600 tabular-nums">₹{Number(p.amount).toLocaleString('en-IN')}</td>
                     <td className="px-4 py-2.5 text-gray-500 tabular-nums">
