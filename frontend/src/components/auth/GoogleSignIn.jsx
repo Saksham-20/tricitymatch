@@ -27,7 +27,7 @@ const errorText = (err, fallback) =>
  * @param {(user: object, isNewUser: boolean) => void} props.onSuccess
  */
 const GoogleSignIn = ({ text = 'continue_with', referralCode, invite, onSuccess }) => {
-  const { setUser } = useAuth();
+  const { startSession } = useAuth();
   const buttonRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -41,12 +41,9 @@ const GoogleSignIn = ({ text = 'continue_with', referralCode, invite, onSuccess 
   latest.current = { referralCode, invite, onSuccess };
 
   const finish = useCallback((data) => {
-    if (data?.user) {
-      setUser(data.user);
-      try { localStorage.setItem('tricitymatch-auth-hint', '1'); } catch { /* storage blocked */ }
-    }
+    if (data?.user) startSession(data.user);
     latest.current.onSuccess?.(data?.user, !!data?.isNewUser);
-  }, [setUser]);
+  }, [startSession]);
 
   const submit = useCallback(async (credential, consent) => {
     setBusy(true);
