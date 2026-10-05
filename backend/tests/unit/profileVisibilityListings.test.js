@@ -209,6 +209,20 @@ describe('stillVisible (daily-set revalidation)', () => {
     expect(kept[1]).toMatchObject({ userId: B, profilePhoto: 'https://cdn/b.jpg' });
   });
 
+  it('shows the photos the member has NOW, not the ones cached this morning', async () => {
+    models.Profile.findAll.mockResolvedValue([
+      { userId: A, photoBlurUntilMatch: false, profilePhoto: 'https://cdn/a2.jpg', photos: ['https://cdn/a2.jpg'] },
+      { userId: B, photoBlurUntilMatch: false, profilePhoto: null, photos: [] },
+    ]);
+    const kept = await stillVisible(ME, [
+      { userId: A, firstName: 'Asha', profilePhoto: 'https://cdn/a1.jpg', photos: ['https://cdn/a1.jpg', 'https://cdn/a2.jpg'] },
+      { userId: B, profilePhoto: 'https://cdn/deleted.jpg', photos: ['https://cdn/deleted.jpg'] },
+    ]);
+    expect(kept[0]).toMatchObject({ userId: A, firstName: 'Asha', profilePhoto: 'https://cdn/a2.jpg', photos: ['https://cdn/a2.jpg'] });
+    expect(kept[1]).toMatchObject({ userId: B, profilePhoto: null, photos: [] });
+    expect(models.Profile.findAll.mock.calls[0][0].attributes).toEqual(expect.arrayContaining(['profilePhoto', 'photos']));
+  });
+
   it('is a no-op (and costs no query) for an empty set', async () => {
     expect(await stillVisible(ME, [])).toEqual([]);
     expect(models.Profile.findAll).not.toHaveBeenCalled();

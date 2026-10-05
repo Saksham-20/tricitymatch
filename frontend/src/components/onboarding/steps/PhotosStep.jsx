@@ -8,9 +8,9 @@ import { staggerContainer, fadeRise, popIn } from '../../../utils/animations';
 const PhotosStep = () => {
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const fileInputRef = useRef(null);
-  // In edit mode `profilePhoto` is an existing Cloudinary URL string — show it
-  // so the member sees their current photo instead of an empty dropzone (a new
-  // File selection replaces it). New signups start with null.
+  // Signup and guardian onboarding only: the profile editor uses PhotoManager,
+  // which saves each change on the server (removing a photo here only changes
+  // the form). A resumed draft may carry a URL string; new signups start null.
   const [imagePreview, setImagePreview] = useState(
     typeof formData.profilePhoto === 'string' && formData.profilePhoto ? formData.profilePhoto : null
   );

@@ -17,7 +17,7 @@ import { showToast } from '../../utils/toast';
 import { refreshProfileCaches } from '../../utils/profileCache';
 import OnboardingLayout from './OnboardingLayout';
 import { useOnboarding } from './OnboardingContext';
-import { uploadPhoto, deletePhoto } from '../../api/profile';
+import { uploadPhoto, deletePhoto, getMyProfile, mainFirst } from '../../api/profile';
 
 const MAX_PHOTOS = 6;
 // Three tiles per row at any phone width; the cap keeps them sane on a tablet.
@@ -49,6 +49,8 @@ const GUIDES = [
   { key: 'guide2', fallback: 'No group photos or sunglasses', ok: false },
   { key: 'guide3Plain', fallback: 'Recent, taken within the last year', ok: true },
 ] as const;
+
+type ApiFailure = { response?: { status?: number; data?: { error?: { message?: string; code?: string } } } };
 
 interface PendingUpload {
   uri: string;
@@ -109,6 +111,18 @@ export default function Step12Screen() {
     refreshProfileCaches();
   }, [update]);
 
+  // The photos as the server has them now, keeping a main-photo choice made on
+  // this screen that Continue has not saved yet. Null when it cannot be read.
+  const loadServerPhotos = useCallback(async (): Promise<string[] | null> => {
+    try {
+      const live = mainFirst(await getMyProfile());
+      const chosen = mainTouched.current ? photosRef.current[0] : undefined;
+      return chosen && live.includes(chosen) ? [chosen, ...live.filter((u) => u !== chosen)] : live;
+    } catch {
+      return null;
+    }
+  }, []);
+
   // The count changes when an upload lands or a removal finishes, neither of
   // which is a tap on the count itself, so announce it.
   const prevCount = useRef(photos.length);
@@ -130,13 +144,25 @@ export default function Step12Screen() {
         name: `photo_${photosRef.current.length}.jpg`,
       } as unknown as Blob);
       const { url } = await uploadPhoto(formData, 'photos');
-      // At its 6-photo cap the server drops the NEW file and hands back an
-      // existing url. A url already in the grid is a failed upload, not a copy.
+      // A url already in the grid is a failed upload, not a copy (an older
+      // server dropped the NEW file at its 6-photo cap and answered success).
       if (!url || photosRef.current.includes(url)) throw new Error('photo was not stored');
       haptics.light();
       commitPhotos([...photosRef.current, url]);
       setPending(null);
-    } catch {
+    } catch (e) {
+      const failure = (e as ApiFailure)?.response?.data?.error;
+      if (failure?.code === 'GALLERY_FULL') {
+        // The server already holds six (some added elsewhere): a retry would
+        // fail the same way. Say so in its words and show what it has.
+        setPending(null);
+        const live = await loadServerPhotos();
+        if (live) commitPhotos(live);
+        const message = failure.message || t('onboarding.step12.uploadError');
+        showToast.error(message);
+        announce(message);
+        return;
+      }
       // Keep the picked photo so Retry does not send the user back to the library.
       setPending({ ...asset, status: 'failed' });
       const message = t('onboarding.step12.uploadError');
@@ -176,23 +202,30 @@ export default function Step12Screen() {
   // alone left it on the live profile while the confirm said it was removed.
   const removePhoto = async (url: string) => {
     setRemovingUrl(url);
+    let next: string[] | null = null;
     try {
       await deletePhoto(url);
+      next = photosRef.current.filter((p) => p !== url);
     } catch (e) {
-      const status = (e as { response?: { status?: number } })?.response?.status;
-      if (status !== 404) {
-        // 404 means the server no longer has it, so dropping it locally is right.
-        const message = t('onboarding.step12.removeError', 'Could not remove that photo. Please try again.');
-        showToast.error(message);
-        announce(message);
-        setRemovingUrl(null);
-        return;
+      // A 404 is not taken as "already gone": an older server answered 404 for
+      // a main photo it was still showing, and the tile vanished here while the
+      // photo stayed live. Ask the server what it really has.
+      if ((e as ApiFailure)?.response?.status === 404) {
+        const live = await loadServerPhotos();
+        if (live && !live.includes(url)) next = live;
       }
+    }
+    if (!next) {
+      const message = t('onboarding.step12.removeError', 'Could not remove that photo. Please try again.');
+      showToast.error(message);
+      announce(message);
+      setRemovingUrl(null);
+      return;
     }
     haptics.light();
     // Removing the photo shown as main promotes the next one, so that choice is ours to write.
     if (photosRef.current[0] === url) mainTouched.current = true;
-    commitPhotos(photosRef.current.filter((p) => p !== url));
+    commitPhotos(next);
     setRemovingUrl(null);
   };
 

@@ -741,10 +741,18 @@ const submitVerificationValidation = [
 
 // ==================== DELETE PHOTO VALIDATORS ====================
 
+// A photo stored on local disk (dev, or before Cloudinary was configured) is a
+// relative `/uploads/...` path that isURL() rejects, which left it undeletable.
+// The controller only ever removes a URL already on the member's own profile.
 const deletePhotoValidation = [
   body('photoUrl')
+    .isString()
+    .withMessage('Photo URL is required')
+    .bail()
     .notEmpty()
     .withMessage('Photo URL is required')
+    .bail()
+    .if((value) => !/^\/uploads\/[^\s?#]+$/.test(value))
     .isURL()
     .withMessage('Invalid photo URL'),
 ];

@@ -105,7 +105,7 @@ const removeMembers = async (ids) => {
 };
 
 /** Minimal Express req/res pair for calling a controller directly. */
-const call = async (handler, { user, params = {}, body = {}, query = {} }) => {
+const call = async (handler, { user, params = {}, body = {}, query = {}, files }) => {
   const res = {
     statusCode: 200, body: undefined,
     status(c) { this.statusCode = c; return this; },
@@ -120,7 +120,7 @@ const call = async (handler, { user, params = {}, body = {}, query = {} }) => {
       res.body = { error: err };
       resolve(res);
     };
-    handler({ user, params, body, query, headers: {}, ip: '127.0.0.1', get: () => '', app: { get: () => null } }, res, next);
+    handler({ user, params, body, query, files, headers: {}, ip: '127.0.0.1', get: () => '', app: { get: () => null } }, res, next);
   });
 };
 

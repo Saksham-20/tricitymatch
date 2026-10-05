@@ -295,6 +295,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
 
   // Use transaction for data consistency
   let heldPhotoCount = 0;
+  let galleryFull = null;
   await sequelize.transaction(async (t) => {
     // Build updateData from ONLY allowlisted fields — prevents mass-assignment
     const bodyProfilePhoto = req.body?.profilePhoto;
@@ -399,53 +400,60 @@ exports.updateProfile = asyncHandler(async (req, res) => {
       return `/uploads/${file.filename || file.path.replace(/^.*[/\\\\]/, '')}`;
     };
 
-    let finalPhotos = [...(profile.photos || [])];
-    let finalProfilePhoto = profile.profilePhoto;
+    // The photo columns are read again under a row lock. `profile` was loaded
+    // before the transaction, so a delete (or another upload) that finished in
+    // between would otherwise be overwritten by the older list held here. The
+    // delete endpoints take the same lock.
+    const photoRow = await Profile.findOne({
+      where: { id: profile.id },
+      attributes: ['id', 'photos', 'profilePhoto'],
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    const previousMain = photoRow ? photoRow.profilePhoto : profile.profilePhoto;
+    let finalPhotos = [...((photoRow ? photoRow.photos : profile.photos) || [])];
+    let finalProfilePhoto = previousMain;
 
-    // Handle photo uploads
-    if (req.files) {
-      if (req.files.photos?.length) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[profile] Received', req.files.photos.length, 'photo(s) for gallery');
-        }
-      }
-      // Handle gallery photos
-      if (req.files.photos) {
-        const newPhotoPaths = req.files.photos.map(getStoredPath).filter(Boolean);
-        finalPhotos = [...finalPhotos, ...newPhotoPaths];
-        if (finalPhotos.length > MAX_GALLERY_PHOTOS) {
-          const toDelete = finalPhotos.slice(MAX_GALLERY_PHOTOS);
-          for (const photoUrl of toDelete) {
-            try {
-              if (photoUrl && photoUrl.includes('cloudinary')) await deleteFromCloudinary(photoUrl);
-            } catch (err) {
-              log.error('Error deleting excess photo from Cloudinary', { error: err.message });
-            }
-          }
-          finalPhotos = finalPhotos.slice(0, MAX_GALLERY_PHOTOS);
-        }
-        if (!finalProfilePhoto && finalPhotos.length > 0) {
-          finalProfilePhoto = finalPhotos[0];
-        }
-      }
+    const newGalleryPaths = (req.files?.photos || []).map(getStoredPath).filter(Boolean);
+    const newMainPath = req.files?.profilePhoto?.[0] ? getStoredPath(req.files.profilePhoto[0]) : null;
+    if (newGalleryPaths.length && process.env.NODE_ENV === 'development') {
+      console.log('[profile] Received', newGalleryPaths.length, 'photo(s) for gallery');
+    }
 
-      // Handle profile photo (single file): add to gallery and set as main
-      if (req.files.profilePhoto && req.files.profilePhoto[0]) {
-        const file = req.files.profilePhoto[0];
-        const pathUrl = getStoredPath(file);
-        if (pathUrl) {
-          finalProfilePhoto = pathUrl;
-          if (!finalPhotos.includes(pathUrl)) {
-            finalPhotos = [pathUrl, ...finalPhotos].slice(0, MAX_GALLERY_PHOTOS);
-          }
-        }
+    // Full gallery: refuse the upload instead of dropping a photo. This used to
+    // keep the first six and delete the rest, so either the new upload or (for a
+    // new main photo) the member's last gallery photo vanished while the reply
+    // said "Profile updated". Replacing the old main in place was the other
+    // option, but that deletes a photo the member never asked to delete; asking
+    // them to remove one first keeps every deletion an explicit choice.
+    const incoming = [...new Set([...newGalleryPaths, ...(newMainPath ? [newMainPath] : [])])]
+      .filter((u) => !finalPhotos.includes(u));
+    if (incoming.length && finalPhotos.length + incoming.length > MAX_GALLERY_PHOTOS) {
+      galleryFull = { have: finalPhotos.length, uploaded: incoming };
+      return; // nothing is written; the files are removed below
+    }
+
+    // Gallery photos join the end; the first one becomes main if there is none.
+    if (newGalleryPaths.length) {
+      finalPhotos = [...finalPhotos, ...newGalleryPaths.filter((u) => !finalPhotos.includes(u))];
+      if (!finalProfilePhoto && finalPhotos.length > 0) {
+        finalProfilePhoto = finalPhotos[0];
+      }
+    }
+
+    // A new main photo (single file) leads the gallery and becomes the main one.
+    if (newMainPath) {
+      finalProfilePhoto = newMainPath;
+      if (!finalPhotos.includes(newMainPath)) {
+        finalPhotos = [newMainPath, ...finalPhotos];
       }
     }
 
     // Allow setting profile photo from existing gallery (e.g. "Set as profile photo")
+    // Only a photo still in the (locked, current) gallery: the older copy in
+    // `profile` may list one that was deleted a moment ago.
     if (bodyProfilePhoto && typeof bodyProfilePhoto === 'string' && bodyProfilePhoto.trim()) {
-      const allowedPhotos = finalPhotos.length ? finalPhotos : (profile.photos || []);
-      if (allowedPhotos.includes(bodyProfilePhoto.trim())) {
+      if (finalPhotos.includes(bodyProfilePhoto.trim())) {
         finalProfilePhoto = bodyProfilePhoto.trim();
       }
     }
@@ -466,11 +474,19 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     if (held.length) {
       heldPhotoCount = held.length;
       finalPhotos = finalPhotos.filter((u) => !held.includes(u));
-      if (held.includes(finalProfilePhoto)) finalProfilePhoto = finalPhotos[0] || null;
+      // While a new main photo waits for review, the member keeps the main photo
+      // they already had (it was never one of this request's uploads, so it
+      // cannot be held). Only a member who had none falls back to the gallery.
+      if (held.includes(finalProfilePhoto)) finalProfilePhoto = previousMain || finalPhotos[0] || null;
     }
 
     updateData.photos = finalPhotos;
     updateData.profilePhoto = finalProfilePhoto || null;
+    // Always written: these values come from the locked read above, but
+    // `profile` (loaded before the lock) may hold an older copy that happens to
+    // equal them, and Sequelize skips a column it thinks did not change.
+    profile.changed('photos', true);
+    profile.changed('profilePhoto', true);
 
     // Server-controlled onboarding completion (one-way false→true). onboardingComplete
     // is never client-settable via PUT /me (mass-assignment guard above), but mobile
@@ -490,6 +506,19 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     // Update profile with new data
     await profile.update(updateData, { transaction: t });
   });
+
+  if (galleryFull) {
+    // The files were stored by the upload middleware before this ran; none of
+    // them is on the profile, so remove them rather than leave them public.
+    await Promise.all(galleryFull.uploaded.map((url) => deleteStoredPhoto(url)));
+    const room = Math.max(0, MAX_GALLERY_PHOTOS - galleryFull.have);
+    throw createError.conflict(
+      room === 0
+        ? `You already have ${MAX_GALLERY_PHOTOS} photos. Remove one first.`
+        : `You can add ${room} more photo${room === 1 ? '' : 's'} (up to ${MAX_GALLERY_PHOTOS}). Remove one to add more.`,
+      'GALLERY_FULL'
+    );
+  }
 
   // Reload and recalculate completion
   await profile.reload();
@@ -549,55 +578,74 @@ exports.updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// Removes a stored photo file. Never throws: the profile no longer points at
+// it, and a CDN hiccup must not turn a finished delete into an error.
+const deleteStoredPhoto = async (url) => {
+  if (!url || !url.includes('cloudinary')) return;
+  try {
+    await deleteFromCloudinary(url);
+  } catch (err) {
+    log.error('Error deleting photo from Cloudinary', { error: err.message });
+  }
+};
+
+/**
+ * The gallery without `url`, and the main photo that follows. Always a NEW
+ * array: Sequelize compares an ARRAY column with a shallow copy of the loaded
+ * values, so a list changed in place reads as unchanged and is never written
+ * (the deleted URL stayed in `photos` after its file was gone). Removing the
+ * main photo promotes the next gallery photo, the same rule staff removal and
+ * a rejected review use.
+ */
+const withoutPhoto = (profile, url) => {
+  const photos = (profile.photos || []).filter((p) => p !== url);
+  const profilePhoto = profile.profilePhoto === url ? (photos[0] || null) : profile.profilePhoto;
+  return { photos, profilePhoto };
+};
+
+/**
+ * Delete one of the member's own photos under a row lock, so an upload in
+ * flight cannot write back a list that still holds it. `pick(profile)` returns
+ * the URL to remove, or null for "not here" (404 with `notFoundMessage`).
+ * The file is deleted after the commit: a failed write must not leave the
+ * profile pointing at a file that is gone, and a slow CDN must not hold the lock.
+ */
+const removeOwnPhoto = async (userId, pick, notFoundMessage) => {
+  const result = await sequelize.transaction(async (t) => {
+    const profile = await Profile.findOne({ where: { userId }, transaction: t, lock: t.LOCK.UPDATE });
+    if (!profile) throw createError.notFound('Profile not found');
+    const url = pick(profile);
+    if (!url) throw createError.notFound(notFoundMessage);
+
+    const next = withoutPhoto(profile, url);
+    profile.photos = next.photos;
+    profile.profilePhoto = next.profilePhoto;
+    profile.completionPercentage = calculateCompletion(profile.get({ plain: true }));
+    await profile.save({ transaction: t });
+    return { url, ...next };
+  });
+
+  await deleteStoredPhoto(result.url);
+  await recheckVerification(userId);
+  return result;
+};
+
 // @route   DELETE /api/profile/me/photo
 // @desc    Delete a photo from gallery
 // @access  Private
 exports.deletePhoto = asyncHandler(async (req, res) => {
-  const { photoUrl } = req.body;
-
-  const profile = await Profile.findOne({ where: { userId: req.user.id } });
-
-  if (!profile) {
-    throw createError.notFound('Profile not found');
-  }
-
-  const currentPhotos = profile.photos || [];
-  const photoIndex = currentPhotos.indexOf(photoUrl);
-
-  if (photoIndex === -1) {
-    throw createError.notFound('Photo not found in gallery');
-  }
-
-  // Delete from Cloudinary (only Cloudinary URLs)
-  try {
-    if (photoUrl && photoUrl.includes('cloudinary')) {
-      await deleteFromCloudinary(photoUrl);
-    }
-  } catch (err) {
-    log.error('Error deleting photo from Cloudinary', { error: err.message });
-  }
-
-  // New array so Sequelize detects change and persists
-  const updatedPhotos = currentPhotos.filter((url) => url !== photoUrl);
-  profile.photos = updatedPhotos;
-  if (profile.profilePhoto === photoUrl) {
-    profile.profilePhoto = updatedPhotos.length > 0 ? updatedPhotos[0] : null;
-  }
-  await profile.save();
-
-  // Recalculate completion (use current in-memory profile, no reload yet)
-  const profileData = profile.get ? profile.get({ plain: true }) : profile.toJSON();
-  const completion = calculateCompletion(profileData);
-  profile.completionPercentage = completion;
-  await profile.save();
-
-  await recheckVerification(req.user.id);
+  const photoUrl = typeof req.body?.photoUrl === 'string' ? req.body.photoUrl : '';
+  // The main photo counts even when it is not in the gallery list (older
+  // profiles): refusing it left a main photo no delete could remove.
+  const result = await removeOwnPhoto(req.user.id, (p) => (
+    photoUrl && ((p.photos || []).includes(photoUrl) || p.profilePhoto === photoUrl) ? photoUrl : null
+  ), 'Photo not found in gallery');
 
   res.json({
     success: true,
     message: 'Photo deleted successfully',
-    photos: profile.photos,
-    profilePhoto: profile.profilePhoto,
+    photos: result.photos,
+    profilePhoto: result.profilePhoto,
   });
 });
 
@@ -605,48 +653,13 @@ exports.deletePhoto = asyncHandler(async (req, res) => {
 // @desc    Delete profile photo
 // @access  Private
 exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
-  const profile = await Profile.findOne({ where: { userId: req.user.id } });
-
-  if (!profile) {
-    throw createError.notFound('Profile not found');
-  }
-
-  if (!profile.profilePhoto) {
-    throw createError.notFound('No profile photo to delete');
-  }
-
-  const urlToRemove = profile.profilePhoto;
-  // Delete from Cloudinary (only Cloudinary URLs)
-  try {
-    if (urlToRemove.includes('cloudinary')) {
-      await deleteFromCloudinary(urlToRemove);
-    }
-  } catch (err) {
-    log.error('Error deleting profile photo from Cloudinary', { error: err.message });
-  }
-
-  // Remove from profile and from photos array
-  profile.profilePhoto = null;
-  const photos = profile.photos || [];
-  const idx = photos.indexOf(urlToRemove);
-  if (idx !== -1) {
-    photos.splice(idx, 1);
-    profile.photos = photos;
-  }
-  await profile.save();
-
-  // Recalculate completion
-  await profile.reload();
-  const profileData = profile.toJSON();
-  const completion = calculateCompletion(profileData);
-  profile.completionPercentage = completion;
-  await profile.save();
-
-  await recheckVerification(req.user.id);
+  const result = await removeOwnPhoto(req.user.id, (p) => p.profilePhoto || null, 'No profile photo to delete');
 
   res.json({
     success: true,
-    message: 'Profile photo deleted successfully'
+    message: 'Profile photo deleted successfully',
+    photos: result.photos,
+    profilePhoto: result.profilePhoto,
   });
 });
 
