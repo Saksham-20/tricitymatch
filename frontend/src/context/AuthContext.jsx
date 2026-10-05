@@ -7,6 +7,7 @@ const AUTH_HINT_KEY = 'tricitymatch-auth-hint';
 
 const PROTECTED_ROUTE_PREFIXES = [
   '/dashboard',
+  '/welcome',
   '/profile',
   '/search',
   '/chat',

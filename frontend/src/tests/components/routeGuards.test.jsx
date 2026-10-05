@@ -27,6 +27,7 @@ const renderAt = (initial, element) =>
         <Route path="/login" element={<div>LOGIN PAGE</div>} />
         <Route path="/dashboard" element={<div>DASHBOARD</div>} />
         <Route path="/marketing/dashboard" element={<div>PARTNER HOME</div>} />
+        <Route path="/welcome" element={<div>FINISH BASICS</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -103,5 +104,25 @@ describe('MarketingProtectedRoute', () => {
   it('sends a signed-out visitor to login', () => {
     renderAt('/marketing/leads', <MarketingProtectedRoute><div>PORTAL</div></MarketingProtectedRoute>);
     expect(screen.getByText('LOGIN PAGE')).toBeInTheDocument();
+  });
+});
+
+describe('ProtectedRoute: basics first', () => {
+  it('sends a member without basics (e.g. a new Google sign-up) to /welcome', () => {
+    setAuth({ isAuthenticated: true, user: { role: 'user', onboardingComplete: false } });
+    renderAt('/search', <ProtectedRoute><div>SEARCH</div></ProtectedRoute>);
+    expect(screen.getByText('FINISH BASICS')).toBeInTheDocument();
+  });
+
+  it('leaves Settings open so they can sign out or delete the account', () => {
+    setAuth({ isAuthenticated: true, user: { role: 'user', onboardingComplete: false } });
+    renderAt('/settings', <ProtectedRoute><div>SETTINGS</div></ProtectedRoute>);
+    expect(screen.getByText('SETTINGS')).toBeInTheDocument();
+  });
+
+  it('does not gate a member whose basics are done, or staff', () => {
+    setAuth({ isAuthenticated: true, user: { role: 'user', onboardingComplete: true } });
+    renderAt('/search', <ProtectedRoute><div>SEARCH</div></ProtectedRoute>);
+    expect(screen.getByText('SEARCH')).toBeInTheDocument();
   });
 });

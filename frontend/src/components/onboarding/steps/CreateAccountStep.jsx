@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
@@ -9,6 +9,9 @@ import SmartContactField, { detectContactType, phoneDigits } from '../SmartConta
 import { validateEmail, validatePassword, IDENTIFIER_ERROR } from '../../../utils/validators';
 import PasswordRequirements from '../../common/PasswordRequirements';
 import ReferralCodeField from '../ReferralCodeField';
+import { ConsentNotice, TermsCheckbox, MarketingCheckbox } from '../../auth/SignupConsent';
+import GoogleSignIn from '../../auth/GoogleSignIn';
+import { google as googleConfig } from '../../../config';
 import api from '../../../api/axios';
 import { FiEye, FiEyeOff, FiUser, FiUsers, FiCheck, FiCheckCircle, FiEdit2, FiShield } from 'react-icons/fi';
 import { staggerContainer, fadeRise, fade } from '../../../utils/animations';
@@ -16,8 +19,18 @@ import { staggerContainer, fadeRise, fade } from '../../../utils/animations';
 const RESEND_COOLDOWN = 60;
 
 const CreateAccountStep = () => {
-  const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator, mode } = useOnboarding();
+  const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator, mode, clearDraft } = useOnboarding();
   const isGuardian = mode === 'create_for_other';
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Google signup lands on the same "finish your basics" page as a Google
+  // sign-in from the login page; an existing member just goes in.
+  const onGoogleSuccess = (user, isNewUser) => {
+    clearDraft?.();
+    if (user?.role === 'user' && (isNewUser || user.onboardingComplete === false)) navigate('/welcome', { replace: true });
+    else navigate('/dashboard', { replace: true });
+  };
 
   const [showPassword, setShowPassword] = useState(false);
   const formDataRef = useRef(formData);
@@ -249,6 +262,21 @@ const CreateAccountStep = () => {
             </div>
 
             {errors.verify && <p className="text-sm text-destructive dark:text-red-300 font-medium">{errors.verify}</p>}
+
+            {googleConfig.isConfigured && !otpSent && (
+              <>
+                <div className="relative" aria-hidden="true">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-200 dark:border-neutral-700" /></div>
+                  <div className="relative flex justify-center text-sm"><span className="px-3 bg-white dark:bg-surface-dark-3 text-neutral-500 dark:text-neutral-400">or</span></div>
+                </div>
+                <GoogleSignIn
+                  text="signup_with"
+                  referralCode={formData.referralCode}
+                  invite={searchParams.get('invite')}
+                  onSuccess={onGoogleSuccess}
+                />
+              </>
+            )}
           </>
         )}
 
@@ -312,38 +340,17 @@ const CreateAccountStep = () => {
               onChange={(v) => updateFormData('referralCode', v)}
             />
 
-            {/* DPDP consent notice (Legal Review B-1) — itemised, in plain text,
-                presented with the request rather than behind a policy link. */}
-            <div className="rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/40 p-4 sm:p-5">
-              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                <span className="block text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">What we will do with your information</span>
-                We use your profile details, including religion, caste, horoscope details and photographs where you choose to give them, to show your profile to other members and to suggest matches. We use your email and mobile number to sign you in, send one-time passcodes and security alerts, and to tell you about matches and messages. We never sell your data and never use it for advertising. You can see, correct, export or erase it at any time, and you can delete your account yourself.
-              </p>
-            </div>
-
-            {/* Terms */}
-            <div>
-              <CheckBox
-                checked={!!formData.account_agree}
-                onChange={(checked) => updateFormData('account_agree', checked)}
-                size="md"
-                label={
-                  <span className="text-sm text-neutral-600">
-                    This account is for finding a marriage partner, not for dating or any other purpose, and I agree to the{' '}
-                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a>{' '}and{' '}
-                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.
-                  </span>
-                }
-              />
-              {errors.account_agree && <p className="text-sm text-destructive dark:text-red-300 mt-1.5">{errors.account_agree}</p>}
-            </div>
-
-            {/* Optional, unticked: not a condition of joining. */}
-            <CheckBox
-              checked={!!formData.account_marketing}
+            {/* DPDP notice + Terms (required) + promotional email (optional).
+                Shared with Google signup so both record the same consent. */}
+            <ConsentNotice />
+            <TermsCheckbox
+              checked={formData.account_agree}
+              onChange={(checked) => updateFormData('account_agree', checked)}
+              error={errors.account_agree}
+            />
+            <MarketingCheckbox
+              checked={formData.account_marketing}
               onChange={(checked) => updateFormData('account_marketing', checked)}
-              size="md"
-              label={<span className="text-sm text-neutral-600">Email me reminders and suggestions about matches (optional).</span>}
             />
           </>
         )}

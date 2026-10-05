@@ -10,7 +10,7 @@ import SmartContactField, { detectContactType, phoneDigits } from '../components
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
 import { fadeInUp, staggerContainer, fade, stepSlide, DUR, EASE_IN_OUT } from '../utils/animations';
 import { google as googleConfig } from '../config';
-import api from '../api/axios';
+import GoogleSignIn from '../components/auth/GoogleSignIn';
 
 const Login = () => {
   // Progressive fintech-style flow: identifier first, password revealed after.
@@ -23,13 +23,12 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(0); // epoch ms; 0 = not locked
   const [direction, setDirection] = useState(1); // 1 = identifier→password, -1 = back
   const passwordRef = useRef(null);
-  const { login, setUser, isAuthenticated, loading: authLoading, user: authUser } = useAuth();
+  const { login, isAuthenticated, loading: authLoading, user: authUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
@@ -88,55 +87,15 @@ const Login = () => {
     if (!authLoading && isAuthenticated && authUser?.role) goAfterLogin(authUser.role);
   }, [authLoading, isAuthenticated, authUser?.role, goAfterLogin]);
 
-  const handleGoogleCredential = useCallback(async (response) => {
-    setGoogleLoading(true);
-    setApiError('');
-    try {
-      // The page shows "By continuing you agree to the Terms and Privacy Policy" beside
-      // the Google button; the server needs that acceptance stated in the request
-      // before it will create a NEW account (an existing member is unaffected).
-      const result = await api.post('/auth/google', { credential: response.credential, termsAccepted: true });
-      if (result.data.success) {
-        // Fetch full user profile and let AuthContext handle state
-        const meResult = await api.get('/auth/me');
-        if (meResult.data?.user) {
-          setUser(meResult.data.user);
-          localStorage.setItem('tricitymatch-auth-hint', '1');
-        }
-        // A brand-new Google member has no gender or date of birth yet (the
-        // server no longer invents placeholders): send them to fill the basics.
-        if (result.data.isNewUser) navigate('/profile/edit');
-        else goAfterLogin(result.data.user?.role);
-      }
-    } catch (err) {
-      setApiError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
-    } finally {
-      setGoogleLoading(false);
+  // Google: an existing member is signed in; a new one gives the same consent
+  // as email signup inside GoogleSignIn, then finishes their basics.
+  const handleGoogleSuccess = useCallback((user, isNewUser) => {
+    if (user?.role === 'user' && (isNewUser || user.onboardingComplete === false)) {
+      navigate('/welcome', { replace: true });
+      return;
     }
-  }, [goAfterLogin, navigate, setUser]);
-
-  useEffect(() => {
-    if (!googleConfig.isConfigured) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      window.google?.accounts.id.initialize({
-        client_id: googleConfig.clientId,
-        callback: handleGoogleCredential,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-      window.google?.accounts.id.renderButton(
-        document.getElementById('google-signin-btn'),
-        { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
-      );
-    };
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-  }, [handleGoogleCredential]);
+    goAfterLogin(user?.role);
+  }, [goAfterLogin, navigate]);
 
   const shake = () => {
     setShakeTrigger(true);
@@ -542,9 +501,7 @@ const Login = () => {
                     <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">{t('auth.orContinueWith')}</span>
                   </div>
                 </div>
-                <div className={`w-full overflow-hidden rounded-xl ${googleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                  <div id="google-signin-btn" className="w-full" />
-                </div>
+                <GoogleSignIn text="signin_with" onSuccess={handleGoogleSuccess} />
               </>
             )}
 

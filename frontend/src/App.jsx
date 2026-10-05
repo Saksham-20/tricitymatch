@@ -122,6 +122,7 @@ const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const PaymentFailed = lazy(() => import('./pages/PaymentFailed'));
 const PaymentHistory = lazy(() => import('./pages/PaymentHistory'));
 const Settings = lazy(() => import('./pages/Settings'));
+const CompleteBasics = lazy(() => import('./pages/CompleteBasics'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Verification = lazy(() => import('./pages/Verification'));
 const Guardian = lazy(() => import('./pages/Guardian'));
@@ -377,6 +378,16 @@ const AnimatedRoutes = () => {
               <ProtectedRoute>
                 <PageTransition>
                   <PaymentHistory />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/welcome"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <CompleteBasics />
                 </PageTransition>
               </ProtectedRoute>
             }
