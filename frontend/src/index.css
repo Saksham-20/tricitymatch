@@ -1207,6 +1207,8 @@ html.dark .admin-panel .border-primary-200 { border-color: rgba(224,166,184,0.35
 html.dark .admin-panel .hover\:bg-red-100:hover,
 html.dark .admin-panel .hover\:bg-red-200:hover   { background-color: rgba(198,40,40,0.35) !important; }
 html.dark .admin-panel .hover\:bg-amber-200:hover { background-color: rgba(245,124,0,0.35) !important; }
+html.dark .admin-panel .hover\:bg-red-50:hover   { background-color: rgba(198,40,40,0.22) !important; }
+html.dark .admin-panel .hover\:bg-amber-50:hover { background-color: rgba(245,124,0,0.22) !important; }
 html.dark .admin-panel .hover\:bg-primary-100:hover { background-color: rgba(139,35,70,0.45) !important; }
 
 /* Recharts grid: stroke="currentColor" + this class so it follows the theme */
