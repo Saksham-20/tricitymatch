@@ -209,6 +209,8 @@ Verify OTP. Rate: otpLimiter.
 { "success": true, "profile": { ... }, "completionPercentage": 75 }
 ```
 
+Photo files: `photos` (gallery, appended) and `profilePhoto` (new main, put first). A gallery holds at most 6 photos: an upload that would go past that is refused with **409 `GALLERY_FULL`** ("You already have 6 photos. Remove one first.") and nothing is dropped. A `profilePhoto` **string** makes an existing gallery photo the main one.
+
 ---
 
 ### `GET /profile/me/stats`
@@ -228,14 +230,16 @@ Verify OTP. Rate: otpLimiter.
 ---
 
 ### `DELETE /profile/me/photo`
-🔒 Auth required. Delete a gallery photo.
+🔒 Auth required. Delete one of your photos, the main photo included (also when the main photo is not in the gallery list). Deleting the main photo makes the next gallery photo the main one.
 
-**Body:** `{ "photoId": "cloudinary-public-id" }`
+**Body:** `{ "photoUrl": "https://res.cloudinary.com/..." }` (or a `/uploads/...` path for a locally stored photo)
+
+**Response 200:** `{ "success": true, "photos": ["..."], "profilePhoto": "..." | null }` · **404** when the URL is not on your profile.
 
 ---
 
 ### `DELETE /profile/me/profile-photo`
-🔒 Auth required. Delete primary profile photo.
+🔒 Auth required. Delete the main photo; the next gallery photo becomes main. Same response as above; 404 when there is no main photo.
 
 ---
 

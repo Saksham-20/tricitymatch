@@ -46,6 +46,7 @@ const removeUrl = (profile, url) => {
 exports.decideMediaReview = asyncHandler(async (req, res) => {
   const { decision, note } = req.body;
   const maxPhotos = config.upload.maxGalleryPhotos || 6;
+  let mainLeftAlone = false;
 
   const result = await sequelize.transaction(async (t) => {
     const review = await MediaReview.findByPk(req.params.id, { transaction: t, lock: t.LOCK.UPDATE });
@@ -67,7 +68,13 @@ exports.decideMediaReview = asyncHandler(async (req, res) => {
         }
         if (!photos.includes(review.url)) {
           profile.photos = [...photos, review.url];
-          if (review.wasProfilePhoto || !profile.profilePhoto) profile.profilePhoto = review.url;
+          // It becomes the main photo only when the member has none. A member
+          // who uploaded it AS their main photo kept their old one during the
+          // review and may have chosen another since; overriding that choice
+          // days later would undo a decision they made. They are told it is in
+          // their photos and can make it main themselves.
+          if (!profile.profilePhoto) profile.profilePhoto = review.url;
+          else if (review.wasProfilePhoto) mainLeftAlone = true;
           await profile.save({ transaction: t });
         }
       }
@@ -101,7 +108,9 @@ exports.decideMediaReview = asyncHandler(async (req, res) => {
     'system',
     decision === 'approve' ? 'Your photo is live' : 'A photo was removed',
     decision === 'approve'
-      ? 'Our team reviewed your photo and it now appears on your profile.'
+      ? (mainLeftAlone
+        ? 'Our team reviewed your photo and it is now in your photos. To show it first, open Edit profile, then Photos, and choose Make main.'
+        : 'Our team reviewed your photo and it now appears on your profile.')
       : `A photo was removed from your profile after review.${note ? ` ${note}` : ''} You can upload another clear photo of yourself.`
   ).catch((err) => log.error('Photo decision notification failed', { error: err.message }));
 

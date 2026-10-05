@@ -25,11 +25,34 @@ import LifestyleStep from '../components/onboarding/steps/LifestyleStep';
 import AboutYourselfStep from '../components/onboarding/steps/AboutYourselfStep';
 import SocialConnectionsStep from '../components/onboarding/steps/SocialConnectionsStep';
 import PreferencesStep from '../components/onboarding/steps/PreferencesStep';
-import PhotosStep from '../components/onboarding/steps/PhotosStep';
+import PhotoManager from '../components/profile/PhotoManager';
+import PhotoGuide from '../components/profile/PhotoGuide';
 import Progress from '../components/ui/Progress';
 import Button from '../components/ui/Button';
 import Skeleton from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
+
+/**
+ * Photos in the editor. Unlike the other sections, every change here (add,
+ * make main, delete) is saved on the server the moment it is made, by the same
+ * gallery manager as My Profile. The signup step this replaced only changed the
+ * form: removing the main photo set it to null locally, the save never sent
+ * that, and "Profile updated" showed while the photo stayed live; "Change
+ * photo" added a new main and kept the old one.
+ */
+function EditPhotosSection({ profile, onChange }) {
+  return (
+    <div className="space-y-5">
+      <PhotoManager profile={profile} onChange={onChange} />
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        Photo changes are saved straight away. You do not need to press Save for them.
+      </p>
+      <div className="bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+        <PhotoGuide />
+      </div>
+    </div>
+  );
+}
 
 // Step id → component. The editor renders whatever `visibleSteps` (from the
 // OnboardingContext, filtered for mode='edit') contains — the SAME list that
@@ -48,8 +71,9 @@ const EDIT_STEP_COMPONENTS = {
   9: AboutYourselfStep,
   9.5: SocialConnectionsStep,
   10: PreferencesStep,
-  11: PhotosStep,
+  11: EditPhotosSection,
 };
+const PHOTOS_STEP_ID = 11;
 
 /**
  * ModernProfileEditor - Edit existing profile using modern onboarding UI
@@ -82,8 +106,15 @@ const stringsOf = (v) => (typeof v === 'string' ? [v]
   : Array.isArray(v) ? v.flatMap(stringsOf)
     : v && typeof v === 'object' ? Object.values(v).flatMap(stringsOf) : []);
 
-const ModernProfileEditorContent = () => {
+const ModernProfileEditorContent = ({ initialProfile }) => {
   const navigate = useNavigate();
+  // The member's photos as the server has them. Lives here, not in the photos
+  // section, so leaving the section and coming back still shows the latest list.
+  const [photoProfile, setPhotoProfile] = useState(() => ({
+    profilePhoto: initialProfile?.profilePhoto ?? null,
+    photos: initialProfile?.photos ?? [],
+  }));
+  const onPhotosChange = (next) => setPhotoProfile({ profilePhoto: next?.profilePhoto ?? null, photos: next?.photos ?? [] });
   const { user } = useAuth();
   const { formData, currentStep, nextStep, prevStep, goToStep, isLoading, setIsLoading, visibleSteps } = useOnboarding();
   const stepComponents = visibleSteps.map((s) => EDIT_STEP_COMPONENTS[s.id]);
@@ -183,6 +214,11 @@ const ModernProfileEditorContent = () => {
     try {
       // Whitelisted multipart build (never sends password/identifier/email/flags)
       const submitData = buildProfileFormData(formData, { baseline: baselineDataRef.current });
+      // Photos are saved by the photos section as they change. The form still
+      // holds the main photo it opened with, and sending it would switch the
+      // main photo back after a "Make main" made in this visit.
+      submitData.delete('profilePhoto');
+      submitData.delete('photos');
       const response = await api.put('/profile/me', submitData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -423,7 +459,9 @@ const ModernProfileEditorContent = () => {
                     child threw a real React "ref is not a prop" warning via
                     AnimatePresence's internal PopChild on every render. */}
                 <div ref={sectionRef} tabIndex={-1} className="focus:outline-none">
-                  {CurrentStepComponent && <CurrentStepComponent />}
+                  {visibleSteps[currentStep]?.id === PHOTOS_STEP_ID
+                    ? <EditPhotosSection profile={photoProfile} onChange={onPhotosChange} />
+                    : CurrentStepComponent && <CurrentStepComponent />}
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -707,7 +745,7 @@ const ModernProfileEditor = () => {
 
   return (
     <OnboardingProvider mode="edit" existingProfile={profile}>
-      <ModernProfileEditorContent />
+      <ModernProfileEditorContent initialProfile={profile} />
     </OnboardingProvider>
   );
 };

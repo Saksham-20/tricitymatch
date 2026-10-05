@@ -112,9 +112,9 @@ describe('decideMediaReview', () => {
   });
   const mkProfile = (over = {}) => ({ photos: ['https://x/a.jpg'], profilePhoto: 'https://x/a.jpg', save: jest.fn(async () => {}), ...over });
 
-  it('approving a held photo puts it on the profile (and as main photo if it was)', async () => {
+  it('approving a held photo puts it on the profile (and as main photo when the member has none)', async () => {
     const review = mkReview();
-    const profile = mkProfile();
+    const profile = mkProfile({ profilePhoto: null });
     const { ctl, state } = load({ review, profile });
     await call(ctl, { decision: 'approve' });
     expect(profile.photos).toEqual(['https://x/a.jpg', 'https://x/held.jpg']);
@@ -123,6 +123,16 @@ describe('decideMediaReview', () => {
     expect(review.decidedBy).toBe('admin1');
     expect(state.deleted).toEqual([]);
     expect(state.notified[0][2]).toBe('Your photo is live');
+  });
+
+  it('approving a held main photo keeps the main photo the member has now, and says how to switch', async () => {
+    const review = mkReview({ wasProfilePhoto: true });
+    const profile = mkProfile({ photos: ['https://x/a.jpg', 'https://x/b.jpg'], profilePhoto: 'https://x/b.jpg' });
+    const { ctl, state } = load({ review, profile });
+    await call(ctl, { decision: 'approve' });
+    expect(profile.photos).toEqual(['https://x/a.jpg', 'https://x/b.jpg', 'https://x/held.jpg']);
+    expect(profile.profilePhoto).toBe('https://x/b.jpg');
+    expect(state.notified[0][3]).toMatch(/make main/i);
   });
 
   it('approving into a full gallery is refused, not silently dropped', async () => {

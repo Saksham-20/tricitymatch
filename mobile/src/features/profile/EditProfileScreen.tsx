@@ -23,10 +23,10 @@ import { EmptyState, ScreenHeader, SkeletonBlock } from '../../components/ui';
 import { showToast } from '../../utils/toast';
 import { tapSize } from '../../utils/elderTheme';
 import PickerSheet from '../../components/ui/PickerSheet';
-import { PressableScale } from '../../components/motion';
+import { PressableScale, useReduceTransparency } from '../../components/motion';
 import { PROFILE_PROMPTS, PromptPair, fromProfilePrompts, toProfilePrompts } from '../../constants/prompts';
 import { spacing, borderRadius, type ThemeColours } from '@shared/constants/theme';
-import { getMyProfile, updateMyProfile, uploadPhoto, deletePhoto } from '../../api/profile';
+import { getMyProfile, updateMyProfile, uploadPhoto, deletePhoto, setMainPhoto, mainFirst } from '../../api/profile';
 import { queryKeys } from '../../constants/queryKeys';
 import { refreshProfileCaches } from '../../utils/profileCache';
 import type { MainStackParamList } from '../../navigation/types';
@@ -94,10 +94,14 @@ const formSnapshot = (f: {
     f.city.trim(), f.state.trim(), f.diet, toProfilePrompts(f.prompts.filter(Boolean)),
   ]);
 
+type ApiFailure = { response?: { status?: number; data?: { error?: { message?: string; code?: string }; message?: string } } };
+
 const serverMessage = (err: unknown): string | undefined => {
-  const data = (err as { response?: { data?: { error?: { message?: string }; message?: string } } })?.response?.data;
+  const data = (err as ApiFailure)?.response?.data;
   return data?.error?.message ?? data?.message;
 };
+const errorStatus = (err: unknown): number | undefined => (err as ApiFailure)?.response?.status;
+const errorCode = (err: unknown): string | undefined => (err as ApiFailure)?.response?.data?.error?.code;
 
 // ─── Field Editor ─────────────────────────────────────────────────────────────
 
@@ -276,20 +280,42 @@ interface PhotoGridProps {
   name: string;
   onAdd: () => void;
   onRemove: (uri: string) => void;
+  onMakeMain: (uri: string) => void;
   uploading?: boolean;
+  /** A remove or make-main is in flight: the other photo controls wait. */
+  busy?: boolean;
 }
 
-function PhotoGrid({ photos, name, onAdd, onRemove, uploading }: PhotoGridProps) {
+// Reduce Transparency: the tint behind "Make main" becomes solid (doctrine §10.5).
+const SOLID_SCRIM = '#1a1a1a';
+const TINT_SCRIM = 'rgba(0,0,0,0.55)';
+
+/**
+ * Same rules as the web gallery (PhotoManager): any photo can be removed,
+ * the main one included (the next photo becomes main), as long as one photo is
+ * left; any other photo can be made the main one.
+ */
+function PhotoGrid({ photos, name, onAdd, onRemove, onMakeMain, uploading, busy }: PhotoGridProps) {
   const { c, elder } = useTheme();
-  const pg = React.useMemo(() => makePg(c), [c]);
+  const reduceTransparency = useReduceTransparency();
+  const pg = React.useMemo(() => makePg(c, reduceTransparency), [c, reduceTransparency]);
   const tap = tapSize(elder);
+  // Remove sits top-right and Make main along the bottom: on a short tile each
+  // gets half its height so the two targets never overlap.
+  const [slotHeight, setSlotHeight] = useState(0);
+  const hit = slotHeight ? Math.min(tap, Math.floor(slotHeight / 2)) : tap;
+  const canRemove = photos.length > 1;
   const slots = Array.from({ length: MAX_PHOTOS });
   return (
     <View style={pg.grid}>
       {slots.map((_, i) => {
         const uri = photos[i];
         return (
-          <View key={i} style={pg.slot}>
+          <View
+            key={i}
+            style={pg.slot}
+            onLayout={i === 0 ? (e) => setSlotHeight(Math.round(e.nativeEvent.layout.height)) : undefined}
+          >
             {uri ? (
               <>
                 <View
@@ -300,16 +326,18 @@ function PhotoGrid({ photos, name, onAdd, onRemove, uploading }: PhotoGridProps)
                 >
                   <SmartImage uri={uri} name={name} style={pg.photo} initialSize={36} />
                 </View>
-                {i > 0 && (
+                {canRemove && (
                   // A 44pt corner target around a 22pt mark: the box is the
                   // control, the chip is only its face.
                   <PressableScale
                     scaleTo={0.92}
-                    style={[pg.removeBtn, { width: tap, height: tap }]}
+                    style={[pg.removeBtn, { width: hit, height: hit }]}
                     onPress={() => onRemove(uri)}
+                    disabled={busy}
                     testID={`remove-photo-${i}`}
-                    accessibilityLabel={`Remove photo ${i + 1}`}
+                    accessibilityLabel={i === 0 ? 'Remove main photo' : `Remove photo ${i + 1}`}
                     accessibilityRole="button"
+                    accessibilityState={{ disabled: !!busy }}
                     pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <View style={pg.removeChip}>
@@ -317,21 +345,36 @@ function PhotoGrid({ photos, name, onAdd, onRemove, uploading }: PhotoGridProps)
                     </View>
                   </PressableScale>
                 )}
-                {i === 0 && (
-                  <View style={pg.primaryBadge}>
+                {i === 0 ? (
+                  <View style={pg.primaryBadge} pointerEvents="none">
                     <Text variant="micro" color="onPrimary">Main</Text>
                   </View>
+                ) : (
+                  <PressableScale
+                    style={[pg.makeMainHit, { height: hit }]}
+                    onPress={() => onMakeMain(uri)}
+                    disabled={busy}
+                    testID={`make-main-${i}`}
+                    accessibilityLabel={`Make photo ${i + 1} your main photo`}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !!busy }}
+                    pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <View style={pg.makeMainPill}>
+                      <Text variant="micro" color="onPrimary" numberOfLines={1} maxScale={1.15}>Make main</Text>
+                    </View>
+                  </PressableScale>
                 )}
               </>
             ) : (
               <PressableScale
                 style={pg.addBtn}
                 onPress={onAdd}
-                disabled={uploading}
+                disabled={uploading || busy}
                 testID={`add-photo-${i}`}
                 accessibilityLabel="Add photo"
                 accessibilityRole="button"
-                accessibilityState={{ disabled: !!uploading, busy: !!uploading && i === photos.length }}
+                accessibilityState={{ disabled: !!(uploading || busy), busy: !!uploading && i === photos.length }}
                 pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 {uploading && i === photos.length ? (
@@ -348,7 +391,7 @@ function PhotoGrid({ photos, name, onAdd, onRemove, uploading }: PhotoGridProps)
   );
 }
 
-const makePg = (c: ThemeColours) => StyleSheet.create({
+const makePg = (c: ThemeColours, reduceTransparency: boolean) => StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -394,6 +437,23 @@ const makePg = (c: ThemeColours) => StyleSheet.create({
     bottom: 4,
     left: 4,
     backgroundColor: c.p500,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  // The tap target: a full-width box flush to the tile's bottom edge.
+  makeMainHit: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    padding: 4,
+  },
+  // Scrim over a photo: theme-independent on purpose, the photo does not change with the theme.
+  makeMainPill: {
+    backgroundColor: reduceTransparency ? SOLID_SCRIM : TINT_SCRIM,
     borderRadius: borderRadius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -496,6 +556,7 @@ export default function EditProfileScreen() {
   /** `formSnapshot` of the values the form opened with; null until hydrated. */
   const [baseline, setBaseline] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
 
   const clearError = (key: keyof FieldErrors) =>
@@ -531,10 +592,7 @@ export default function EditProfileScreen() {
       setCity(initial.city);
       setState(initial.state);
       setDiet(initial.diet);
-      const allPhotos = profile.profilePhoto
-        ? [profile.profilePhoto, ...(profile.photos || []).filter((p) => p !== profile.profilePhoto)]
-        : profile.photos || [];
-      setPhotos(allPhotos);
+      setPhotos(mainFirst(profile));
       setPrompts(initial.prompts);
       setBaseline(formSnapshot(initial));
       setHydrated(true);
@@ -630,6 +688,16 @@ export default function EditProfileScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstName, lastName, height, bio, religion, caste, motherTongue, profession, education, city, state, diet, prompts, saveMutation]);
 
+  // The grid as the server has it now. Used after an answer that means the
+  // grid was out of date, never as a guess.
+  const resyncPhotos = useCallback(async () => {
+    try {
+      setPhotos(mainFirst(await getMyProfile()));
+    } catch {
+      // Keep what is shown; the error toast already says something went wrong.
+    }
+  }, []);
+
   // Photo changes are saved as they happen (the server appends on upload and
   // removes on delete), independent of the Save button.
   const handleAddPhoto = useCallback(async () => {
@@ -656,40 +724,78 @@ export default function EditProfileScreen() {
       showToast.success('Photo added');
       AccessibilityInfo.announceForAccessibility('Photo added');
     } catch (err) {
+      // GALLERY_FULL: the server already holds six (one added on another
+      // device). Its message says so; the grid is brought up to date with it.
+      if (errorCode(err) === 'GALLERY_FULL') resyncPhotos();
       showToast.error('Could not add photo', serverMessage(err) ?? 'Check your connection and try again.');
     } finally {
       setUploading(false);
     }
-  }, [uploading, photos.length, refreshProfile]);
+  }, [uploading, photos.length, refreshProfile, resyncPhotos]);
 
   const handleRemovePhoto = useCallback((uri: string) => {
     const index = photos.indexOf(uri);
-    Alert.alert('Remove photo', 'Remove this photo?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          setPhotos((prev) => prev.filter((p) => p !== uri));
-          try {
-            // Backend deletes by photo URL.
-            await deletePhoto(uri);
-            refreshProfile();
-            AccessibilityInfo.announceForAccessibility('Photo removed');
-          } catch (err) {
-            // Put it back where it was: the server still has it.
-            setPhotos((prev) => {
-              if (prev.includes(uri)) return prev;
-              const next = [...prev];
-              next.splice(Math.min(Math.max(index, 0), next.length), 0, uri);
-              return next;
-            });
-            showToast.error('Could not remove photo', serverMessage(err) ?? 'Please try again.');
-          }
+    const isMain = index === 0;
+    Alert.alert(
+      isMain ? 'Remove main photo' : 'Remove photo',
+      isMain ? 'Remove your main photo? Your next photo becomes your main photo.' : 'Remove this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setPhotoBusy(true);
+            setPhotos((prev) => prev.filter((p) => p !== uri));
+            try {
+              // Backend deletes by photo URL (the main photo too) and answers
+              // with the photos it has now, including which one is main.
+              const after = await deletePhoto(uri);
+              if (after.photos) setPhotos(mainFirst(after));
+              refreshProfile();
+              AccessibilityInfo.announceForAccessibility(isMain ? 'Main photo removed' : 'Photo removed');
+            } catch (err) {
+              if (errorStatus(err) === 404) {
+                // Not "already gone" on trust: show what the server really has.
+                await resyncPhotos();
+              } else {
+                // Put it back where it was: the server still has it.
+                setPhotos((prev) => {
+                  if (prev.includes(uri)) return prev;
+                  const next = [...prev];
+                  next.splice(Math.min(Math.max(index, 0), next.length), 0, uri);
+                  return next;
+                });
+              }
+              showToast.error('Could not remove photo', serverMessage(err) ?? 'Please try again.');
+            } finally {
+              setPhotoBusy(false);
+            }
+          },
         },
-      },
-    ]);
-  }, [photos, refreshProfile]);
+      ],
+    );
+  }, [photos, refreshProfile, resyncPhotos]);
+
+  // Saved at once, like add and remove. The grid follows the server's answer.
+  const handleMakeMain = useCallback(async (uri: string) => {
+    if (photoBusy) return;
+    const before = photos;
+    setPhotoBusy(true);
+    setPhotos((prev) => [uri, ...prev.filter((p) => p !== uri)]);
+    try {
+      const updated = await setMainPhoto(uri);
+      setPhotos(mainFirst(updated));
+      refreshProfile();
+      showToast.success('Main photo updated');
+      AccessibilityInfo.announceForAccessibility('Main photo updated');
+    } catch (err) {
+      setPhotos(before);
+      showToast.error('Could not change your main photo', serverMessage(err) ?? 'Please try again.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  }, [photoBusy, photos, refreshProfile]);
 
   const toggleSection = (s: Section) =>
     setExpandedSection((prev) => (prev === s ? null : s));
@@ -768,10 +874,14 @@ export default function EditProfileScreen() {
             name={firstName}
             onAdd={handleAddPhoto}
             onRemove={handleRemovePhoto}
+            onMakeMain={handleMakeMain}
             uploading={uploading}
+            busy={photoBusy}
           />
           <Text variant="footnote" color="textSecondary" style={styles.photoHint}>
-            First photo is your main profile photo. Min 1 required.
+            {photos.length === 1
+              ? 'This is your main photo. To change it, add the new photo first, then remove this one.'
+              : 'Your main photo is shown first. Photo changes are saved straight away.'}
           </Text>
         </SectionCard>
 

@@ -168,10 +168,17 @@ export default function PhotoManager({ profile, onChange }) {
           ? 'Add a clear, recent photo of your face. Profiles with photos get far more interest.'
           : 'Up to six photos, 5MB each. New photos are checked by our team if our system is unsure, and appear once approved.'}
       </p>
+      {/* The disabled delete only says why in a hover title, which a phone never shows. */}
+      {photos.length === 1 && (
+        <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-300">
+          To change this photo, add the new one first, then delete this one.
+        </p>
+      )}
       {confirming && (
         <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-300" role="status">
           Tap &ldquo;Confirm delete&rdquo; to remove this photo for good, or{' '}
           <button type="button" className="underline" onClick={() => setConfirming(null)}>keep it</button>.
+          {confirming === main && ' Your next photo becomes your main photo.'}
         </p>
       )}
     </div>

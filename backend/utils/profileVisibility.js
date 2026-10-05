@@ -176,16 +176,25 @@ const stillVisible = async (viewerId, items) => {
   const ids = items.map((i) => i.userId);
   const rows = await Profile.findAll({
     where: { ...listingScope(ctx), userId: { [Op.in]: ids, [Op.ne]: viewerId, ...(ctx.blockedIds.length ? { [Op.notIn]: ctx.blockedIds } : {}) } },
-    attributes: ['userId', 'photoBlurUntilMatch'],
+    attributes: ['userId', 'photoBlurUntilMatch', 'profilePhoto', 'photos'],
     include: [{ model: User, attributes: ['id'], where: { status: 'active' }, required: true }],
   });
-  const blurNow = new Map(rows.map((r) => [r.userId, Boolean(r.photoBlurUntilMatch)]));
+  const live = new Map(rows.map((r) => [r.userId, r]));
   return items
-    .filter((i) => blurNow.has(i.userId))
-    // A member can switch photo blur on AFTER the set was cached; apply the
-    // CURRENT setting. Cached candidates are never mutual matches (interacted
-    // profiles are excluded when the set is built), so blur always applies.
-    .map((i) => (blurNow.get(i.userId) ? { ...i, profilePhoto: null, photos: [] } : i));
+    .filter((i) => live.has(i.userId))
+    .map((i) => {
+      const row = live.get(i.userId);
+      // A member can switch photo blur on AFTER the set was cached; apply the
+      // CURRENT setting. Cached candidates are never mutual matches (interacted
+      // profiles are excluded when the set is built), so blur always applies.
+      if (row.photoBlurUntilMatch) return { ...i, profilePhoto: null, photos: [] };
+      // The cached copy is up to a day old: a photo the member deleted or
+      // replaced since must not keep showing to everyone until midnight.
+      const out = { ...i };
+      if (row.profilePhoto !== undefined) out.profilePhoto = row.profilePhoto || null;
+      if (row.photos !== undefined) out.photos = row.photos || [];
+      return out;
+    });
 };
 
 /**

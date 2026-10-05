@@ -76,10 +76,34 @@ export const uploadPhoto = async (
   return { url: photos[photos.length - 1] ?? '' };
 };
 
-// Backend deletes a gallery photo by its URL (`DELETE /profile/me/photo` body `{ photoUrl }`).
-export const deletePhoto = async (photoUrl: string): Promise<void> => {
-  await apiClient.delete('/profile/me/photo', { data: { photoUrl } });
+export interface PhotoSet {
+  photos?: string[] | null;
+  profilePhoto?: string | null;
+}
+
+/**
+ * The member's photos in the order to show them: the main photo first, then the
+ * rest of the gallery. The server keeps the gallery in upload order and marks
+ * the main photo separately (it never reorders), so tile 0 of the raw list is
+ * not necessarily the main one, and an older profile's main photo may not be in
+ * the list at all.
+ */
+export const mainFirst = (p: PhotoSet | null | undefined): string[] => {
+  const main = p?.profilePhoto || null;
+  const rest = (p?.photos ?? []).filter((u) => u && u !== main);
+  return main ? [main, ...rest] : rest;
 };
+
+// Backend deletes a photo by its URL (`DELETE /profile/me/photo` body `{ photoUrl }`),
+// the main photo included; the next gallery photo becomes main. Answers with the
+// photos as they are after the delete.
+export const deletePhoto = async (photoUrl: string): Promise<PhotoSet> => {
+  const res = await apiClient.delete<PhotoSet>('/profile/me/photo', { data: { photoUrl } });
+  return { photos: res.data?.photos ?? null, profilePhoto: res.data?.profilePhoto ?? null };
+};
+
+// "Make main": the server accepts any photo already in the gallery.
+export const setMainPhoto = async (photoUrl: string): Promise<Profile> => updateMyProfile({ profilePhoto: photoUrl });
 
 // NOTE: there is deliberately no logProfileView here.
 // `POST /profile/:id/view` never existed on the server — the client fired it on

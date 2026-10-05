@@ -14,7 +14,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-import { updateMyProfile, getMyProfile } from '../../api/profile';
+import { updateMyProfile, getMyProfile, mainFirst } from '../../api/profile';
 import { refreshProfileCaches } from '../../utils/profileCache';
 import { showToast } from '../../utils/toast';
 import { haptics } from '../../utils/haptics';
@@ -343,7 +343,9 @@ export function OnboardingProvider({ children, navigateToStep }: ProviderProps) 
         maritalStatus: p.maritalStatus ?? null,
         numberOfChildren: p.numberOfChildren ?? null,
         bio: p.bio || '',
-        photos: p.photos ?? [],
+        // Main photo first: the photos step labels tile 0 as the main photo, and
+        // the server keeps the gallery in upload order without moving the main one.
+        photos: mainFirst(p),
       }));
     }
 
