@@ -44,7 +44,6 @@ import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import AdminLayout, { AdminIndexRedirect, AdminScopeRoute, AdminNoAccess, AdminNotFound } from './components/admin/AdminLayout';
 import Navbar from './components/common/Navbar';
 import BottomNav from './components/common/BottomNav';
-import LaunchBanner from './components/common/LaunchBanner';
 import useRouteTitle from './components/common/RouteTitle';
 
 // ==================== LAZY LOADED PAGES ====================
@@ -612,14 +611,6 @@ const AppContent = () => {
   const showBottomNav = isAuthenticated && !isAdminRoute && !isMarketingRoute && !isFunnelRoute
     && location.pathname !== '/welcome';
 
-  // The launch announcement belongs on the pages a first-time visitor lands on,
-  // not inside the member app. The funnel routes have no Navbar to sit under.
-  const showLaunchBanner = !isFunnelRoute && (
-    location.pathname === '/'
-    || ['/about', '/safety', '/help', '/success-stories', '/contact', '/matrimony'].some(
-      (p) => location.pathname === p || location.pathname.startsWith(`${p}/`)
-    )
-  );
 
   // Admin and marketing routes render without Navbar/BottomNav/Toaster
   if (isAdminRoute || isMarketingRoute) {
@@ -644,7 +635,6 @@ const AppContent = () => {
         Skip to main content
       </a>
       {!isFunnelRoute && <Navbar />}
-      {showLaunchBanner && <LaunchBanner authenticated={isAuthenticated} />}
       <main
         id="main-content"
         tabIndex="-1"

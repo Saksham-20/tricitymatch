@@ -14,6 +14,7 @@ import { launchPhase } from '../utils/launchDate';
 import { support } from '../config';
 import { revealOnce, staggerIndex } from '../utils/animations';
 import { EDITORIAL_IMAGES } from '../data/editorialImages';
+import LaunchBanner from '../components/home/LaunchBanner';
 
 /* Testimonials come ONLY from published admin success stories — the section is
    hidden until at least one real story exists. Never seed fabricated couples. */
@@ -555,6 +556,10 @@ const Home = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── LAUNCH FEATURE ── dated registration banner; renders nothing after
+          LAUNCH_BANNER_UNTIL (components/home/LaunchBanner). */}
+      <LaunchBanner />
 
       {/* ════════════════════════════════════════════════════════
           HERO — asymmetric split: monumental title left, fanned photo stack right
