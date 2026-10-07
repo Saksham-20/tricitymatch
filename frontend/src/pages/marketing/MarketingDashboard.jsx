@@ -47,7 +47,7 @@ export default function MarketingDashboard() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-5 w-28" />
@@ -68,9 +68,9 @@ export default function MarketingDashboard() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
-        <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Marketing Dashboard</h1>
+        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Marketing Dashboard</h1>
         <button
           onClick={() => fetchReport({ quiet: true })}
           className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
@@ -109,7 +109,7 @@ export default function MarketingDashboard() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-xl">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 rounded-xl">
         <h2 className="text-xl font-serif font-bold mb-4 text-neutral-900 dark:text-neutral-100">How It Works</h2>
         <ol className="space-y-3 text-neutral-700 dark:text-neutral-300 list-none">
           {[

@@ -8,7 +8,7 @@ import planLabel from '../../utils/planLabel';
 import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
 import toast from 'react-hot-toast';
 import RetryImage from '../../components/ui/RetryImage';
-import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield, FiEye, FiEyeOff, FiUsers } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 
 const Section = ({ title, children }) => (
@@ -398,13 +398,13 @@ export default function AdminUserDetail() {
       </Link>
 
       {/* Profile header */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-start gap-5">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 flex flex-wrap md:flex-nowrap items-start gap-4 sm:gap-5">
         <div className="w-16 h-16 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold flex-shrink-0">
           {((profile?.firstName?.[0] || '') + (profile?.lastName?.[0] || '')).toUpperCase() || 'U'}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl font-bold text-gray-900">{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || '—'}</h2>
+            <h2 className="text-xl font-bold text-gray-900 break-words">{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || '—'}</h2>
             {isVerified && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
                 <FiCheckCircle className="w-3 h-3" /> Verified
@@ -421,10 +421,12 @@ export default function AdminUserDetail() {
               </span>
             )}
           </div>
-          <p className="text-gray-500 text-sm">{user.email}</p>
-          <p className="text-gray-500 text-xs mt-1">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
+          <p className="text-gray-500 text-sm break-all">{user.email}</p>
+          <p className="text-gray-500 text-xs mt-1 break-all">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        {/* On a phone the actions drop below the name as a full-width row of
+            wrapping buttons; beside it they ran off the right edge. */}
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto md:justify-end">
           {/* Everything staff have done to or looked at on this member. */}
           {can('team') && (
             <Link
@@ -508,6 +510,39 @@ export default function AdminUserDetail() {
             {user.invisible.reason && <p className="mt-0.5">Reason: {user.invisible.reason}</p>}
             <p className="mt-1 text-gray-600">Not shown in search, daily matches or profile-code lookups. They can still sign in, and anyone they like or message can still see them. They have not been told.</p>
           </div>
+        </div>
+      )}
+
+      {/* Which marketing partner this member is credited to. Credit never moves
+          once earned, so this is the partner who gets commission on them. */}
+      {user.partnerCredit && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <FiUsers className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="text-sm text-gray-700 min-w-0">
+              <p className="font-semibold text-gray-900">
+                Joined through partner{' '}
+                {can('marketing') ? (
+                  <Link to={`/admin/marketing-users/${user.partnerCredit.partnerId}`} className="text-primary-700 hover:underline break-words">
+                    {user.partnerCredit.partnerName || user.partnerCredit.partnerEmail}
+                  </Link>
+                ) : (user.partnerCredit.partnerName || user.partnerCredit.partnerEmail)}
+              </p>
+              <p className="mt-0.5 text-gray-600">
+                {user.partnerCredit.referralCode ? <>Code <span className="font-mono">{user.partnerCredit.referralCode}</span></> : 'Added by the partner by hand'}
+                {user.partnerCredit.campaign ? ` · ${user.partnerCredit.campaign}` : ''}
+                {user.partnerCredit.partnerStatus && user.partnerCredit.partnerStatus !== 'active' ? ` · partner ${user.partnerCredit.partnerStatus}` : ''}
+              </p>
+            </div>
+          </div>
+          {can('marketing') && (
+            <Link
+              to={`/admin/leads?marketingUserId=${user.partnerCredit.partnerId}`}
+              className="inline-flex items-center min-h-[44px] text-sm font-medium text-primary-700 hover:underline"
+            >
+              Partner's members
+            </Link>
+          )}
         </div>
       )}
 

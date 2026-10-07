@@ -1,4 +1,5 @@
 import { Wallet, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * The payout ledger: what the rep has earned, what has actually been handed
@@ -30,11 +31,11 @@ const Figure = ({ icon: Icon, label, value, hint, tone = 'neutral' }) => {
     green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
   };
   return (
-    <div className="flex-1 min-w-[160px]">
+    <div className="sm:flex-1 sm:min-w-[160px] min-w-0">
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${tones[tone]}`}>
         <Icon size={18} />
       </div>
-      <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-50 tabular-nums">{value}</p>
+      <p className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-neutral-50 tabular-nums">{value}</p>
       <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mt-0.5">{label}</p>
       {hint && <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-0.5">{hint}</p>}
     </div>
@@ -42,6 +43,8 @@ const Figure = ({ icon: Icon, label, value, hint, tone = 'neutral' }) => {
 };
 
 export default function PayoutSection({ ledger, actions, children, title = 'Payouts' }) {
+  // Six columns of payment history do not fit a phone; there each payout is a card.
+  const isNarrow = useMediaQuery('(max-width: 767px)');
   if (!ledger?.summary) return null;
   const s = ledger.summary;
   const payouts = ledger.payouts || [];
@@ -50,7 +53,7 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
   const td = 'px-4 py-3.5 text-sm text-neutral-800 dark:text-neutral-100';
 
   return (
-    <section className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
+    <section className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-6">
         <h2 className="text-xl font-serif font-bold text-neutral-900 dark:text-neutral-100">{title}</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -58,7 +61,7 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-6 mb-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:flex-wrap sm:gap-6 mb-6">
         <Figure icon={Wallet} label="Commission earned" value={inr(s.earned)} tone="gold" />
         <Figure
           icon={CheckCircle2}
@@ -100,6 +103,39 @@ export default function PayoutSection({ ledger, actions, children, title = 'Payo
         <div className="text-center py-8 text-sm text-neutral-500 dark:text-neutral-400 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl">
           No payouts recorded yet.
         </div>
+      ) : isNarrow ? (
+        <ul className="space-y-3">
+          {payouts.map((p) => (
+            <li key={p.id} className={`border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 text-sm text-neutral-800 dark:text-neutral-100 ${p.voided ? 'opacity-60' : ''}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-lg font-semibold tabular-nums">{inr(p.amount)}</p>
+                  {p.tdsAmount > 0 && (
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">TDS {inr(p.tdsAmount)} · you receive {inr(p.netAmount)}</p>
+                  )}
+                </div>
+                <span className={`shrink-0 inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
+                  p.voided
+                    ? 'bg-neutral-100 text-neutral-500 line-through dark:bg-neutral-800 dark:text-neutral-500'
+                    : p.status === 'paid'
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                    : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
+                }`}>
+                  {p.voided ? 'Voided' : p.status === 'paid' ? 'Paid' : 'Queued'}
+                </span>
+              </div>
+              <p className="mt-2 text-neutral-600 dark:text-neutral-300">
+                {fmtDate(p.paidAt || p.createdAt)} · {METHOD_LABELS[p.method] || '—'}
+                {p.periodStart || p.periodEnd ? ` · for ${fmtDate(p.periodStart)} – ${fmtDate(p.periodEnd)}` : ''}
+              </p>
+              {p.reference && <p className="mt-1 font-mono text-xs break-all">Ref {p.reference}</p>}
+              {p.note && <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{p.note}</p>}
+              {p.voided && p.voidReason && <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{p.voidReason}</p>}
+              {p.recordedBy && <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">by {p.recordedBy}</p>}
+              {actions && !p.voided && <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">{actions(p)}</div>}
+            </li>
+          ))}
+        </ul>
       ) : (
         <div className="overflow-x-auto border border-neutral-200 dark:border-neutral-800 rounded-xl">
           <table className="w-full border-collapse">

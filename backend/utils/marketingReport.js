@@ -19,6 +19,7 @@ const sequelize = require('../config/database');
 const { User, Profile, Subscription, MarketingLead, ReferralCode } = require('../models');
 const { getRateForUser, commissionOn } = require('./marketingCommission');
 const { PAID_SUBSCRIPTION_WHERE, PAID_SUBSCRIPTION_SQL, netPaid, money } = require('./paidRevenue');
+const { buildLeadWhere } = require('./partnerMembers');
 
 // What counts as money taken lives in utils/paidRevenue.js, shared with every
 // admin revenue read: a payment reference and no full refund, whatever the
@@ -67,16 +68,19 @@ async function getRepRevenueSplit(marketingUserId, holdDays = 7) {
 
 /**
  * @param {string} marketingUserId
- * @param {{ page?: number, limit?: number, status?: string, paymentStatus?: string }} opts
+ * @param {{ page?: number, limit?: number, status?: string, paymentStatus?: string,
+ *           search?: string, signedUp?: 'yes'|'no', paid?: 'yes'|'no', source?: 'code'|'manual',
+ *           from?: string, to?: string }} opts  — see utils/partnerMembers buildLeadWhere
  */
 async function buildMarketingReport(marketingUserId, opts = {}) {
   const limit = Math.min(Math.max(parseInt(opts.limit, 10) || 25, 1), 100);
   const page = Math.max(parseInt(opts.page, 10) || 1, 1);
   const offset = (page - 1) * limit;
 
-  const where = { assignedToMarketingUserId: marketingUserId };
-  if (['new', 'contacted', 'converted', 'lost'].includes(opts.status)) where.status = opts.status;
-  if (['none', 'paid'].includes(opts.paymentStatus)) where.paymentStatus = opts.paymentStatus;
+  // Same filters (search, signed up, paid, source, dates) as the admin's
+  // all-partners list; the partner is always this one, whatever the caller sent.
+  const filters = buildLeadWhere({ ...opts, marketingUserId: undefined });
+  const where = { [Op.and]: [{ assignedToMarketingUserId: marketingUserId }, filters] };
 
   const { count, rows } = await MarketingLead.findAndCountAll({
     where,
@@ -99,7 +103,11 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
     ],
     limit,
     offset,
-    order: [['createdAt', 'DESC']],
+    order: [['createdAt', 'DESC'], ['id', 'DESC']],
+    // Without this the count is of JOINED rows: a member with two payments
+    // counted twice, inflating the total and adding empty pages.
+    distinct: true,
+    col: 'id',
   });
 
   const commissionRate = await getRateForUser(marketingUserId);
@@ -120,6 +128,9 @@ async function buildMarketingReport(marketingUserId, opts = {}) {
 
     return {
       leadId: lead.id,
+      // The member's account id, for the admin view to link to (stripped from
+      // the partner's own copy of the report).
+      memberId: u ? u.id : null,
       name: profileName || lead.name || '—',
       phone: lead.phone,
       email: (u && u.email) || lead.email,

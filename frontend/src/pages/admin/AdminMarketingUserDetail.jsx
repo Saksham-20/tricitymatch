@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiRefreshCw, FiCheckCircle, FiCircle, FiUsers } from 'react-icons/fi';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { FiArrowLeft, FiRefreshCw, FiCheckCircle, FiCircle, FiUsers, FiSearch, FiChevronLeft, FiChevronRight, FiExternalLink } from 'react-icons/fi';
+import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 import { reassignPartnerLeads } from '../../api/adminApi';
@@ -29,6 +30,13 @@ export default function AdminMarketingUserDetail() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
+  // The invited-members list used to be one fetch of 50 with no paging and no
+  // search, so a partner past 50 people had members an admin could not see.
+  const [memberSearch, setMemberSearch] = useState('');
+  const debouncedSearch = useDebounce(memberSearch.trim(), 350);
+  const [memberFilter, setMemberFilter] = useState({ signedUp: '', paid: '' });
+  const [memberPage, setMemberPage] = useState(1);
+  const loadedRef = useRef(false);
 
   const fetchAll = useCallback(async (opts = {}) => {
     const { quiet = false } = opts;
@@ -36,7 +44,13 @@ export default function AdminMarketingUserDetail() {
       if (quiet) setRefreshing(true); else setLoading(true);
       // The same report the rep sees for themselves — one builder, one story.
       const [reportRes, codesRes, payoutRes] = await Promise.all([
-        apiClient.get(`/admin/marketing-users/${userId}/report?limit=50`),
+        apiClient.get(`/admin/marketing-users/${userId}/report?${new URLSearchParams({
+          limit: '25',
+          page: String(memberPage),
+          ...(debouncedSearch ? { search: debouncedSearch } : {}),
+          ...(memberFilter.signedUp ? { signedUp: memberFilter.signedUp } : {}),
+          ...(memberFilter.paid ? { paid: memberFilter.paid } : {}),
+        })}`),
         apiClient.get(`/admin/referral-codes?marketingUserId=${userId}&limit=50`),
         apiClient.get(`/admin/marketing-users/${userId}/payouts`),
       ]);
@@ -48,13 +62,17 @@ export default function AdminMarketingUserDetail() {
       setLedger(payoutRes.data);
       setLastUpdated(new Date());
       setError('');
+      loadedRef.current = true;
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load data');
+      // A failed background refresh (auto-refresh, a filter change) keeps the
+      // page that is already on screen instead of replacing it with an error.
+      if (quiet && loadedRef.current) toast.error('Could not refresh. Showing the last loaded figures.', { id: 'rep-refresh' });
+      else setError(err.response?.data?.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, memberPage, debouncedSearch, memberFilter]);
 
   // Every payout write returns the recomputed ledger, so the balance on screen
   // is the server's answer rather than one the client added up itself.
@@ -91,7 +109,8 @@ export default function AdminMarketingUserDetail() {
     }
   };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchAll({ quiet: loadedRef.current }); }, [fetchAll]);
+  useEffect(() => { setMemberPage(1); }, [debouncedSearch, memberFilter]);
   useAutoRefresh(() => fetchAll({ quiet: true }), 20000);
 
   if (loading) {
@@ -113,20 +132,22 @@ export default function AdminMarketingUserDetail() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <button
         onClick={() => navigate('/admin/marketing-users')}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+        className="flex items-center gap-2 min-h-[44px] text-gray-600 hover:text-gray-900 mb-4"
       >
         <FiArrowLeft size={18} /> Back to Marketing Users
       </button>
 
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Marketing User Detail</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words">
+            {[user?.Profile?.firstName, user?.Profile?.lastName].filter(Boolean).join(' ') || user?.email || 'Marketing partner'}
+          </h1>
           {user && (
-            <p className="text-gray-600">
-              {user.Profile?.firstName} {user.Profile?.lastName} · {user.email} ({user.role})
+            <p className="text-gray-600 break-all">
+              {user.email} · {user.role === 'marketing_manager' ? 'Manager' : 'Partner'}
               <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${
                 user.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}>{user.status}</span>
@@ -241,18 +262,77 @@ export default function AdminMarketingUserDetail() {
         </div>
       )}
 
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Invited members ({report?.pagination?.total ?? 0})
-        </h2>
+      <section aria-labelledby="members-title" className="mb-8">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <h2 id="members-title" className="text-xl font-bold">
+            Invited members ({report?.pagination?.total ?? 0})
+          </h2>
+          <Link
+            to={`/admin/leads?marketingUserId=${userId}`}
+            className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-primary-700 hover:underline"
+          >
+            Open in Partner members <FiExternalLink size={14} aria-hidden="true" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="col-span-2 relative">
+            <label htmlFor="rep-member-search" className="sr-only">Search this partner's members</label>
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} aria-hidden="true" />
+            <input
+              id="rep-member-search"
+              type="search"
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
+              placeholder="Search name, phone, email or code"
+              className="w-full min-h-[44px] border border-gray-300 rounded-lg pl-9 pr-3 text-sm bg-white"
+            />
+          </div>
+          <div>
+            <label htmlFor="rep-member-joined" className="sr-only">Joined</label>
+            <select
+              id="rep-member-joined"
+              value={memberFilter.signedUp}
+              onChange={(e) => setMemberFilter((f) => ({ ...f, signedUp: e.target.value }))}
+              className="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 text-sm bg-white"
+            >
+              <option value="">Joined or not</option>
+              <option value="yes">Became a member</option>
+              <option value="no">Not joined yet</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="rep-member-paid" className="sr-only">Paid</label>
+            <select
+              id="rep-member-paid"
+              value={memberFilter.paid}
+              onChange={(e) => setMemberFilter((f) => ({ ...f, paid: e.target.value }))}
+              className="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 text-sm bg-white"
+            >
+              <option value="">Paid or not</option>
+              <option value="yes">Paid</option>
+              <option value="no">Not paid</option>
+            </select>
+          </div>
+        </div>
         {!report?.members?.length ? (
           <div className="bg-white p-6 rounded-lg text-gray-500 border border-gray-200">
-            No members invited yet
+            {debouncedSearch || memberFilter.signedUp || memberFilter.paid ? 'Nobody matches these filters.' : 'No members invited yet'}
           </div>
         ) : (
-          <MemberReportTable members={report.members} />
+          <MemberReportTable members={report.members} memberHref={(m) => `/admin/users/${m.memberId}`} />
         )}
-      </div>
+        {(report?.pagination?.pages || 1) > 1 && (
+          <nav aria-label="Member pages" className="flex items-center justify-between gap-3 mt-4">
+            <button type="button" onClick={() => setMemberPage((p) => Math.max(1, p - 1))} disabled={memberPage <= 1} className="inline-flex items-center gap-1 min-h-[44px] px-3 border border-gray-300 rounded-lg text-sm bg-white disabled:opacity-40">
+              <FiChevronLeft size={16} aria-hidden="true" /> Previous
+            </button>
+            <span className="text-sm text-gray-600">Page {memberPage} of {report.pagination.pages}</span>
+            <button type="button" onClick={() => setMemberPage((p) => Math.min(report.pagination.pages, p + 1))} disabled={memberPage >= report.pagination.pages} className="inline-flex items-center gap-1 min-h-[44px] px-3 border border-gray-300 rounded-lg text-sm bg-white disabled:opacity-40">
+              Next <FiChevronRight size={16} aria-hidden="true" />
+            </button>
+          </nav>
+        )}
+      </section>
 
       <div>
         <h2 className="text-xl font-bold mb-4">Referral Codes ({codes.length})</h2>
@@ -261,14 +341,16 @@ export default function AdminMarketingUserDetail() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {codes.map(code => (
-              <div key={code.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                <div>
-                  <p className="font-mono font-bold">{code.code}</p>
+              <div key={code.id} className="bg-white p-4 rounded-lg border border-gray-200 flex justify-between items-center gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono font-bold break-all">{code.code}</p>
                   {code.campaign && <p className="text-sm text-gray-600">{code.campaign}</p>}
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-primary-600">{code.usageCount} signups</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${code.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                <div className="text-right shrink-0">
+                  <Link to={`/admin/leads?marketingUserId=${userId}&search=${encodeURIComponent(code.code)}`} className="block font-bold text-primary-600 hover:underline">
+                    {code.usageCount} {code.usageCount === 1 ? 'signup' : 'signups'}
+                  </Link>
+                  <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${code.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                     {code.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>

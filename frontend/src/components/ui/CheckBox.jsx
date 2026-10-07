@@ -26,9 +26,13 @@ const CheckBox = ({
     <div className="flex flex-col gap-2">
       {/* Native <input> drives state so the control is keyboard-operable
           (Tab + Space) and announced by screen readers as a checkbox.
-          The label wraps it, so clicking the box OR the text toggles it. */}
+          The label wraps it, so clicking the box OR the text toggles it.
+          `relative` matters: sr-only makes the input absolute, and without a
+          positioned ancestor it escapes any overflow-auto scroller (the staff
+          portals' <main>) — the window grows to fit it, and focusing it on a
+          click scrolls the whole app out of view. */}
       <label
-        className={`flex items-center gap-3 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`relative flex items-center gap-3 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input
           type="checkbox"

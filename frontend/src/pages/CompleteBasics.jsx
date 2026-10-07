@@ -157,7 +157,7 @@ export default function CompleteBasics() {
           </legend>
           <div className="grid grid-cols-3 gap-2.5">
             {GENDERS.map((g) => (
-              <label key={g.value} className="cursor-pointer">
+              <label key={g.value} className="relative cursor-pointer">
                 <input
                   type="radio"
                   name="gender"

@@ -8,7 +8,7 @@ import { launchPhase } from '../../utils/launchDate';
 import { messageTemplates } from '../../data/partnerMessages';
 
 const Card = ({ id, title, children }) => (
-  <section id={id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 scroll-mt-6">
+  <section id={id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 sm:p-6 scroll-mt-6">
     <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-3">{title}</h2>
     {children}
   </section>
@@ -122,9 +122,9 @@ export default function MarketingKit() {
   const messages = messageTemplates({ me, link, phase });
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="p-4 sm:p-6 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Outreach Kit</h1>
+        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Outreach Kit</h1>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
           Messages you can send as they are, what to say, and what never to promise. Read the <Link to="/marketing/guide" className="text-primary-700 dark:text-primary-300 underline underline-offset-2">Partner Guide</Link> first.
         </p>

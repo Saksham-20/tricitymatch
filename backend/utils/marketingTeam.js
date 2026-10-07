@@ -26,19 +26,14 @@ const { countOpenLeads } = require('./leadReassignment');
 const PARTNER_ROLES = ['marketing', 'marketing_manager'];
 const MAX_PARTNERS = 500;
 
-async function getTeamOverview() {
-  const partners = await User.findAll({
-    where: { role: { [Op.in]: PARTNER_ROLES } },
-    attributes: ['id', 'email', 'role', 'status', 'createdAt'],
-    include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }],
-    order: [['createdAt', 'DESC']],
-    limit: MAX_PARTNERS + 1,
-  });
-  const truncated = partners.length > MAX_PARTNERS;
-  const list = partners.slice(0, MAX_PARTNERS);
-  const ids = list.map((p) => p.id);
-  if (!ids.length) return { partners: [], totals: emptyTotals(), truncated: false, generatedAt: new Date().toISOString() };
-
+/**
+ * Per-partner numbers for a set of partner ids, in grouped queries: leads,
+ * sign-ups, paying members, net revenue, commission at each partner's rate,
+ * active codes, open leads and setup progress. Shared by the manager's Team
+ * page and the admin's Marketing Users list so the two never disagree.
+ */
+async function getPartnerMetrics(ids) {
+  if (!ids.length) return {};
   const [leadRows, paidRows, codeRows, onboarding, openLeads] = await Promise.all([
     sequelize.query(
       `SELECT "assignedToMarketingUserId" AS id,
@@ -80,31 +75,51 @@ async function getTeamOverview() {
   const paid = byId(paidRows);
   const codes = byId(codeRows);
 
-  const rows = [];
-  for (const p of list) {
-    const l = leads[p.id] || {};
-    const pd = paid[p.id] || {};
+  const out = {};
+  for (const id of ids) {
+    const l = leads[id] || {};
+    const pd = paid[id] || {};
     const revenue = Number(pd.revenue) || 0;
-    const rate = await getRateForUser(p.id); // eslint-disable-line no-await-in-loop
-    const ob = onboarding[p.id];
-    rows.push({
-      id: p.id,
-      name: [p.Profile?.firstName, p.Profile?.lastName].filter(Boolean).join(' ').trim() || p.email,
-      email: p.email,
-      role: p.role,
-      status: p.status,
-      joinedAt: p.createdAt,
+    const rate = await getRateForUser(id); // eslint-disable-line no-await-in-loop
+    const ob = onboarding[id];
+    out[id] = {
       totalLeads: Number(l.totalLeads) || 0,
       signedUp: Number(l.signedUp) || 0,
       paidMembers: Number(pd.paidMembers) || 0,
       revenue,
       commissionRate: rate,
       commissionEarned: commissionOn(revenue, rate),
-      activeCodes: Number(codes[p.id]?.n) || 0,
-      openLeads: openLeads[p.id] || 0,
+      activeCodes: Number(codes[id]?.n) || 0,
+      openLeads: openLeads[id] || 0,
       setup: ob ? { completed: ob.completed, total: ob.total } : null,
-    });
+    };
   }
+  return out;
+}
+
+async function getTeamOverview() {
+  const partners = await User.findAll({
+    where: { role: { [Op.in]: PARTNER_ROLES } },
+    attributes: ['id', 'email', 'role', 'status', 'createdAt'],
+    include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }],
+    order: [['createdAt', 'DESC']],
+    limit: MAX_PARTNERS + 1,
+  });
+  const truncated = partners.length > MAX_PARTNERS;
+  const list = partners.slice(0, MAX_PARTNERS);
+  const ids = list.map((p) => p.id);
+  if (!ids.length) return { partners: [], totals: emptyTotals(), truncated: false, generatedAt: new Date().toISOString() };
+
+  const metrics = await getPartnerMetrics(ids);
+  const rows = list.map((p) => ({
+    id: p.id,
+    name: [p.Profile?.firstName, p.Profile?.lastName].filter(Boolean).join(' ').trim() || p.email,
+    email: p.email,
+    role: p.role,
+    status: p.status,
+    joinedAt: p.createdAt,
+    ...metrics[p.id],
+  }));
   rows.sort((a, b) => (b.revenue - a.revenue) || (b.signedUp - a.signedUp) || (new Date(b.joinedAt) - new Date(a.joinedAt)));
 
   const totals = rows.reduce((t, r) => ({
@@ -125,4 +140,4 @@ function emptyTotals() {
   return { partners: 0, activePartners: 0, totalLeads: 0, signedUp: 0, paidMembers: 0, revenue: 0, commissionEarned: 0, openLeads: 0 };
 }
 
-module.exports = { getTeamOverview, PARTNER_ROLES };
+module.exports = { getTeamOverview, getPartnerMetrics, PARTNER_ROLES };

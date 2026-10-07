@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FiFilter, FiRefreshCw, FiCheckCircle, FiUserPlus, FiX } from 'react-icons/fi';
+import { FiFilter, FiRefreshCw, FiCheckCircle, FiUserPlus, FiX, FiSearch } from 'react-icons/fi';
+import { useDebounce } from '../../hooks/useDebounce';
 import apiClient from '../../api/apiClient';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import Skeleton from '../../components/ui/Skeleton';
@@ -11,7 +12,11 @@ export default function MarketingLeads() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({ status: '', paymentStatus: '' });
+  // `paid` reads the member's real payments; the old paymentStatus filter read a
+  // copied flag that missed payments activated by the webhook.
+  const [filters, setFilters] = useState({ status: '', paid: '', signedUp: '' });
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebounce(searchInput.trim(), 350);
   const [updating, setUpdating] = useState(null);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -27,7 +32,9 @@ export default function MarketingLeads() {
       if (quiet) setRefreshing(true); else setLoading(true);
       const params = new URLSearchParams({ page, limit: 25 });
       if (filters.status) params.append('status', filters.status);
-      if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
+      if (filters.paid) params.append('paid', filters.paid);
+      if (filters.signedUp) params.append('signedUp', filters.signedUp);
+      if (search) params.append('search', search);
       const res = await apiClient.get(`/marketing/report?${params}`);
       setReport(res.data);
       setLastUpdated(new Date());
@@ -38,9 +45,11 @@ export default function MarketingLeads() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, filters]);
+  }, [page, filters, search]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
+  useEffect(() => { setPage(1); }, [search]);
+  const filtering = Boolean(search || filters.status || filters.paid || filters.signedUp);
 
   // Members sign up and pay while this page sits open, so keep it current
   // without anyone having to reload.
@@ -93,10 +102,10 @@ export default function MarketingLeads() {
     'border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 px-3 py-2 rounded-lg text-base';
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">My Members</h1>
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">My Members</h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
             Everyone who joined through your referral links: who signed up, and who paid.
           </p>
@@ -113,7 +122,7 @@ export default function MarketingLeads() {
           </button>
           <button
             onClick={() => { setShowAdd((v) => !v); setAddedName(''); setAddError(''); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+            className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors"
           >
             {showAdd ? <FiX size={16} /> : <FiUserPlus size={16} />}
             {showAdd ? 'Close' : 'Add a lead'}
@@ -168,18 +177,35 @@ export default function MarketingLeads() {
           <FiFilter size={18} />
           <h2 className="text-base font-semibold">Filters</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <select aria-label="Filter by status" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className={selectCls}>
-            <option value="">All Status</option>
+        <div className="relative mb-3">
+          <label htmlFor="my-members-search" className="sr-only">Search your members</label>
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={16} aria-hidden="true" />
+          <input
+            id="my-members-search"
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search name, phone, email or code"
+            className={`${selectCls} w-full min-h-[44px] pl-9`}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <select aria-label="Filter by status" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className={`${selectCls} min-h-[44px]`}>
+            <option value="">All statuses</option>
             <option value="new">New</option>
             <option value="contacted">Contacted</option>
             <option value="converted">Converted</option>
             <option value="lost">Lost</option>
           </select>
-          <select aria-label="Filter by payment" value={filters.paymentStatus} onChange={(e) => handleFilterChange('paymentStatus', e.target.value)} className={selectCls}>
-            <option value="">All Payment Status</option>
-            <option value="none">Not paid</option>
-            <option value="paid">Paid</option>
+          <select aria-label="Filter by signed up" value={filters.signedUp} onChange={(e) => handleFilterChange('signedUp', e.target.value)} className={`${selectCls} min-h-[44px]`}>
+            <option value="">Signed up or not</option>
+            <option value="yes">Signed up</option>
+            <option value="no">Not signed up yet</option>
+          </select>
+          <select aria-label="Filter by payment" value={filters.paid} onChange={(e) => handleFilterChange('paid', e.target.value)} className={`${selectCls} min-h-[44px]`}>
+            <option value="">Paid or not</option>
+            <option value="no">Not paid</option>
+            <option value="yes">Paid</option>
           </select>
         </div>
       </div>
@@ -209,9 +235,9 @@ export default function MarketingLeads() {
       ) : !report?.members?.length ? (
         <div className="text-center py-16 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
           <FiCheckCircle className="mx-auto mb-3 text-neutral-300 dark:text-neutral-600" size={32} />
-          <p className="text-neutral-700 dark:text-neutral-200 font-medium">No members yet</p>
+          <p className="text-neutral-700 dark:text-neutral-200 font-medium">{filtering ? 'Nobody matches these filters' : 'No members yet'}</p>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-            Share a referral link: every signup through it appears here automatically.
+            {filtering ? 'Try a different search or clear a filter.' : 'Share a referral link: every signup through it appears here automatically.'}
           </p>
         </div>
       ) : (
@@ -226,7 +252,7 @@ export default function MarketingLeads() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="min-h-[44px] px-3 py-1.5 rounded-lg text-sm font-medium border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
@@ -236,7 +262,7 @@ export default function MarketingLeads() {
               <button
                 onClick={() => setPage(p => Math.min(report.pagination.pages, p + 1))}
                 disabled={page >= report.pagination.pages}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="min-h-[44px] px-3 py-1.5 rounded-lg text-sm font-medium border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>

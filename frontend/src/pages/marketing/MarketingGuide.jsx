@@ -9,7 +9,7 @@ import { launchPhase, launchDateLabel } from '../../utils/launchDate';
 import CheckBox from '../../components/ui/CheckBox';
 
 const Section = ({ id, title, children }) => (
-  <section id={id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 scroll-mt-6">
+  <section id={id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 sm:p-6 scroll-mt-6">
     <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-3">{title}</h2>
     <div className="space-y-2 text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">{children}</div>
   </section>
@@ -90,9 +90,9 @@ export default function MarketingGuide() {
   };
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="p-4 sm:p-6 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Partner Guide</h1>
+        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Partner Guide</h1>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
           How the TricityMatch partner programme works, what you earn, and the rules.{dated ? ` Last updated ${dated}.` : ''}
         </p>
@@ -192,7 +192,7 @@ export default function MarketingGuide() {
           <section
             id="accept"
             aria-labelledby="accept-title"
-            className="bg-white dark:bg-neutral-900 border-2 border-primary-200 dark:border-primary-900 rounded-xl p-6 scroll-mt-6"
+            className="bg-white dark:bg-neutral-900 border-2 border-primary-200 dark:border-primary-900 rounded-xl p-4 sm:p-6 scroll-mt-6"
           >
             <h2 id="accept-title" className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-3">Your agreement</h2>
             {accepted ? (

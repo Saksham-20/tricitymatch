@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiDownload, FiRefreshCw } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * Monthly rep payouts, done by hand on purpose (no payout API): review who is
@@ -122,6 +123,10 @@ export default function AdminPayouts() {
     }
   };
 
+  // Eight money columns cannot share a phone's width; there each rep is a card.
+  // (Declared before the early returns: hooks run on every render.)
+  const isNarrow = useMediaQuery('(max-width: 767px)');
+
   if (loading && !overview) {
     return <div className="p-6"><div className="h-64 bg-gray-100 rounded-2xl animate-pulse" aria-busy="true" /></div>;
   }
@@ -138,7 +143,7 @@ export default function AdminPayouts() {
   const queuedTotal = queued.reduce((n, p) => n + p.net, 0);
 
   return (
-    <div className="p-6 max-w-6xl">
+    <div className="p-4 sm:p-6 max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Rep payouts</h1>
@@ -151,7 +156,7 @@ export default function AdminPayouts() {
         </button>
       </div>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+      <section className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg font-semibold mb-1">Rules</h2>
         <p className="text-sm text-gray-500 mb-4">
           Commission is payable after the refund window. Deduct TDS only at the rate your CA gives you; 0 turns it off.
@@ -175,7 +180,7 @@ export default function AdminPayouts() {
         </form>
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+      <section className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="text-lg font-semibold">Who is payable</h2>
@@ -193,6 +198,34 @@ export default function AdminPayouts() {
         </div>
         {reps.length === 0 ? (
           <p className="text-sm text-gray-500 py-6 text-center">No marketing reps yet.</p>
+        ) : isNarrow ? (
+          <ul className="space-y-3">
+            {reps.map((r) => (
+              <li key={r.userId} className="border border-gray-200 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link to={`/admin/marketing-users/${r.userId}`} className="font-medium text-primary-700 hover:underline break-words">{r.name}</Link>
+                    <div className="text-xs text-gray-500 break-all">{r.email}</div>
+                  </div>
+                  {r.eligible
+                    ? <span className="shrink-0 inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Ready</span>
+                    : <span className="shrink-0 text-xs text-gray-500 text-right max-w-[45%]">{REASONS[r.reason] || r.reason}</span>}
+                </div>
+                <dl className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-100 text-sm">
+                  {[['Earned', r.earned], ['Paid', r.paidOut], ['Queued', r.pending], ['Payable', r.payable], ['In window', r.inHold]].map(([l, v]) => (
+                    <div key={l}>
+                      <dt className="text-[11px] text-gray-500">{l}</dt>
+                      <dd className={`tabular-nums ${l === 'Payable' ? 'font-semibold' : ''}`}>{inr(v)}</dd>
+                    </div>
+                  ))}
+                  <div>
+                    <dt className="text-[11px] text-gray-500">Paid via</dt>
+                    <dd>{r.detailsMethod === 'upi' ? 'UPI' : r.detailsMethod === 'bank' ? 'Bank' : '-'}</dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
         ) : (
           <div className="overflow-x-auto border border-gray-200 rounded-xl">
             <table className="w-full border-collapse">
@@ -234,7 +267,7 @@ export default function AdminPayouts() {
         )}
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6">
+      <section className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="text-lg font-semibold">Queued for transfer</h2>
@@ -242,14 +275,14 @@ export default function AdminPayouts() {
               {queued.length} payout{queued.length === 1 ? '' : 's'} · {inr(queuedTotal)} to transfer after TDS
             </p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={downloadCsv} disabled={!queued.length} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 disabled:opacity-40">
+          <div className="flex flex-wrap gap-3">
+            <button onClick={downloadCsv} disabled={!queued.length} className="flex items-center gap-2 min-h-[44px] px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 disabled:opacity-40">
               <FiDownload size={14} /> Download bank file
             </button>
             <button
               onClick={() => window.confirm(`Mark all ${queued.length} as paid?`) && markPaid(queued)}
               disabled={busy || !queued.length}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-40"
+              className="min-h-[44px] px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-40"
             >
               Mark all paid
             </button>
@@ -259,6 +292,34 @@ export default function AdminPayouts() {
           <p className="text-sm text-gray-500 py-6 text-center border border-dashed border-gray-200 rounded-xl">
             Nothing queued. Prepare payouts above to create this month&apos;s list.
           </p>
+        ) : isNarrow ? (
+          <ul className="space-y-3">
+            {queued.map((p) => (
+              <li key={p.payoutId} className="border border-gray-200 rounded-xl p-4">
+                <p className="font-medium text-gray-900 break-words">{p.repName}</p>
+                <p className="text-xs text-gray-500 break-all">{p.repEmail}</p>
+                <p className="text-sm mt-2 break-all">
+                  {p.detailsMissing ? <span className="text-xs font-semibold text-red-600">No details, do not pay</span> : p.destination}
+                </p>
+                <dl className="grid grid-cols-3 gap-2 mt-3 text-sm">
+                  <div><dt className="text-[11px] text-gray-500">Gross</dt><dd className="tabular-nums">{inr(p.gross)}</dd></div>
+                  <div><dt className="text-[11px] text-gray-500">TDS</dt><dd className="tabular-nums">{inr(p.tds)}</dd></div>
+                  <div><dt className="text-[11px] text-gray-500">Transfer</dt><dd className="tabular-nums font-semibold">{inr(p.net)}</dd></div>
+                </dl>
+                <div className="flex gap-2 mt-3">
+                  <input
+                    className={`${input} font-mono flex-1 min-w-0`} placeholder="UTR (optional)"
+                    value={utrs[p.payoutId] || ''}
+                    onChange={(e) => setUtrs((u) => ({ ...u, [p.payoutId]: e.target.value }))}
+                    aria-label={`UTR for ${p.repName}`}
+                  />
+                  <button onClick={() => markPaid([p])} disabled={busy} className="shrink-0 min-h-[44px] px-3 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40">
+                    Mark paid
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
           <div className="overflow-x-auto border border-gray-200 rounded-xl">
             <table className="w-full border-collapse">

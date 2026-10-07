@@ -33,7 +33,7 @@ const navItems = [
   { to: '/admin/contact-messages', label: 'Support Inbox',     icon: FiInbox,       scope: 'support' },
   { to: '/admin/marketing-users',  label: 'Marketing Users',   icon: FiUserPlus,    scope: 'marketing' },
   { to: '/admin/referral-codes',   label: 'Referral Codes',    icon: FiTag,         scope: 'marketing' },
-  { to: '/admin/leads',            label: 'Leads',             icon: FiPhoneCall,   scope: 'marketing' },
+  { to: '/admin/leads',            label: 'Partner Members',   icon: FiPhoneCall,   scope: 'marketing' },
   { to: '/admin/payouts',          label: 'Rep Payouts',       icon: FiCreditCard,  scope: 'payouts' },
   { to: '/admin/success-stories',  label: 'Success Stories',   icon: FiHeart,       scope: 'stories' },
   { to: '/admin/team',             label: 'Admins & Roles',    icon: FiShield,      scope: 'team' },

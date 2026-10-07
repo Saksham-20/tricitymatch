@@ -87,6 +87,7 @@ router.get('/team', teamCtl.requireTeamView, teamCtl.getTeam);
 // @access  Private/Marketing
 router.get('/report', asyncHandler(async (req, res) => {
   const report = await buildMarketingReport(req.user.id, req.query);
+  report.members = report.members.map(({ memberId, ...row }) => row);
   res.json({ success: true, ...report });
 }));
 

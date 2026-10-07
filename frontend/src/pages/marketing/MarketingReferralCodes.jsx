@@ -106,14 +106,14 @@ export default function MarketingReferralCodes() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Referral Codes</h1>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-neutral-900 dark:text-neutral-100">Referral Codes</h1>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-2 min-h-[44px] whitespace-nowrap bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
         >
-          <FiPlus size={18} /> Generate New Code
+          <FiPlus size={18} /> New code
         </button>
       </div>
 
@@ -181,7 +181,7 @@ export default function MarketingReferralCodes() {
       {loading ? (
         <div className="grid grid-cols-1 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-xl">
+            <div key={i} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 rounded-xl">
               <div className="flex justify-between items-start mb-4">
                 <div className="space-y-2">
                   <Skeleton className="h-6 w-40" />
@@ -220,7 +220,7 @@ export default function MarketingReferralCodes() {
         <>
           <div className="grid grid-cols-1 gap-4 mb-6">
             {codes.map(code => (
-              <div key={code.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-xl">
+              <div key={code.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 rounded-xl">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-bold font-mono text-neutral-900 dark:text-neutral-50">{code.code}</h3>

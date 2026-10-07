@@ -6,6 +6,7 @@
 const { User, Profile, Subscription, Match, Verification, ProfileView, Report, ReferralCode, MarketingLead, SuccessStory, ContactMessage } = require('../models');
 const { canonicalEmail, emailLookupCandidates } = require('../utils/emailAddress');
 const { buildMarketingReport, getRepRevenue } = require('../utils/marketingReport');
+const { buildLeadWhere, summariseLeads, memberFacts, partnerName, PAID_MEMBER_IDS_SQL } = require('../utils/partnerMembers');
 const { PAID_SUBSCRIPTION_WHERE, PAID_SUBSCRIPTION_SQL } = require('../utils/paidRevenue');
 const {
   getCommissionSettings,
@@ -1003,6 +1004,30 @@ exports.getUser = asyncHandler(async (req, res) => {
     user.dataValues.invisible = null;
   }
 
+  // Which partner this member is credited to, if any. First touch wins and
+  // credit never moves, so there is at most one converted lead per member;
+  // the oldest is the one that counts if old data holds more.
+  const creditLead = await MarketingLead.findOne({
+    where: { convertedUserId: userId },
+    include: [{
+      model: User,
+      as: 'AssignedMarketer',
+      attributes: ['id', 'email', 'status', 'role'],
+      include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }],
+    }],
+    order: [['createdAt', 'ASC']],
+  });
+  user.dataValues.partnerCredit = creditLead ? {
+    leadId: creditLead.id,
+    partnerId: creditLead.assignedToMarketingUserId,
+    partnerName: partnerName(creditLead.AssignedMarketer),
+    partnerEmail: creditLead.AssignedMarketer?.email || null,
+    partnerStatus: creditLead.AssignedMarketer?.status || null,
+    referralCode: creditLead.referralCode || null,
+    campaign: creditLead.campaign || null,
+    addedAt: creditLead.createdAt,
+  } : null;
+
   // Opening a member's full record is itself a privileged read.
   auditViewOnce('member_record_viewed', req.user.id, userId);
 
@@ -1915,40 +1940,103 @@ exports.getMarketingUsers = asyncHandler(async (req, res) => {
   const rawLimit = parseInt(req.query.limit) || 20;
   const limit = Math.min(Math.max(rawLimit, 1), 100);
   const page = Math.max(parseInt(req.query.page) || 1, 1);
-  const offset = (page - 1) * limit;
-  const { status } = req.query;
+  const { status, role, setup } = req.query;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
+  const sort = ['newest', 'oldest', 'name', 'revenue', 'signedUp', 'paid', 'leads'].includes(req.query.sort) ? req.query.sort : 'newest';
 
-  const VALID_MARKETING_STATUSES = ['active', 'inactive'];
-  const where = { role: { [Op.in]: ['marketing', 'marketing_manager'] } };
-  if (status && VALID_MARKETING_STATUSES.includes(status)) where.status = status;
+  const and = [{ role: { [Op.in]: ['marketing', 'marketing_manager'] } }];
+  if (['active', 'inactive'].includes(status)) and.push({ status });
+  if (['marketing', 'marketing_manager'].includes(role)) and.push({ role });
+  if (search) {
+    const term = `%${escapeLikePattern(search)}%`;
+    const digits = search.replace(/\D/g, '');
+    const or = [
+      { email: { [Op.iLike]: term } },
+      { phone: { [Op.iLike]: term } },
+      sequelize.where(
+        sequelize.fn('TRIM', sequelize.literal(`COALESCE("Profile"."firstName", '') || ' ' || COALESCE("Profile"."lastName", '')`)),
+        { [Op.iLike]: term }
+      ),
+    ];
+    if (digits.length >= 4 && digits !== search) or.push({ phone: { [Op.iLike]: `%${digits.slice(-10)}%` } });
+    // A partner can be found by one of their codes too.
+    or.push(sequelize.literal(`"User"."id" IN (SELECT "marketingUserId" FROM "ReferralCodes" WHERE code ILIKE ${sequelize.escape(term)})`));
+    and.push({ [Op.or]: or });
+  }
 
-  const { count, rows: users } = await User.findAndCountAll({
-    where,
-    include: [
-      { model: Profile, attributes: ['firstName', 'lastName', 'city'] }
-    ],
-    limit,
-    offset,
-    order: [['createdAt', 'DESC']]
+  // Partners are few (a few hundred at most), so every match is loaded, given
+  // its numbers, sorted, then paged. That is what lets the list sort by
+  // revenue or sign-ups rather than only by date joined.
+  const MAX = 1000;
+  const all = await User.findAll({
+    where: { [Op.and]: and },
+    include: [{ model: Profile, attributes: ['firstName', 'lastName', 'city'], required: false }],
+    order: [['createdAt', 'DESC']],
+    limit: MAX,
   });
 
-  // How far each partner has got in setting up, so an admin can see who still
-  // needs a nudge instead of finding out when a payout has nowhere to go.
-  const [onboarding, openLeads] = await Promise.all([
-    getOnboardingBatch(users.map((u) => u.id)),
-    countOpenLeads(users.map((u) => u.id)),
-  ]);
-  const withOnboarding = users.map((u) => ({ ...u.toJSON(), onboarding: onboarding[u.id] || null, openLeads: openLeads[u.id] || 0 }));
+  const { getPartnerMetrics } = require('../utils/marketingTeam');
+  const metrics = await getPartnerMetrics(all.map((u) => u.id));
+  let rows = all.map((u) => {
+    const m = metrics[u.id] || {};
+    // `onboarding` keeps the shape the page already reads; `metrics` is new.
+    return {
+      ...u.toJSON(),
+      onboarding: null,
+      openLeads: m.openLeads || 0,
+      metrics: {
+        totalLeads: m.totalLeads || 0,
+        signedUp: m.signedUp || 0,
+        paidMembers: m.paidMembers || 0,
+        revenue: m.revenue || 0,
+        commissionRate: m.commissionRate ?? null,
+        commissionEarned: m.commissionEarned || 0,
+        activeCodes: m.activeCodes || 0,
+      },
+    };
+  });
+  const onboarding = await getOnboardingBatch(rows.map((r) => r.id));
+  rows.forEach((r) => { r.onboarding = onboarding[r.id] || null; });
 
+  if (setup === 'incomplete') rows = rows.filter((r) => r.onboarding && !r.onboarding.complete);
+  if (setup === 'complete') rows = rows.filter((r) => r.onboarding && r.onboarding.complete);
+
+  const nameOf = (r) => [r.Profile?.firstName, r.Profile?.lastName].filter(Boolean).join(' ').trim().toLowerCase() || r.email;
+  const by = {
+    newest: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    oldest: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+    name: (a, b) => nameOf(a).localeCompare(nameOf(b)),
+    revenue: (a, b) => b.metrics.revenue - a.metrics.revenue,
+    signedUp: (a, b) => b.metrics.signedUp - a.metrics.signedUp,
+    paid: (a, b) => b.metrics.paidMembers - a.metrics.paidMembers,
+    leads: (a, b) => b.metrics.totalLeads - a.metrics.totalLeads,
+  }[sort];
+  rows.sort((a, b) => by(a, b) || (new Date(b.createdAt) - new Date(a.createdAt)));
+
+  // Totals across every partner matching the filters, not just this page.
+  const totals = rows.reduce((t, r) => ({
+    partners: t.partners + 1,
+    active: t.active + (r.status === 'active' ? 1 : 0),
+    totalLeads: t.totalLeads + r.metrics.totalLeads,
+    signedUp: t.signedUp + r.metrics.signedUp,
+    paidMembers: t.paidMembers + r.metrics.paidMembers,
+    revenue: t.revenue + r.metrics.revenue,
+    commissionEarned: t.commissionEarned + r.metrics.commissionEarned,
+  }), { partners: 0, active: 0, totalLeads: 0, signedUp: 0, paidMembers: 0, revenue: 0, commissionEarned: 0 });
+
+  const count = rows.length;
+  const offset = (page - 1) * limit;
   res.json({
     success: true,
-    users: withOnboarding,
+    users: rows.slice(offset, offset + limit),
+    totals,
+    truncated: all.length === MAX,
     pagination: {
       page,
       limit,
       total: count,
-      pages: Math.ceil(count / limit)
-    }
+      pages: Math.max(Math.ceil(count / limit), 1),
+    },
   });
 });
 
@@ -2369,29 +2457,70 @@ exports.getReferralCodes = asyncHandler(async (req, res) => {
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
   const { isActive, marketingUserId } = req.query;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
 
-  const where = {};
-  if (isActive !== undefined) where.isActive = isActive === 'true';
-  if (marketingUserId) where.marketingUserId = marketingUserId;
+  const and = [];
+  if (isActive === 'true' || isActive === 'false') and.push({ isActive: isActive === 'true' });
+  if (marketingUserId) and.push({ marketingUserId });
+  if (search) {
+    const term = `%${escapeLikePattern(search)}%`;
+    and.push({
+      [Op.or]: [
+        { code: { [Op.iLike]: term } },
+        { campaign: { [Op.iLike]: term } },
+        { source: { [Op.iLike]: term } },
+        sequelize.literal(`"ReferralCode"."marketingUserId" IN (
+          SELECT u.id FROM "Users" u LEFT JOIN "Profiles" p ON p."userId" = u.id
+           WHERE u.email ILIKE ${sequelize.escape(term)}
+              OR TRIM(COALESCE(p."firstName", '') || ' ' || COALESCE(p."lastName", '')) ILIKE ${sequelize.escape(term)})`),
+      ],
+    });
+  }
+  const where = and.length ? { [Op.and]: and } : {};
 
   const { count, rows: codes } = await ReferralCode.findAndCountAll({
     where,
-    include: [
-      { model: User, as: 'MarketingUser', attributes: ['id', 'email'] }
-    ],
+    include: [{
+      model: User,
+      as: 'MarketingUser',
+      attributes: ['id', 'email', 'status'],
+      include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }],
+    }],
     limit,
     offset,
-    order: [['createdAt', 'DESC']]
+    order: [['createdAt', 'DESC'], ['id', 'DESC']],
+    distinct: true,
   });
+
+  // What each code actually brought in, from the leads it created — the
+  // usageCount counter only counts signups and can drift from them.
+  const codeList = codes.map((c) => c.code);
+  const counts = codeList.length ? await sequelize.query(
+    `SELECT l."referralCode" AS code,
+            COUNT(*)::int AS people,
+            COUNT(l."convertedUserId")::int AS joined,
+            COUNT(*) FILTER (WHERE l."convertedUserId" IN (${PAID_MEMBER_IDS_SQL}))::int AS paid
+       FROM "MarketingLeads" l
+      WHERE l."referralCode" IN (:codes)
+      GROUP BY l."referralCode"`,
+    { replacements: { codes: codeList }, type: sequelize.QueryTypes.SELECT }
+  ) : [];
+  const byCode = Object.fromEntries(counts.map((r) => [r.code, r]));
 
   res.json({
     success: true,
-    codes,
+    codes: codes.map((c) => ({
+      ...c.toJSON(),
+      partnerName: partnerName(c.MarketingUser),
+      people: byCode[c.code]?.people || 0,
+      joined: byCode[c.code]?.joined || 0,
+      paid: byCode[c.code]?.paid || 0,
+    })),
     pagination: {
       page,
       limit,
       total: count,
-      pages: Math.ceil(count / limit)
+      pages: Math.max(Math.ceil(count / limit), 1),
     }
   });
 });
@@ -2420,6 +2549,11 @@ exports.createReferralCode = asyncHandler(async (req, res) => {
   const user = await User.findByPk(marketingUserId);
   if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
     throw createError.badRequest('Invalid marketing user');
+  }
+  // A deactivated partner cannot sign in and their codes were switched off;
+  // a fresh code for them would credit signups to someone nobody pays.
+  if (user.status !== 'active') {
+    throw createError.badRequest('This partner is not active. Reactivate them before giving them a new code.');
   }
 
   // A member code with this text would be shadowed (marketing resolves first),
@@ -2471,38 +2605,131 @@ exports.getLeads = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(rawLimit, 1), 100);
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
-  const { status, paymentStatus, marketingUserId } = req.query;
+  const sort = req.query.sort === 'oldest' ? 'ASC' : 'DESC';
 
-  const VALID_LEAD_STATUSES = ['new', 'contacted', 'converted', 'lost'];
-  const VALID_PAYMENT_STATUSES = ['none', 'paid'];
+  // Every filter (partner, search, signed up, paid, source, code, dates) lives
+  // in utils/partnerMembers so this list, one partner's page and the partner's
+  // own report all agree on who is under whom.
+  const where = buildLeadWhere(req.query);
 
-  const where = {};
-  if (status && VALID_LEAD_STATUSES.includes(status)) where.status = status;
-  if (paymentStatus && VALID_PAYMENT_STATUSES.includes(paymentStatus)) where.paymentStatus = paymentStatus;
-  if (marketingUserId) where.assignedToMarketingUserId = marketingUserId;
+  if (req.query.format === 'csv') return exportLeadsCsv(req, res, where);
 
-  const { count, rows: leads } = await MarketingLead.findAndCountAll({
-    where,
-    include: [
-      { model: User, as: 'AssignedMarketer', attributes: ['id', 'email'] },
-      { model: User, as: 'ConvertedUser', attributes: ['id', 'email'] }
-    ],
-    limit,
-    offset,
-    order: [['createdAt', 'DESC']]
-  });
+  const [{ count, rows: leads }, summary] = await Promise.all([
+    MarketingLead.findAndCountAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'AssignedMarketer',
+          attributes: ['id', 'email', 'status', 'role'],
+          include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }],
+        },
+        { model: User, as: 'ConvertedUser', attributes: ['id', 'email'] },
+      ],
+      limit,
+      offset,
+      order: [['createdAt', sort], ['id', sort]],
+      distinct: true,
+    }),
+    summariseLeads(MarketingLead, where),
+  ]);
+
+  const facts = await memberFacts(leads);
+  const rows = leads.map((l) => ({
+    ...l.toJSON(),
+    partnerName: partnerName(l.AssignedMarketer),
+    member: l.convertedUserId ? (facts[l.convertedUserId] || null) : null,
+  }));
 
   res.json({
     success: true,
-    leads,
+    leads: rows,
+    summary,
     pagination: {
       page,
       limit,
       total: count,
-      pages: Math.ceil(count / limit)
-    }
+      pages: Math.max(Math.ceil(count / limit), 1),
+    },
   });
 });
+
+// The filtered list as a spreadsheet: who each person is, which partner they
+// are with, whether they joined and what they have paid. Streamed in batches
+// like the members export, so a long list is never cut short.
+async function exportLeadsCsv(req, res, where) {
+  const total = await MarketingLead.count({ where });
+  const ymd = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+  const header = [
+    'Name', 'Phone', 'Email', 'City', 'Partner', 'Partner email', 'Referral code', 'Campaign', 'Added',
+    'Lead status', 'Signed up', 'Signed up on', 'Member name', 'Member email', 'Account status',
+    'Paid', 'Plan', 'Amount paid (INR)', 'Lead ID', 'Member ID',
+  ];
+  const batch = exportBatchSize();
+  const result = await streamCsv(res, {
+    filename: `tricitymatch-partner-members-${new Date().toISOString().slice(0, 10)}.csv`,
+    header,
+    total,
+    log,
+    fetchBatch: async (cursor) => {
+      const and = [where];
+      if (cursor) {
+        and.push({
+          [Op.or]: [
+            { createdAt: { [Op.lt]: cursor.createdAt } },
+            { createdAt: cursor.createdAt, id: { [Op.lt]: cursor.id } },
+          ],
+        });
+      }
+      const rows = await MarketingLead.findAll({
+        where: { [Op.and]: and },
+        include: [{
+          model: User,
+          as: 'AssignedMarketer',
+          attributes: ['id', 'email'],
+          include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }],
+        }],
+        order: [['createdAt', 'DESC'], ['id', 'DESC']],
+        limit: batch,
+      });
+      const facts = await memberFacts(rows);
+      rows.forEach((r) => { r.dataValues.member = r.convertedUserId ? facts[r.convertedUserId] || null : null; });
+      const last = rows[rows.length - 1];
+      return { rows, next: rows.length === batch ? { createdAt: last.createdAt, id: last.id } : null };
+    },
+    toRow: (l) => {
+      const m = l.dataValues.member;
+      return [
+        l.name,
+        l.phone,
+        l.email && l.email !== 'N/A' ? l.email : '',
+        l.city,
+        partnerName(l.AssignedMarketer),
+        l.AssignedMarketer?.email,
+        l.referralCode || 'Added by hand',
+        l.campaign,
+        ymd(l.createdAt),
+        l.status,
+        m ? 'yes' : 'no',
+        m ? ymd(m.signedUpAt) : '',
+        m?.name,
+        m?.email,
+        m?.status,
+        m?.paid ? 'yes' : 'no',
+        m?.planType,
+        m ? m.amountPaid : '',
+        l.id,
+        l.convertedUserId,
+      ];
+    },
+  });
+  logAudit('partner_members_exported', req.user.id, {
+    rows: result.rows,
+    expected: total,
+    complete: !result.aborted && result.rows === total,
+    filters: Object.keys(req.query || {}).filter((k) => req.query[k] !== '' && k !== 'format'),
+  });
+}
 
 // ==================== SUCCESS STORIES (admin-managed) ====================
 

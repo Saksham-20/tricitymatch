@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom';
 import { FiCheck, FiMinus } from 'react-icons/fi';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatLeadPhone, leadEmail } from '../../utils/leadContact';
 
 /**
@@ -42,7 +44,94 @@ const No = ({ label }) => (
   </span>
 );
 
-export default function MemberReportTable({ members, onStatusChange, updatingId }) {
+export default function MemberReportTable({ members, onStatusChange, updatingId, memberHref }) {
+  // A nine-column table is unreadable on a phone (partners work from one at
+  // roadshows), so narrow screens get one card per member instead.
+  const isNarrow = useMediaQuery('(max-width: 767px)');
+
+  const statusControl = (m) => (onStatusChange ? (
+    <select
+      value={m.leadStatus}
+      onChange={(e) => onStatusChange(m.leadId, e.target.value)}
+      disabled={updatingId === m.leadId}
+      aria-label={`Lead status for ${m.name}`}
+      className={`min-h-[36px] px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 ${
+        STATUS_CHIP[m.leadStatus] || STATUS_CHIP.new
+      }`}
+    >
+      <option value="new">New</option>
+      <option value="contacted">Contacted</option>
+      <option value="converted">Converted</option>
+      <option value="lost">Lost</option>
+    </select>
+  ) : (
+    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_CHIP[m.leadStatus] || STATUS_CHIP.new}`}>
+      {m.leadStatus}
+    </span>
+  ));
+
+  const nameNode = (m) => (memberHref && m.memberId ? (
+    <Link to={memberHref(m)} className="font-semibold text-primary-700 dark:text-primary-300 hover:underline">{m.name}</Link>
+  ) : (
+    <span className="font-semibold text-neutral-900 dark:text-neutral-50">{m.name}</span>
+  ));
+
+  if (isNarrow) {
+    const dt = 'text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400';
+    const dd = 'mt-0.5 text-sm text-neutral-800 dark:text-neutral-100';
+    return (
+      <ul className="space-y-3">
+        {members.map((m) => (
+          <li key={m.leadId} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="break-words">{nameNode(m)}</div>
+                <div className="text-sm text-neutral-600 dark:text-neutral-300 mt-0.5">
+                  {formatLeadPhone(m.phone) || '—'}{m.city ? ` · ${m.city}` : ''}
+                </div>
+                {leadEmail(m.email) && (
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 break-all">{leadEmail(m.email)}</div>
+                )}
+              </div>
+              <div className="shrink-0">{statusControl(m)}</div>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-3 mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+              <div>
+                <dt className={dt}>Signed up</dt>
+                <dd className={dd}>{m.signedUp ? <Yes label={fmtDate(m.signedUpAt) || 'Yes'} /> : <No label="Not yet" />}</dd>
+              </div>
+              <div>
+                <dt className={dt}>Paid</dt>
+                <dd className={dd}>{m.paid ? <Yes label={fmtDate(m.paidAt) || 'Yes'} /> : <No label="Not paid" />}</dd>
+              </div>
+              <div>
+                <dt className={dt}>Plan</dt>
+                <dd className={dd}>{m.planType ? (PLAN_LABELS[m.planType] || m.planType) : '—'}</dd>
+              </div>
+              <div>
+                <dt className={dt}>Amount · Commission</dt>
+                <dd className={`${dd} tabular-nums`}>
+                  {m.amountPaid ? `₹${Number(m.amountPaid).toLocaleString('en-IN')}` : '—'}
+                  {' · '}
+                  {m.commission ? `₹${Number(m.commission).toLocaleString('en-IN')}` : '—'}
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <dt className={dt}>Came through</dt>
+                <dd className={dd}>
+                  {m.referralCode
+                    ? <span className="font-mono text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200">{m.referralCode}</span>
+                    : <span className="text-xs text-neutral-500 dark:text-neutral-400">Added by hand</span>}
+                  {m.campaign && <span className="text-xs text-neutral-500 dark:text-neutral-400"> · {m.campaign}</span>}
+                </dd>
+              </div>
+            </dl>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   const th = 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400';
   const td = 'px-4 py-4 text-sm text-neutral-800 dark:text-neutral-100 align-top';
 
@@ -66,7 +155,7 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
           {members.map((m) => (
             <tr key={m.leadId} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/60 transition-colors">
               <td className={td}>
-                <div className="font-semibold text-neutral-900 dark:text-neutral-50">{m.name}</div>
+                <div>{nameNode(m)}</div>
                 {m.city && <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{m.city}</div>}
               </td>
               <td className={td}>
@@ -117,30 +206,7 @@ export default function MemberReportTable({ members, onStatusChange, updatingId 
                 {m.commission ? `₹${Number(m.commission).toLocaleString('en-IN')}` : '—'}
               </td>
               <td className={td}>
-                {onStatusChange ? (
-                  <select
-                    value={m.leadStatus}
-                    onChange={(e) => onStatusChange(m.leadId, e.target.value)}
-                    disabled={updatingId === m.leadId}
-                    aria-label={`Lead status for ${m.name}`}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 ${
-                      STATUS_CHIP[m.leadStatus] || STATUS_CHIP.new
-                    }`}
-                  >
-                    <option value="new">New</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="converted">Converted</option>
-                    <option value="lost">Lost</option>
-                  </select>
-                ) : (
-                  <span
-                    className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      STATUS_CHIP[m.leadStatus] || STATUS_CHIP.new
-                    }`}
-                  >
-                    {m.leadStatus}
-                  </span>
-                )}
+                {statusControl(m)}
               </td>
             </tr>
           ))}

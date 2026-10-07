@@ -95,7 +95,7 @@ describe('Partner page: open leads', () => {
 
   it('shows nothing when there are no open leads', async () => {
     load({ openLeads: 0 });
-    await screen.findByText('Marketing User Detail');
+    await screen.findByRole('heading', { name: 'Rohit Sethi' });
     expect(screen.queryByRole('button', { name: 'Move to another partner' })).not.toBeInTheDocument();
   });
 });
