@@ -175,10 +175,13 @@ describeDb('payment money paths', (t) => {
     }
     const s1 = await models.Subscription.findByPk(withSnap.id);
     expect(s1.contactUnlocksAllowed).toBeNull();
-    expect(Math.round((new Date(s1.endDate) - new Date(s1.startDate)) / DAY)).toBe(30);
+    // The snapshot's 30-day term, as one calendar month (not the live 90 days).
+    expect(new Date(s1.endDate).toISOString())
+      .toBe(require('../../../utils/planTerm').planEndDate(new Date(s1.startDate), 30).toISOString());
     const s2 = await models.Subscription.findByPk(without.id);
     const live = require('../../../utils/razorpay').getPlanDetails('premium_plus');
-    expect(Math.round((new Date(s2.endDate) - new Date(s2.startDate)) / DAY)).toBe(live.duration);
+    expect(new Date(s2.endDate).toISOString())
+      .toBe(require('../../../utils/planTerm').planEndDate(new Date(s2.startDate), live.duration).toISOString());
   });
 
   // ------------------------------------------------- lead conversion legs

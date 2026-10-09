@@ -69,7 +69,7 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
   doc.fontSize(11).fillColor(DARK).text('Date:', 350, billingY);
   doc.fontSize(10).fillColor(GRAY).text(
     new Date(subscription.createdAt).toLocaleDateString('en-IN', {
-      year: 'numeric', month: 'long', day: 'numeric',
+      year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
     }),
     350, billingY + 16
   );
@@ -101,7 +101,7 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
   const planLabel = PLAN_LABELS[subscription.planType]
     || (subscription.planType ? String(subscription.planType).replace(/_/g, ' ') : 'N/A');
   // "8 Oct 2026": a bare 8/10/2026 reads as August to some readers.
-  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
   const startDate = subscription.startDate ? fmt(subscription.startDate) : 'N/A';
   const endDate = subscription.endDate ? fmt(subscription.endDate) : 'N/A';
   // "Rs.", not the rupee sign: the built-in PDF font has no glyph for it and

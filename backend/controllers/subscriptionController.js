@@ -28,6 +28,7 @@ const {
   UNLOCK_BUNDLES,
 } = require('../utils/razorpay');
 const { sendSubscriptionConfirmation } = require('../utils/email');
+const { planEndDate } = require('../utils/planTerm');
 const config = require('../config/env');
 const { createError, asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
@@ -339,8 +340,7 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
 
     // Calculate subscription dates
     const now = new Date();
-    const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + planDetails.duration);
+    const endDate = planEndDate(now, planDetails.duration);
 
     // Update subscription
     sub.razorpayPaymentId = razorpayPaymentId;
@@ -417,7 +417,7 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
           user.email,
           user.Profile?.firstName || 'User',
           subscription.planType,
-          subscription.endDate.toLocaleDateString()
+          subscription.endDate
         ).catch(err => log.error('Failed to send subscription email', { error: err.message }));
       });
     }
@@ -540,7 +540,7 @@ exports.verifyGooglePlay = asyncHandler(async (req, res) => {
     const now = new Date();
     // Clamp the end date: expiryTimeMillis is attacker-visible in the sense that
     // a malformed/oversized value would otherwise grant an unbounded term.
-    const planEnd = now.getTime() + planDetails.duration * 86400000;
+    const planEnd = planEndDate(now, planDetails.duration).getTime();
     const googleEnd = Number(purchase.expiryTimeMillis) || planEnd;
     const MAX_TERM_MS = 400 * 86400000; // Google's longest base plan + slack
     const endDate = new Date(Math.min(googleEnd, now.getTime() + MAX_TERM_MS));

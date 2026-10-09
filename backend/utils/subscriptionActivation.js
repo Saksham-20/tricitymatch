@@ -8,6 +8,7 @@ const { applyPendingCredits } = require('./inviteReward');
 const { getPlanDetails } = require('./razorpay');
 const { log, logAudit } = require('../middlewares/logger');
 const { settleReferral } = require('./referral');
+const { planEndDate } = require('./planTerm');
 
 
 /**
@@ -98,8 +99,7 @@ async function activateCapturedPayment(order_id, payment_id) {
         return;
       }
       const now = new Date();
-      const endDate = new Date(now);
-      endDate.setDate(endDate.getDate() + planDetails.duration);
+      const endDate = planEndDate(now, planDetails.duration);
 
       subscription.razorpayPaymentId = payment_id;
       subscription.status = 'active';

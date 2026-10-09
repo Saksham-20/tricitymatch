@@ -302,7 +302,7 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
     const daysLeft = Math.max(1, Math.ceil((ms(sub.endDate) - nowMs) / DAY_MS));
     if (await dispatch(sub, 'renewal', () => email.sendRenewalReminder(
       sub.User.email, nameOf(sub), labelOf(sub.planType),
-      new Date(sub.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      new Date(sub.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }),
       daysLeft
     ))) {
       counts.renewal += 1;

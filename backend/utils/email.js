@@ -237,6 +237,19 @@ const PLAN_LABELS = {
 };
 const planLabel = (p) => PLAN_LABELS[p] || (p ? String(p).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Premium');
 
+// "7 January 2027" in India time. A bare toLocaleDateString() runs in the
+// server's US locale and printed 1/7/2027, which members read as 1 July.
+// Accepts a Date or an ISO string; any other string (an old queued job that
+// was formatted by its caller) is shown as given.
+const memberDate = (d) => {
+  const date = d instanceof Date ? d
+    : (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d) ? new Date(d) : null);
+  if (!date || Number.isNaN(date.getTime())) return String(d ?? '');
+  return date.toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata',
+  });
+};
+
 // Email templates
 const templates = {
   welcome: (name) => ({
@@ -334,31 +347,34 @@ const templates = {
     text: `Hi ${name}, you and ${matchName} matched on TricityMatch. Start a conversation: ${config.server.frontendUrl}/matches`,
   }),
 
-  subscriptionConfirmation: (name, plan, expiryDate) => ({
-    channel: 'documents', // payment receipt → SMTP-first (falls back to Resend)
-    subject: 'Your TricityMatch membership is confirmed',
-    html: brandLayout({
-      eyebrow: 'Membership Confirmed',
-      preheader: `Your ${escapeHtml(planLabel(plan))} membership is active until ${escapeHtml(expiryDate)}.`,
-      bodyHtml: `
-        <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
-        <p>Thank you for upgrading. Your payment was processed successfully and your membership is now active.</p>
-        ${panel(
-          `<p style="margin:0 0 6px 0;font-family:Georgia,serif;font-size:16px;color:${BRAND.burgundy};font-weight:700;">${escapeHtml(planLabel(plan))}</p>
-           <p style="margin:0;color:${BRAND.soft};font-size:13px;">Valid until <strong style="color:${BRAND.ink};">${escapeHtml(expiryDate)}</strong></p>`,
-          { accent: BRAND.gold }
-        )}
-        <p style="margin-bottom:8px;">Your membership includes:</p>
-        <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
-          <li>View contact details of your matches</li>
-          <li>Unlimited messaging</li>
-          <li>See who's interested in you</li>
-          <li>Advanced search filters &amp; priority visibility</li>
-        </ul>`,
-      cta: { href: `${config.server.frontendUrl}/dashboard`, label: 'Go to Dashboard', gold: true },
-    }),
-    text: `Hi ${name}, your ${planLabel(plan)} membership is confirmed and valid until ${expiryDate}. Go to your dashboard: ${config.server.frontendUrl}/dashboard`,
-  }),
+  subscriptionConfirmation: (name, plan, expiry) => {
+    const expiryDate = memberDate(expiry);
+    return {
+      channel: 'documents', // payment receipt → SMTP-first (falls back to Resend)
+      subject: 'Your TricityMatch membership is confirmed',
+      html: brandLayout({
+        eyebrow: 'Membership Confirmed',
+        preheader: `Your ${escapeHtml(planLabel(plan))} membership is active until ${escapeHtml(expiryDate)}.`,
+        bodyHtml: `
+          <p style="margin-top:0;">Hi ${escapeHtml(name)},</p>
+          <p>Thank you for upgrading. Your payment was processed successfully and your membership is now active.</p>
+          ${panel(
+            `<p style="margin:0 0 6px 0;font-family:Georgia,serif;font-size:16px;color:${BRAND.burgundy};font-weight:700;">${escapeHtml(planLabel(plan))}</p>
+             <p style="margin:0;color:${BRAND.soft};font-size:13px;">Valid until <strong style="color:${BRAND.ink};">${escapeHtml(expiryDate)}</strong></p>`,
+            { accent: BRAND.gold }
+          )}
+          <p style="margin-bottom:8px;">Your membership includes:</p>
+          <ul style="margin:0 0 8px 0;padding-left:20px;color:${BRAND.soft};">
+            <li>View contact details of your matches</li>
+            <li>Unlimited messaging</li>
+            <li>See who's interested in you</li>
+            <li>Advanced search filters &amp; priority visibility</li>
+          </ul>`,
+        cta: { href: `${config.server.frontendUrl}/dashboard`, label: 'Go to Dashboard', gold: true },
+      }),
+      text: `Hi ${name}, your ${planLabel(plan)} membership is confirmed and valid until ${expiryDate}. Go to your dashboard: ${config.server.frontendUrl}/dashboard`,
+    };
+  },
 
   verificationRejected: (name, reason) => ({
     subject: 'Photo verification update — TricityMatch',
@@ -723,6 +739,7 @@ module.exports = {
   sendGoogleSignInHelpEmail,
   sendMatchNotification,
   sendSubscriptionConfirmation,
+  memberDate,
   sendVerificationApproved,
   sendVerificationRejected,
   sendWeeklyDigest,
