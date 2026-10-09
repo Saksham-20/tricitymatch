@@ -95,8 +95,6 @@
     "mostPopular": "ਸਭ ਤੋਂ ਮਸ਼ਹੂਰ",
     "launchOff": "ਲਾਂਚ ਕੀਮਤ · {{pct}}% ਛੋਟ",
     "flatOff": "ਸਿੱਧੀ {{pct}}% ਛੋਟ",
-    "perMonth": "≈ ₹{{amount}}/ਮਹੀਨਾ",
-    "perDay": "· ₹{{amount}}/ਦਿਨ",
     "unlimitedUnlocks": "∞ ਅਸੀਮਤ ਸੰਪਰਕ ਅਨਲੌਕ",
     "unlocksCount": "{{n}} ਸੰਪਰਕ ਅਨਲੌਕ",
     "upToPerDay": "· ਦਿਨ ਵਿੱਚ {{cap}} ਤੱਕ",

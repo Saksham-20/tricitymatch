@@ -311,7 +311,6 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
   const gold = cfg.accent === 'gold';
   const displayPrice = plan.price || cfg.price || 0;
   const mrp = plan.mrp || null;
-  const perMonth = plan.perMonth || null;
   const discountPct = mrp && mrp > displayPrice ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
 
   const { isUpgrade, isIncluded, disabled } = getPlanCtaState(planKey, currentPlanType, isCurrent, isProcessing);
@@ -389,7 +388,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
             <span className="text-sm text-neutral-500 dark:text-neutral-400">{termSuffix(plan, cfg.duration)}</span>
           )}
         </div>
-        {displayPrice > 0 && (mrp || perMonth) && (
+        {displayPrice > 0 && mrp && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {mrp && mrp > displayPrice && (
               <span className="text-sm text-neutral-500 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
@@ -398,12 +397,6 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
               <span className="text-xs font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
                 {plan.isLaunchPrice ? t('plans.card.launchOff', { pct: discountPct }) : t('plans.card.flatOff', { pct: discountPct })}
               </span>
-            )}
-            {perMonth && (
-              <span className="text-xs text-neutral-600 dark:text-neutral-500">{t('plans.card.perMonth', { amount: perMonth.toLocaleString('en-IN') })}</span>
-            )}
-            {plan.durationDays > 0 && displayPrice > 0 && (
-              <span className="text-xs text-neutral-600 dark:text-neutral-500">{t('plans.card.perDay', { amount: Math.max(1, Math.round(displayPrice / plan.durationDays)) })}</span>
             )}
           </div>
         )}
@@ -508,7 +501,6 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
   const isCurrentFree = currentPlanType === 'free';
   const displayPrice = paidPlan.price || paidCfg.price || 0;
   const mrp = paidPlan.mrp || null;
-  const perMonth = paidPlan.perMonth || null;
   const discountPct = mrp && mrp > displayPrice ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
   const accentText = gold ? 'text-gold-600 dark:text-gold-400' : 'text-primary-500 dark:text-primary-400';
   const accentIconBg = gold ? 'bg-gold-50 dark:bg-gold-900/20 text-gold' : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400';
@@ -579,7 +571,7 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
           <span className={`text-4xl font-bold ${accentText}`}>₹{displayPrice.toLocaleString('en-IN')}</span>
           <span className="text-sm text-neutral-500 dark:text-neutral-400">{termSuffix(paidPlan, paidCfg.duration)}</span>
         </div>
-        {(mrp || perMonth) && (
+        {mrp && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {mrp && mrp > displayPrice && (
               <span className="text-sm text-neutral-500 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
@@ -589,7 +581,6 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
                 {paidPlan.isLaunchPrice ? t('plans.card.launchOff', { pct: discountPct }) : t('plans.card.flatOff', { pct: discountPct })}
               </span>
             )}
-            {perMonth && <span className="text-xs text-neutral-600 dark:text-neutral-500">{t('plans.card.perMonth', { amount: perMonth.toLocaleString('en-IN') })}</span>}
           </div>
         )}
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">{t('plans.overlap.everythingPlus')}</p>

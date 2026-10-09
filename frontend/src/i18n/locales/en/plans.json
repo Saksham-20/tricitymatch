@@ -95,8 +95,6 @@
     "mostPopular": "Most Popular",
     "launchOff": "Launch price · {{pct}}% off",
     "flatOff": "Flat {{pct}}% off",
-    "perMonth": "≈ ₹{{amount}}/month",
-    "perDay": "· ₹{{amount}}/day",
     "unlimitedUnlocks": "∞ Unlimited contact unlocks",
     "unlocksCount": "{{n}} contact unlocks",
     "upToPerDay": "· up to {{cap}}/day",
