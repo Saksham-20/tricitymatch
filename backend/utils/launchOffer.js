@@ -30,6 +30,7 @@
  */
 
 const { log } = require('../middlewares/logger');
+const { addCalendarMonths } = require('./planTerm');
 const config = require('../config/env');
 
 const SETTINGS_KEY = 'launch_offer';
@@ -120,6 +121,17 @@ const DEFAULT_FOUNDING = {
 // contact unlocks once the payment lands (a marketing rep's reward is the
 // commission instead). Reads fall back to these when the saved blob predates the
 // referral block, so no data migration is needed to turn it on.
+// Fixed-end launch term (owner decision 2026-10-09): every plan sold under the
+// launch offer ends when the offer ends, not N months after purchase, so a
+// late buyer gets less time. Buyers in the offer's final calendar month get
+// `lateBonusMonths` more on top, so nobody pays for only a few days. Off by
+// default: an environment opts in from Admin -> Pricing & Offers.
+const DEFAULT_FIXED_TERM = {
+  enabled: false,
+  lateBonusMonths: 0,
+};
+const MAX_LATE_BONUS_MONTHS = 3;
+
 const DEFAULT_REFERRAL = {
   enabled: true,
   discountPaise: 10000,  // ₹100 off
@@ -137,6 +149,7 @@ const buildDefaults = (now = new Date()) => {
     bundles: JSON.parse(JSON.stringify(DEFAULT_BUNDLE_OFFERS)),
     founding: { ...DEFAULT_FOUNDING, endsAt },
     referral: { ...DEFAULT_REFERRAL },
+    fixedTerm: { ...DEFAULT_FIXED_TERM },
   };
 };
 
@@ -223,15 +236,60 @@ const isOfferActive = () => {
   return Boolean(offer && offer.enabled && isWindowOpen(offer.endsAt));
 };
 
+const lateBonusOf = (ft) => {
+  const n = Number(ft?.lateBonusMonths);
+  return Number.isInteger(n) && n > 0 && n <= MAX_LATE_BONUS_MONTHS ? n : 0;
+};
+
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+
+/**
+ * First instant of the offer's final calendar month: midnight (India) of the
+ * day after the date one month before the offer ends. An offer ending at 23:59
+ * on 10 Jan has a final month starting 00:00 on 11 Dec.
+ */
+const finalMonthStart = (end) => {
+  const ist = new Date(addCalendarMonths(end, -1).getTime() + IST_OFFSET_MS);
+  const nextDay = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate() + 1);
+  return new Date(nextDay - IST_OFFSET_MS);
+};
+
+/**
+ * When a launch-offer plan bought at `now` ends, or null when plans are not on
+ * a fixed term (offer off, fixed term off, or no deadline set). Sync.
+ *  - bought before the offer's final calendar month -> the offer's end
+ *  - bought in the final month -> the offer's end + lateBonusMonths
+ */
+const fixedTermEnd = (now = new Date()) => {
+  if (!isOfferActive()) return null;
+  const offer = getOffer();
+  if (!offer?.fixedTerm?.enabled || !offer.endsAt) return null;
+  const end = new Date(offer.endsAt);
+  if (Number.isNaN(end.getTime())) return null;
+  const bonus = lateBonusOf(offer.fixedTerm);
+  if (bonus > 0 && now >= finalMonthStart(end)) return addCalendarMonths(end, bonus);
+  return end;
+};
+
 /** Public offer state for API responses. */
 const getOfferState = () => {
   const offer = getOffer();
   const active = isOfferActive();
+  const fixed = active && offer?.fixedTerm?.enabled && offer.endsAt;
+  const bonus = fixed ? lateBonusOf(offer.fixedTerm) : 0;
   return {
     active,
     endsAt: active ? (offer?.endsAt || null) : null,
     headline: active ? (offer?.headline || 'Launch offer') : null,
     subline: active ? (offer?.subline || null) : null,
+    // Plans bought now end on `plansEndOn`. From `finalMonthFrom` buyers get
+    // `lateBonusMonths` more (the date then moves to `bonusEndsOn`).
+    fixedTerm: fixed ? {
+      plansEndOn: fixedTermEnd().toISOString(),
+      finalMonthFrom: bonus ? finalMonthStart(new Date(offer.endsAt)).toISOString() : null,
+      lateBonusMonths: bonus,
+      bonusEndsOn: bonus ? addCalendarMonths(new Date(offer.endsAt), bonus).toISOString() : null,
+    } : null,
   };
 };
 
@@ -272,10 +330,14 @@ const overlayPlan = (planType, basePlan) => {
     ? unlocks
     : basePlan.contactUnlocks;
 
+  const endsOn = fixedTermEnd();
   return {
     ...basePlan,
     amount: o.amount,
     duration: o.duration,
+    // Fixed launch term: the date this plan ends if bought now (null = the
+    // plan runs `duration` from purchase). Snapshotted onto the order.
+    endsOn: endsOn ? endsOn.toISOString() : null,
     durationLabel: durationLabel(o.duration),
     contactUnlocks: safeUnlocks,
     // Strike-through anchor: the launch override's own mrp, else the regular
@@ -520,6 +582,18 @@ const saveOffer = async (patch, adminId) => {
     referrerUnlocks,
   };
 
+  const ftIn = patch.fixedTerm && typeof patch.fixedTerm === 'object' ? patch.fixedTerm : (current.fixedTerm || DEFAULT_FIXED_TERM);
+  const ftEnabled = ftIn.enabled === undefined ? Boolean(current.fixedTerm?.enabled) : Boolean(ftIn.enabled);
+  const lateBonusMonths = Number(ftIn.lateBonusMonths ?? current.fixedTerm?.lateBonusMonths ?? 0);
+  if (!Number.isInteger(lateBonusMonths) || lateBonusMonths < 0 || lateBonusMonths > MAX_LATE_BONUS_MONTHS) {
+    throw new OfferValidationError(`fixedTerm.lateBonusMonths must be a whole number 0–${MAX_LATE_BONUS_MONTHS}`);
+  }
+  // Without a deadline there is no date for plans to end on.
+  if (ftEnabled && !next.endsAt) {
+    throw new OfferValidationError('Set an offer end date before making plans end with the offer.');
+  }
+  next.fixedTerm = { enabled: ftEnabled, lateBonusMonths };
+
   const { AppSetting } = require('../models');
   await AppSetting.upsert({ key: SETTINGS_KEY, value: next, updatedBy: adminId || null });
 
@@ -546,7 +620,10 @@ module.exports = {
   DEFAULT_BUNDLE_OFFERS,
   DEFAULT_FOUNDING,
   DEFAULT_REFERRAL,
+  DEFAULT_FIXED_TERM,
+  MAX_LATE_BONUS_MONTHS,
   buildDefaults,
+  fixedTermEnd,
   initLaunchOffer,
   getOffer,
   getOfferState,

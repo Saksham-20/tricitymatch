@@ -12,11 +12,11 @@ import { razorpay, agora } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
 import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
-import { planFeatures, planFeatureItems, planDisplayName as planName, localDuration } from '../utils/planFeatures';
+import { planFeatures, planFeatureItems, planDisplayName as planName, termSuffix } from '../utils/planFeatures';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import ReferralPanel from '../components/subscription/ReferralPanel';
 import { fadeRise, fade, staggerIndex } from '../utils/animations';
-import { formatDate } from '../utils/formatDate';
+import { formatDate, formatIstDate } from '../utils/formatDate';
 
 // Gate `whileHover` behind a real pointer (doctrine §8): a touch tap on a
 // hover-capable-looking card should not fire a hover animation that then
@@ -386,7 +386,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
             {displayPrice > 0 ? `₹${displayPrice.toLocaleString('en-IN')}` : t('plans.names.free')}
           </span>
           {displayPrice > 0 && (
-            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{localDuration(plan.duration || cfg.duration)}</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">{termSuffix(plan, cfg.duration)}</span>
           )}
         </div>
         {displayPrice > 0 && (mrp || perMonth) && (
@@ -577,7 +577,7 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
 
         <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
           <span className={`text-4xl font-bold ${accentText}`}>₹{displayPrice.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-neutral-500 dark:text-neutral-400">/{localDuration(paidPlan.duration || paidCfg.duration)}</span>
+          <span className="text-sm text-neutral-500 dark:text-neutral-400">{termSuffix(paidPlan, paidCfg.duration)}</span>
         </div>
         {(mrp || perMonth) && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -670,7 +670,7 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
         <div className="lg:w-64 flex-shrink-0 text-center lg:text-right">
           <div className="flex items-baseline justify-center lg:justify-end gap-1">
             <span className="text-4xl font-bold text-gold-600 dark:text-gold-400">₹{price.toLocaleString('en-IN')}</span>
-            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{localDuration(plan?.duration || cfg.duration || '6 months')}</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">{termSuffix(plan, cfg.duration || '6 months')}</span>
           </div>
           {(mrp && mrp > price) && (
             <div className="flex items-center justify-center lg:justify-end gap-2 mt-1">
@@ -774,6 +774,10 @@ const LaunchBanner = ({ offer }) => {
   const daysLeft = offer.endsAt
     ? Math.max(0, Math.ceil((new Date(offer.endsAt) - Date.now()) / 86400000))
     : null;
+  // Fixed launch term: every plan bought now ends on one date; in the final
+  // month that date already includes the bonus, so the bonus line is dropped.
+  const term = offer.fixedTerm || null;
+  const inFinalMonth = Boolean(term?.finalMonthFrom) && Date.now() >= Date.parse(term.finalMonthFrom);
 
   return (
     <motion.div
@@ -793,10 +797,25 @@ const LaunchBanner = ({ offer }) => {
           )}
         </p>
         {offer.subline && <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">{offer.subline}</p>}
+        {term && (
+          <p className="text-sm text-gold-800 dark:text-gold-300 mt-1">
+            {t('plans.banner.plansRunUntil', { date: formatIstDate(term.plansEndOn) })}
+            {term.lateBonusMonths > 0 && !inFinalMonth && (
+              <>
+                {' '}
+                {t('plans.banner.finalMonthBonus', {
+                  count: term.lateBonusMonths,
+                  from: formatIstDate(term.finalMonthFrom),
+                  date: formatIstDate(term.bonusEndsOn),
+                })}
+              </>
+            )}
+          </p>
+        )}
       </div>
       {offer.endsAt && (
         <p className="text-xs text-gold-700/70 dark:text-gold-400/70 sm:text-right">
-          {t('plans.banner.pricesReturn', { date: new Date(offer.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) })}
+          {t('plans.banner.offerEnds', { date: formatIstDate(offer.endsAt) })}
         </p>
       )}
     </motion.div>

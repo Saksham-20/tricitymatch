@@ -44,7 +44,8 @@
     "priorityNriSupport": "Priority NRI support",
     "timezoneMatching": "Timezone-aware matching",
     "localCurrency": "Prices in your local currency",
-    "chatMutuals": "Chat with your mutual matches"
+    "chatMutuals": "Chat with your mutual matches",
+    "accessUntil": "Full access until {{date}}"
   },
   "getPlan": "Get {{name}}",
   "freeForever": "Free forever",
@@ -104,7 +105,8 @@
     "currentPlanLower": "Current plan",
     "included": "Included",
     "upgrade": "Upgrade",
-    "includedInPlan": "Included in your plan"
+    "includedInPlan": "Included in your plan",
+    "until": "until {{date}}"
   },
   "overlap": {
     "forever": "Forever, no card needed",
@@ -127,7 +129,10 @@
     "endsToday": "ends today",
     "daysLeft_one": "{{count}} day left",
     "daysLeft_other": "{{count}} days left",
-    "pricesReturn": "Prices return to normal on {{date}}"
+    "plansRunUntil": "Every plan bought in the launch offer runs until {{date}}.",
+    "finalMonthBonus_one": "Buy from {{from}} and get {{count}} extra month, to {{date}}.",
+    "finalMonthBonus_other": "Buy from {{from}} and get {{count}} extra months, to {{date}}.",
+    "offerEnds": "Offer ends on {{date}}"
   },
   "toast": {
     "loadFailed": "Failed to load subscription data",

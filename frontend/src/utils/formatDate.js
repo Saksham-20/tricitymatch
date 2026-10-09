@@ -14,6 +14,16 @@ export const formatDate = (value) => {
   return d.toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+// Same as formatDate, but the calendar date in India. For dates the business
+// sets in India time (offer and plan end dates), so a member abroad sees the
+// date the offer actually names, not their local one.
+export const formatIstDate = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+};
+
 // "8 Oct 2026, 1:52 pm" for timestamps staff read (audit trails, sign-ins).
 export const formatDateTime = (value) => {
   if (!value) return '';

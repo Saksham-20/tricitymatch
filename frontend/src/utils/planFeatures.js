@@ -1,4 +1,5 @@
 import i18n from '../i18n';
+import { formatIstDate } from './formatDate';
 
 // ─── Plan feature lists ───────────────────────
 // The chat lines are DERIVED from the server's `freeChatForMutuals` flag, never
@@ -93,6 +94,14 @@ export const localDuration = (label) => {
   return i18n.t(`plans.duration.${m[2]}`, { count: Number(m[1]) });
 };
 
+/**
+ * What follows the price on a plan card: "/3 months", or "until 10 Jan 2027"
+ * when the launch offer sells the plan with a fixed end date (`endsOn`).
+ */
+export const termSuffix = (plan, fallbackLabel) => (plan?.endsOn
+  ? ` ${i18n.t('plans.card.until', { date: formatIstDate(plan.endsOn) })}`
+  : `/${localDuration(plan?.duration || fallbackLabel)}`);
+
 const textOf = (item, prevName) => {
   if (item.id === 'everythingIn') {
     return i18n.t('plans.features.everythingIn', { name: prevName || planDisplayName('free') });
@@ -103,6 +112,7 @@ const textOf = (item, prevName) => {
       : i18n.t('plans.features.unlocks', { count: item.count });
   }
   if (item.id === 'validity') {
+    if (item.endsOn) return i18n.t('plans.features.accessUntil', { date: formatIstDate(item.endsOn) });
     return item.duration
       ? i18n.t('plans.features.fullAccess', { duration: localDuration(item.duration) })
       : i18n.t(`plans.features.${item.key}`);
@@ -163,6 +173,7 @@ const retermForLivePlan = (list, livePlan) => {
 
   return list.map((item) => {
     if (liveUnlocks && item.id === 'unlocks') return UNLOCKS(unlocks);
+    if (livePlan.endsOn && item.id === 'validity') return { ...item, endsOn: livePlan.endsOn };
     if (livePlan.duration && item.id === 'validity') return { ...item, duration: livePlan.duration };
     return item;
   });

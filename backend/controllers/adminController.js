@@ -47,7 +47,7 @@ const { RefreshToken } = require('../models');
 const { markUserRevoked } = require('../utils/sessionRevocation');
 const { passwordProblem } = require('../utils/passwordPolicy');
 const { fingerprintOf } = require('../utils/verificationFingerprint');
-const { planEndDate } = require('../utils/planTerm');
+const { planEndDate, termEndDate } = require('../utils/planTerm');
 const {
   ADMIN_SCOPES,
   ALL_SCOPES,
@@ -1110,7 +1110,7 @@ exports.updateSubscription = asyncHandler(async (req, res) => {
     ? explicitEnd
     : isFounding && foundingState.endsAt
       ? new Date(foundingState.endsAt)
-      : planEndDate(grantStart, grantDays);
+      : planDetails ? termEndDate(grantStart, planDetails) : planEndDate(grantStart, grantDays);
 
   if (!isFree) {
     if (subEndDate <= grantStart) throw createError.badRequest('endDate must be after startDate');

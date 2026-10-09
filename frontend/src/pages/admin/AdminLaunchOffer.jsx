@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FiTag, FiSave, FiRefreshCw, FiAlertCircle, FiAward, FiClock, FiGift } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
-import { formatDateTime } from '../../utils/formatDate';
+import { formatDateTime, formatIstDate } from '../../utils/formatDate';
 
 /**
  * Launch-offer editor.
@@ -89,6 +89,10 @@ export default function AdminLaunchOffer() {
           grantDays: offer.founding?.grantDays ?? 30,
           contactUnlocks: offer.founding?.contactUnlocks ?? 3,
         },
+        fixedTerm: {
+          enabled: Boolean(offer.fixedTerm?.enabled),
+          lateBonusMonths: offer.fixedTerm?.lateBonusMonths ?? 0,
+        },
         // Edited in rupees; stored in paise.
         referral: {
           enabled: res.data.referral?.enabled ?? true,
@@ -162,6 +166,10 @@ export default function AdminLaunchOffer() {
           memberCap: Number(form.founding.memberCap),
           grantDays: Number(form.founding.grantDays),
           contactUnlocks: Number(form.founding.contactUnlocks),
+        },
+        fixedTerm: {
+          enabled: form.fixedTerm.enabled,
+          lateBonusMonths: Number(form.fixedTerm.lateBonusMonths),
         },
         referral: {
           enabled: form.referral.enabled,
@@ -266,6 +274,35 @@ export default function AdminLaunchOffer() {
               <input value={form.subline} onChange={(e) => setForm({ ...form, subline: e.target.value })} maxLength={200}
                 className="mt-1 w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm" />
             </label>
+          </div>
+
+          <div className="mt-5 pt-5 border-t border-neutral-100">
+            <h3 className="text-sm font-semibold text-neutral-900 mb-3">When launch-offer plans end</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="flex items-start gap-3 text-sm text-neutral-700">
+                <input type="checkbox" checked={form.fixedTerm.enabled} className="w-4 h-4 mt-0.5"
+                  onChange={(e) => setForm({ ...form, fixedTerm: { ...form.fixedTerm, enabled: e.target.checked } })} />
+                <span>
+                  Every plan ends when the offer ends
+                  <span className="block text-xs text-neutral-500">Off: a plan runs its own length (e.g. 3 months) from the day it is bought. Needs an end date above.</span>
+                </span>
+              </label>
+              <label className="text-sm text-neutral-700">
+                Extra months for buyers in the offer&apos;s last month
+                <input type="number" min="0" max="3" step="1" value={form.fixedTerm.lateBonusMonths} disabled={!form.fixedTerm.enabled}
+                  onChange={(e) => setForm({ ...form, fixedTerm: { ...form.fixedTerm, lateBonusMonths: e.target.value } })}
+                  className="mt-1 w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm disabled:bg-neutral-50 disabled:text-neutral-400" />
+                <span className="text-xs text-neutral-500">0 = none. So a late buyer never pays for only a few days.</span>
+              </label>
+            </div>
+            {state?.fixedTerm && (
+              <p className="mt-3 text-sm text-neutral-700 bg-neutral-100 rounded-lg px-3 py-2">
+                Plans bought today end on <strong>{formatIstDate(state.fixedTerm.plansEndOn)}</strong>.
+                {state.fixedTerm.lateBonusMonths > 0 && (
+                  <> Bought from {formatIstDate(state.fixedTerm.finalMonthFrom)}, they end on <strong>{formatIstDate(state.fixedTerm.bonusEndsOn)}</strong>.</>
+                )}
+              </p>
+            )}
           </div>
         </section>
 

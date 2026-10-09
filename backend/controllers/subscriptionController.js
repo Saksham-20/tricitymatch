@@ -27,8 +27,8 @@ const {
   PLANS,
   UNLOCK_BUNDLES,
 } = require('../utils/razorpay');
-const { sendSubscriptionConfirmation } = require('../utils/email');
-const { planEndDate } = require('../utils/planTerm');
+const { sendSubscriptionConfirmation, memberDate } = require('../utils/email');
+const { planEndDate, termEndDate } = require('../utils/planTerm');
 const config = require('../config/env');
 const { createError, asyncHandler, AppError } = require('../middlewares/errorHandler');
 const { log, logAudit } = require('../middlewares/logger');
@@ -146,7 +146,7 @@ exports.createOrder = asyncHandler(async (req, res) => {
       status: 'pending',
       amount: order.amount / 100, // Convert from paise to rupees
       referral: quote ? quote.referral : null,
-      orderTerms: { duration: soldPlan.duration, contactUnlocks: soldPlan.contactUnlocks },
+      orderTerms: { duration: soldPlan.duration, contactUnlocks: soldPlan.contactUnlocks, endsOn: soldPlan.endsOn || null },
     }, { transaction: t });
 
     return { order, subscription };
@@ -340,7 +340,7 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
 
     // Calculate subscription dates
     const now = new Date();
-    const endDate = planEndDate(now, planDetails.duration);
+    const endDate = termEndDate(now, planDetails);
 
     // Update subscription
     sub.razorpayPaymentId = razorpayPaymentId;
@@ -645,7 +645,9 @@ exports.getPlans = asyncHandler(async (req, res) => {
   // ("5 contact unlocks", "Full-year validity") silently becomes a false claim
   // on the card the moment pricing moves.
   const unlockLine = (p) => (p.contactUnlocks === null ? 'Unlimited contact unlocks' : `${p.contactUnlocks} contact unlocks`);
-  const validityLine = (p) => `${p.durationLabel} of full access`;
+  const validityLine = (p) => (p.endsOn
+    ? `Full access until ${memberDate(p.endsOn)}`
+    : `${p.durationLabel} of full access`);
 
   // `prevName` is the tier BELOW this one that is actually being shown, not the
   // one below it in the enum. The launch offer can withdraw a tier, and a card
@@ -734,13 +736,19 @@ exports.getPlans = asyncHandler(async (req, res) => {
       ? (ladder.length ? ladder[ladder.length - 1][1].name : null)
       : (ladderIdx > 0 ? ladder[ladderIdx - 1][1].name : null);
     const price = p.amount / 100;
+    // A fixed launch term runs to a date, so the honest length is the days
+    // from today to that date, not the configured duration.
+    const termDays = p.endsOn
+      ? Math.max(1, Math.ceil((Date.parse(p.endsOn) - Date.now()) / 86400000))
+      : p.duration;
     plans[key] = {
       name: p.name,
       price,
       mrp: p.mrp ? p.mrp / 100 : null,
-      perMonth: perMonth(price, p.duration),
-      duration: p.durationLabel,
-      durationDays: p.duration,
+      perMonth: perMonth(price, termDays),
+      duration: p.endsOn ? `until ${memberDate(p.endsOn)}` : p.durationLabel,
+      durationDays: termDays,
+      endsOn: p.endsOn || null,
       contactUnlocks: p.contactUnlocks === null ? -1 : p.contactUnlocks,
       // Only meaningful when contactUnlocks is unlimited (-1). "Unlimited" is
       // capped in practice — middlewares/auth.js `checkContactUnlockLimit`

@@ -37,4 +37,16 @@ const planEndDate = (start, durationDays) => {
   return new Date(from.getTime() + Number(durationDays) * DAY_MS);
 };
 
-module.exports = { planEndDate, addCalendarMonths };
+/**
+ * End date for a plan being started at `start`. A launch-offer plan sold with a
+ * fixed end (`endsOn`, see utils/launchOffer fixedTermEnd) runs to that date
+ * while it is still ahead; otherwise the plan's own duration applies.
+ */
+const termEndDate = (start, plan) => {
+  const from = start instanceof Date ? start : new Date(start);
+  const fixed = plan?.endsOn ? new Date(plan.endsOn) : null;
+  if (fixed && !Number.isNaN(fixed.getTime()) && fixed > from) return fixed;
+  return planEndDate(from, plan?.duration);
+};
+
+module.exports = { planEndDate, addCalendarMonths, termEndDate };

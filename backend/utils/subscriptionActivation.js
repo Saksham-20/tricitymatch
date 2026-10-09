@@ -8,7 +8,7 @@ const { applyPendingCredits } = require('./inviteReward');
 const { getPlanDetails } = require('./razorpay');
 const { log, logAudit } = require('../middlewares/logger');
 const { settleReferral } = require('./referral');
-const { planEndDate } = require('./planTerm');
+const { termEndDate } = require('./planTerm');
 
 
 /**
@@ -29,6 +29,9 @@ function termsForActivation(subscription) {
     contactUnlocks: Object.prototype.hasOwnProperty.call(t, 'contactUnlocks')
       ? t.contactUnlocks
       : live.contactUnlocks,
+    // The fixed launch end the buyer was shown at checkout (null = none).
+    // Orders snapshotted before this field existed follow the live plan.
+    endsOn: Object.prototype.hasOwnProperty.call(t, 'endsOn') ? t.endsOn : (live.endsOn || null),
   };
 }
 
@@ -99,7 +102,7 @@ async function activateCapturedPayment(order_id, payment_id) {
         return;
       }
       const now = new Date();
-      const endDate = planEndDate(now, planDetails.duration);
+      const endDate = termEndDate(now, planDetails);
 
       subscription.razorpayPaymentId = payment_id;
       subscription.status = 'active';

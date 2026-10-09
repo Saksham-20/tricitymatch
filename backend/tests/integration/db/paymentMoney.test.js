@@ -184,6 +184,26 @@ describeDb('payment money paths', (t) => {
       .toBe(require('../../../utils/planTerm').planEndDate(new Date(s2.startDate), live.duration).toISOString());
   });
 
+  t('a fixed launch end in the order snapshot is the end date on both activation legs', async () => {
+    const { verifyPayment } = require('../../../controllers/subscriptionController');
+    const { activateCapturedPayment } = require('../../../utils/subscriptionActivation');
+    const fixedEnd = new Date(Date.now() + 40 * DAY).toISOString();
+    const a = await member(); const b = await member();
+    const viaVerify = await pending(a.id, { orderTerms: { duration: 90, contactUnlocks: null, endsOn: fixedEnd } });
+    const viaWebhook = await pending(b.id, { orderTerms: { duration: 90, contactUnlocks: null, endsOn: fixedEnd } });
+    const res = await call(verifyPayment, {
+      user: { id: a.id, role: 'user' },
+      body: { razorpayOrderId: viaVerify.razorpayOrderId, razorpayPaymentId: `pay_${uniq()}`, razorpaySignature: 'sig' },
+    });
+    expect(res.statusCode).toBe(200);
+    await activateCapturedPayment(viaWebhook.razorpayOrderId, `pay_${uniq()}`);
+    for (const row of [viaVerify, viaWebhook]) {
+      const fresh = await models.Subscription.findByPk(row.id);
+      expect(fresh.status).toBe('active');
+      expect(new Date(fresh.endDate).toISOString()).toBe(fixedEnd);
+    }
+  });
+
   // ------------------------------------------------- lead conversion legs
 
   t('every activation leg marks the rep lead paid (webhook leg used to leave it unpaid)', async () => {

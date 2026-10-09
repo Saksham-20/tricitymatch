@@ -44,7 +44,8 @@
     "priorityNriSupport": "ਐਨਆਰਆਈ ਮੈਂਬਰਾਂ ਲਈ ਪਹਿਲ ਵਾਲੀ ਸਹਾਇਤਾ",
     "timezoneMatching": "ਤੁਹਾਡੇ ਟਾਈਮ ਜ਼ੋਨ ਦੇ ਹਿਸਾਬ ਨਾਲ ਮੈਚਿੰਗ",
     "localCurrency": "ਤੁਹਾਡੀ ਆਪਣੀ ਕਰੰਸੀ ਵਿੱਚ ਕੀਮਤਾਂ",
-    "chatMutuals": "ਆਪਣੇ ਆਪਸੀ ਮੈਚਾਂ ਨਾਲ ਚੈਟ ਕਰੋ"
+    "chatMutuals": "ਆਪਣੇ ਆਪਸੀ ਮੈਚਾਂ ਨਾਲ ਚੈਟ ਕਰੋ",
+    "accessUntil": "{{date}} ਤੱਕ ਪੂਰੀ ਸਹੂਲਤ"
   },
   "getPlan": "{{name}} ਲਓ",
   "freeForever": "ਹਮੇਸ਼ਾ ਮੁਫ਼ਤ",
@@ -104,7 +105,8 @@
     "currentPlanLower": "ਮੌਜੂਦਾ ਪਲਾਨ",
     "included": "ਸ਼ਾਮਲ",
     "upgrade": "ਅੱਪਗ੍ਰੇਡ ਕਰੋ",
-    "includedInPlan": "ਤੁਹਾਡੇ ਪਲਾਨ ਵਿੱਚ ਸ਼ਾਮਲ"
+    "includedInPlan": "ਤੁਹਾਡੇ ਪਲਾਨ ਵਿੱਚ ਸ਼ਾਮਲ",
+    "until": "{{date}} ਤੱਕ"
   },
   "overlap": {
     "forever": "ਹਮੇਸ਼ਾ ਲਈ, ਕਾਰਡ ਦੀ ਲੋੜ ਨਹੀਂ",
@@ -127,7 +129,10 @@
     "endsToday": "ਅੱਜ ਖ਼ਤਮ ਹੋ ਰਿਹਾ ਹੈ",
     "daysLeft_one": "{{count}} ਦਿਨ ਬਾਕੀ",
     "daysLeft_other": "{{count}} ਦਿਨ ਬਾਕੀ",
-    "pricesReturn": "{{date}} ਨੂੰ ਕੀਮਤਾਂ ਮੁੜ ਆਮ ਹੋ ਜਾਣਗੀਆਂ"
+    "plansRunUntil": "ਲਾਂਚ ਆਫ਼ਰ ਵਿੱਚ ਖਰੀਦਿਆ ਹਰ ਪਲਾਨ {{date}} ਤੱਕ ਚੱਲੇਗਾ।",
+    "finalMonthBonus_one": "{{from}} ਤੋਂ ਖਰੀਦਣ 'ਤੇ {{count}} ਮਹੀਨਾ ਹੋਰ ਮਿਲੇਗਾ, {{date}} ਤੱਕ।",
+    "finalMonthBonus_other": "{{from}} ਤੋਂ ਖਰੀਦਣ 'ਤੇ {{count}} ਮਹੀਨੇ ਹੋਰ ਮਿਲਣਗੇ, {{date}} ਤੱਕ।",
+    "offerEnds": "ਆਫ਼ਰ {{date}} ਨੂੰ ਖ਼ਤਮ ਹੋਵੇਗਾ"
   },
   "toast": {
     "loadFailed": "ਮੈਂਬਰਸ਼ਿਪ ਦੀ ਜਾਣਕਾਰੀ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ",
