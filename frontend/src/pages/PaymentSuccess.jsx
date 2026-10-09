@@ -1,25 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiCheckCircle, FiArrowRight, FiAward } from 'react-icons/fi';
 import Logo from '../components/common/Logo';
 import api from '../api/axios';
-import { planFeatures } from '../utils/planFeatures';
+import { planFeatureItems } from '../utils/planFeatures';
 import { useAuth } from '../context/AuthContext';
 import { DUR, EASE_OUT } from '../utils/animations';
 
-// Display names for the plan enum. Kept beside the page that shows them; the
-// enum keys themselves are persisted in Postgres and never change.
-const PLAN_LABEL = {
-  basic_premium: 'Basic',
-  premium_plus: 'Premium',
-  elite: 'Elite',
-  vip: 'VIP',
-  nri: 'NRI Connect',
-  founding_premium: 'Founding Member',
-};
+// Plan enum values that have a display name (in `plans.names`). The enum keys
+// themselves are persisted in Postgres and never change.
+const NAMED_PLANS = ['basic_premium', 'premium_plus', 'elite', 'vip', 'nri', 'founding_premium'];
 
 export default function PaymentSuccess() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   // This page used to congratulate anyone who opened the URL — a bookmark or a
@@ -27,7 +22,9 @@ export default function PaymentSuccess() {
   // the server before claiming anything happened.
   const [checking, setChecking] = useState(true);
   const [plan, setPlan] = useState(null);
-  const [features, setFeatures] = useState(null);
+  // The live plan, kept (not the rendered lines) so the list follows a
+  // language switch made on this page.
+  const [livePlan, setLivePlan] = useState(undefined);
   const [unlockDailyCap, setUnlockDailyCap] = useState(null);
 
   useEffect(() => {
@@ -52,8 +49,9 @@ export default function PaymentSuccess() {
         }
         if (!cancelled) {
           setPlan(planType);
-          const livePlan = plansRes.data?.plans?.[planType] || null;
-          setUnlockDailyCap(livePlan?.unlockDailyCap ?? null);
+          const live = plansRes.data?.plans?.[planType] || null;
+          setLivePlan(live);
+          setUnlockDailyCap(live?.unlockDailyCap ?? null);
           // What this member actually bought. The list used to be four
           // hardcoded lines shown to every buyer, including "Priority in search
           // results" — an Elite feature a Basic buyer does not get. A receipt
@@ -61,11 +59,6 @@ export default function PaymentSuccess() {
           // Drop the "Everything in X" chain lines — a comparison-grid device
           // that says nothing on a receipt — and honour the live chat flag so
           // this never takes credit for something that is currently free.
-          setFeatures(
-            planFeatures(planType, Boolean(user?.features?.freeChatForMutuals), livePlan)
-              .filter((f) => !/^Everything in /.test(f))
-              .slice(0, 4)
-          );
         }
       } catch {
         // Network hiccup on the confirmation read shouldn't strand the member
@@ -76,11 +69,18 @@ export default function PaymentSuccess() {
     return () => { cancelled = true; };
   }, [navigate, user]);
 
+  const features = plan && livePlan !== undefined
+    ? planFeatureItems(plan, Boolean(user?.features?.freeChatForMutuals), livePlan)
+      .filter((f) => f.id !== 'everythingIn')
+      .slice(0, 4)
+      .map((f) => f.text)
+    : null;
+
   if (checking) {
     return (
       <div role="status" className="min-h-[100dvh] flex items-center justify-center bg-background dark:bg-surface-dark-1 px-4">
         <div className="w-10 h-10 rounded-full border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 animate-spin" />
-        <span className="sr-only">Confirming your payment</span>
+        <span className="sr-only">{t('payments.success.confirming')}</span>
       </div>
     );
   }
@@ -116,17 +116,17 @@ export default function PaymentSuccess() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <div className="flex items-center justify-center gap-2 mb-2">
               <FiAward className="w-4 h-4 text-gold" />
-              <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">Payment successful</h1>
+              <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">{t('payments.success.title')}</h1>
             </div>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6">
-              {PLAN_LABEL[plan]
-                ? `Your ${PLAN_LABEL[plan]} membership is now active.`
-                : 'Your membership is now active.'}
+              {NAMED_PLANS.includes(plan)
+                ? t('payments.success.activeNamed', { name: t(`plans.names.${plan}`) })
+                : t('payments.success.active')}
             </p>
 
             {features?.length > 0 && (
             <div className="bg-gold-50 dark:bg-gold-900/10 rounded-2xl p-4 mb-6 text-left">
-              <p className="text-xs font-semibold text-gold-700 dark:text-gold-400 uppercase tracking-wide mb-2">What's unlocked</p>
+              <p className="text-xs font-semibold text-gold-700 dark:text-gold-400 uppercase tracking-wide mb-2">{t('payments.success.whatsUnlocked')}</p>
               {(features || []).map((f) => (
                 <div key={f} className="flex items-center gap-2 py-1">
                   <FiCheckCircle className="w-3.5 h-3.5 text-gold flex-shrink-0" />
@@ -138,7 +138,7 @@ export default function PaymentSuccess() {
                 // way it is on the pricing page, not just in a FAQ.
                 <div className="flex items-center gap-2 py-1">
                   <FiCheckCircle className="w-3.5 h-3.5 text-gold flex-shrink-0" />
-                  <span className="text-sm text-neutral-700 dark:text-neutral-300">Unlimited unlocks, up to {unlockDailyCap}/day</span>
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">{t('payments.success.unlimitedCap', { cap: unlockDailyCap })}</span>
                 </div>
               )}
             </div>
@@ -146,10 +146,10 @@ export default function PaymentSuccess() {
 
             <div className="flex flex-col gap-3">
               <Link to="/dashboard" className="btn-primary w-full flex items-center justify-center gap-2">
-                Go to Dashboard <FiArrowRight className="w-4 h-4" />
+                {t('payments.success.goToDashboard')} <FiArrowRight className="w-4 h-4" />
               </Link>
               <Link to="/payment/history" className="btn-secondary w-full flex items-center justify-center">
-                View payment history
+                {t('payments.success.viewHistory')}
               </Link>
             </div>
           </motion.div>

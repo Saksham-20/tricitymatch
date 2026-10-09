@@ -449,6 +449,10 @@ const corsAllowedHeaders = [
   'X-Requested-With',
   'X-CSRF-Token',
   'X-App-Client',
+  // Live-selfie capture session (verification submit). Prod is same-origin so
+  // no preflight runs there, but any cross-origin client (dev, a future API
+  // host) was refused before the upload reached the server.
+  'X-Capture-Token',
   'Accept',
   'Origin',
 ];

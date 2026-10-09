@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Full-screen lightbox: shows image at larger scale with blurred background.
@@ -14,6 +15,7 @@ import { FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
  * gallery without leaving the page.
  */
 export function ImageLightbox({ src, alt = '', photos, initialIndex = 0, open, onClose }) {
+  const { t } = useTranslation();
   const dialogRef = useRef(null);
   const closeBtnRef = useRef(null);
   const triggerRef = useRef(null);
@@ -91,7 +93,7 @@ export function ImageLightbox({ src, alt = '', photos, initialIndex = 0, open, o
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="View image"
+      aria-label={t('lightbox.viewImage')}
       onTouchStart={(e) => { touchStartX.current = e.touches[0]?.clientX ?? null; }}
       onTouchEnd={(e) => {
         if (touchStartX.current === null || count <= 1) return;
@@ -106,7 +108,7 @@ export function ImageLightbox({ src, alt = '', photos, initialIndex = 0, open, o
         type="button"
         onClick={onClose}
         className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-        aria-label="Close"
+        aria-label={t('lightbox.close')}
       >
         <FiX className="w-6 h-6" />
       </button>
@@ -125,7 +127,7 @@ export function ImageLightbox({ src, alt = '', photos, initialIndex = 0, open, o
           type="button"
           onClick={(e) => { e.stopPropagation(); goTo(index - 1); }}
           className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          aria-label="Previous photo"
+          aria-label={t('lightbox.previous')}
         >
           <FiChevronLeft className="w-6 h-6" />
         </button>
@@ -145,7 +147,7 @@ export function ImageLightbox({ src, alt = '', photos, initialIndex = 0, open, o
           type="button"
           onClick={(e) => { e.stopPropagation(); goTo(index + 1); }}
           className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          aria-label="Next photo"
+          aria-label={t('lightbox.next')}
         >
           <FiChevronRight className="w-6 h-6" />
         </button>

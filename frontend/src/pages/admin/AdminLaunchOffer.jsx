@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FiTag, FiSave, FiRefreshCw, FiAlertCircle, FiAward, FiClock, FiGift } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
+import { formatDateTime } from '../../utils/formatDate';
 
 /**
  * Launch-offer editor.
@@ -124,6 +126,9 @@ export default function AdminLaunchOffer() {
     // told before the round-trip, not after.
     if (visibleCount === 0) {
       setError('At least one plan must stay on sale. Hiding every tier leaves members with no way to pay.');
+      // The inline message sits at the top of a long page, out of view of the
+      // Save button, so it is echoed as a toast too.
+      toast.error('At least one plan must stay on sale.');
       return;
     }
     setSaving(true);
@@ -165,10 +170,14 @@ export default function AdminLaunchOffer() {
         },
       };
       const res = await apiClient.put('/admin/launch-offer', payload);
-      setSaved(res.data.state?.active ? 'Saved. Launch pricing is live.' : 'Saved. Regular pricing is in effect.');
+      const msg = res.data.state?.active ? 'Saved. Launch pricing is live.' : 'Saved. Regular pricing is in effect.';
+      setSaved(msg);
+      toast.success(msg);
       await load();
     } catch (e) {
-      setError(e.response?.data?.error?.message || 'Save failed');
+      const msg = e.response?.data?.error?.message || 'Save failed';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -201,7 +210,7 @@ export default function AdminLaunchOffer() {
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-2">
-            <FiTag className="w-6 h-6 text-primary-600" /> Launch Offer
+            <FiTag className="w-6 h-6 text-primary-600" /> Pricing &amp; Offers
           </h1>
           <p className="text-sm text-neutral-500 mt-1">
             Time-boxed launch pricing. Changes apply immediately to checkout. No deploy needed.
@@ -218,7 +227,7 @@ export default function AdminLaunchOffer() {
         <FiClock className="w-4 h-4 flex-shrink-0" />
         <p className="text-sm">
           {state?.active
-            ? <>Launch pricing is <strong>live</strong>{state.endsAt ? <> until {new Date(state.endsAt).toLocaleString('en-IN')}</> : ' (no end date set)'}.</>
+            ? <>Launch pricing is <strong>live</strong>{state.endsAt ? <> until {formatDateTime(state.endsAt)}</> : ' (no end date set)'}.</>
             : <>Launch pricing is <strong>off</strong>. Members are charged the regular ladder.</>}
         </p>
       </div>

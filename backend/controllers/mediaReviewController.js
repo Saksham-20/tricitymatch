@@ -16,11 +16,11 @@ const { revalidateVerification } = require('../utils/verificationFingerprint');
 
 const STATUSES = ['pending', 'approved', 'rejected'];
 
-// GET /api/v1/admin/media-reviews?status=pending&source=auto|report
+// GET /api/v1/admin/media-reviews?status=pending&source=auto|report|admin
 exports.listMediaReviews = asyncHandler(async (req, res) => {
   const status = STATUSES.includes(req.query.status) ? req.query.status : 'pending';
   const where = { status };
-  if (['auto', 'report'].includes(req.query.source)) where.source = req.query.source;
+  if (['auto', 'report', 'admin'].includes(req.query.source)) where.source = req.query.source;
 
   const reviews = await MediaReview.findAll({ where, order: [['createdAt', 'ASC']], limit: 100 });
   const profiles = await Profile.findAll({
@@ -103,7 +103,10 @@ exports.decideMediaReview = asyncHandler(async (req, res) => {
     deleteFromCloudinary(result.url).catch((err) => log.error('Rejected photo delete failed', { error: err.message, reviewId: result.id }));
   }
 
-  notify(
+  // Keeping a reported or staff-flagged photo changes nothing the member can
+  // see, and they were never told it was under review — so no message then.
+  const tellMember = decision === 'reject' || result.source === 'auto';
+  if (tellMember) notify(
     result.userId,
     'system',
     decision === 'approve' ? 'Your photo is live' : 'A photo was removed',

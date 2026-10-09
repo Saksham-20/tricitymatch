@@ -1,0 +1,59 @@
+{
+  "backHome": "← Back to home",
+  "heroTitle": "Matrimony built for families,",
+  "heroTitleEm": " not algorithms.",
+  "heroBody": "TricityMatch is a hyperlocal matrimonial platform built specifically for families in Chandigarh, Mohali and Panchkula — where finding a life partner is meaningful, safe and community-first.",
+  "stats": {
+    "selfie": {
+      "value": "Live selfie",
+      "label": "Verification, never uploads"
+    },
+    "tricity": {
+      "value": "Tricity only",
+      "label": "Chandigarh · Mohali · Panchkula"
+    },
+    "family": {
+      "value": "Family-first",
+      "label": "Guardians participate gracefully"
+    },
+    "reviewed": {
+      "value": "Human-reviewed",
+      "label": "Every selfie and every report"
+    }
+  },
+  "missionTitle": "A serious local community, ",
+  "missionTitleEm": "not 50 million strangers.",
+  "missionP1": "Unlike generic matrimonial platforms, TricityMatch focuses on the Tricity region — bringing together people who share local roots, cultural values and community ties.",
+  "missionP2": "Our intelligent matching considers compatibility, family background, education and lifestyle to suggest the connections that actually lead somewhere. Verified badges are earned with a live selfie matched by human review, and every family is within driving distance.",
+  "valuesTitle": "Six principles that shape every decision.",
+  "values": {
+    "verified": {
+      "t": "Verified profiles",
+      "d": "The verified badge is earned with a live selfie matched by human review — never a file upload."
+    },
+    "privacy": {
+      "t": "Privacy-first",
+      "d": "Your data is yours. Browse incognito, control who sees you, numbers never shared."
+    },
+    "family": {
+      "t": "Family-oriented",
+      "d": "Matching that respects family background, values, and the people who matter in the decision."
+    },
+    "local": {
+      "t": "Hyperlocal focus",
+      "d": "Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance."
+    },
+    "pricing": {
+      "t": "Transparent pricing",
+      "d": "Clear plans, no hidden fees, no surprise renewals. Free to start."
+    },
+    "human": {
+      "t": "Human-reviewed",
+      "d": "A person — not an algorithm — reviews every verification selfie and every report."
+    }
+  },
+  "ctaTitle": "Your forever starts with one step.",
+  "ctaBody": "Have questions or feedback? Reach us at <mail>support@tricitymatch.com</mail>",
+  "ctaPrimary": "Create free profile",
+  "ctaContact": "Contact us"
+}

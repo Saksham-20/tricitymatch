@@ -146,6 +146,7 @@ web-build/
 .claude/settings.local.json
 skills-lock.json
 brag-output*/
+launch-videos/
 graphify-out/
 audit/
 qa-evidence/

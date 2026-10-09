@@ -1,5 +1,7 @@
 import React from 'react';
 import { FiCheck, FiX, FiMinus, FiHeart } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 
 /**
  * Reverse partner-preference checklist — "You match X of N of their
@@ -27,16 +29,20 @@ const looseMatch = (pref, own) =>
   String(own).toLowerCase().includes(String(pref).toLowerCase()) ||
   String(pref).toLowerCase().includes(String(own).toLowerCase());
 
-export const buildPreferenceChecks = (target, viewer) => {
+// `t` translates the labels and the "Any" / "years" wording; it defaults to the
+// shared i18n instance so callers outside React still get the current language.
+export const buildPreferenceChecks = (target, viewer, t = i18n.t.bind(i18n)) => {
   if (!target || !viewer) return [];
   const checks = [];
+  const any = t('preferenceMatch.any');
 
   if (target.preferredAgeMin || target.preferredAgeMax) {
     const age = ageFromDob(viewer.dateOfBirth);
     const min = target.preferredAgeMin, max = target.preferredAgeMax;
     checks.push({
-      label: 'Age',
-      want: `${min || 'Any'} – ${max || 'Any'} years`,
+      key: 'age',
+      label: t('preferenceMatch.labels.age'),
+      want: t('preferenceMatch.yearsRange', { min: min || any, max: max || any }),
       ok: age == null ? null : (!min || age >= min) && (!max || age <= max),
     });
   }
@@ -45,15 +51,17 @@ export const buildPreferenceChecks = (target, viewer) => {
     const h = viewer.height;
     const min = target.preferredHeightMin, max = target.preferredHeightMax;
     checks.push({
-      label: 'Height',
-      want: `${min ? cmToFeet(min) : 'Any'} – ${max ? cmToFeet(max) : 'Any'}`,
+      key: 'height',
+      label: t('preferenceMatch.labels.height'),
+      want: `${min ? cmToFeet(min) : any} – ${max ? cmToFeet(max) : any}`,
       ok: !h ? null : (!min || h >= min) && (!max || h <= max),
     });
   }
 
   if (target.preferredEducation) {
     checks.push({
-      label: 'Education',
+      key: 'education',
+      label: t('preferenceMatch.labels.education'),
       want: target.preferredEducation,
       ok: !viewer.education ? null : looseMatch(target.preferredEducation, viewer.education),
     });
@@ -61,7 +69,8 @@ export const buildPreferenceChecks = (target, viewer) => {
 
   if (target.preferredProfession) {
     checks.push({
-      label: 'Profession',
+      key: 'profession',
+      label: t('preferenceMatch.labels.profession'),
       want: target.preferredProfession,
       ok: !viewer.profession ? null : looseMatch(target.preferredProfession, viewer.profession),
     });
@@ -72,7 +81,8 @@ export const buildPreferenceChecks = (target, viewer) => {
     : target.preferredCity ? [target.preferredCity] : [];
   if (cities.length > 0) {
     checks.push({
-      label: 'City',
+      key: 'city',
+      label: t('preferenceMatch.labels.city'),
       want: cities.join(', '),
       ok: !viewer.city ? null : cities.some((c) => looseMatch(c, viewer.city)),
     });
@@ -81,8 +91,9 @@ export const buildPreferenceChecks = (target, viewer) => {
   return checks;
 };
 
-const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
-  const checks = buildPreferenceChecks(target, viewer);
+const PreferenceMatch = ({ target, viewer, targetName }) => {
+  const { t } = useTranslation();
+  const checks = buildPreferenceChecks(target, viewer, t);
   if (checks.length === 0) return null;
 
   const scored = checks.filter((c) => c.ok !== null);
@@ -96,7 +107,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wide">
-            Do you fit what {targetName} is looking for?
+            {t('preferenceMatch.title', { name: targetName ?? t('preferenceMatch.them') })}
           </h2>
         </div>
         {scored.length > 0 && (
@@ -112,8 +123,8 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
         )}
       </div>
       <div className="px-5 py-2">
-        {checks.map(({ label, want, ok }) => (
-          <div key={label} className="flex items-center gap-3 py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-b-0">
+        {checks.map(({ key, label, want, ok }) => (
+          <div key={key} className="flex items-center gap-3 py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-b-0">
             <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
               ok === true ? 'bg-success-50 text-success'
               : ok === false ? 'bg-neutral-100 text-neutral-400'
@@ -123,7 +134,7 @@ const PreferenceMatch = ({ target, viewer, targetName = 'them' }) => {
             </span>
             <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wide w-20 flex-shrink-0">{label}</span>
             <span className="text-sm text-neutral-700 dark:text-neutral-300 capitalize flex-1 min-w-0 truncate">{want}</span>
-            {ok === null && <span className="text-[11px] text-neutral-400 flex-shrink-0">add yours to compare</span>}
+            {ok === null && <span className="text-[11px] text-neutral-400 flex-shrink-0">{t('preferenceMatch.addYours')}</span>}
           </div>
         ))}
       </div>

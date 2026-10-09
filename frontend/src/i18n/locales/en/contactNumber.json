@@ -1,0 +1,12 @@
+{
+  "promptTitle": "Add your mobile number to continue",
+  "promptBody": "When someone unlocks your contact, this is the number they call. Every member needs a verified number, so nobody reaches a wrong one.",
+  "numberVerified": "Number verified",
+  "alreadyJoined": "Already joined with this number? Sign out and sign in with your mobile number instead. You can delete this account from <anchor>Settings</anchor>.",
+  "defaultHint": "Members you connect with will call this number after they unlock your contact.",
+  "codeNoMatch": "That code did not match. Try again.",
+  "verifiedAria": "Verified",
+  "verify": "Verify",
+  "enterCodeSent": "Enter the {{count}}-digit code sent to +91 {{phone}}.",
+  "verifiedNote": "Verified. This is the number members will call."
+}

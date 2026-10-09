@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Primary page loading spinner
@@ -7,9 +8,10 @@ import { motion } from 'framer-motion';
 const LoadingSpinner = ({
   size = 'default',
   fullScreen = false,
-  message = 'Loading...',
+  message,
   showMessage = true,
 }) => {
+  const { t } = useTranslation();
   const sizeMap = {
     small:   'w-6 h-6',
     default: 'w-10 h-10',
@@ -45,7 +47,7 @@ const LoadingSpinner = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          {message}
+          {message ?? t('appShell.loading')}
         </motion.p>
       )}
     </motion.div>
@@ -81,7 +83,9 @@ export const PageSkeleton = () => (
 /**
  * Inline loader for smaller loading states within components
  */
-export const InlineLoader = ({ message = 'Loading...' }) => (
+export const InlineLoader = ({ message }) => {
+  const { t } = useTranslation();
+  return (
   <div className="flex items-center gap-2 text-neutral-500">
     <motion.div
       className="w-4 h-4 rounded-full border-2 border-primary-100"
@@ -89,9 +93,10 @@ export const InlineLoader = ({ message = 'Loading...' }) => (
       animate={{ rotate: 360 }}
       transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
     />
-    <span className="text-sm">{message}</span>
+    <span className="text-sm">{message ?? t('appShell.loading')}</span>
   </div>
-);
+  );
+};
 
 /**
  * Spinner for inside buttons (white ring)

@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiBell, FiCheck, FiX } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { listRow } from '../utils/animations';
@@ -15,6 +16,11 @@ import {
 export { notifLink };
 
 export default function Notifications() {
+  const { t } = useTranslation();
+  // The fetcher is created once (a new one would refetch page 1 and lose the
+  // paging position), so it reads the current language through a ref.
+  const tRef = useRef(t);
+  tRef.current = t;
   const navigate = useNavigate();
   const [notifications, setNotifs] = useState([]);
   const [loading, setLoading]      = useState(true);
@@ -48,7 +54,7 @@ export default function Notifications() {
       setHasMore(pages != null ? p < pages : list.length === limit);
       if (typeof data.unreadCount === 'number') setServerUnread(data.unreadCount);
     } catch {
-      if (append) toast.error('Failed to load notifications');
+      if (append) toast.error(tRef.current('notifications.toast.loadFailed'));
       else setError(true);
     } finally {
       setLoading(false);
@@ -77,9 +83,9 @@ export default function Notifications() {
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setServerUnread(0);
       announceNotificationsChanged();
-      toast.success('All notifications marked as read');
+      toast.success(t('notifications.toast.allRead'));
     } catch {
-      toast.error('Failed to mark all as read');
+      toast.error(t('notifications.toast.markAllFailed'));
     }
   };
 
@@ -91,7 +97,7 @@ export default function Notifications() {
       announceNotificationsChanged();
     } catch {
       // Delete is an explicit, destructive tap — silence made it look dead.
-      toast.error('Could not delete that notification');
+      toast.error(t('notifications.toast.deleteFailed'));
     }
   };
 
@@ -115,7 +121,7 @@ export default function Notifications() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">Notifications</h1>
+            <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">{t('notifications.title')}</h1>
             {unreadCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-primary-500 text-white text-xs font-bold tabular-nums">{unreadCount > 99 ? '99+' : unreadCount}</span>
             )}
@@ -127,7 +133,7 @@ export default function Notifications() {
               // §3.5) without growing the visible text+icon mark.
               className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 active:scale-[0.97] transition-colors duration-[160ms] px-2 py-3 -mx-2 -my-3"
             >
-              <FiCheck className="w-4 h-4" /> Mark all read
+              <FiCheck className="w-4 h-4" /> {t('notifications.markAllRead')}
             </button>
           )}
         </div>
@@ -146,17 +152,17 @@ export default function Notifications() {
           </div>
         ) : error ? (
           <ErrorState
-            title="Couldn't load notifications"
-            description="The connection dropped before this finished loading. Try again."
+            title={t('notifications.error.title')}
+            description={t('notifications.error.body')}
             onRetry={() => fetchNotifs(1)}
             className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card"
           />
         ) : notifications.length === 0 ? (
           <EmptyState
             icon={FiBell}
-            title="No notifications yet"
-            description="We'll notify you when something happens"
-            actionLabel="Browse profiles"
+            title={t('notifications.empty.title')}
+            description={t('notifications.empty.body')}
+            actionLabel={t('notifications.empty.action')}
             onAction={() => navigate('/search')}
             className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card"
           />
@@ -206,8 +212,8 @@ export default function Notifications() {
                           // Resting color meets the 3:1 icon floor so the delete
                           // affordance is visible on touch (no hover to rely on).
                           className="w-11 h-11 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-[0.97] transition-colors duration-[160ms]"
-                          aria-label="Delete notification"
-                          title="Delete"
+                          aria-label={t('notifications.deleteAria')}
+                          title={t('notifications.deleteTitle')}
                         >
                           <FiX className="w-3.5 h-3.5" />
                         </button>
@@ -223,7 +229,7 @@ export default function Notifications() {
                 onClick={loadMore}
                 className="w-full py-3 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:scale-[0.97] transition-colors duration-[160ms]"
               >
-                Load more
+                {t('notifications.loadMore')}
               </button>
             )}
           </>

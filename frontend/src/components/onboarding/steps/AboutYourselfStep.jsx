@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { FiX } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { staggerContainer, fadeRise, listRow } from '../../../utils/animations';
-import { findContactInText, CONTACT_IN_TEXT_MESSAGES } from '../../../utils/contactInText';
+import { findContactInText, contactInTextMessage } from '../../../utils/contactInText';
+import PromptsEditor from '../../profile/PromptsEditor';
 
 const INTERESTS = [
   'Reading', 'Movies', 'Travel', 'Cooking', 'Fitness',
@@ -18,6 +20,7 @@ const LANGUAGES = [
 ];
 
 const AboutYourselfStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
   const [interestInput, setInterestInput] = useState('');
   const languages = formData.languages || [];
@@ -58,14 +61,14 @@ const AboutYourselfStep = () => {
       {/* Bio */}
       <motion.div variants={fadeRise}>
         <label htmlFor="onboarding-bio" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-          About Yourself
+          {t('onboarding.about.label')}
         </label>
         <textarea
           id="onboarding-bio"
           name="bio"
           aria-describedby="onboarding-bio-count"
           aria-invalid={bioContact ? 'true' : undefined}
-          placeholder="Tell us about yourself, your values, and what makes you unique... (max 500 characters)"
+          placeholder={t('onboarding.about.placeholder')}
           value={formData.bio}
           onChange={(e) => updateFormData('bio', e.target.value.slice(0, 500))}
           maxLength={500}
@@ -79,24 +82,32 @@ const AboutYourselfStep = () => {
             {formData.bio?.length || 0}/500
           </span>
           {(formData.bio?.trim().length || 0) < 20 && (
-            <span className="text-neutral-400"> · minimum 20 characters</span>
+            <span className="text-neutral-400"> {t('onboarding.about.minChars')}</span>
           )}
         </p>
         {bioContact ? (
           <p role="alert" className="text-xs mt-1.5 text-red-600 dark:text-red-400">
-            {CONTACT_IN_TEXT_MESSAGES[bioContact]}
+            {contactInTextMessage(bioContact)}
           </p>
         ) : (
           <p className="text-xs mt-1.5 text-neutral-500 dark:text-neutral-400">
-            Please leave out phone numbers, emails, links and social handles. Members reach you through TricityMatch, and your number goes only in Settings.
+            {t('onboarding.about.noContactHint')}
           </p>
         )}
+      </motion.div>
+
+      {/* Prompts */}
+      <motion.div variants={fadeRise}>
+        <PromptsEditor
+          value={formData.profilePrompts}
+          onChange={(v) => updateFormData('profilePrompts', v)}
+        />
       </motion.div>
 
       {/* Interests */}
       <motion.div variants={fadeRise}>
         <label className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3">
-          Your Interests
+          {t('onboarding.about.interests')}
         </label>
 
         {/* Selected interests — rows that appear/disappear in place as the
@@ -119,7 +130,7 @@ const AboutYourselfStep = () => {
                   <button
                     type="button"
                     onClick={() => removeInterest(interest)}
-                    aria-label={`Remove ${interest}`}
+                    aria-label={t('onboarding.about.removeInterest', { interest })}
                     className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -m-2 rounded-full hover:text-primary-900 dark:hover:text-primary-200 transition-colors duration-[160ms]"
                   >
                     <FiX size={16} />
@@ -156,7 +167,7 @@ const AboutYourselfStep = () => {
       {/* Languages spoken */}
       <motion.div variants={fadeRise}>
         <label className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3">
-          Languages You Speak
+          {t('onboarding.about.languages')}
         </label>
         <div className="flex flex-wrap gap-2">
           {LANGUAGES.map((lang) => {
@@ -181,8 +192,8 @@ const AboutYourselfStep = () => {
       </motion.div>
 
       <motion.div variants={fadeRise} className="bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 text-sm text-neutral-600 dark:text-neutral-300">
-        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">A complete profile stands out</p>
-        <p>A great bio and interests help matches get to know you and find common ground.</p>
+        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">{t('onboarding.about.infoTitle')}</p>
+        <p>{t('onboarding.about.infoBody')}</p>
       </motion.div>
     </motion.div>
   );

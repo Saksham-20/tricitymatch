@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { useAuth } from '../context/AuthContext';
-import { OnboardingProvider, useOnboarding } from '../context/OnboardingContext';
+import { OnboardingProvider, useOnboarding, stepTitle } from '../context/OnboardingContext';
 import api from '../api/axios';
 import { buildProfileFormData } from '../utils/profileSubmit';
-import { findContactInText, CONTACT_IN_TEXT_MESSAGES } from '../utils/contactInText';
+import { findContactInText, contactInTextMessage } from '../utils/contactInText';
 import { validateAge } from '../utils/validators';
 import { minAgeFor, minAgeMessage } from '../utils/marriageableAge';
 import useUnsavedChangesGuard from '../hooks/useUnsavedChangesGuard';
@@ -41,11 +43,12 @@ import ErrorState from '../components/ui/ErrorState';
  * photo" added a new main and kept the old one.
  */
 function EditPhotosSection({ profile, onChange }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-5">
       <PhotoManager profile={profile} onChange={onChange} />
       <p className="text-sm text-neutral-600 dark:text-neutral-400">
-        Photo changes are saved straight away. You do not need to press Save for them.
+        {t('editor.photosSavedNote')}
       </p>
       <div className="bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
         <PhotoGuide />
@@ -102,11 +105,17 @@ const TEXT_FIELD_LABELS = {
   bio: 'About me', profilePrompts: 'Your prompts', fatherOccupation: "Father's occupation",
   motherOccupation: "Mother's occupation", placeOfBirth: 'Place of birth', interestTags: 'Interests',
 };
+// The field's name as shown in a refused-save message, in the current language.
+const textFieldLabel = (field) => {
+  const english = TEXT_FIELD_LABELS[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+  return i18n.t(`editor.fields.${field}`, { defaultValue: english });
+};
 const stringsOf = (v) => (typeof v === 'string' ? [v]
   : Array.isArray(v) ? v.flatMap(stringsOf)
     : v && typeof v === 'object' ? Object.values(v).flatMap(stringsOf) : []);
 
 const ModernProfileEditorContent = ({ initialProfile }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   // The member's photos as the server has them. Lives here, not in the photos
   // section, so leaving the section and coming back still shows the latest list.
@@ -134,7 +143,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
   // Photos from the last save that a reviewer must look at before they go live.
   const heldPhotosRef = useRef(0);
   const savedMessage = (base) => (heldPhotosRef.current > 0
-    ? `${base} ${heldPhotosRef.current === 1 ? 'One photo is' : `${heldPhotosRef.current} photos are`} being reviewed and will appear once approved.`
+    ? `${base} ${t('editor.photosInReview', { count: heldPhotosRef.current })}`
     : base);
   const baselineDataRef = useRef(null);
   if (baselineDataRef.current === null) baselineDataRef.current = { ...formData };
@@ -172,7 +181,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
     if (formData.weight !== '' && formData.weight != null) {
       const w = Number(formData.weight);
       if (!Number.isInteger(w) || w < 30 || w > 300) {
-        return { section: SECTION_INDEX.basic, message: 'Weight must be between 30–300 kg' };
+        return { section: SECTION_INDEX.basic, message: t('onboarding.basic.weightRange') };
       }
     }
     if (formData.dateOfBirth && !validateAge(formData.dateOfBirth, minAgeFor(formData.gender), 100)) {
@@ -184,19 +193,18 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
     for (const [field, section] of Object.entries(TEXT_FIELD_SECTIONS)) {
       const kind = stringsOf(formData[field]).map(findContactInText).find(Boolean);
       if (kind) {
-        const label = TEXT_FIELD_LABELS[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
-        return { section: SECTION_INDEX[section], message: `${label}: ${CONTACT_IN_TEXT_MESSAGES[kind]}` };
+        return { section: SECTION_INDEX[section], message: `${textFieldLabel(field)}: ${contactInTextMessage(kind)}` };
       }
     }
-    const badLink = stringsOf(formData.socialMediaLinks).some((t) => {
-      const kind = findContactInText(t);
-      return kind === 'phone' || kind === 'email' || kind === 'upi' || /(?:^|\/\/|\.)(?:wa\.me|t\.me|telegram\.me|whatsapp\.com)/i.test(t);
+    const badLink = stringsOf(formData.socialMediaLinks).some((text) => {
+      const kind = findContactInText(text);
+      return kind === 'phone' || kind === 'email' || kind === 'upi' || /(?:^|\/\/|\.)(?:wa\.me|t\.me|telegram\.me|whatsapp\.com)/i.test(text);
     });
-    if (badLink) return { section: SECTION_INDEX.social, message: 'Social connections: add profile links only, not phone numbers, emails or chat links.' };
+    if (badLink) return { section: SECTION_INDEX.social, message: t('editor.socialLinksError') };
     const min = Number(formData.preferredAgeMin);
     const max = Number(formData.preferredAgeMax);
     if (formData.preferredAgeMin && formData.preferredAgeMax && min > max) {
-      return { section: SECTION_INDEX.preferences, message: 'Minimum age cannot exceed maximum age' };
+      return { section: SECTION_INDEX.preferences, message: t('editor.ageRangeError') };
     }
     return null;
   };
@@ -232,7 +240,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
     } catch (error) {
       console.error('Error saving profile:', error.response?.data || error);
       const details = error.response?.data?.error?.details;
-      let errorMessage = error.response?.data?.message || 'Failed to update profile';
+      let errorMessage = error.response?.data?.message || t('editor.updateFailed');
       if (Array.isArray(details) && details.length > 0) {
         errorMessage = details.map((d) => d.message).join(', ');
       }
@@ -247,7 +255,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
     const ok = await saveProfile();
     if (ok) {
       setSaveSuccess(true);
-      toast.success(savedMessage('Profile updated successfully!'), { duration: heldPhotosRef.current > 0 ? 6000 : 4000 });
+      toast.success(savedMessage(t('editor.updatedSuccess')), { duration: heldPhotosRef.current > 0 ? 6000 : 4000 });
       setTimeout(() => navigate('/profile'), 2000);
     }
   };
@@ -263,7 +271,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
   const saveAndLeave = async () => {
     const dest = resolveDest(leaveTo);
     const ok = await saveProfile();
-    if (ok) { setLeaveTo(null); toast.success(savedMessage('Profile updated.'), { duration: heldPhotosRef.current > 0 ? 6000 : 4000 }); navigate(dest); }
+    if (ok) { setLeaveTo(null); toast.success(savedMessage(t('editor.updatedShort')), { duration: heldPhotosRef.current > 0 ? 6000 : 4000 }); navigate(dest); }
   };
 
   const CurrentStepComponent = stepComponents[currentStep];
@@ -273,7 +281,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
   return (
     <div className="min-h-[100dvh] flex bg-neutral-50 dark:bg-surface-dark-1 pb-16 md:pb-0">
       {/* Left Panel — LIGHT brand rail (burgundy accent, not a slab) */}
-      <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800">
+      <div className="hidden lg:flex flex-shrink-0 lg:w-[24rem] xl:w-[28rem] relative overflow-hidden bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800">
         {/* Flat Operate surface — the pastel primary-50 wash and the decorative
             bordered circle were banned decoration; burgundy stays an accent
             only (the checkmarks and the progress bar below). */}
@@ -285,25 +293,25 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
                 the heading carries its own weight). It was also gold on a
                 surface with nothing premium about it (§3.1). */}
             <h2 className="font-display text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
-              Update your profile
+              {t('editor.railTitle')}
             </h2>
             <p className="text-base text-neutral-500 mb-8">
-              Keep your profile fresh and complete to get better matches
+              {t('editor.railSubtitle')}
             </p>
 
             {/* Benefits */}
             <div className="space-y-4">
               {[
-                { t: 'More visibility', d: 'Complete profiles get more matches' },
-                { t: 'Better matches', d: 'Detailed info helps us suggest perfect matches' },
-                { t: 'Easy editing', d: 'Step through sections and save when ready' },
-              ].map(({ t, d }) => (
-                <div key={t} className="flex items-start gap-3">
+                { title: t('editor.benefitVisibility'), d: t('editor.benefitVisibilityBody') },
+                { title: t('editor.benefitMatches'), d: t('editor.benefitMatchesBody') },
+                { title: t('editor.benefitEditing'), d: t('editor.benefitEditingBody') },
+              ].map(({ title, d }) => (
+                <div key={title} className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <FiCheck className="text-primary-600 dark:text-primary-300" size={14} />
                   </div>
                   <div>
-                    <p className="text-neutral-900 dark:text-neutral-100 font-semibold">{t}</p>
+                    <p className="text-neutral-900 dark:text-neutral-100 font-semibold">{title}</p>
                     <p className="text-neutral-500 text-sm">{d}</p>
                   </div>
                 </div>
@@ -315,7 +323,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
               the editor you are, so it must not read as a completion %). */}
           <div>
             <p className="text-neutral-500 text-sm mb-2">
-              Section {currentStep + 1} of {totalSteps}
+              {t('editor.sectionOf', { current: currentStep + 1, total: totalSteps })}
             </p>
             {/* "Section X of Y" already says where you are — a % here reads as
                 profile completion, which this is not. */}
@@ -325,11 +333,11 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col">
         {/* Header */}
         <div className="bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 lg:hidden">Edit profile</h1>
+            <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 lg:hidden">{t('editor.editProfile')}</h1>
           </div>
           {/* Save is available from any step — no need to walk the whole wizard
               to change one field. Dirty-aware: nothing to save when clean.
@@ -343,7 +351,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
               className="flex items-center gap-1.5 min-h-[2.75rem]"
             >
               <FiCheck size={16} />
-              {isDirty ? 'Save' : 'Saved'}
+              {isDirty ? t('editor.save') : t('editor.saved')}
             </Button>
           )}
           {/* Shared Button (was a hand-rolled <button> with an ungated hover and
@@ -355,7 +363,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
             variant="ghost"
             size="icon"
             onClick={() => (isDirty ? setLeaveTo('/profile') : navigate('/profile'))}
-            aria-label="Close editor"
+            aria-label={t('editor.closeEditor')}
             className="w-11 h-11 p-0 text-neutral-600 dark:text-neutral-300 hover:bg-transparent hover:text-neutral-600 dark:hover:text-neutral-300 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-100 [@media(hover:hover)_and_(pointer:fine)]:hover:text-neutral-900 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-800 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:text-neutral-100"
           >
             <FiX size={24} />
@@ -366,7 +374,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
             this is the only way to reach an arbitrary section without paging). */}
         <div className="lg:hidden bg-white dark:bg-surface-dark-3 px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between mb-3 gap-3">
-            <label htmlFor="section-jump" className="sr-only">Jump to section</label>
+            <label htmlFor="section-jump" className="sr-only">{t('editor.jumpToSection')}</label>
             <select
               id="section-jump"
               value={currentStep}
@@ -374,18 +382,18 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
               className="flex-1 min-w-0 text-base font-semibold text-neutral-900 dark:text-neutral-100 bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
             >
               {visibleSteps.map((step, idx) => (
-                <option key={idx} value={idx}>{step.title}</option>
+                <option key={idx} value={idx}>{stepTitle(step, t)}</option>
               ))}
             </select>
             <span className="text-xs text-neutral-600 flex-shrink-0">
-              {currentStep + 1} of {totalSteps}
+              {t('editor.countOf', { current: currentStep + 1, total: totalSteps })}
             </span>
           </div>
           <Progress value={completionPercentage} max={100} showLabel={false} />
         </div>
 
         {/* Desktop stepper */}
-        <nav aria-label="Profile sections" className="hidden lg:flex bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto">
+        <nav aria-label={t('editor.profileSections')} className="hidden lg:flex bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto">
           {visibleSteps.map((step, idx) => (
             <motion.button
               key={idx}
@@ -413,7 +421,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
                   ? 'text-primary-600'
                   : 'text-neutral-600'
               }`}>
-                {step.title}
+                {stepTitle(step, t)}
               </span>
             </motion.button>
           ))}
@@ -431,9 +439,9 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
                 <div className="w-16 h-16 rounded-full bg-success-50 flex items-center justify-center mx-auto mb-4">
                   <FiCheck className="text-success" size={32} />
                 </div>
-                <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Profile updated</h2>
+                <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t('editor.profileUpdated')}</h2>
                 <p className="text-neutral-600">
-                  Your profile has been successfully updated.
+                  {t('editor.profileUpdatedBody')}
                 </p>
               </div>
             </motion.div>
@@ -479,12 +487,12 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
                 className="flex items-center gap-2"
               >
                 <FiArrowLeft size={18} />
-                <span className="hidden sm:inline">Previous</span>
+                <span className="hidden sm:inline">{t('editor.previous')}</span>
               </Button>
 
               <div className="text-center">
                 <p className="text-sm text-neutral-600">
-                  Step {currentStep + 1} of {totalSteps}
+                  {t('onboarding.page.stepOf', { current: currentStep + 1, total: totalSteps })}
                 </p>
               </div>
 
@@ -495,8 +503,8 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
                   className="flex items-center gap-2"
                 >
                   <FiCheck size={18} />
-                  <span className="hidden sm:inline">Save profile</span>
-                  <span className="sm:hidden">Save</span>
+                  <span className="hidden sm:inline">{t('editor.saveProfile')}</span>
+                  <span className="sm:hidden">{t('editor.save')}</span>
                 </Button>
               ) : (
                 <Button
@@ -504,8 +512,8 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
                   disabled={isLoading}
                   className="flex items-center gap-2"
                 >
-                  <span className="hidden sm:inline">Next</span>
-                  <span className="sm:hidden">Next</span>
+                  <span className="hidden sm:inline">{t('editor.next')}</span>
+                  <span className="sm:hidden">{t('editor.next')}</span>
                   <FiArrowRight size={18} />
                 </Button>
               )}
@@ -513,7 +521,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
 
             {/* Mobile save note */}
             <p className="text-xs text-neutral-500 text-center mt-4 lg:hidden">
-              Changes saved when you click Save
+              {t('editor.saveNote')}
             </p>
           </div>
         )}
@@ -540,6 +548,7 @@ const ModernProfileEditorContent = ({ initialProfile }) => {
  * the pattern shipped on Settings.jsx's DangerTab and ImageLightbox.jsx.
  */
 const ExitGuardDialog = ({ open, isLoading, onKeep, onDiscard, onSave }) => {
+  const { t } = useTranslation();
   const dialogRef = useRef(null);
   const saveBtnRef = useRef(null);
   const triggerRef = useRef(null);
@@ -600,20 +609,20 @@ const ExitGuardDialog = ({ open, isLoading, onKeep, onDiscard, onSave }) => {
           >
             <h3 id="exit-guard-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2 flex items-center gap-2">
               <FiAlertCircle className="text-warning" />
-              Unsaved changes
+              {t('editor.unsavedTitle')}
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-              You have edits that haven't been saved yet. What would you like to do?
+              {t('editor.unsavedBody')}
             </p>
             <div className="space-y-2.5">
               <Button ref={saveBtnRef} onClick={onSave} loading={isLoading} className="w-full">
-                Save &amp; leave
+                {t('editor.saveAndLeave')}
               </Button>
               <Button variant="danger" onClick={onDiscard} disabled={isLoading} className="w-full">
-                Discard changes
+                {t('editor.discard')}
               </Button>
               <Button variant="outline" onClick={onKeep} disabled={isLoading} className="w-full">
-                Keep editing
+                {t('editor.keepEditing')}
               </Button>
             </div>
           </motion.div>
@@ -626,14 +635,16 @@ const ExitGuardDialog = ({ open, isLoading, onKeep, onDiscard, onSave }) => {
 // ── Loading skeleton — matches the final layout's shape (doctrine §6), not a
 // spinner. The shape is fully known ahead of the fetch: it's always this
 // two-panel wizard shell regardless of what the profile GET returns. ─────────
-const ModernProfileEditorSkeleton = () => (
+const ModernProfileEditorSkeleton = () => {
+  const { t } = useTranslation();
+  return (
   <div
     className="min-h-[100dvh] flex bg-neutral-50 dark:bg-surface-dark-1 pb-16 md:pb-0"
     aria-busy="true"
-    aria-label="Loading your profile"
+    aria-label={t('editor.loadingProfile')}
   >
     {/* Left panel */}
-    <div className="hidden lg:flex lg:w-[24rem] xl:w-[28rem] flex-col justify-between bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800 p-10">
+    <div className="hidden lg:flex flex-shrink-0 lg:w-[24rem] xl:w-[28rem] flex-col justify-between bg-white dark:bg-surface-dark-3 border-r border-neutral-100 dark:border-neutral-800 p-10">
       <div>
         <Skeleton className="h-9 w-56 mb-3" />
         <Skeleton className="h-4 w-64 mb-8" />
@@ -656,7 +667,7 @@ const ModernProfileEditorSkeleton = () => (
     </div>
 
     {/* Right panel */}
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
       <div className="bg-white dark:bg-surface-dark-3 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex justify-between items-center gap-3">
         <Skeleton className="h-6 w-32 lg:hidden" />
@@ -700,13 +711,15 @@ const ModernProfileEditorSkeleton = () => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // Main export with context wrapper.
 // The profile is fetched BEFORE the provider mounts: OnboardingProvider seeds
 // formData from `existingProfile` in a useState initializer, so passing it
 // after mount would leave every field blank (the bug this fixes).
 const ModernProfileEditor = () => {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   // A failed fetch used to toast-and-redirect, so a member who hit it never
@@ -734,8 +747,8 @@ const ModernProfileEditor = () => {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-surface-dark-1 px-4">
         <ErrorState
-          title="Couldn't load your profile"
-          description="Something went wrong on our side or your connection dropped."
+          title={t('editor.loadErrorTitle')}
+          description={t('editor.loadErrorBody')}
           onRetry={() => setRetryKey((k) => k + 1)}
           className="max-w-md"
         />

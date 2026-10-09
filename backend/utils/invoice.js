@@ -11,6 +11,15 @@ const PDFDocument = require('pdfkit');
 const { pdfSafe } = require('./pdfText');
 const config = require('../config/env');
 
+const PLAN_LABELS = {
+  basic_premium: 'Basic',
+  premium_plus: 'Premium',
+  elite: 'Elite',
+  vip: 'VIP',
+  nri: 'NRI Connect',
+  founding_premium: 'Founding Member',
+};
+
 /**
  * Stream a PDF invoice to the HTTP response.
  * @param {import('http').ServerResponse} res
@@ -77,10 +86,10 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
   // ── Order Table Header ────────────────────────────────
   const tableTop = doc.y;
   doc.fontSize(10).fillColor(DARK)
-    .text('Description', 50, tableTop, { width: 250 })
-    .text('Plan', 310, tableTop, { width: 90 })
-    .text('Period', 400, tableTop, { width: 80 })
-    .text('Amount', 480, tableTop, { width: 65, align: 'right' });
+    .text('Description', 50, tableTop, { width: 200 })
+    .text('Plan', 260, tableTop, { width: 110 })
+    .text('Period', 380, tableTop, { width: 90 })
+    .text('Amount', 470, tableTop, { width: 75, align: 'right' });
 
   doc.moveDown(0.3);
   doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').stroke();
@@ -88,24 +97,27 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
 
   // ── Order Table Row ───────────────────────────────────
   const rowY = doc.y;
-  const planLabel = subscription.planType
-    ? subscription.planType.charAt(0).toUpperCase() + subscription.planType.slice(1)
-    : 'N/A';
-  const startDate = subscription.startDate
-    ? new Date(subscription.startDate).toLocaleDateString('en-IN')
-    : 'N/A';
-  const endDate = subscription.endDate
-    ? new Date(subscription.endDate).toLocaleDateString('en-IN')
-    : 'N/A';
-  const amountFormatted = subscription.amount
-    ? `₹${parseFloat(subscription.amount).toFixed(2)}`
-    : '₹0.00';
+  // Member-facing names, not enum keys ("Premium_plus" was printed).
+  const planLabel = PLAN_LABELS[subscription.planType]
+    || (subscription.planType ? String(subscription.planType).replace(/_/g, ' ') : 'N/A');
+  // "8 Oct 2026": a bare 8/10/2026 reads as August to some readers.
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const startDate = subscription.startDate ? fmt(subscription.startDate) : 'N/A';
+  const endDate = subscription.endDate ? fmt(subscription.endDate) : 'N/A';
+  // "Rs.", not the rupee sign: the built-in PDF font has no glyph for it and
+  // printed a stray character in its place.
+  const money = (n) => `Rs. ${Number(n || 0).toFixed(2)}`;
+  const amountFormatted = money(subscription.amount);
+  // A referral discount was applied at checkout: show the list price and the
+  // discount, so the receipt explains why the total is lower than the plan price.
+  const discountRs = Number(subscription.referral?.discountPaise || 0) / 100;
+  const subtotalFormatted = money(Number(subscription.amount || 0) + discountRs);
 
   doc.fontSize(10).fillColor(GRAY)
-    .text(`${planLabel} Subscription Plan`, 50, rowY, { width: 250 })
-    .text(planLabel, 310, rowY, { width: 90 })
-    .text(`${startDate} – ${endDate}`, 400, rowY, { width: 80 })
-    .text(amountFormatted, 480, rowY, { width: 65, align: 'right' });
+    .text(`${planLabel} Subscription Plan`, 50, rowY, { width: 200 })
+    .text(planLabel, 260, rowY, { width: 110 })
+    .text(`${startDate} – ${endDate}`, 380, rowY, { width: 90 })
+    .text(subtotalFormatted, 470, rowY, { width: 75, align: 'right' });
 
   doc.moveDown(1.5);
   doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').stroke();
@@ -113,11 +125,17 @@ const generateInvoicePDF = (res, { subscription, user, profile }) => {
 
   // ── Totals ────────────────────────────────────────────
   const totalsY = doc.y;
-  doc.fontSize(10).fillColor(GRAY).text('Subtotal', 400, totalsY);
-  doc.fontSize(10).fillColor(DARK).text(amountFormatted, 480, totalsY, { width: 65, align: 'right' });
+  doc.fontSize(10).fillColor(GRAY).text('Subtotal', 380, totalsY);
+  doc.fontSize(10).fillColor(DARK).text(subtotalFormatted, 470, totalsY, { width: 75, align: 'right' });
+  let paidY = totalsY + 20;
+  if (discountRs > 0) {
+    doc.fontSize(10).fillColor(GRAY).text(pdfSafe(`Referral discount (${subscription.referral.code || 'code'})`), 260, paidY, { width: 210, align: 'right', lineBreak: false });
+    doc.fontSize(10).fillColor(DARK).text(`- ${money(discountRs)}`, 470, paidY, { width: 75, align: 'right' });
+    paidY += 20;
+  }
 
-  doc.fontSize(11).fillColor(BURGUNDY).text('Total Paid', 400, totalsY + 20);
-  doc.fontSize(11).fillColor(BURGUNDY).text(amountFormatted, 480, totalsY + 20, { width: 65, align: 'right' });
+  doc.fontSize(11).fillColor(BURGUNDY).text('Total Paid', 380, paidY);
+  doc.fontSize(11).fillColor(BURGUNDY).text(amountFormatted, 470, paidY, { width: 75, align: 'right' });
 
   // ── Payment Reference ─────────────────────────────────
   doc.moveDown(3);

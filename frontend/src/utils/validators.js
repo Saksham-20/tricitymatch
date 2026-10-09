@@ -2,10 +2,18 @@
  * Form Validation Utilities
  * Client-side validation (backend has final authority)
  */
+import i18n from '@/i18n';
+
+// Messages are translated when they are produced, never at module load: the
+// member can switch language after this file is imported.
+const tr = (key, opts) => i18n.t(`validation.${key}`, opts);
 
 // Shared copy so the identifier (email-or-mobile) error reads identically on
 // Login and signup — the two used to drift ("phone" vs "mobile number").
+// The constant stays English for existing importers; UI code calls
+// identifierError() so the message follows the chosen language.
 export const IDENTIFIER_ERROR = 'Enter a valid email or 10-digit mobile number';
+export const identifierError = () => tr('identifier');
 
 // Email validation
 export const validateEmail = (email) => {
@@ -51,31 +59,31 @@ export const getPasswordErrors = (password) => {
   const errors = [];
   
   if (!password || typeof password !== 'string') {
-    return ['Password is required'];
+    return [tr('passwordRequired')];
   }
   
   if (password.length < 8) {
-    errors.push('At least 8 characters');
+    errors.push(tr('atLeast8'));
   }
   
   if (password.length > 128) {
-    errors.push('Maximum 128 characters');
+    errors.push(tr('max128'));
   }
   
   if (!/[A-Z]/.test(password)) {
-    errors.push('One uppercase letter');
+    errors.push(tr('oneUpper'));
   }
   
   if (!/[a-z]/.test(password)) {
-    errors.push('One lowercase letter');
+    errors.push(tr('oneLower'));
   }
   
   if (!/[0-9]/.test(password)) {
-    errors.push('One number');
+    errors.push(tr('oneNumber'));
   }
   
   if (!/[^A-Za-z0-9\s]/.test(password)) {
-    errors.push('One special character (a symbol such as ! @ # $ _ -)');
+    errors.push(tr('oneSpecial'));
   }
   
   return errors;
@@ -216,51 +224,51 @@ export const validateForm = (data, rules) => {
 
 // Common validation rules
 export const rules = {
-  required: (message = 'This field is required') => (value) => {
+  required: (message) => (value) => {
     if (!value || (typeof value === 'string' && !value.trim())) {
-      return message;
+      return message ?? tr('required');
     }
     return null;
   },
   
   minLength: (min, message) => (value) => {
     if (value && value.length < min) {
-      return message || `Minimum ${min} characters required`;
+      return message || tr('minLength', { min });
     }
     return null;
   },
   
   maxLength: (max, message) => (value) => {
     if (value && value.length > max) {
-      return message || `Maximum ${max} characters allowed`;
+      return message || tr('maxLength', { max });
     }
     return null;
   },
   
-  email: (message = 'Invalid email address') => (value) => {
+  email: (message) => (value) => {
     if (value && !validateEmail(value)) {
-      return message;
+      return message ?? tr('invalidEmail');
     }
     return null;
   },
   
-  phone: (message = 'Invalid phone number') => (value) => {
+  phone: (message) => (value) => {
     if (value && !validatePhone(value)) {
-      return message;
+      return message ?? tr('invalidPhone');
     }
     return null;
   },
   
-  password: (message = 'Password does not meet requirements') => (value) => {
+  password: (message) => (value) => {
     if (value && !validatePassword(value)) {
-      return message;
+      return message ?? tr('passwordReqs');
     }
     return null;
   },
   
   match: (fieldName, message) => (value, data) => {
     if (value !== data[fieldName]) {
-      return message || `Does not match ${fieldName}`;
+      return message || tr('noMatchField', { field: fieldName });
     }
     return null;
   },

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Segmented OTP input — auto-advance, backspace-to-previous, arrow nav, and
@@ -14,8 +15,9 @@ const OtpBoxes = ({
   disabled = false,
   error = false,
   autoFocus = false,
-  ariaLabel = 'Verification code',
+  ariaLabel,
 }) => {
+  const { t } = useTranslation();
   const refs = useRef([]);
   const chars = value.split('').slice(0, length);
   while (chars.length < length) chars.push('');
@@ -72,7 +74,7 @@ const OtpBoxes = ({
   };
 
   return (
-    <div className="flex gap-2 sm:gap-2.5" onPaste={handlePaste} role="group" aria-label={ariaLabel}>
+    <div className="flex gap-2 sm:gap-2.5" onPaste={handlePaste} role="group" aria-label={ariaLabel ?? t('signup.otpAria')}>
       {chars.map((c, i) => (
         <input
           key={i}
@@ -84,7 +86,7 @@ const OtpBoxes = ({
           maxLength={1}
           value={c}
           disabled={disabled}
-          aria-label={`Digit ${i + 1}`}
+          aria-label={t('signup.otpDigit', { n: i + 1 })}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onFocus={(e) => e.target.select()}

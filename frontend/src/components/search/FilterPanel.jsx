@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import SavedSearches from './SavedSearches';
 import { CASTE_OPTIONS, PROFESSION_GROUPS } from '../../constants/profileOptions';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -85,7 +86,20 @@ const StyledInput = ({ id, name, value, onChange, placeholder, type = 'text', mi
 );
 
 // ─── Filter content (shared between both modes) ──
+// Option values are what the server filters on and stay as they are; only the
+// text shown for each comes from the locale files.
+const MARITAL = ['never_married', 'divorced', 'widowed', 'awaiting_divorce'];
+const RELIGIONS = ['Hindu', 'Muslim', 'Sikh', 'Christian', 'Jain', 'Buddhist', 'Parsi', 'Jewish', 'Other'];
+const MOTHER_TONGUES = ['Punjabi', 'Hindi', 'English', 'Haryanvi', 'Urdu', 'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati', 'Other'];
+const MANGLIK = ['manglik_only', 'non_manglik_only', 'exclude_incompatible'];
+const EDUCATION = ['High School', 'Graduate', 'Post Graduate', 'Doctorate', 'Professional'];
+const INCOME_MIN = [200000, 500000, 1000000, 2000000, 5000000];
+const INCOME_MAX = [500000, 1000000, 2000000, 5000000];
+const DIETS = ['vegetarian', 'non-vegetarian', 'vegan', 'jain'];
+const HABITS = ['never', 'occasionally', 'regularly'];
+
 const FilterContent = ({ filters, onChange }) => {
+  const { t } = useTranslation();
   const [sections, setSections] = useState({
     basic: true,
     location: true,
@@ -115,7 +129,7 @@ const FilterContent = ({ filters, onChange }) => {
       >
         <span className="flex items-center gap-2 text-sm font-semibold">
           <FiShield className={`w-4 h-4 ${verifiedOn ? 'text-success' : 'text-primary-500'}`} />
-          Verified profiles only
+          {t('search.panel.verifiedOnly')}
         </span>
         <span
           className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors ${
@@ -131,185 +145,144 @@ const FilterContent = ({ filters, onChange }) => {
       </button>
 
       {/* Age Range */}
-      <FilterSection title="Age Range" icon={FiCalendar} sectionKey="basic" expanded={sections.basic} onToggle={toggle}>
+      <FilterSection title={t('search.panel.ageRange')} icon={FiCalendar} sectionKey="basic" expanded={sections.basic} onToggle={toggle}>
         <div className="flex items-center gap-3">
           <div className="flex-1">
-            <FieldLabel htmlFor="ageMin">Min Age</FieldLabel>
+            <FieldLabel htmlFor="ageMin">{t('search.panel.minAge')}</FieldLabel>
             <StyledInput
               id="ageMin" name="ageMin" type="number"
               value={filters.ageMin || ''} onChange={onChange}
               placeholder="21" min="18" max="99"
-              aria-label="Minimum age"
+              aria-label={t('search.panel.minAgeAria')}
             />
           </div>
-          <div className="flex-shrink-0 mt-5 text-neutral-400 text-xs font-medium">to</div>
+          <div className="flex-shrink-0 mt-5 text-neutral-400 text-xs font-medium">{t('search.panel.to')}</div>
           <div className="flex-1">
-            <FieldLabel htmlFor="ageMax">Max Age</FieldLabel>
+            <FieldLabel htmlFor="ageMax">{t('search.panel.maxAge')}</FieldLabel>
             <StyledInput
               id="ageMax" name="ageMax" type="number"
               value={filters.ageMax || ''} onChange={onChange}
               placeholder="40" min="18" max="99"
-              aria-label="Maximum age"
+              aria-label={t('search.panel.maxAgeAria')}
             />
           </div>
         </div>
       </FilterSection>
 
       {/* Location */}
-      <FilterSection title="Location" icon={FiMapPin} sectionKey="location" expanded={sections.location} onToggle={toggle}>
+      <FilterSection title={t('search.panel.location')} icon={FiMapPin} sectionKey="location" expanded={sections.location} onToggle={toggle}>
         <div>
-          <FieldLabel htmlFor="city">City</FieldLabel>
+          <FieldLabel htmlFor="city">{t('search.panel.city')}</FieldLabel>
           <StyledInput
             id="city" name="city"
             value={filters.city || ''} onChange={onChange}
-            placeholder="e.g. Chandigarh, Mohali"
-            aria-label="City or location"
+            placeholder={t('search.panel.cityPlaceholder')}
+            aria-label={t('search.panel.cityAria')}
           />
         </div>
       </FilterSection>
 
       {/* Background */}
-      <FilterSection title="Background" icon={FiHeart} sectionKey="background" expanded={sections.background} onToggle={toggle}>
+      <FilterSection title={t('search.panel.background')} icon={FiHeart} sectionKey="background" expanded={sections.background} onToggle={toggle}>
         <div className="space-y-4">
           <div>
-            <FieldLabel htmlFor="maritalStatus">Marital Status</FieldLabel>
+            <FieldLabel htmlFor="maritalStatus">{t('search.panel.maritalStatus')}</FieldLabel>
             <StyledSelect id="maritalStatus" name="maritalStatus" value={filters.maritalStatus || ''} onChange={onChange}>
-              <option value="">Any</option>
-              <option value="never_married">Never Married</option>
-              <option value="divorced">Divorced</option>
-              <option value="widowed">Widowed</option>
-              <option value="awaiting_divorce">Awaiting Divorce</option>
+              <option value="">{t('search.panel.any')}</option>
+              {MARITAL.map((v) => <option key={v} value={v}>{t(`search.options.maritalStatus.${v}`)}</option>)}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="religion">Religion</FieldLabel>
+            <FieldLabel htmlFor="religion">{t('search.panel.religion')}</FieldLabel>
             <StyledSelect id="religion" name="religion" value={filters.religion || ''} onChange={onChange}>
-              <option value="">Any</option>
-              <option value="Hindu">Hindu</option>
-              <option value="Muslim">Muslim</option>
-              <option value="Sikh">Sikh</option>
-              <option value="Christian">Christian</option>
-              <option value="Jain">Jain</option>
-              <option value="Buddhist">Buddhist</option>
-              <option value="Parsi">Parsi</option>
-              <option value="Jewish">Jewish</option>
-              <option value="Other">Other</option>
+              <option value="">{t('search.panel.any')}</option>
+              {RELIGIONS.map((v) => <option key={v} value={v}>{t(`search.options.religion.${v}`)}</option>)}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="caste">Caste / Community</FieldLabel>
+            <FieldLabel htmlFor="caste">{t('search.panel.caste')}</FieldLabel>
             <StyledSelect id="caste" name="caste" value={filters.caste || ''} onChange={onChange}>
-              <option value="">Any</option>
+              <option value="">{t('search.panel.any')}</option>
               {CASTE_OPTIONS.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="motherTongue">Mother Tongue</FieldLabel>
+            <FieldLabel htmlFor="motherTongue">{t('search.panel.motherTongue')}</FieldLabel>
             <StyledSelect id="motherTongue" name="motherTongue" value={filters.motherTongue || ''} onChange={onChange}>
-              <option value="">Any</option>
-              <option value="Punjabi">Punjabi</option>
-              <option value="Hindi">Hindi</option>
-              <option value="English">English</option>
-              <option value="Haryanvi">Haryanvi</option>
-              <option value="Urdu">Urdu</option>
-              <option value="Bengali">Bengali</option>
-              <option value="Tamil">Tamil</option>
-              <option value="Telugu">Telugu</option>
-              <option value="Marathi">Marathi</option>
-              <option value="Gujarati">Gujarati</option>
-              <option value="Other">Other</option>
+              <option value="">{t('search.panel.any')}</option>
+              {MOTHER_TONGUES.map((v) => <option key={v} value={v}>{t(`search.options.motherTongue.${v}`)}</option>)}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="manglikFilter">Manglik Preference</FieldLabel>
+            <FieldLabel htmlFor="manglikFilter">{t('search.panel.manglik')}</FieldLabel>
             <StyledSelect id="manglikFilter" name="manglikFilter" value={filters.manglikFilter || ''} onChange={onChange}>
-              <option value="">Any</option>
-              <option value="manglik_only">Manglik only</option>
-              <option value="non_manglik_only">Non-Manglik only</option>
-              <option value="exclude_incompatible">Exclude incompatible</option>
+              <option value="">{t('search.panel.any')}</option>
+              {MANGLIK.map((v) => <option key={v} value={v}>{t(`search.options.manglik.${v}`)}</option>)}
             </StyledSelect>
           </div>
         </div>
       </FilterSection>
 
       {/* Education & Career */}
-      <FilterSection title="Education & Career" icon={FiBook} sectionKey="education" expanded={sections.education} onToggle={toggle}>
+      <FilterSection title={t('search.panel.educationCareer')} icon={FiBook} sectionKey="education" expanded={sections.education} onToggle={toggle}>
         <div className="space-y-4">
           <div>
-            <FieldLabel htmlFor="education">Education Level</FieldLabel>
+            <FieldLabel htmlFor="education">{t('search.panel.educationLevel')}</FieldLabel>
             <StyledSelect id="education" name="education" value={filters.education || ''} onChange={onChange}>
-              <option value="">Any education</option>
-              <option value="High School">High School</option>
-              <option value="Graduate">Graduate</option>
-              <option value="Post Graduate">Post Graduate</option>
-              <option value="Doctorate">Doctorate</option>
-              <option value="Professional">Professional Degree</option>
+              <option value="">{t('search.panel.anyEducation')}</option>
+              {EDUCATION.map((v) => <option key={v} value={v}>{t(`search.options.education.${v}`)}</option>)}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="profession">Profession</FieldLabel>
+            <FieldLabel htmlFor="profession">{t('search.panel.profession')}</FieldLabel>
             <StyledSelect id="profession" name="profession" value={filters.profession || ''} onChange={onChange}>
-              <option value="">Any profession</option>
+              <option value="">{t('search.panel.anyProfession')}</option>
               {PROFESSION_GROUPS.map((g) => (
                 <option key={g} value={g}>{g}</option>
               ))}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="incomeMin">Min Annual Income (₹)</FieldLabel>
+            <FieldLabel htmlFor="incomeMin">{t('search.panel.minIncome')}</FieldLabel>
             <StyledSelect id="incomeMin" name="incomeMin" value={filters.incomeMin || ''} onChange={onChange}>
-              <option value="">No minimum</option>
-              <option value="200000">₹2 Lakh+</option>
-              <option value="500000">₹5 Lakh+</option>
-              <option value="1000000">₹10 Lakh+</option>
-              <option value="2000000">₹20 Lakh+</option>
-              <option value="5000000">₹50 Lakh+</option>
+              <option value="">{t('search.panel.noMinimum')}</option>
+              {INCOME_MIN.map((v) => <option key={v} value={String(v)}>{t('search.panel.lakhPlus', { n: v / 100000 })}</option>)}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="incomeMax">Max Annual Income (₹)</FieldLabel>
+            <FieldLabel htmlFor="incomeMax">{t('search.panel.maxIncome')}</FieldLabel>
             <StyledSelect id="incomeMax" name="incomeMax" value={filters.incomeMax || ''} onChange={onChange}>
-              <option value="">No maximum</option>
-              <option value="500000">₹5 Lakh or less</option>
-              <option value="1000000">₹10 Lakh or less</option>
-              <option value="2000000">₹20 Lakh or less</option>
-              <option value="5000000">₹50 Lakh or less</option>
+              <option value="">{t('search.panel.noMaximum')}</option>
+              {INCOME_MAX.map((v) => <option key={v} value={String(v)}>{t('search.panel.lakhOrLess', { n: v / 100000 })}</option>)}
             </StyledSelect>
           </div>
         </div>
       </FilterSection>
 
       {/* Lifestyle */}
-      <FilterSection title="Lifestyle" icon={FiBriefcase} sectionKey="lifestyle" expanded={sections.lifestyle} onToggle={toggle}>
+      <FilterSection title={t('search.panel.lifestyle')} icon={FiBriefcase} sectionKey="lifestyle" expanded={sections.lifestyle} onToggle={toggle}>
         <div className="space-y-4">
           <div>
-            <FieldLabel htmlFor="diet">Diet</FieldLabel>
+            <FieldLabel htmlFor="diet">{t('search.panel.diet')}</FieldLabel>
             <StyledSelect id="diet" name="diet" value={filters.diet || ''} onChange={onChange}>
-              <option value="">Any</option>
-              <option value="vegetarian">Vegetarian</option>
-              <option value="non-vegetarian">Non-Vegetarian</option>
-              <option value="vegan">Vegan</option>
-              <option value="jain">Jain</option>
+              <option value="">{t('search.panel.any')}</option>
+              {DIETS.map((v) => <option key={v} value={v}>{t(`search.options.diet.${v}`)}</option>)}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="smoking">Smoking</FieldLabel>
+            <FieldLabel htmlFor="smoking">{t('search.panel.smoking')}</FieldLabel>
             <StyledSelect id="smoking" name="smoking" value={filters.smoking || ''} onChange={onChange}>
-              <option value="">Any</option>
-              <option value="never">Never</option>
-              <option value="occasionally">Occasionally</option>
-              <option value="regularly">Regularly</option>
+              <option value="">{t('search.panel.any')}</option>
+              {HABITS.map((v) => <option key={v} value={v}>{t(`search.options.habit.${v}`)}</option>)}
             </StyledSelect>
           </div>
           <div>
-            <FieldLabel htmlFor="drinking">Drinking</FieldLabel>
+            <FieldLabel htmlFor="drinking">{t('search.panel.drinking')}</FieldLabel>
             <StyledSelect id="drinking" name="drinking" value={filters.drinking || ''} onChange={onChange}>
-              <option value="">Any</option>
-              <option value="never">Never</option>
-              <option value="occasionally">Occasionally</option>
-              <option value="regularly">Regularly</option>
+              <option value="">{t('search.panel.any')}</option>
+              {HABITS.map((v) => <option key={v} value={v}>{t(`search.options.habit.${v}`)}</option>)}
             </StyledSelect>
           </div>
         </div>
@@ -342,6 +315,7 @@ const FilterPanel = ({
   onApplySaved,
   activeCount = 0,
 }) => {
+  const { t } = useTranslation();
   const [sheetOpen, setSheetOpen] = useState(false);
   const sheetRef = useRef(null);
   const dragStartY = useRef(null);
@@ -391,7 +365,7 @@ const FilterPanel = ({
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-semibold text-neutral-800 flex items-center gap-2">
               <FiFilter className="w-4 h-4 text-primary-500" />
-              Filters
+              {t('search.panel.filters')}
               {applied > 0 && (
                 <span className="ml-1 px-2 py-0.5 bg-primary-500 text-white text-[10px] font-bold rounded-full">
                   {applied}
@@ -403,7 +377,7 @@ const FilterPanel = ({
                 onClick={handleClear}
                 className="text-xs text-neutral-400 hover:text-primary-500 transition-colors font-medium"
               >
-                Clear all
+                {t('search.panel.clearAll')}
               </button>
             )}
           </div>
@@ -418,14 +392,14 @@ const FilterPanel = ({
               className="w-full flex items-center justify-center gap-2 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-[transform,background-color] duration-[160ms] shadow-burgundy hover:-translate-y-0.5"
             >
               <FiSearch className="w-4 h-4" />
-              Apply Filters
+              {t('search.panel.applyFilters')}
             </button>
             {applied > 0 && (
               <button
                 onClick={handleClear}
                 className="w-full py-2.5 border border-neutral-200 text-neutral-600 text-sm font-medium rounded-xl hover:border-neutral-300 hover:bg-neutral-50 transition-colors duration-[160ms]"
               >
-                Clear All
+                {t('search.panel.clearAllCaps')}
               </button>
             )}
           </div>
@@ -438,11 +412,11 @@ const FilterPanel = ({
           whileTap={{ scale: 0.96 }}
           onClick={() => setSheetOpen(true)}
           className="fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-primary-500 text-white text-sm font-semibold rounded-2xl shadow-burgundy-lg"
-          aria-label="Open search filters"
+          aria-label={t('search.panel.openFilters')}
           style={{ backdropFilter: 'blur(8px)' }}
         >
           <FiFilter className="w-4 h-4" />
-          Filters
+          {t('search.panel.filters')}
           {applied > 0 && (
             <span className="w-5 h-5 bg-white text-primary-500 text-[10px] font-bold rounded-full flex items-center justify-center">
               {applied}
@@ -493,7 +467,7 @@ const FilterPanel = ({
               <div className="flex items-center justify-between px-5 pb-3 flex-shrink-0 border-b border-neutral-100">
                 <h2 className="text-base font-semibold text-neutral-800 flex items-center gap-2">
                   <FiFilter className="w-4 h-4 text-primary-500" />
-                  Search Filters
+                  {t('search.panel.searchFilters')}
                   {applied > 0 && (
                     <span className="px-2 py-0.5 bg-primary-500 text-white text-[10px] font-bold rounded-full">
                       {applied}
@@ -503,7 +477,7 @@ const FilterPanel = ({
                 <button
                   onClick={() => setSheetOpen(false)}
                   className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-neutral-100 transition-colors"
-                  aria-label="Close filters"
+                  aria-label={t('search.panel.closeFilters')}
                 >
                   <FiX className="w-4 h-4 text-neutral-600" />
                 </button>
@@ -522,10 +496,10 @@ const FilterPanel = ({
                   className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 active:bg-primary-700 transition-colors duration-[160ms] shadow-burgundy"
                 >
                   <FiCheck className="w-4 h-4" />
-                  Apply Filters
+                  {t('search.panel.applyFilters')}
                   {applied > 0 && (
                     <span className="ml-1 px-2 py-0.5 bg-white/30 text-white text-[10px] font-bold rounded-full">
-                      {applied} active
+                      {t('search.panel.nActive', { n: applied })}
                     </span>
                   )}
                 </button>
@@ -534,7 +508,7 @@ const FilterPanel = ({
                     onClick={() => { handleClear(); setSheetOpen(false); }}
                     className="w-full py-3 border border-neutral-200 text-neutral-600 text-sm font-medium rounded-xl hover:bg-neutral-50 transition-colors"
                   >
-                    Clear All Filters
+                    {t('search.panel.clearAllFilters')}
                   </button>
                 )}
               </div>

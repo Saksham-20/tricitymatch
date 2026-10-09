@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const FormField = ({
   label,
@@ -22,6 +23,7 @@ const FormField = ({
 }) => {
   // Stable id so the <label> is programmatically associated with the input
   // (clicking the label focuses the field; screen readers announce the name).
+  const { t } = useTranslation();
   const reactId = React.useId();
   const fieldId = id || name || reactId;
   const errorId = `${fieldId}-error`;
@@ -34,7 +36,7 @@ const FormField = ({
         <label htmlFor={fieldId} className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
           {label}
           {required && <span className="text-destructive ml-1">*</span>}
-          {optional && !required && <span className="ml-1.5 text-xs font-normal text-neutral-400">(optional)</span>}
+          {optional && !required && <span className="ml-1.5 text-xs font-normal text-neutral-400">{t('ui.optional')}</span>}
         </label>
       )}
       <input

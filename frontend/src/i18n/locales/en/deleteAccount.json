@@ -1,0 +1,33 @@
+{
+  "back": "← Back to home",
+  "title": "Delete your account",
+  "subtitle": "Applies to the TricityMatch website and mobile apps",
+  "intro": "You can delete your TricityMatch account at any time. Your profile is hidden straight away and everything is erased 30 days later. Until then you can sign in and cancel; after that it cannot be undone.",
+  "web": {
+    "h": "Delete from the website",
+    "i1": "Log in at <loginlink>tricitymatch.com/login</loginlink>",
+    "i2": "Go to <b>Settings</b>",
+    "i3": "Open the <b>Pause or delete</b> tab and choose <b>Delete My Account</b>",
+    "i4": "Confirm with your password (if you signed in with Google, use the email request below instead). To erase everything at once instead of after 30 days, tick <b>Delete immediately</b>",
+    "i5": "Changed your mind? Sign in and choose <b>Cancel deletion</b> on the same tab"
+  },
+  "app": {
+    "h": "Delete from the mobile app",
+    "i1": "Open the TricityMatch app and log in",
+    "i2": "Go to <b>Settings</b>",
+    "i3": "Choose <b>Delete account</b> and confirm with your password (the app schedules the deletion for 30 days later; use the website if you want it erased at once)",
+    "i4": "To keep your account, open Settings again and choose <b>Cancel account deletion</b>"
+  },
+  "cant": {
+    "h": "Can't log in?",
+    "p": "Email us at <supportmail>{{supportEmail}}</supportmail> from the email address registered to your account (or include the mobile number you signed up with) and request deletion. We will verify it is really you before deleting, and confirm once it is done."
+  },
+  "what": {
+    "h": "What gets deleted",
+    "i1": "Your profile, photos, and partner preferences",
+    "i2": "Your matches, likes, shortlists, and conversations",
+    "i3": "Your verification selfie, if you submitted one",
+    "i4": "Your contact details and notification tokens",
+    "p": "Your profile and this data are erased 30 days after you ask (or immediately if you choose that on the website) — after that it cannot be undone. Limited records (for example payment/invoice records, or data connected to a safety report) are retained where the law requires it or to prevent fraud and abuse, as described in our <privacylink>Privacy Policy</privacylink>."
+  }
+}

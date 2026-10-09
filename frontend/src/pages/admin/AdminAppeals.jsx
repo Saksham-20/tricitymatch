@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { getAppeals, decideAppeal } from '../../api/adminApi';
+import { formatDate } from '../../utils/formatDate';
 
 const TABS = ['pending', 'overturned', 'upheld'];
 
@@ -63,7 +64,7 @@ export default function AdminAppeals() {
     setBusy(true);
     try {
       await decideAppeal(open.id, { decision, note });
-      toast.success(decision === 'overturned' ? 'Appeal upheld — account restored' : 'Decision recorded');
+      toast.success(decision === 'overturned' ? 'Account restored — the member has been told' : 'Suspension kept — the member has been told');
       setOpen(null);
       setNote('');
       load();
@@ -104,7 +105,7 @@ export default function AdminAppeals() {
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-800">{a.email}</p>
               <p className="text-xs text-gray-400">
-                Account {a.User?.status || 'unknown'} · sent {new Date(a.createdAt).toLocaleDateString('en-IN')}
+                Account {a.User?.status || 'unknown'} · sent {formatDate(a.createdAt)}
               </p>
               <p className="mt-2 text-sm text-gray-600 whitespace-pre-line line-clamp-3">{a.statement}</p>
               {a.decisionNote && <p className="mt-2 text-xs text-gray-500">Decision: {a.decisionNote}</p>}

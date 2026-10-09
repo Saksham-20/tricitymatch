@@ -6,6 +6,8 @@ import {
   FiHeart, FiMapPin, FiChevronDown, FiChevronUp,
   FiArrowRight,
 } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import { DUR, EASE_OUT } from '../../utils/animations';
 
 // ─── Field definitions — mirrors backend calculateCompletion exactly ─────────
@@ -23,11 +25,12 @@ const FIELD_SECTION = {
 };
 const editLink = (id) => `/profile/edit${FIELD_SECTION[id] ? `?section=${FIELD_SECTION[id]}` : ''}`;
 
-const getFields = (p) => [
+const getFields = (p, t) => [
   // Required (35%)
   {
     id: 'firstName',
-    label: 'First name',
+    label: t('completion.fields.firstName'),
+    cta: t('completion.cta.firstName'),
     group: 'required',
     points: 7,
     done: !!(p.firstName?.trim()),
@@ -36,7 +39,8 @@ const getFields = (p) => [
   },
   {
     id: 'lastName',
-    label: 'Last name',
+    label: t('completion.fields.lastName'),
+    cta: t('completion.cta.lastName'),
     group: 'required',
     points: 7,
     done: !!(p.lastName?.trim()),
@@ -45,7 +49,8 @@ const getFields = (p) => [
   },
   {
     id: 'gender',
-    label: 'Gender',
+    label: t('completion.fields.gender'),
+    cta: t('completion.cta.gender'),
     group: 'required',
     points: 7,
     done: !!(p.gender),
@@ -54,7 +59,8 @@ const getFields = (p) => [
   },
   {
     id: 'dateOfBirth',
-    label: 'Date of birth',
+    label: t('completion.fields.dateOfBirth'),
+    cta: t('completion.cta.dateOfBirth'),
     group: 'required',
     points: 7,
     done: !!(p.dateOfBirth),
@@ -63,7 +69,8 @@ const getFields = (p) => [
   },
   {
     id: 'city',
-    label: 'City',
+    label: t('completion.fields.city'),
+    cta: t('completion.cta.city'),
     group: 'required',
     points: 7,
     done: !!(p.city?.trim()),
@@ -73,26 +80,28 @@ const getFields = (p) => [
   // Important (50%)
   {
     id: 'profilePhoto',
-    label: 'Profile photo',
+    label: t('completion.fields.profilePhoto'),
+    cta: t('completion.cta.profilePhoto'),
     group: 'important',
     points: 10,
     done: !!(p.profilePhoto),
     icon: FiCamera,
-    tip: 'A clear photo helps families recognise and trust your profile',
+    tip: t('completion.tips.profilePhoto'),
   },
   {
     id: 'bio',
-    label: 'Write about yourself',
-    cta: 'Write about yourself',
+    label: t('completion.fields.bio'),
+    cta: t('completion.cta.bio'),
     group: 'important',
     points: 8,
     done: !!(p.bio && p.bio.trim().length >= 20),
     icon: FiUser,
-    tip: 'A short bio helps matches connect with you',
+    tip: t('completion.tips.bio'),
   },
   {
     id: 'education',
-    label: 'Education',
+    label: t('completion.fields.education'),
+    cta: t('completion.cta.education'),
     group: 'important',
     points: 6,
     done: !!(p.education?.trim()),
@@ -101,7 +110,8 @@ const getFields = (p) => [
   },
   {
     id: 'profession',
-    label: 'Profession',
+    label: t('completion.fields.profession'),
+    cta: t('completion.cta.profession'),
     group: 'important',
     points: 6,
     done: !!(p.profession?.trim()),
@@ -110,7 +120,8 @@ const getFields = (p) => [
   },
   {
     id: 'height',
-    label: 'Height',
+    label: t('completion.fields.height'),
+    cta: t('completion.cta.height'),
     group: 'important',
     points: 4,
     done: !!(p.height),
@@ -119,7 +130,8 @@ const getFields = (p) => [
   },
   {
     id: 'weight',
-    label: 'Weight',
+    label: t('completion.fields.weight'),
+    cta: t('completion.cta.weight'),
     group: 'important',
     points: 4,
     done: !!(p.weight),
@@ -128,7 +140,8 @@ const getFields = (p) => [
   },
   {
     id: 'religion',
-    label: 'Religion',
+    label: t('completion.fields.religion'),
+    cta: t('completion.cta.religion'),
     group: 'important',
     points: 3,
     done: !!(p.religion?.trim()),
@@ -137,7 +150,8 @@ const getFields = (p) => [
   },
   {
     id: 'maritalStatus',
-    label: 'Marital status',
+    label: t('completion.fields.maritalStatus'),
+    cta: t('completion.cta.maritalStatus'),
     group: 'important',
     points: 2,
     done: !!(p.maritalStatus),
@@ -146,7 +160,8 @@ const getFields = (p) => [
   },
   {
     id: 'motherTongue',
-    label: 'Mother tongue',
+    label: t('completion.fields.motherTongue'),
+    cta: t('completion.cta.motherTongue'),
     group: 'important',
     points: 3,
     done: !!(p.motherTongue?.trim()),
@@ -155,20 +170,21 @@ const getFields = (p) => [
   },
   {
     id: 'lifestyle',
-    label: 'Lifestyle preferences',
+    label: t('completion.fields.lifestyle'),
+    cta: t('completion.cta.lifestyle'),
     group: 'important',
     points: 4,
     done: !!(p.diet || p.smoking || p.drinking),
     icon: FiHeart,
-    tip: 'Add diet, smoking & drinking preferences',
+    tip: t('completion.tips.lifestyle'),
   },
 ];
 
 // Total important points = 35 (required) + 50 (important) = 85
 const IMPORTANT_TOTAL = 85;
 
-export const getCompletionData = (profile = {}) => {
-  const fields = getFields(profile);
+export const getCompletionData = (profile = {}, t = i18n.t.bind(i18n)) => {
+  const fields = getFields(profile, t);
   const importantFields = fields.filter(f => f.group === 'required' || f.group === 'important');
   const pending = importantFields.filter(f => !f.done);
   const earnedImportant = importantFields.filter(f => f.done).reduce((s, f) => s + f.points, 0);
@@ -190,7 +206,8 @@ export const getCompletionData = (profile = {}) => {
 // Dashboard variant: compact banner, hidden when all important fields done
 // ─────────────────────────────────────────────────────────────────────────────
 export const DashboardCompletionBanner = ({ profile = {} }) => {
-  const { pending, allImportantDone, percent } = getCompletionData(profile);
+  const { t } = useTranslation();
+  const { pending, allImportantDone, percent } = getCompletionData(profile, t);
   const [expanded, setExpanded] = useState(false);
 
   // Hide entirely when all important fields done
@@ -255,10 +272,10 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
 
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-bold ${textColor}`}>
-            {remaining} field{remaining !== 1 ? 's' : ''} missing. Complete your profile.
+            {t('completion.fieldsMissing', { count: remaining })}
           </p>
           <p className="text-xs text-neutral-500 mt-0.5 truncate">
-            {topMissing.map(f => f.label).join(', ')}{remaining > 3 ? ` +${remaining - 3} more` : ''}
+            {topMissing.map(f => f.label).join(', ')}{remaining > 3 ? ` ${t('completion.plusMore', { count: remaining - 3 })}` : ''}
           </p>
         </div>
 
@@ -321,7 +338,7 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
                   : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
-                Complete Profile
+                {t('completion.completeProfile')}
                 <FiArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -337,7 +354,8 @@ export const DashboardCompletionBanner = ({ profile = {} }) => {
 // Renders as individual actionable cards for what's missing
 // ─────────────────────────────────────────────────────────────────────────────
 export const ProfileStrengthPanel = ({ profile = {} }) => {
-  const { pending, allImportantDone, percent } = getCompletionData(profile);
+  const { t } = useTranslation();
+  const { pending, allImportantDone, percent } = getCompletionData(profile, t);
 
   // Gold is premium-only (doctrine §3.1) — same fix as the dashboard variant
   // above: the mid tier is the semantic `warning` token, not a gold "almost
@@ -352,7 +370,7 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
   // `#F59E0B` amber instead — verified live on the actual composited
   // surfaces here, not assumed.
   const percentClass = percent >= 85 ? 'text-success' : percent >= 60 ? 'text-[#92400E] dark:text-[#f59e0b]' : 'text-primary-700';
-  const label = percent >= 85 ? 'Strong profile' : percent >= 60 ? 'Almost complete' : 'Needs attention';
+  const label = percent >= 85 ? t('completion.strong') : percent >= 60 ? t('completion.almost') : t('completion.needsAttention');
   const labelClass = percent >= 85 ? 'bg-success-50 text-success'
     : percent >= 60 ? 'bg-warning-light text-[#92400E] dark:text-[#f59e0b]'
     : 'bg-primary-50 text-primary-700';
@@ -364,8 +382,8 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
           <FiCheck className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-success">Profile complete</p>
-          <p className="text-xs text-success/80 mt-0.5">You're appearing in full search results</p>
+          <p className="text-sm font-bold text-success">{t('completion.complete')}</p>
+          <p className="text-xs text-success/80 mt-0.5">{t('completion.completeBody')}</p>
         </div>
         <span className="text-xl font-black text-success">{percent}%</span>
       </div>
@@ -382,7 +400,7 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
     <div className="bg-white rounded-2xl shadow-sm px-5 py-4">
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-neutral-800">Profile strength</span>
+          <span className="text-sm font-bold text-neutral-800">{t('completion.strength')}</span>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${labelClass}`}>{label}</span>
         </div>
         <span className={`text-lg font-black ${percentClass}`}>{percent}%</span>
@@ -407,7 +425,7 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-neutral-700 group-hover:text-primary-600 transition-colors">
-            {next.cta || `Add ${next.label.toLowerCase()}`}
+            {next.cta}
           </p>
           {next.tip && (
             <p className="text-xs text-neutral-400 mt-0.5">{next.tip}</p>
@@ -422,7 +440,7 @@ export const ProfileStrengthPanel = ({ profile = {} }) => {
       {/* Quiet summary of everything else pending — no more repeated rows. */}
       {rest.length > 0 && (
         <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-50">
-          Also missing: {rest.slice(0, 3).map(f => f.label).join(', ')}{rest.length > 3 ? ` +${rest.length - 3} more` : ''}
+          {t('completion.alsoMissing', { list: rest.slice(0, 3).map(f => f.label).join(', ') })}{rest.length > 3 ? ` ${t('completion.plusMore', { count: rest.length - 3 })}` : ''}
         </p>
       )}
     </div>

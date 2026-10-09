@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { FiVideo, FiUploadCloud, FiTrash2, FiLoader } from 'react-icons/fi';
 import { getImageUrl } from '../../utils/cloudinary';
 import { API_BASE_URL } from '../../utils/api';
@@ -14,6 +15,7 @@ const ACCEPT = 'video/mp4,video/quicktime,video/webm';
  * Calls POST/DELETE /profile/video-intro and reports the new URL via onChange.
  */
 export default function VideoIntroManager({ videoUrl, onChange }) {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const src = videoUrl ? getImageUrl(videoUrl, API_BASE_URL, 'full') : null;
@@ -23,7 +25,7 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
     e.target.value = ''; // allow re-selecting same file
     if (!file) return;
     if (file.size > MAX_BYTES) {
-      toast.error('Video must be 25MB or less (keep it under ~30s)');
+      toast.error(t('photos.video.tooBig'));
       return;
     }
     try {
@@ -34,9 +36,9 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       onChange?.(res.data?.videoIntroUrl || null);
-      toast.success('Video intro uploaded');
+      toast.success(t('photos.video.uploaded'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed');
+      toast.error(err.response?.data?.message || t('photos.video.uploadFailed'));
     } finally {
       setBusy(false);
     }
@@ -47,9 +49,9 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
       setBusy(true);
       await api.delete('/profile/video-intro');
       onChange?.(null);
-      toast.success('Video intro removed');
+      toast.success(t('photos.video.removed'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not remove video');
+      toast.error(err.response?.data?.message || t('photos.video.removeFailed'));
     } finally {
       setBusy(false);
     }
@@ -59,8 +61,8 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
     <div>
       <div className="flex items-center gap-2 mb-3">
         <FiVideo className="w-4 h-4 text-primary-400" />
-        <h3 className="text-sm font-bold text-neutral-900">Video intro</h3>
-        <span className="text-[11px] text-neutral-400">~30s · MP4/MOV/WebM · max 25MB</span>
+        <h3 className="text-sm font-bold text-neutral-900">{t('photos.video.title')}</h3>
+        <span className="text-[11px] text-neutral-400">{t('photos.video.specs')}</span>
       </div>
 
       {src ? (
@@ -79,7 +81,7 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
               disabled={busy}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
             >
-              <FiUploadCloud className="w-4 h-4" /> Replace
+              <FiUploadCloud className="w-4 h-4" /> {t('photos.video.replace')}
             </button>
             <button
               type="button"
@@ -87,7 +89,7 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
               disabled={busy}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-destructive/20 text-destructive hover:bg-destructive-light disabled:opacity-50"
             >
-              <FiTrash2 className="w-4 h-4" /> Remove
+              <FiTrash2 className="w-4 h-4" /> {t('photos.video.remove')}
             </button>
           </div>
         </div>
@@ -99,8 +101,8 @@ export default function VideoIntroManager({ videoUrl, onChange }) {
           className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-neutral-200 text-neutral-500 transition-colors duration-[160ms] [@media(hover:hover)_and_(pointer:fine)]:hover:border-primary-300 [@media(hover:hover)_and_(pointer:fine)]:hover:text-primary-500 disabled:opacity-50"
         >
           {busy ? <FiLoader className="w-6 h-6 animate-spin" /> : <FiUploadCloud className="w-6 h-6" />}
-          <span className="text-sm font-medium">{busy ? 'Uploading…' : 'Add a short video intro'}</span>
-          <span className="text-[11px] text-neutral-400">Stand out. Profiles with video get more interest.</span>
+          <span className="text-sm font-medium">{busy ? t('photos.video.uploading') : t('photos.video.add')}</span>
+          <span className="text-[11px] text-neutral-400">{t('photos.video.addHint')}</span>
         </button>
       )}
 

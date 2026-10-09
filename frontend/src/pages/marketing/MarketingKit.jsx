@@ -101,6 +101,7 @@ export default function MarketingKit() {
   const { user } = useAuth();
   const [code, setCode] = useState(undefined); // undefined = loading, null = none
   const [premium, setPremium] = useState(null);
+  const [codeDiscount, setCodeDiscount] = useState(null); // rupees off, from the live referral settings
 
   useEffect(() => {
     apiClient.get('/marketing/referral-codes?limit=50')
@@ -115,6 +116,15 @@ export default function MarketingKit() {
       })
       .catch(() => {});
   }, []);
+
+  // What the partner's code takes off right now: read live, so the kit never
+  // quotes a discount the checkout would not give.
+  useEffect(() => {
+    if (!code) { setCodeDiscount(null); return; }
+    apiClient.post('/auth/referral-check', { code })
+      .then((r) => setCodeDiscount(r.data?.valid && r.data.discountPaise > 0 ? r.data.discountPaise / 100 : null))
+      .catch(() => setCodeDiscount(null));
+  }, [code]);
 
   const link = code ? `${window.location.origin}/onboarding?ref=${code}` : '[your link]';
   const me = user?.firstName || '[Your name]';
@@ -154,6 +164,9 @@ export default function MarketingKit() {
               <li>
                 {premium.name} membership is {inr(premium.price)} for {premium.duration}{premium.unlimited ? ', with unlimited contact unlocks' : ''}. This is today's price from the website.
               </li>
+            )}
+            {codeDiscount && (
+              <li>Your code takes {inr(codeDiscount)} off their first membership (never more than 30% of the price).</li>
             )}
             <li>Members choose who can see their phone number.</li>
           </ul>

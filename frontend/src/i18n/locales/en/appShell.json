@@ -1,0 +1,14 @@
+{
+  "loading": "Loading...",
+  "loadingPage": "Loading page...",
+  "welcomeBack": "Welcome back!",
+  "accountCreated": "Account created successfully!",
+  "loggedOut": "Logged out successfully",
+  "loggedOutAll": "Logged out from all devices",
+  "dismissToast": "Click to dismiss",
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you're looking for doesn't exist or has been moved.",
+    "goHome": "Go Home"
+  }
+}

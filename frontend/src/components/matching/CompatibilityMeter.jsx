@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { formatCompatibilityScore } from '../../utils/compatibility';
 
 const CompatibilityMeter = ({ score, breakdown = null }) => {
+  // Subscribes to language changes; the label itself comes from the util.
+  useTranslation();
   const compatibility = formatCompatibilityScore(score);
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (score / 100) * circumference;

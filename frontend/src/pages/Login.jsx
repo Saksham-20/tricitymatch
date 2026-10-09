@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/common/Seo';
-import { validateEmail, IDENTIFIER_ERROR } from '../utils/validators';
+import { validateEmail, identifierError } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import SmartContactField, { detectContactType, phoneDigits } from '../components/onboarding/SmartContactField';
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiHeart, FiShield, FiArrowRight, FiClock, FiEdit2 } from 'react-icons/fi';
@@ -112,12 +112,12 @@ const Login = () => {
 
   const validateIdentifierOnBlur = () => {
     if (!identifier.trim()) return; // don't nag before they've typed anything
-    if (!idIsValid) setErrors({ identifier: IDENTIFIER_ERROR });
+    if (!idIsValid) setErrors({ identifier: identifierError() });
   };
 
   const validatePasswordOnBlur = () => {
     if (phase !== 'password' || password) return;
-    setErrors({ password: 'Password is required' });
+    setErrors({ password: t('validation.passwordRequired') });
   };
 
   const handleSubmit = async (e) => {
@@ -126,12 +126,12 @@ const Login = () => {
 
     if (phase === 'identifier') {
       if (!identifier.trim()) {
-        setErrors({ identifier: 'Email or phone is required' });
+        setErrors({ identifier: t('auth.identifierRequired') });
         shake();
         return;
       }
       if (!idIsValid) {
-        setErrors({ identifier: IDENTIFIER_ERROR });
+        setErrors({ identifier: identifierError() });
         shake();
         return;
       }
@@ -142,7 +142,7 @@ const Login = () => {
     }
 
     if (!password) {
-      setErrors({ password: 'Password is required' });
+      setErrors({ password: t('validation.passwordRequired') });
       shake();
       return;
     }
@@ -162,7 +162,7 @@ const Login = () => {
       if (result.success) {
         setTimeout(() => goAfterLogin(result.role), 100);
       } else {
-        const msg = result.error || result.message || 'Incorrect email or password. Please try again.';
+        const msg = result.error || result.message || t('auth.incorrectCredentials');
         setApiError(msg);
         if (result.locked) {
           setLockedUntil(Date.now() + LOCK_MS);
@@ -171,7 +171,7 @@ const Login = () => {
       }
     } catch (error) {
       setLoading(false);
-      setApiError('Something went wrong. Please try again.');
+      setApiError(t('auth.somethingWrong'));
     }
   };
 
@@ -204,28 +204,27 @@ const Login = () => {
           <div>
             <Logo variant="white" size="lg" linkTo="/" />
             <p className="text-xs text-white/60 mt-1 uppercase tracking-widest">
-              Chandigarh · Mohali · Panchkula
+              {t('navbar.region')}
             </p>
           </div>
 
           {/* Main copy */}
           <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
             <p className="font-display text-5xl font-bold leading-tight mb-5 text-white">
-              Your journey<br />continues here.
+              <Trans i18nKey="auth.loginRailHeadline" components={{ br: <br /> }} />
             </p>
             <p className="text-white/60 text-base leading-relaxed">
-              Tricity's own matrimonial community — verified profiles, private
-              conversations, and matches close enough to meet this week.
+              {t('auth.loginRailBody')}
             </p>
 
             {/* Stat pills */}
             <div className="flex flex-wrap gap-3 mt-8">
               {[
-                { n: 'Verified', l: 'Live selfie badge' },
-                { n: 'Local',    l: 'Tricity only' },
-                { n: 'Private',  l: 'Encrypted in transit' },
-              ].map(({ n, l }) => (
-                <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
+                { k: 'verified', n: t('auth.pillVerified'), l: t('auth.pillVerifiedSub') },
+                { k: 'local',    n: t('auth.pillLocal'),    l: t('auth.pillLocalSub') },
+                { k: 'private',  n: t('auth.pillPrivate'),  l: t('auth.pillPrivateSub') },
+              ].map(({ k, n, l }) => (
+                <div key={k} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
                   <span className="text-lg font-bold text-white leading-none">{n}</span>
                   <span className="text-[11px] text-white/65 mt-0.5">{l}</span>
                 </div>
@@ -237,12 +236,12 @@ const Login = () => {
           <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-5 text-xs text-white/60">
             <div className="flex items-center gap-1.5">
               <FiShield className="w-3.5 h-3.5" />
-              <span>SSL Secured</span>
+              <span>{t('auth.sslSecured')}</span>
             </div>
             <span className="w-px h-3 bg-white/20" />
             <div className="flex items-center gap-1.5">
               <FiHeart className="w-3.5 h-3.5" />
-              <span>100% Privacy</span>
+              <span>{t('auth.privacy100')}</span>
             </div>
           </motion.div>
         </div>
@@ -305,7 +304,7 @@ const Login = () => {
                   className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-warning/10 dark:bg-amber-950/30 border border-warning/20 dark:border-amber-900/50 text-warning dark:text-amber-300 text-sm"
                 >
                   <FiClock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Too many attempts. Please wait a few minutes, then try again.</span>
+                  <span>{t('auth.tooManyAttempts')}</span>
                 </motion.div>
               ) : apiError ? (
                 <motion.div
@@ -320,7 +319,7 @@ const Login = () => {
                     {apiError}
                     {/not active/i.test(apiError) && (
                       <>
-                        {' '}<Link to="/appeal" className="underline font-medium">Think this is a mistake? Appeal.</Link>
+                        {' '}<Link to="/appeal" className="underline font-medium">{t('auth.appealLink')}</Link>
                       </>
                     )}
                   </span>
@@ -333,7 +332,7 @@ const Login = () => {
                 <motion.div key="identifier" custom={direction} variants={stepSlide} initial="initial" animate="animate" exit="exit">
                   <SmartContactField
                     id="login-identifier"
-                    label={t('auth.emailOrPhone', 'Email or mobile number')}
+                    label={t('auth.emailOrPhone')}
                     hint=""
                     value={identifier}
                     onChange={(v) => { setIdentifier(v); if (errors.identifier) setErrors({}); if (apiError) setApiError(''); }}
@@ -350,7 +349,7 @@ const Login = () => {
                       {idType === 'phone' ? <FiPhone className="w-4 h-4" /> : <FiMail className="w-4 h-4" />}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide leading-none mb-0.5">{t('auth.signingInAs', 'Signing in as')}</p>
+                      <p className="text-[11px] text-neutral-400 dark:text-neutral-500 uppercase tracking-wide leading-none mb-0.5">{t('auth.signingInAs')}</p>
                       <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 truncate">
                         {idType === 'phone' ? `+91 ${phoneDigits(identifier)}` : identifier.trim()}
                       </p>
@@ -363,7 +362,7 @@ const Login = () => {
                       onClick={backToIdentifier}
                       className="flex items-center gap-1 py-3.5 -my-3.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 flex-shrink-0"
                     >
-                      <FiEdit2 className="w-3.5 h-3.5" /> {t('auth.change', 'Change')}
+                      <FiEdit2 className="w-3.5 h-3.5" /> {t('auth.change')}
                     </button>
                   </div>
 
@@ -401,7 +400,7 @@ const Login = () => {
                       />
                       <button
                         type="button"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
                       >
@@ -427,7 +426,7 @@ const Login = () => {
                   {mfaNeeded && (
                     <div>
                       <label htmlFor="mfa-code" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                        Authenticator code
+                        {t('auth.authenticatorCode')}
                       </label>
                       <input
                         id="mfa-code"
@@ -437,11 +436,11 @@ const Login = () => {
                         autoFocus
                         maxLength={20}
                         className="input-field dark:bg-surface-dark-2 dark:border-neutral-700"
-                        placeholder="6-digit code or a recovery code"
+                        placeholder={t('auth.mfaPlaceholder')}
                         value={mfaCode}
                         onChange={(e) => { setMfaCode(e.target.value); if (apiError) setApiError(''); }}
                       />
-                      <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">Open your authenticator app and enter the current code.</p>
+                      <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">{t('auth.mfaHint')}</p>
                     </div>
                   )}
 
@@ -475,11 +474,11 @@ const Login = () => {
               ) : isLocked ? (
                 <>
                   <FiClock className="w-5 h-5" />
-                  Please try again later
+                  {t('auth.tryLater')}
                 </>
               ) : phase === 'identifier' ? (
                 <>
-                  {t('auth.continue', 'Continue')}
+                  {t('auth.continue')}
                   <FiArrowRight className="w-5 h-5" />
                 </>
               ) : (
@@ -506,10 +505,13 @@ const Login = () => {
             )}
 
             <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center leading-relaxed">
-              By continuing, you agree to our{' '}
-              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Terms &amp; Conditions</Link>{' '}
-              and{' '}
-              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200">Privacy Policy</Link>.
+              <Trans
+                i18nKey="auth.termsNotice"
+                components={{
+                  terms: <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200" />,
+                  privacy: <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-300 underline hover:text-primary-700 dark:hover:text-primary-200" />,
+                }}
+              />
             </p>
 
             {/* Divider */}
@@ -518,7 +520,7 @@ const Login = () => {
                 <div className="w-full border-t border-neutral-200 dark:border-neutral-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">New to TricityMatch?</span>
+                <span className="px-4 bg-white dark:bg-surface-dark-3 text-neutral-600 dark:text-neutral-400">{t('auth.newTo')}</span>
               </div>
             </div>
 
@@ -539,11 +541,11 @@ const Login = () => {
           >
             <div className="flex items-center gap-1">
               <FiShield className="w-4 h-4 text-success" />
-              <span>SSL Secured</span>
+              <span>{t('auth.sslSecured')}</span>
             </div>
             <div className="flex items-center gap-1">
               <FiHeart className="w-4 h-4 text-primary-500" />
-              <span>100% Privacy</span>
+              <span>{t('auth.privacy100')}</span>
             </div>
           </motion.div>
         </motion.div>

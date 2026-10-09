@@ -199,7 +199,9 @@ export default function AdminLeads() {
     <button
       type="button"
       onClick={() => setMoving(lead)}
-      className="min-h-[44px] px-2 text-sm font-medium text-primary-700 hover:underline"
+      // `relative` anchors the sr-only name inside the scrolling table; without
+      // it the hidden span escaped and widened the whole page by ~27px.
+      className="relative min-h-[44px] px-2 text-sm font-medium text-primary-700 hover:underline"
     >
       Reassign<span className="sr-only"> {lead.name}</span>
     </button>

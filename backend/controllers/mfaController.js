@@ -35,7 +35,7 @@ const reauthenticate = async (user, password) => {
     throw createError.badRequest('Set a password on this account before enabling two-step verification');
   }
   if (!password) throw createError.badRequest('Your password is required');
-  if (!(await user.comparePassword(password))) throw createError.unauthorized('Incorrect password');
+  if (!(await user.comparePassword(password))) throw createError.unauthorized('Incorrect password', 'INVALID_PASSWORD');
 };
 
 exports.getMfaStatus = asyncHandler(async (req, res) => {
@@ -91,7 +91,7 @@ exports.disableMfa = asyncHandler(async (req, res) => {
   }
   await reauthenticate(user, req.body.password);
   const factor = await checkSecondFactor(user, req.body.code);
-  if (!factor.ok) throw createError.unauthorized('That code is not right');
+  if (!factor.ok) throw createError.unauthorized('That code is not right', 'INVALID_MFA_CODE');
 
   user.mfaSecret = null;
   user.mfaEnabledAt = null;

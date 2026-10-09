@@ -5,6 +5,7 @@ import { FiCheckCircle, FiXCircle, FiCamera, FiUser, FiX } from 'react-icons/fi'
 import { getImageUrl } from '../../utils/cloudinary';
 import { API_BASE_URL } from '../../utils/api';
 import Skeleton from '../../components/ui/Skeleton';
+import { formatDate } from '../../utils/formatDate';
 
 const TAB_OPTIONS = ['pending', 'approved', 'rejected', 'flagged', 'all'];
 
@@ -241,7 +242,7 @@ export default function AdminVerifications() {
               )}
 
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>{new Date(v.createdAt).toLocaleDateString('en-IN')}</span>
+                <span>{formatDate(v.createdAt)}</span>
                 <button
                   onClick={() => openReview(v)}
                   className="px-3 py-2.5 rounded-lg bg-primary-100 hover:bg-primary-200 text-primary-700 font-medium text-sm transition-colors"

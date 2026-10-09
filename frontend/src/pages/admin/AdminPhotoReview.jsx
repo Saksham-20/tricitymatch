@@ -5,11 +5,12 @@ import { getMediaReviews, decideMediaReview } from '../../api/adminApi';
 const SOURCES = [
   { key: 'auto', label: 'Held by screening' },
   { key: 'report', label: 'Stolen-photo reports' },
+  { key: 'admin', label: 'Flagged by staff' },
 ];
 
 // Photos a person has to look at: uploads the automated screen held back (never
-// shown to anyone until approved), and photos named in stolen-photo reports
-// (live until decided).
+// shown to anyone until approved), photos named in stolen-photo reports and
+// photos staff flagged from a member's page (both live until decided).
 export default function AdminPhotoReview() {
   const [source, setSource] = useState('auto');
   const [reviews, setReviews] = useState([]);
@@ -38,7 +39,7 @@ export default function AdminPhotoReview() {
     setBusyId(review.id);
     try {
       await decideMediaReview(review.id, { decision, note: reason });
-      toast.success(decision === 'approve' ? 'Approved' : 'Photo removed');
+      toast.success(decision === 'reject' ? 'Photo removed' : review.source === 'auto' ? 'Approved' : 'Kept on the profile');
       setRejecting(null);
       setNote('');
       setReviews((rows) => rows.filter((r) => r.id !== review.id));
@@ -85,7 +86,9 @@ export default function AdminPhotoReview() {
                   {[r.member?.firstName, r.member?.lastName].filter(Boolean).join(' ') || 'Member'}
                   {r.member?.city ? <span className="text-gray-400 font-normal"> · {r.member.city}</span> : null}
                 </p>
-                {r.labels?.length > 0 && (
+                {r.source === 'admin' ? (
+                  r.decisionNote && <p className="text-xs text-gray-500">Flagged: {r.decisionNote}</p>
+                ) : r.labels?.length > 0 && (
                   <p className="text-xs text-gray-500">{r.labels.join(', ').replace(/_/g, ' ')}</p>
                 )}
                 {rejecting === r.id ? (

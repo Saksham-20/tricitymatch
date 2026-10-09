@@ -41,7 +41,7 @@ const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1).r
  * }} data
  */
 const generateKundliPDF = (res, data) => {
-  const { myProfile, theirProfile, ashtakoot, manglikCompatible, manglikDetail, rashiScore, numerology, summary } = data;
+  const { myProfile, theirProfile, ashtakoot, manglikCompatible, manglikKnown, manglikDetail, rashiScore, numerology, summary } = data;
   const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
   res.setHeader('Content-Type', 'application/pdf');
@@ -129,7 +129,7 @@ const generateKundliPDF = (res, data) => {
     if (ashtakoot.hasBhakootDosha) doshas.push('Bhakoot Dosha present');
     if (ashtakoot.hasGanaDosha) doshas.push('Gana Dosha present');
     if (doshas.length) {
-      doc.fontSize(10).fillColor(RED).text(`⚠ ${doshas.join(' · ')}`, 50, y, { width: 495 });
+      doc.fontSize(10).fillColor(RED).text(`Doshas: ${doshas.join(' · ')}`, 50, y, { width: 495 });
       y += 18;
     }
   } else if (rashiScore !== null && rashiScore !== undefined) {
@@ -151,8 +151,12 @@ const generateKundliPDF = (res, data) => {
   // ── Manglik ───────────────────────────────────────────
   doc.fontSize(12).fillColor(BURGUNDY).text('Manglik (Mangal Dosha)', 50, y);
   y += 20;
-  doc.fontSize(10).fillColor(manglikCompatible ? GREEN : RED)
-    .text(manglikCompatible ? '✓ Compatible' : '⚠ Needs consideration', 50, y);
+  // Plain words: the built-in PDF font has no check/warning glyphs (they printed
+  // as a stray quote). Unknown status is neither good nor bad news.
+  const manglikVerdict = manglikKnown === false
+    ? { color: GRAY, text: 'Not known' }
+    : manglikCompatible ? { color: GREEN, text: 'Compatible' } : { color: RED, text: 'Needs consideration' };
+  doc.fontSize(10).fillColor(manglikVerdict.color).text(manglikVerdict.text, 50, y);
   doc.fontSize(10).fillColor(GRAY).text(manglikDetail || '—', 200, y, { width: 345 });
   y += 28;
 

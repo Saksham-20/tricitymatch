@@ -1,0 +1,24 @@
+{
+  "title": "Get to know me",
+  "optional": "(optional)",
+  "intro": "Answer up to {{max}} questions. They show on your profile under “Get to know me”.",
+  "questionN": "Question {{n}}",
+  "removeQuestionN": "Remove question {{n}}",
+  "answerTo": "Your answer to: {{prompt}}",
+  "answerPlaceholder": "Your answer",
+  "emptyNotSaved": "An empty answer is not saved.",
+  "addAnother": "Add another question",
+  "addFirst": "Add a question",
+  "questions": {
+    "q1": "What my family means to me",
+    "q2": "My idea of a perfect Sunday",
+    "q3": "What I value most in a partner",
+    "q4": "A tradition I want to carry forward",
+    "q5": "The best advice my parents gave me",
+    "q6": "What makes me feel at home",
+    "q7": "Something I am working towards",
+    "q8": "How my friends would describe me",
+    "q9": "A small thing that makes me happy",
+    "q10": "What marriage means to me"
+  }
+}

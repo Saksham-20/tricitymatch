@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { google as googleConfig } from '../../config';
@@ -28,6 +29,7 @@ const errorText = (err, fallback) =>
  */
 const GoogleSignIn = ({ text = 'continue_with', referralCode, invite, onSuccess }) => {
   const { startSession } = useAuth();
+  const { t } = useTranslation();
   const buttonRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -65,14 +67,14 @@ const GoogleSignIn = ({ text = 'continue_with', referralCode, invite, onSuccess 
         // Google's token lasts about an hour; a long pause on the consent step
         // outlives it.
         setPending(null);
-        setError('That Google sign-in has expired. Please choose your Google account again.');
+        setError(t('signup.googleExpired'));
       } else {
-        setError(errorText(err, 'Google sign-in failed. Please try again.'));
+        setError(errorText(err, t('signup.googleFailed')));
       }
     } finally {
       setBusy(false);
     }
-  }, [finish]);
+  }, [finish, t]);
 
   useEffect(() => {
     if (!googleConfig.isConfigured) return undefined;
@@ -96,15 +98,15 @@ const GoogleSignIn = ({ text = 'continue_with', referralCode, invite, onSuccess 
           logo_alignment: 'center',
         });
       })
-      .catch(() => { if (!cancelled) setError('Google sign-in could not load. Use your email or mobile number instead.'); });
+      .catch(() => { if (!cancelled) setError(t('signup.googleLoadFailed')); });
     return () => { cancelled = true; };
-  }, [submit, text]);
+  }, [submit, text, t]);
 
   if (!googleConfig.isConfigured) return null;
 
   const createAccount = () => {
     if (!agree) {
-      setAgreeError('Please accept the Terms and Privacy Policy to create your account');
+      setAgreeError(t('signup.acceptTermsToCreate'));
       return;
     }
     submit(pending.credential, { marketing });
@@ -121,18 +123,18 @@ const GoogleSignIn = ({ text = 'continue_with', referralCode, invite, onSuccess 
       {pending && (
         <div className="space-y-4 rounded-2xl border-2 border-primary-200 dark:border-primary-900 p-4 sm:p-5" role="group" aria-labelledby="google-consent-title">
           <div>
-            <p id="google-consent-title" className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Create your account with Google</p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">There is no TricityMatch account for this Google account yet. Please read and agree before we create one.</p>
+            <p id="google-consent-title" className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{t('signup.googleConsentTitle')}</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{t('signup.googleConsentBody')}</p>
           </div>
           <ConsentNotice />
           <TermsCheckbox checked={agree} onChange={(v) => { setAgree(v); if (v) setAgreeError(''); }} error={agreeError} />
           <MarketingCheckbox checked={marketing} onChange={setMarketing} />
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
             <button type="button" onClick={() => { setPending(null); setAgree(false); setAgreeError(''); }} className="btn-secondary text-sm" disabled={busy}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="button" onClick={createAccount} className="btn-primary text-sm" disabled={busy}>
-              {busy ? 'Creating your account…' : 'Create my account'}
+              {busy ? t('signup.creatingAccount') : t('signup.createMyAccount')}
             </button>
           </div>
         </div>

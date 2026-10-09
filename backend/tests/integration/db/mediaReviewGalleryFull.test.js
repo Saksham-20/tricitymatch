@@ -38,6 +38,24 @@ describeDb('media review decisions', (t) => {
     expect(res.statusCode).toBe(200);
     expect((await Profile.findOne({ where: { userId: m.user.id } })).photos).toContain('https://res.example/held2.jpg');
   });
+
+  t('staff flags: listed under source=admin, and "keep" sends the member nothing', async () => {
+    const { decideMediaReview, listMediaReviews } = require('../../../controllers/mediaReviewController');
+    const { MediaReview } = require('../../../models');
+    const { notify } = require('../../../utils/notifyUser');
+    notify.mockClear();
+    const m = await makeMember({ profile: { photos: full.slice(0, 2), profilePhoto: full[0] } });
+    ids.push(m.user.id);
+    const review = await MediaReview.create({ userId: m.user.id, url: full[1], source: 'admin', labels: ['admin_flag'], decisionNote: 'not the member' });
+
+    const list = await call(listMediaReviews, { user: { id: m.user.id, role: 'admin' }, query: { status: 'pending', source: 'admin' } });
+    expect(list.body.reviews.map((r) => r.id)).toContain(review.id);
+    expect(list.body.reviews.every((r) => r.source === 'admin')).toBe(true);
+
+    const res = await call(decideMediaReview, { user: { id: m.user.id, role: 'admin' }, params: { id: review.id }, body: { decision: 'approve' } });
+    expect(res.statusCode).toBe(200);
+    expect(notify).not.toHaveBeenCalled();
+  });
 });
 
 describeDb('media review decisions: verified badge', (t) => {

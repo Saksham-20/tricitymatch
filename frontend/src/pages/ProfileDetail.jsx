@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
+import { keptLikeMessage } from '../utils/matchCopy';
 import {
   FiHeart, FiStar, FiInstagram, FiLinkedin, FiFacebook, FiTwitter,
   FiMusic, FiLock, FiCheck, FiMapPin, FiCalendar, FiBook, FiBriefcase,
@@ -15,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCall } from '../context/CallContext';
 import { useMatchCelebration } from '../context/MatchCelebrationContext';
 import { agora as agoraConfig } from '../config';
+import { formatLeadPhone } from '../utils/leadContact';
 import { API_BASE_URL } from '../utils/api';
 import { getImageUrl } from '../utils/cloudinary';
 import { sanitizeText, sanitizeUrl } from '../utils/sanitize';
@@ -28,6 +31,7 @@ import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 import RetryImage from '../components/ui/RetryImage';
 import { ErrorState, Skeleton } from '../components/ui';
 import { pageFade, EASE_OUT } from '../utils/animations';
+import { promptLabel } from '../constants/profilePrompts';
 
 // Pointer-gated hover — touch fires a false hover on tap that would otherwise
 // leave a control stuck lifted after the finger lifts (doctrine §4.7).
@@ -35,6 +39,7 @@ const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
 const CompatRing = ({ score }) => {
+  const { t } = useTranslation();
   const size = 88;
   const sw = 5;
   const r = (size - sw * 2) / 2;
@@ -72,23 +77,23 @@ const CompatRing = ({ score }) => {
         </svg>
         <div className={`absolute inset-0 flex flex-col items-center justify-center ${bgClass} rounded-full m-1`}>
           <span className={`text-lg font-bold leading-none ${colorClass}`}>{score}%</span>
-          <span className="text-[0.6875rem] text-neutral-400 dark:text-neutral-500 mt-0.5 font-medium uppercase tracking-wide">match</span>
+          <span className="text-[0.6875rem] text-neutral-400 dark:text-neutral-500 mt-0.5 font-medium uppercase tracking-wide">{t('profileView.match')}</span>
         </div>
       </div>
-      <p className="text-[0.6875rem] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Compatibility</p>
+      <p className="text-[0.6875rem] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">{t('profileView.compatibility')}</p>
     </div>
   );
 };
 
 // ─── Info Pill ───────────────────────────────────────────────────────────────
-const Pill = ({ icon: Icon, label, value }) => {
+const Pill = ({ icon: Icon, label, value, raw = false }) => {
   if (!value) return null;
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-neutral-50 dark:bg-surface-dark-2 rounded-xl border border-neutral-100 dark:border-neutral-800">
       {Icon && <Icon className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />}
       <div className="min-w-0">
         <p className="text-[0.625rem] text-neutral-500 dark:text-neutral-400 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
-        <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200 capitalize truncate">{value}</p>
+        <p className={`text-xs font-semibold text-neutral-700 dark:text-neutral-200 truncate ${raw ? '' : 'capitalize'}`}>{value}</p>
       </div>
     </div>
   );
@@ -121,8 +126,10 @@ const DetailRow = ({ label, value }) => {
 };
 
 // ─── Loading skeleton — matches the final layout's shape (doctrine §6) ───────
-const ProfileDetailSkeleton = () => (
-  <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-28 md:pb-12" aria-busy="true" aria-label="Loading profile">
+const ProfileDetailSkeleton = () => {
+  const { t } = useTranslation();
+  return (
+  <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-28 md:pb-12" aria-busy="true" aria-label={t('profileView.loadingProfile')}>
     <div className="sticky top-0 z-30 bg-white/95 dark:bg-surface-dark-3/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Skeleton className="h-4 w-16" />
@@ -173,10 +180,12 @@ const ProfileDetailSkeleton = () => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 const ProfileDetail = () => {
+  const { t } = useTranslation();
   const { celebrate } = useMatchCelebration();
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -209,6 +218,8 @@ const ProfileDetail = () => {
   // hides real outages behind wrong copy and no retry (doctrine §6: a failed
   // fetch never renders the same as an empty/absent result).
   const [loadError, setLoadError] = useState(false);
+  // Chat needs a mutual match; Message opens that thread, or explains why not.
+  const [isMutual, setIsMutual] = useState(false);
 
   useEffect(() => { loadProfile(); }, [userId]);
 
@@ -230,6 +241,7 @@ const ProfileDetail = () => {
       setSameGotra(Boolean(res.data.sameGotra));
       setIsLiked(res.data.isLiked || false);
       setIsShortlisted(res.data.isShortlisted || false);
+      setIsMutual(res.data.isMutual === true);
       if (res.data.isContactUnlocked && res.data.contactShare?.allowed !== false && res.data.profile?.User) {
         setUnlockedContact({
           phone: res.data.profile.User.phone,
@@ -261,39 +273,48 @@ const ProfileDetail = () => {
   };
 
   const handleMessage = () => {
+    // A mutual match opens the thread itself: /chat decides what the member can
+    // send there (paid, or the free reply window), and offers the upgrade if not.
+    if (isMutual) {
+      navigate(`/chat?to=${userId}`);
+      return;
+    }
     if (!premiumAccess) {
-      setUpgradeFeature('Messaging');
+      setUpgradeFeature(t('profileView.features.messaging'));
       setShowUpgradeModal(true);
       return;
     }
-    navigate('/chat');
+    // Paid but not matched: /chat would only show an empty list.
+    toast(isLiked
+      ? t('profileView.toast.chatAfterLikeBack')
+      : t('profileView.toast.chatAfterMutual'));
   };
 
   const handleCall = (type) => {
     if (!premiumAccess) {
-      setUpgradeFeature(type === 'video' ? 'Video Calls' : 'Voice Calls');
+      setUpgradeFeature(type === 'video' ? t('profileView.features.videoCalls') : t('profileView.features.voiceCalls'));
       setShowUpgradeModal(true);
       return;
     }
     if (!agoraConfig.isConfigured) {
-      toast.error('Calling is not available right now.');
+      toast.error(t('profileView.toast.callingUnavailable'));
       return;
     }
     startCall(
-      { id: userId, name: profile?.firstName ? `${profile.firstName} ${profile.lastName || ''}`.trim() : 'Member', photo: profile?.profilePhoto || null },
+      { id: userId, name: profile?.firstName ? `${profile.firstName} ${profile.lastName || ''}`.trim() : t('profileView.member'), photo: profile?.profilePhoto || null },
       type
     );
   };
 
   const handleUnlockContact = async () => {
     if (!premiumAccess) {
-      setUpgradeFeature('View Contact Details');
+      setUpgradeFeature(t('profileView.features.viewContact'));
       setShowUpgradeModal(true);
       return;
     }
     // Depleted finite plan (0 left) — go straight to upgrade, skip the doomed 403.
     if (contactUnlocksRemaining === 0) {
-      setUpgradeFeature('More Contact Unlocks');
+      setUpgradeFeature(t('profileView.features.moreUnlocks'));
       setShowUpgradeModal(true);
       return;
     }
@@ -305,26 +326,27 @@ const ProfileDetail = () => {
       if (res.data.contactUnlocksRemaining !== undefined) {
         setContactUnlocksRemaining(res.data.contactUnlocksRemaining);
       }
-      toast.success(res.data.alreadyUnlocked ? 'Contact already unlocked' : 'Contact unlocked');
+      toast.success(res.data.alreadyUnlocked ? t('profileView.toast.contactAlreadyUnlocked') : t('profileView.toast.contactUnlocked'));
     } catch (err) {
       const code = err.response?.data?.error?.code;
       if (code === 'CONTACT_UNLOCK_LIMIT_REACHED') {
-        toast.error('No unlocks remaining. Upgrade your plan!');
-        setUpgradeFeature('More Contact Unlocks');
+        toast.error(t('profileView.toast.noUnlocksLeft'));
+        setUpgradeFeature(t('profileView.features.moreUnlocks'));
         setShowUpgradeModal(true);
       } else if (code === 'PREMIUM_REQUIRED') {
-        setUpgradeFeature('View Contact Details');
+        setUpgradeFeature(t('profileView.features.viewContact'));
         setShowUpgradeModal(true);
       } else if (code === 'CONTACT_NOT_SHARED' || code === 'CONTACT_MATCHES_ONLY') {
         // The owner's setting changed since this page loaded. Nothing was spent.
         setContactShare({ level: code === 'CONTACT_NOT_SHARED' ? 'hidden' : 'matches', allowed: false });
         setIsContactUnlocked(false);
         setUnlockedContact(null);
-        toast.error(err.response?.data?.error?.message || 'This member is not sharing contact details.');
+        toast.error(err.response?.data?.error?.message || t('profileView.toast.notSharingContact'));
       } else if (err.response?.status === 409) {
-        toast.error(err.response?.data?.error?.message || 'This member has not verified a number yet.');
+        setContactShare((cs) => ({ ...cs, available: false }));
+        toast.error(err.response?.data?.error?.message || t('profileView.toast.noVerifiedNumber'));
       } else {
-        toast.error('Failed to unlock contact');
+        toast.error(t('profileView.toast.unlockFailed'));
       }
     } finally {
       setUnlockLoading(false);
@@ -333,7 +355,7 @@ const ProfileDetail = () => {
 
   const handleDownloadKundli = async () => {
     if (!premiumAccess) {
-      setUpgradeFeature('Kundli Report');
+      setUpgradeFeature(t('profileView.features.kundliReport'));
       setShowUpgradeModal(true);
       return;
     }
@@ -351,10 +373,10 @@ const ProfileDetail = () => {
     } catch (err) {
       const code = err.response?.data?.error?.code;
       if (code === 'PREMIUM_REQUIRED') {
-        setUpgradeFeature('Kundli Report');
+        setUpgradeFeature(t('profileView.features.kundliReport'));
         setShowUpgradeModal(true);
       } else {
-        toast.error('Failed to generate Kundli report');
+        toast.error(t('profileView.toast.kundliFailed'));
       }
     } finally {
       setKundliLoading(false);
@@ -375,10 +397,10 @@ const ProfileDetail = () => {
         celebrate(profile);
         loadProfile({ quiet: true });
       } else {
-        toast.success('Like sent');
+        toast.success(t('profileView.toast.likeSent'));
       }
     } catch {
-      toast.error('Failed to send like');
+      toast.error(t('profileView.toast.likeFailed'));
       throw new Error('like failed');
     }
   };
@@ -390,25 +412,31 @@ const ProfileDetail = () => {
       // "keep it shortlisted", so the screen said "Removed" and nothing changed.
       const sending = action === 'shortlist' && isShortlisted ? 'undo' : action;
       const res = await api.post(`/match/${userId}`, { action: sending });
+      if (res.data?.keptLike) {
+        toast(keptLikeMessage(res.data));
+        return false;
+      }
       if (action === 'like') {
         setIsLiked(true);
+        // One state per pair on the server: an interest replaces a save.
+        setIsShortlisted(false);
         if (res.data?.newMatch) {
           // It's a match: celebrate once, and refresh so the message CTA and the
           // photos withheld until a match appear without a reload.
           celebrate(profile);
           loadProfile({ quiet: true });
         } else {
-          toast.success('Interest expressed');
+          toast.success(t('profileView.toast.interestExpressed'));
         }
       } else if (action === 'shortlist') {
         setIsShortlisted(!isShortlisted);
-        toast.success(isShortlisted ? 'Removed from shortlist' : 'Saved to shortlist');
+        toast.success(isShortlisted ? t('profileView.toast.removedFromShortlist') : t('profileView.toast.savedToShortlist'));
       }
       // Report the confirmed outcome so callers (the mobile FloatingActionBar)
       // can roll back their optimistic state instead of showing a false success.
       return true;
     } catch {
-      toast.error('Failed to perform action');
+      toast.error(t('profileView.toast.actionFailed'));
       return false;
     }
   };
@@ -423,8 +451,8 @@ const ProfileDetail = () => {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 dark:bg-surface-dark-1 px-4">
         <ErrorState
-          title="Couldn't load this profile"
-          description="Something went wrong on our side or your connection dropped."
+          title={t('profileView.loadErrorTitle')}
+          description={t('profileView.loadErrorDesc')}
           onRetry={loadProfile}
           className="max-w-md"
         />
@@ -439,16 +467,16 @@ const ProfileDetail = () => {
           <div className="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mx-auto mb-4">
             <FiUser className="w-8 h-8 text-primary-300" />
           </div>
-          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Profile not found</h2>
+          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">{t('profileView.notFound')}</h2>
           <Link to="/search" className="text-primary-500 hover:text-primary-700 font-semibold text-sm transition-colors">
-            ← Back to search
+            {t('profileView.backToSearch')}
           </Link>
         </div>
       </div>
     );
   }
 
-  const firstName = profile.firstName || 'Profile';
+  const firstName = profile.firstName || t('profileView.profileFallback');
   const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   const age = profile.dateOfBirth
     ? Math.floor((Date.now() - new Date(profile.dateOfBirth)) / (365.25 * 24 * 60 * 60 * 1000))
@@ -456,6 +484,12 @@ const ProfileDetail = () => {
   // getProfile now attaches `isVerified` directly (the old
   // profile.User.Verification.status was never populated → badge never showed).
   const isVerified = profile.isVerified || profile.User?.Verification?.status === 'approved';
+  const hasFamilyPills = Boolean(profile.familyType || profile.familyStatus || profile.numberOfSiblings > 0
+    || profile.brothers != null || profile.sisters != null || profile.familyValues || profile.numberOfChildren > 0);
+  const hasFamilyRows = Boolean(profile.fatherOccupation || profile.motherOccupation || profile.caste
+    || profile.subCaste || profile.gotra);
+  const hasFamilyBackground = hasFamilyPills || hasFamilyRows;
+
   const allPhotos = profile.profilePhoto
     ? [profile.profilePhoto, ...(profile.photos || []).filter(p => p !== profile.profilePhoto)]
     : (profile.photos || []);
@@ -489,10 +523,10 @@ const ProfileDetail = () => {
   const canUnlockContact = premiumAccess && contactUnlocksRemaining !== 0;
 
   const tabs = [
-    { id: 'about', label: 'About' },
-    { id: 'lifestyle', label: 'Lifestyle' },
-    { id: 'family', label: 'Family' },
-    { id: 'preferences', label: 'Looking For' },
+    { id: 'about', label: t('profileView.tabs.about') },
+    { id: 'lifestyle', label: t('profileView.tabs.lifestyle') },
+    { id: 'family', label: t('profileView.tabs.family') },
+    { id: 'preferences', label: t('profileView.tabs.preferences') },
   ];
 
   const profilePrompts = profile.profilePrompts
@@ -514,7 +548,7 @@ const ProfileDetail = () => {
               className="flex items-center gap-1.5 text-sm font-semibold text-neutral-500 hover:text-primary-500 transition-colors cursor-pointer"
             >
               <FiChevronLeft className="w-4 h-4" />
-              Back
+              {t('common.back')}
             </button>
             <div className="hidden md:flex items-center gap-2">
               {/* Save lives only here. Express Interest is NOT duplicated in the
@@ -525,7 +559,7 @@ const ProfileDetail = () => {
                 className={`flex items-center gap-1.5 h-11 px-3.5 rounded-xl text-sm font-semibold transition-colors duration-[160ms] cursor-pointer ${isShortlisted ? 'bg-neutral-800 text-white border border-neutral-800' : 'border border-neutral-200 text-neutral-600 hover:border-neutral-400 hover:text-neutral-800'}`}
               >
                 <FiStar className="w-3.5 h-3.5" />
-                {isShortlisted ? 'Saved' : 'Save'}
+                {isShortlisted ? t('profileView.saved') : t('profileView.save')}
               </button>
             </div>
           </div>
@@ -563,7 +597,7 @@ const ProfileDetail = () => {
                       <button
                         type="button"
                         onClick={() => setLightbox({ open: true, index: i })}
-                        aria-label={`View ${firstName}'s photo ${i + 1}`}
+                        aria-label={t('profileView.viewPhoto', { name: firstName, n: i + 1 })}
                         className="absolute inset-0 w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-inset cursor-pointer"
                       />
                       {isOverlay && (
@@ -578,7 +612,7 @@ const ProfileDetail = () => {
                       {!isOverlay && (
                         <button
                           type="button"
-                          aria-label="Like this photo with a note"
+                          aria-label={t('profileView.likePhotoNote')}
                           onClick={() => setLikeNoteTarget({ type: 'photo', photoUrl: photo })}
                           className="absolute top-2 right-2 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full bg-black/35 hover:bg-black/55 text-white transition-colors duration-[160ms]"
                         >
@@ -599,7 +633,7 @@ const ProfileDetail = () => {
                 <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0 ring-1 ring-primary-500/15">
                   <span className="text-2xl font-display font-semibold text-primary-700 dark:text-primary-300 select-none">{firstName[0]}</span>
                 </div>
-                <p className="text-xs text-neutral-400 dark:text-neutral-500">No photos added yet</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-500">{t('profileView.noPhotos')}</p>
               </div>
             )}
 
@@ -616,13 +650,13 @@ const ProfileDetail = () => {
                     {isVerified && (
                       <div className="flex items-center gap-1 px-2.5 py-1 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-full">
                         <FiShield className="w-3 h-3 text-success dark:text-green-400" />
-                        <span className="text-[0.6875rem] font-bold text-success dark:text-green-400">Verified</span>
+                        <span className="text-[0.6875rem] font-bold text-success dark:text-green-400">{t('profileView.verified')}</span>
                       </div>
                     )}
                     {profile.isPremium && (
                       <div className="flex items-center gap-1 px-2.5 py-1 bg-gold-50 border border-gold-200 dark:border-gold-700 rounded-full">
                         <FaCrown className="w-3 h-3 text-gold-500 dark:text-gold-400" />
-                        <span className="text-[0.6875rem] font-bold text-gold-700">Premium</span>
+                        <span className="text-[0.6875rem] font-bold text-gold-700">{t('profileView.premium')}</span>
                       </div>
                     )}
                     {/* Report / Block — never on your own profile. Blocking leaves
@@ -666,12 +700,12 @@ const ProfileDetail = () => {
 
                   {/* Quick pills */}
                   <div className="flex flex-wrap gap-2">
-                    {profile.height && <Pill icon={FiUser} label="Height" value={formatHeight(profile.height)} />}
-                    {profile.religion && <Pill icon={FiSun} label="Religion" value={profile.religion} />}
-                    {profile.maritalStatus && <Pill icon={FiHeartOutline} label="Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
-                    {profile.motherTongue && <Pill label="Mother Tongue" value={profile.motherTongue} />}
-                    {profile.diet && <Pill label="Diet" value={formatEnum(profile.diet)} />}
-                    {profile.personalityType && <Pill label="Personality" value={profile.personalityType} />}
+                    {profile.height && <Pill icon={FiUser} label={t('profileView.fields.height')} value={formatHeight(profile.height)} raw />}
+                    {profile.religion && <Pill icon={FiSun} label={t('profileView.fields.religion')} value={profile.religion} />}
+                    {profile.maritalStatus && <Pill icon={FiHeartOutline} label={t('profileView.fields.status')} value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
+                    {profile.motherTongue && <Pill label={t('profileView.fields.motherTongue')} value={profile.motherTongue} />}
+                    {profile.diet && <Pill label={t('profileView.fields.diet')} value={formatEnum(profile.diet)} />}
+                    {profile.personalityType && <Pill label={t('profileView.fields.personality')} value={profile.personalityType} />}
                   </div>
                 </div>
 
@@ -687,13 +721,13 @@ const ProfileDetail = () => {
                         disabled={isLiked}
                         className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success dark:text-green-400 border border-success-100 dark:border-success-500/30' : `bg-primary-500 text-white hover:bg-primary-600 shadow-sm ${HOVER}:-translate-y-0.5`}`}
                       >
-                        {isLiked ? <><FiCheck className="w-4 h-4" /> Interested</> : <><FiHeart className="w-4 h-4" /> Express Interest</>}
+                        {isLiked ? <><FiCheck className="w-4 h-4" /> {t('profileView.interested')}</> : <><FiHeart className="w-4 h-4" /> {t('profileView.expressInterest')}</>}
                       </button>
                       <button
                         onClick={handleMessage}
                         className={`flex items-center justify-center gap-1.5 h-11 text-sm font-semibold rounded-xl transition-colors duration-[160ms] cursor-pointer ${premiumAccess ? 'border border-neutral-200 text-neutral-600 hover:bg-neutral-50' : 'border border-gold-200 dark:border-gold-700 bg-gold-50 text-gold-700 hover:bg-gold-100 dark:hover:bg-gold-900/20'}`}
                       >
-                        {premiumAccess ? <FiMessageCircle className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {premiumAccess ? 'Message' : 'Message (Premium)'}
+                        {premiumAccess ? <FiMessageCircle className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {premiumAccess ? t('profileView.message') : t('profileView.messagePremium')}
                       </button>
                     </div>
                     {agoraConfig.isConfigured && (
@@ -702,13 +736,13 @@ const ProfileDetail = () => {
                           onClick={() => handleCall('voice')}
                           className="flex items-center justify-center gap-1.5 h-11 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
                         >
-                          {premiumAccess ? <FiPhone className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Voice Call
+                          {premiumAccess ? <FiPhone className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {t('profileView.voiceCall')}
                         </button>
                         <button
                           onClick={() => handleCall('video')}
                           className="flex items-center justify-center gap-1.5 h-11 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors duration-[160ms] cursor-pointer"
                         >
-                          {premiumAccess ? <FiVideo className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} Video Call
+                          {premiumAccess ? <FiVideo className="w-4 h-4" /> : <FiLock className="w-4 h-4" />} {t('profileView.videoCall')}
                         </button>
                       </div>
                     )}
@@ -725,10 +759,10 @@ const ProfileDetail = () => {
               {/* Video intro */}
               {profile.videoIntroUrl && (
                 <div className="mt-4 border-t border-neutral-50 dark:border-neutral-800 pt-4">
-                  <p className="text-[0.6875rem] font-bold text-primary-400 uppercase tracking-wide mb-2">Video intro</p>
+                  <p className="text-[0.6875rem] font-bold text-primary-400 uppercase tracking-wide mb-2">{t('profileView.videoIntro')}</p>
                   <video
                     src={getImageUrl(profile.videoIntroUrl, API_BASE_URL, 'full')}
-                    aria-label={`${firstName}'s video introduction`}
+                    aria-label={t('profileView.videoIntroAria', { name: firstName })}
                     controls
                     playsInline
                     preload="metadata"
@@ -759,47 +793,47 @@ const ProfileDetail = () => {
               )}
 
               {/* Core details — full table up top so the page is dense (no side void) */}
-              <Card title="Details" icon={FiUser}>
+              <Card title={t('profileView.details')} icon={FiUser}>
                 {sameGotra && (
                   <p role="note" className="mb-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200">
-                    You and {profile.firstName || 'this member'} have the same gotra. Many families do not marry within a gotra, so you may want to check with your elders.
+                    {t('profileView.sameGotra', { name: profile.firstName || t('profileView.thisMember') })}
                   </p>
                 )}
                 <div>
-                  {age && <DetailRow label="Age" value={`${age} years`} />}
-                  {profile.height && <DetailRow label="Height" value={formatHeight(profile.height)} />}
-                  {profile.weight && <DetailRow label="Weight" value={`${profile.weight} kg`} />}
-                  <DetailRow label="Location" value={[profile.city, profile.state].filter(Boolean).join(', ') || null} />
+                  {age && <DetailRow label={t('profileView.fields.age')} value={t('profileView.ageYears', { age })} />}
+                  {profile.height && <DetailRow label={t('profileView.fields.height')} value={formatHeight(profile.height)} />}
+                  {profile.weight && <DetailRow label={t('profileView.fields.weight')} value={`${profile.weight} kg`} />}
+                  <DetailRow label={t('profileView.fields.location')} value={[profile.city, profile.state].filter(Boolean).join(', ') || null} />
                   {profile.isNri && (
                     <DetailRow
-                      label="Living Abroad"
-                      value={[profile.residenceCountry, profile.residenceStatus].filter(Boolean).join(' · ') || 'NRI'}
+                      label={t('profileView.fields.livingAbroad')}
+                      value={[profile.residenceCountry, profile.residenceStatus].filter(Boolean).join(' · ') || t('profileView.nri')}
                     />
                   )}
                   {profile.isNri && profile.familyLocation && (
-                    <DetailRow label="Family In India" value={profile.familyLocation} />
+                    <DetailRow label={t('profileView.fields.familyInIndia')} value={profile.familyLocation} />
                   )}
-                  <DetailRow label="Education" value={profile.education} />
-                  {profile.degree && <DetailRow label="Degree" value={profile.degree} />}
-                  {profile.institution && <DetailRow label="College" value={profile.institution} />}
-                  <DetailRow label="Profession" value={profile.profession} />
-                  {profile.industry && <DetailRow label="Industry" value={profile.industry} />}
-                  {profile.income && <DetailRow label="Income" value={formatIncome(profile.income)} />}
-                  <DetailRow label="Religion" value={profile.religion} />
-                  <DetailRow label="Caste" value={profile.caste} />
-                  <DetailRow label="Mother Tongue" value={profile.motherTongue} />
-                  <DetailRow label="Marital Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />
-                  <DetailRow label="Diet" value={formatEnum(profile.diet)} />
-                  <DetailRow label="Smoking" value={formatEnum(profile.smoking)} />
-                  <DetailRow label="Drinking" value={formatEnum(profile.drinking)} />
-                  {profile.nationality && <DetailRow label="Nationality" value={profile.nationality} />}
-                  {profile.willingToRelocate && <DetailRow label="Open to relocating" value={formatEnum(profile.willingToRelocate)} />}
-                  {profile.livingArrangement && <DetailRow label="Lives" value={formatEnum(profile.livingArrangement)} />}
+                  <DetailRow label={t('profileView.fields.education')} value={profile.education} />
+                  {profile.degree && <DetailRow label={t('profileView.fields.degree')} value={profile.degree} />}
+                  {profile.institution && <DetailRow label={t('profileView.fields.college')} value={profile.institution} />}
+                  <DetailRow label={t('profileView.fields.profession')} value={profile.profession} />
+                  {profile.industry && <DetailRow label={t('profileView.fields.industry')} value={profile.industry} />}
+                  {profile.income && <DetailRow label={t('profileView.fields.income')} value={formatIncome(profile.income)} />}
+                  <DetailRow label={t('profileView.fields.religion')} value={profile.religion} />
+                  <DetailRow label={t('profileView.fields.caste')} value={profile.caste} />
+                  <DetailRow label={t('profileView.fields.motherTongue')} value={profile.motherTongue} />
+                  <DetailRow label={t('profileView.fields.maritalStatus')} value={friendlyLabel('maritalStatus', profile.maritalStatus)} />
+                  <DetailRow label={t('profileView.fields.diet')} value={formatEnum(profile.diet)} />
+                  <DetailRow label={t('profileView.fields.smoking')} value={formatEnum(profile.smoking)} />
+                  <DetailRow label={t('profileView.fields.drinking')} value={formatEnum(profile.drinking)} />
+                  {profile.nationality && <DetailRow label={t('profileView.fields.nationality')} value={profile.nationality} />}
+                  {profile.willingToRelocate && <DetailRow label={t('profileView.fields.openToRelocating')} value={formatEnum(profile.willingToRelocate)} />}
+                  {profile.livingArrangement && <DetailRow label={t('profileView.fields.lives')} value={formatEnum(profile.livingArrangement)} />}
                 </div>
               </Card>
 
               {/* Tab nav */}
-              <div role="tablist" aria-label="Profile sections" className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
+              <div role="tablist" aria-label={t('profileView.tabsAria')} className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-card p-1.5">
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
@@ -830,16 +864,16 @@ const ProfileDetail = () => {
                     <>
                       {/* Profile prompts */}
                       {profilePrompts.length > 0 && (
-                        <Card title="Get to Know Me" icon={FiUser}>
+                        <Card title={t('profileView.getToKnowMe')} icon={FiUser}>
                           <div className="space-y-3">
                             {profilePrompts.map(({ q, a }, i) => (
                               <div key={i} className="relative p-4 bg-primary-50/60 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800">
-                                <p className="text-[0.6875rem] font-bold text-primary-400 uppercase tracking-wide mb-1.5 pr-8">{sanitizeText(q)}</p>
+                                <p className="text-[0.6875rem] font-bold text-primary-400 uppercase tracking-wide mb-1.5 pr-8">{sanitizeText(promptLabel(q))}</p>
                                 <p className="text-sm text-neutral-700 dark:text-neutral-200 leading-relaxed pr-8">{sanitizeText(a)}</p>
                                 {/* D3: like this specific answer, with a note */}
                                 <button
                                   type="button"
-                                  aria-label="Like this answer with a note"
+                                  aria-label={t('profileView.likeAnswerNote')}
                                   onClick={() => setLikeNoteTarget({ type: 'prompt', promptText: a })}
                                   className="absolute top-3 right-3 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full text-primary-300 hover:text-primary-600 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                                 >
@@ -853,7 +887,7 @@ const ProfileDetail = () => {
 
                       {/* Interests */}
                       {profile.interestTags?.length > 0 && (
-                        <Card title="Interests & Hobbies" icon={FiGrid}>
+                        <Card title={t('profileView.interests')} icon={FiGrid}>
                           <div className="flex flex-wrap gap-2">
                             {profile.interestTags.map((tag, i) => (
                               <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold cursor-default">
@@ -866,7 +900,7 @@ const ProfileDetail = () => {
 
                       {/* Spotify */}
                       {profile.spotifyPlaylist && sanitizeUrl(profile.spotifyPlaylist) && (
-                        <Card title="Music Taste" icon={FiMusic}>
+                        <Card title={t('profileView.musicTaste')} icon={FiMusic}>
                           <a
                             href={sanitizeUrl(profile.spotifyPlaylist)}
                             target="_blank"
@@ -878,9 +912,9 @@ const ProfileDetail = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 group-hover:text-[#1DB954] transition-colors truncate">
-                                {sanitizeText(firstName)}'s Spotify Playlist
+                                {t('profileView.spotifyPlaylist', { name: sanitizeText(firstName) })}
                               </p>
-                              <p className="text-xs text-neutral-400 dark:text-neutral-500">Open in Spotify</p>
+                              <p className="text-xs text-neutral-400 dark:text-neutral-500">{t('profileView.openInSpotify')}</p>
                             </div>
                             <FiGlobe className="w-4 h-4 text-neutral-300 flex-shrink-0" />
                           </a>
@@ -889,7 +923,7 @@ const ProfileDetail = () => {
 
                       {/* Languages */}
                       {profile.languages?.length > 0 && (
-                        <Card title="Languages" icon={FiGlobe}>
+                        <Card title={t('profileView.languages')} icon={FiGlobe}>
                           <div className="flex flex-wrap gap-2">
                             {profile.languages.map((l, i) => (
                               <span key={i} className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-200">{l}</span>
@@ -900,14 +934,14 @@ const ProfileDetail = () => {
 
                       {/* Horoscope */}
                       {(profile.manglikStatus || profile.zodiacSign || profile.rashi || profile.nakshatra || profile.placeOfBirth || profile.birthTime) && (
-                        <Card title="Horoscope & Kundli" icon={FiSun}>
+                        <Card title={t('profileView.horoscope')} icon={FiSun}>
                           <div className="grid grid-cols-2 gap-3">
-                            {profile.zodiacSign && <Pill label="Zodiac Sign" value={profile.zodiacSign} />}
-                            {profile.rashi && <Pill label="Rashi" value={profile.rashi} />}
-                            {profile.nakshatra && <Pill label="Nakshatra" value={profile.nakshatra} />}
-                            {profile.manglikStatus && <Pill label="Manglik" value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
-                            {profile.placeOfBirth && <Pill label="Place of Birth" value={profile.placeOfBirth} />}
-                            {profile.birthTime && <Pill label="Birth Time" value={profile.birthTime} />}
+                            {profile.zodiacSign && <Pill label={t('profileView.fields.zodiacSign')} value={profile.zodiacSign} />}
+                            {profile.rashi && <Pill label={t('profileView.fields.rashi')} value={profile.rashi} />}
+                            {profile.nakshatra && <Pill label={t('profileView.fields.nakshatra')} value={profile.nakshatra} />}
+                            {profile.manglikStatus && <Pill label={t('profileView.fields.manglik')} value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
+                            {profile.placeOfBirth && <Pill label={t('profileView.fields.placeOfBirth')} value={profile.placeOfBirth} />}
+                            {profile.birthTime && <Pill label={t('profileView.fields.birthTime')} value={profile.birthTime} />}
                           </div>
                           <button
                             type="button"
@@ -920,20 +954,20 @@ const ProfileDetail = () => {
                             ) : (
                               <FiDownload className="w-4 h-4" />
                             )}
-                            {kundliLoading ? 'Generating…' : 'Download Kundli Match Report (PDF)'}
+                            {kundliLoading ? t('profileView.generating') : t('profileView.downloadKundli')}
                           </button>
                         </Card>
                       )}
 
                       {/* Numerology (life-path) */}
                       {numerology?.compatibility && (
-                        <Card title="Numerology" icon={FiSun}>
+                        <Card title={t('profileView.numerology')} icon={FiSun}>
                           <div className="flex items-center justify-between gap-4 mb-3">
                             <div className="text-center flex-1">
                               <div className="w-11 h-11 mx-auto rounded-full bg-primary-50 border border-primary-100 dark:border-primary-800 flex items-center justify-center text-lg font-black text-primary-600">
                                 {numerology.person1?.number}
                               </div>
-                              <p className="text-[0.6875rem] text-neutral-500 dark:text-neutral-400 mt-1">You · {numerology.person1?.title}</p>
+                              <p className="text-[0.6875rem] text-neutral-500 dark:text-neutral-400 mt-1">{t('profileView.numerologyYou', { title: numerology.person1?.title })}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-2xl font-black text-primary-500">{numerology.compatibility.score}%</p>
@@ -956,22 +990,28 @@ const ProfileDetail = () => {
 
                   {/* ── Lifestyle tab ──────────────────────────────── */}
                   {activeTab === 'lifestyle' && (
-                    <Card title="Lifestyle" icon={FiInfo}>
+                    <Card title={t('profileView.lifestyle')} icon={FiInfo}>
                       <div className="grid grid-cols-2 gap-3">
-                        {profile.diet && <Pill label="Diet" value={profile.diet} />}
-                        {profile.smoking && <Pill label="Smoking" value={profile.smoking} />}
-                        {profile.drinking && <Pill label="Drinking" value={profile.drinking} />}
-                        {profile.skinTone && <Pill label="Skin Tone" value={profile.skinTone} />}
-                        {profile.personalityType && <Pill label="Personality" value={profile.personalityType} />}
-                        {profile.height && <Pill label="Height" value={formatHeight(profile.height)} />}
-                        {profile.weight && <Pill label="Weight" value={`${profile.weight} kg`} />}
+                        {profile.diet && <Pill label={t('profileView.fields.diet')} value={profile.diet} />}
+                        {profile.smoking && <Pill label={t('profileView.fields.smoking')} value={profile.smoking} />}
+                        {profile.drinking && <Pill label={t('profileView.fields.drinking')} value={profile.drinking} />}
+                        {profile.skinTone && <Pill label={t('profileView.fields.skinTone')} value={profile.skinTone} />}
+                        {profile.personalityType && <Pill label={t('profileView.fields.personality')} value={profile.personalityType} />}
+                        {profile.height && <Pill label={t('profileView.fields.height')} value={formatHeight(profile.height)} raw />}
+                        {profile.weight && <Pill label={t('profileView.fields.weight')} value={`${profile.weight} kg`} raw />}
                       </div>
                       {profile.lifestylePreferences && Object.keys(profile.lifestylePreferences).length > 0 && (
                         <div className="mt-4 pt-4 border-t border-neutral-50 dark:border-neutral-800">
-                          <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">Lifestyle Preferences</p>
+                          <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">{t('profileView.lifestylePreferences')}</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(profile.lifestylePreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
+                              // A flag that repeats an item already in a list
+                              // (travel: true beside hobbies ["Travel"]) is one thing.
+                              const listed = Object.values(profile.lifestylePreferences)
+                                .filter(Array.isArray).flat().map((x) => String(x).toLowerCase());
+                              if (typeof v === 'boolean' && listed.includes(k.replace(/([A-Z])/g, ' $1').trim().toLowerCase())) return null;
+                              if (Array.isArray(v) && v.length > 0) v = [...new Set(v)];
                               if (typeof v === 'boolean') return v ? (
                                 <span key={k} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold capitalize">
                                   {k.replace(/([A-Z])/g, ' $1').trim()}
@@ -994,26 +1034,33 @@ const ProfileDetail = () => {
 
                   {/* ── Family tab ─────────────────────────────────── */}
                   {activeTab === 'family' && (
-                    <Card title="Family Background" icon={FiHome}>
+                    <Card title={t('profileView.familyBackground')} icon={FiHome}>
+                      {!hasFamilyBackground && !(profile.familyPreferences && Object.values(profile.familyPreferences).some((v) => v || v === 0)) && (
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('profileView.noFamilyDetails', { name: profile.firstName || t('profileView.thisMemberCap') })}</p>
+                      )}
+                      {hasFamilyPills && (
                       <div className="grid grid-cols-2 gap-3 mb-4">
-                        {profile.familyType && <Pill label="Family Type" value={friendlyLabel('familyType', profile.familyType)} />}
-                        {profile.familyStatus && <Pill label="Family Status" value={friendlyLabel('familyStatus', profile.familyStatus)} />}
-                        {profile.numberOfSiblings > 0 && <Pill label="Siblings" value={profile.numberOfSiblings} />}
-                        {profile.brothers != null && <Pill label="Brothers" value={profile.brothers} />}
-                        {profile.sisters != null && <Pill label="Sisters" value={profile.sisters} />}
-                        {profile.familyValues && <Pill label="Family Values" value={formatEnum(profile.familyValues)} />}
-                        {profile.numberOfChildren > 0 && <Pill label="Children" value={profile.numberOfChildren} />}
+                        {profile.familyType && <Pill label={t('profileView.fields.familyType')} value={friendlyLabel('familyType', profile.familyType)} />}
+                        {profile.familyStatus && <Pill label={t('profileView.fields.familyStatus')} value={friendlyLabel('familyStatus', profile.familyStatus)} />}
+                        {profile.numberOfSiblings > 0 && <Pill label={t('profileView.fields.siblings')} value={profile.numberOfSiblings} />}
+                        {profile.brothers != null && <Pill label={t('profileView.fields.brothers')} value={profile.brothers} />}
+                        {profile.sisters != null && <Pill label={t('profileView.fields.sisters')} value={profile.sisters} />}
+                        {profile.familyValues && <Pill label={t('profileView.fields.familyValues')} value={formatEnum(profile.familyValues)} />}
+                        {profile.numberOfChildren > 0 && <Pill label={t('profileView.fields.children')} value={profile.numberOfChildren} />}
                       </div>
+                      )}
+                      {hasFamilyRows && (
                       <div className="space-y-0 border border-neutral-100 dark:border-neutral-800 rounded-xl overflow-hidden">
-                        {profile.fatherOccupation && <DetailRow label="Father's Occupation" value={profile.fatherOccupation} />}
-                        {profile.motherOccupation && <DetailRow label="Mother's Occupation" value={profile.motherOccupation} />}
-                        {profile.caste && <DetailRow label="Caste" value={profile.caste} />}
-                        {profile.subCaste && <DetailRow label="Sub Caste" value={profile.subCaste} />}
-                        {profile.gotra && <DetailRow label="Gotra" value={profile.gotra} />}
+                        {profile.fatherOccupation && <DetailRow label={t('profileView.fields.fathersOccupation')} value={profile.fatherOccupation} />}
+                        {profile.motherOccupation && <DetailRow label={t('profileView.fields.mothersOccupation')} value={profile.motherOccupation} />}
+                        {profile.caste && <DetailRow label={t('profileView.fields.caste')} value={profile.caste} />}
+                        {profile.subCaste && <DetailRow label={t('profileView.fields.subCaste')} value={profile.subCaste} />}
+                        {profile.gotra && <DetailRow label={t('profileView.fields.gotra')} value={profile.gotra} />}
                       </div>
-                      {profile.familyPreferences && Object.keys(profile.familyPreferences).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-neutral-50 dark:border-neutral-800">
-                          <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">Family Preferences</p>
+                      )}
+                      {profile.familyPreferences && Object.values(profile.familyPreferences).some((v) => v || v === 0) && (
+                        <div className={hasFamilyBackground ? 'mt-4 pt-4 border-t border-neutral-50 dark:border-neutral-800' : ''}>
+                          <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">{t('profileView.familyPreferences')}</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(profile.familyPreferences).map(([k, v]) => {
                               if (!v && v !== 0) return null;
@@ -1036,39 +1083,39 @@ const ProfileDetail = () => {
                     />
                   )}
                   {activeTab === 'preferences' && (
-                    <Card title="Looking For" icon={FiHeartOutline}>
+                    <Card title={t('profileView.lookingFor')} icon={FiHeartOutline}>
                       <div className="space-y-3">
                         {(profile.preferredAgeMin || profile.preferredAgeMax) && (
                           <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
-                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Age Range</span>
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">{t('profileView.fields.ageRange')}</span>
                             <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">
-                              {profile.preferredAgeMin || 'Any'} – {profile.preferredAgeMax || 'Any'} years
+                              {t('profileView.yearsRange', { min: profile.preferredAgeMin || t('profileView.any'), max: profile.preferredAgeMax || t('profileView.any') })}
                             </span>
                           </div>
                         )}
                         {(profile.preferredHeightMin || profile.preferredHeightMax) && (
                           <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
-                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Height Range</span>
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">{t('profileView.fields.heightRange')}</span>
                             <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">
-                              {profile.preferredHeightMin ? `${profile.preferredHeightMin} cm` : 'Any'} – {profile.preferredHeightMax ? `${profile.preferredHeightMax} cm` : 'Any'}
+                              {profile.preferredHeightMin ? `${profile.preferredHeightMin} cm` : t('profileView.any')} – {profile.preferredHeightMax ? `${profile.preferredHeightMax} cm` : t('profileView.any')}
                             </span>
                           </div>
                         )}
                         {profile.preferredEducation && (
                           <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
-                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Education</span>
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">{t('profileView.fields.education')}</span>
                             <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">{profile.preferredEducation}</span>
                           </div>
                         )}
                         {profile.preferredProfession && (
                           <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800">
-                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Profession</span>
+                            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">{t('profileView.fields.profession')}</span>
                             <span className="text-sm font-bold text-neutral-700 dark:text-neutral-200">{profile.preferredProfession}</span>
                           </div>
                         )}
                         {profile.preferredCity?.length > 0 && (
                           <div className="py-2.5">
-                            <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-2">Preferred Cities</p>
+                            <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-2">{t('profileView.fields.preferredCities')}</p>
                             <div className="flex flex-wrap gap-1.5">
                               {profile.preferredCity.map((c, i) => (
                                 <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 dark:border-primary-800 rounded-full text-xs font-semibold">{c}</span>
@@ -1078,7 +1125,7 @@ const ProfileDetail = () => {
                         )}
                         {profile.personalityValues && Object.keys(profile.personalityValues).length > 0 && (
                           <div className="pt-3 border-t border-neutral-50 dark:border-neutral-800">
-                            <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">Values</p>
+                            <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide mb-3">{t('profileView.fields.values')}</p>
                             <div className="flex flex-wrap gap-2">
                               {Object.entries(profile.personalityValues).map(([k, v]) => {
                                 if (!v) return null;
@@ -1100,31 +1147,41 @@ const ProfileDetail = () => {
                 was previously empty background at desktop widths ──────── */}
             <div className="space-y-4 mt-4 lg:mt-0 lg:sticky lg:top-24">
               {/* Contact unlock */}
-              <Card title="Contact Details" icon={FiPhone}>
+              <Card title={t('profileView.contactDetails')} icon={FiPhone}>
                 {!contactShare.allowed ? (
                   <div className="text-center py-3">
                     <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-3">
                       <FiLock className="w-5 h-5 text-neutral-400" />
                     </div>
                     <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200 mb-1">
-                      {contactShare.level === 'matches' ? 'Shared with matches only' : 'Contact is not shared'}
+                      {contactShare.level === 'matches' ? t('profileView.sharedMatchesOnly') : t('profileView.contactNotShared')}
                     </p>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
                       {contactShare.level === 'matches'
-                        ? 'This member shares phone and email only with people they match with. Send an interest to connect. No unlock is used.'
-                        : 'This member has chosen not to share phone or email. You can still send an interest and chat once you match.'}
+                        ? t('profileView.sharedMatchesOnlyDesc')
+                        : t('profileView.contactNotSharedDesc')}
+                    </p>
+                  </div>
+                ) : !isContactUnlocked && contactShare.available === false ? (
+                  <div className="text-center py-3">
+                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-3">
+                      <FiPhone className="w-5 h-5 text-neutral-400" />
+                    </div>
+                    <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200 mb-1">{t('profileView.noVerifiedNumberTitle')}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                      {t('profileView.noVerifiedNumberDesc')}
                     </p>
                   </div>
                 ) : isContactUnlocked && unlockedContact ? (
                   <div className="space-y-2.5">
                     {unlockedContact.phone && (
-                      <a href={`tel:${unlockedContact.phone}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-xl hover:bg-success-100 dark:hover:bg-success-500/20 transition-colors cursor-pointer">
+                      <a href={`tel:${formatLeadPhone(unlockedContact.phone).replace(/\s/g, '')}`} className="flex items-center gap-3 p-3.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-xl hover:bg-success-100 dark:hover:bg-success-500/20 transition-colors cursor-pointer">
                         <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center flex-shrink-0">
                           <FiPhone className="w-4 h-4 text-success dark:text-green-400" />
                         </div>
                         <div>
-                          <p className="text-[0.625rem] font-bold text-success dark:text-green-400 uppercase tracking-wide">Phone</p>
-                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100">{unlockedContact.phone}</p>
+                          <p className="text-[0.625rem] font-bold text-success dark:text-green-400 uppercase tracking-wide">{t('profileView.phone')}</p>
+                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 tabular-nums">{formatLeadPhone(unlockedContact.phone)}</p>
                         </div>
                       </a>
                     )}
@@ -1133,14 +1190,14 @@ const ProfileDetail = () => {
                         <div className="w-9 h-9 rounded-lg bg-success/15 flex items-center justify-center flex-shrink-0">
                           <FiMail className="w-4 h-4 text-success dark:text-green-400" />
                         </div>
-                        <div>
-                          <p className="text-[0.625rem] font-bold text-success dark:text-green-400 uppercase tracking-wide">Email</p>
-                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100">{unlockedContact.email}</p>
+                        <div className="min-w-0">
+                          <p className="text-[0.625rem] font-bold text-success dark:text-green-400 uppercase tracking-wide">{t('profileView.email')}</p>
+                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 break-all">{unlockedContact.email}</p>
                         </div>
                       </a>
                     )}
                     {!unlockedContact.phone && !unlockedContact.email && (
-                      <p className="text-sm text-neutral-400 dark:text-neutral-500 text-center py-2">No contact details available</p>
+                      <p className="text-sm text-neutral-400 dark:text-neutral-500 text-center py-2">{t('profileView.noContactDetails')}</p>
                     )}
                   </div>
                 ) : (
@@ -1148,21 +1205,21 @@ const ProfileDetail = () => {
                     <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-3">
                       <FiLock className="w-5 h-5 text-neutral-400" />
                     </div>
-                    <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200 mb-1">Contact is private</p>
+                    <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200 mb-1">{t('profileView.contactPrivate')}</p>
                     <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-4 leading-relaxed">
                       {!premiumAccess
-                        ? 'Upgrade to Premium to view phone & email'
+                        ? t('profileView.upgradeToView')
                         : contactUnlocksRemaining === 0
-                        ? "You've used all your contact unlocks. Upgrade your plan to unlock more."
+                        ? t('profileView.usedAllUnlocks')
                         : contactUnlocksRemaining === -1
-                        ? 'Unlock to view phone & email'
-                        : `Use 1 of your ${contactUnlocksRemaining} unlock${contactUnlocksRemaining !== 1 ? 's' : ''} to view phone & email`}
+                        ? t('profileView.unlockToView')
+                        : t('profileView.useOneUnlock', { count: contactUnlocksRemaining })}
                     </p>
                     {premiumAccess && contactUnlocksRemaining > 0 && (
-                      <p className="text-xs font-bold text-primary-400 mb-3">{contactUnlocksRemaining} unlock{contactUnlocksRemaining !== 1 ? 's' : ''} remaining</p>
+                      <p className="text-xs font-bold text-primary-400 mb-3">{t('profileView.unlocksRemaining', { count: contactUnlocksRemaining })}</p>
                     )}
                     {premiumAccess && contactUnlocksRemaining === 0 && (
-                      <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 mb-3">0 unlocks remaining</p>
+                      <p className="text-xs font-bold text-neutral-400 dark:text-neutral-500 mb-3">{t('profileView.unlocksRemaining', { count: 0 })}</p>
                     )}
                     <motion.button
                       whileTap={{ scale: 0.98 }}
@@ -1176,11 +1233,11 @@ const ProfileDetail = () => {
                       {unlockLoading ? (
                         <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                       ) : canUnlockContact ? (
-                        <><FiUnlock className="w-4 h-4" /> Unlock Contact</>
+                        <><FiUnlock className="w-4 h-4" /> {t('profileView.unlockContact')}</>
                       ) : premiumAccess ? (
-                        <><FaCrown className="w-3.5 h-3.5" /> Upgrade for more unlocks</>
+                        <><FaCrown className="w-3.5 h-3.5" /> {t('profileView.upgradeMoreUnlocks')}</>
                       ) : (
-                        <><FaCrown className="w-3.5 h-3.5" /> Upgrade to Premium</>
+                        <><FaCrown className="w-3.5 h-3.5" /> {t('profileView.upgradeToPremium')}</>
                       )}
                     </motion.button>
                   </div>
@@ -1190,7 +1247,7 @@ const ProfileDetail = () => {
               {/* Social connections — display-only links the member chose to show.
                   Server already filtered these by each link's visibility. */}
               {hasSocials && (
-                <Card title="Social Connections" icon={FiLink}>
+                <Card title={t('profileView.socialConnections')} icon={FiLink}>
                   <div className="grid grid-cols-2 gap-2">
                     {socialPlatforms.map(({ key, label, icon: Icon, color }) => {
                       const url = sanitizeUrl(socialUrl(profile.socialMediaLinks[key]));
@@ -1204,7 +1261,7 @@ const ProfileDetail = () => {
                           className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                         >
                           <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
-                          <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 truncate">{label}</span>
+                          <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 truncate">{key === 'website' ? t('profileView.website') : label}</span>
                         </a>
                       );
                     })}

@@ -1,0 +1,52 @@
+{
+  "fields": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "gender": "Gender",
+    "dateOfBirth": "Date of birth",
+    "city": "City",
+    "profilePhoto": "Profile photo",
+    "bio": "Write about yourself",
+    "education": "Education",
+    "profession": "Profession",
+    "height": "Height",
+    "weight": "Weight",
+    "religion": "Religion",
+    "maritalStatus": "Marital status",
+    "motherTongue": "Mother tongue",
+    "lifestyle": "Lifestyle preferences"
+  },
+  "cta": {
+    "firstName": "Add first name",
+    "lastName": "Add last name",
+    "gender": "Add gender",
+    "dateOfBirth": "Add date of birth",
+    "city": "Add city",
+    "profilePhoto": "Add profile photo",
+    "bio": "Write about yourself",
+    "education": "Add education",
+    "profession": "Add profession",
+    "height": "Add height",
+    "weight": "Add weight",
+    "religion": "Add religion",
+    "maritalStatus": "Add marital status",
+    "motherTongue": "Add mother tongue",
+    "lifestyle": "Add lifestyle preferences"
+  },
+  "tips": {
+    "profilePhoto": "A clear photo helps families recognise and trust your profile",
+    "bio": "A short bio helps matches connect with you",
+    "lifestyle": "Add diet, smoking & drinking preferences"
+  },
+  "fieldsMissing_one": "{{count}} field missing. Complete your profile.",
+  "fieldsMissing_other": "{{count}} fields missing. Complete your profile.",
+  "plusMore": "+{{count}} more",
+  "completeProfile": "Complete Profile",
+  "strong": "Strong profile",
+  "almost": "Almost complete",
+  "needsAttention": "Needs attention",
+  "complete": "Profile complete",
+  "completeBody": "You're appearing in full search results",
+  "strength": "Profile strength",
+  "alsoMissing": "Also missing: {{list}}"
+}

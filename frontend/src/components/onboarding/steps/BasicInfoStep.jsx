@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Trans, useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
@@ -24,6 +25,7 @@ const HEIGHT_OPTIONS = (() => {
 })();
 
 const BasicInfoStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors, setFieldTouched, registerStepValidator, mode } = useOnboarding();
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
@@ -36,34 +38,39 @@ const BasicInfoStep = () => {
   // One tab stop into the gender radiogroup; Arrow keys move + select (roving tabindex).
   const genderRefs = useRef([]);
 
-  const validateStep = () => {
+  // Fields the member has interacted with. Field-level checks (blur, picking
+  // a gender or a date) only show errors for these, so choosing a gender no
+  // longer paints the untouched birthday red. Next validates everything.
+  const touchedRef = useRef(new Set());
+
+  const validateStep = (field) => {
     const data = formDataRef.current;
     const newErrors = {};
 
     if (!data.firstName?.trim()) {
-      newErrors.firstName = 'First name is required';
+      newErrors.firstName = t('onboarding.basic.firstNameRequired');
     } else if (!validateName(data.firstName)) {
-      newErrors.firstName = 'At least 2 characters';
+      newErrors.firstName = t('onboarding.basic.minTwoChars');
     }
 
     if (!data.lastName?.trim()) {
-      newErrors.lastName = 'Last name is required';
+      newErrors.lastName = t('onboarding.basic.lastNameRequired');
     } else if (!validateName(data.lastName)) {
-      newErrors.lastName = 'At least 2 characters';
+      newErrors.lastName = t('onboarding.basic.minTwoChars');
     }
 
     if (!data.gender) {
-      newErrors.gender = 'Gender is required';
+      newErrors.gender = t('onboarding.basic.genderRequired');
     }
 
     // An email signup has no phone yet; members call this number after an
     // unlock, so it must be present and proven before the account exists.
     if (mode === 'signup' && data.email && !data.phoneVerification) {
-      newErrors.phone = 'Verify your mobile number to continue';
+      newErrors.phone = t('onboarding.basic.verifyMobile');
     }
 
     if (!data.dateOfBirth) {
-      newErrors.dateOfBirth = 'Date of birth is required';
+      newErrors.dateOfBirth = t('onboarding.basic.dobRequired');
     } else if (!validateAge(data.dateOfBirth, minAgeFor(data.gender), 100)) {
       // Calendar-accurate (leap-year safe) instead of 365.25-day float math.
       // 21 for men and "other", 18 for women (Prohibition of Child Marriage Act).
@@ -73,12 +80,24 @@ const BasicInfoStep = () => {
     if (data.weight !== '' && data.weight != null) {
       const w = Number(data.weight);
       if (!Number.isInteger(w) || w < 30 || w > 300) {
-        newErrors.weight = 'Weight must be between 30–300 kg';
+        newErrors.weight = t('onboarding.basic.weightRange');
       }
     }
 
-    setStepErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const valid = Object.keys(newErrors).length === 0;
+    if (typeof field === 'string') {
+      touchedRef.current.add(field);
+      const shown = {};
+      for (const [k, v] of Object.entries(newErrors)) {
+        if (touchedRef.current.has(k)) shown[k] = v;
+      }
+      setStepErrors(shown);
+    } else {
+      // A Next press reveals every problem; keep those visible until fixed.
+      Object.keys(newErrors).forEach((k) => touchedRef.current.add(k));
+      setStepErrors(newErrors);
+    }
+    return valid;
   };
 
   React.useEffect(() => {
@@ -86,14 +105,26 @@ const BasicInfoStep = () => {
   }, []);
 
   const genderOptions = [
-    { value: 'male', label: 'Male' },
-    { value: 'female', label: 'Female' },
-    { value: 'other', label: 'Other' },
+    { value: 'male', label: t('profileOptions.gender.male') },
+    { value: 'female', label: t('profileOptions.gender.female') },
+    { value: 'other', label: t('profileOptions.gender.other') },
   ];
+
+  // Change handlers (gender, DOB) can't validate inline: formDataRef still
+  // holds the previous value until the update renders, so picking "Female"
+  // flashed "Gender is required". They ask for a pass after the commit instead.
+  const validateAfterRender = useRef(null);
+  const requestValidate = (field) => { validateAfterRender.current = field; };
+  useEffect(() => {
+    if (!validateAfterRender.current) return;
+    const field = validateAfterRender.current;
+    validateAfterRender.current = null;
+    validateStep(field);
+  });
 
   const handleFieldBlur = (field) => () => {
     setFieldTouched(field);
-    validateStep();
+    validateStep(field);
   };
 
   // Roving-tabindex arrow-key navigation for the gender radiogroup (ARIA radio
@@ -108,7 +139,7 @@ const BasicInfoStep = () => {
     const opt = genderOptions[next];
     updateFormData('gender', opt.value);
     setFieldTouched('gender');
-    validateStep();
+    requestValidate('gender');
     genderRefs.current[next]?.focus();
   };
 
@@ -117,7 +148,7 @@ const BasicInfoStep = () => {
       <motion.div variants={fadeRise}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
-            label="First Name"
+            label={t('onboarding.basic.firstName')}
             autoComplete="given-name"
             placeholder="John"
             value={formData.firstName}
@@ -127,7 +158,7 @@ const BasicInfoStep = () => {
             required
           />
           <FormField
-            label="Last Name"
+            label={t('onboarding.basic.lastName')}
             autoComplete="family-name"
             placeholder="Smith"
             value={formData.lastName}
@@ -137,15 +168,15 @@ const BasicInfoStep = () => {
             required
           />
         </div>
-        <p className="text-xs text-neutral-400 mt-1.5">Your real name, as families will see it. Real names build trust.</p>
+        <p className="text-xs text-neutral-400 mt-1.5">{t('onboarding.basic.realNameHint')}</p>
       </motion.div>
 
       <motion.div variants={fadeRise}>
         <div className="space-y-2">
           <span className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            Gender <span className="text-red-500 ml-1">*</span>
+            {t('onboarding.basic.gender')} <span className="text-red-500 ml-1">*</span>
           </span>
-          <div className="grid grid-cols-3 gap-2.5" role="radiogroup" aria-label="Gender">
+          <div className="grid grid-cols-3 gap-2.5" role="radiogroup" aria-label={t('onboarding.basic.gender')}>
             {genderOptions.map((opt, index) => {
               const selected = formData.gender === opt.value;
               const tabbable = genderLocked ? selected : (selected || (!formData.gender && index === 0));
@@ -158,7 +189,7 @@ const BasicInfoStep = () => {
                   aria-checked={selected}
                   tabIndex={tabbable ? 0 : -1}
                   disabled={genderLocked && !selected}
-                  onClick={() => { if (genderLocked) return; updateFormData('gender', opt.value); setFieldTouched('gender'); validateStep(); }}
+                  onClick={() => { if (genderLocked) return; updateFormData('gender', opt.value); setFieldTouched('gender'); requestValidate('gender'); }}
                   onKeyDown={(e) => handleGenderKey(e, index)}
                   className={`min-h-[2.75rem] py-3 rounded-xl border-2 text-sm font-semibold transition-colors duration-[160ms] active:scale-[0.97] ${
                     selected
@@ -174,7 +205,10 @@ const BasicInfoStep = () => {
           {errors.gender && <p className="text-sm text-red-600 font-medium">{errors.gender}</p>}
           {(genderLocked || dobLocked) && (
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Gender and date of birth cannot be changed after sign-up. If one is wrong, <a href="/contact" className="underline text-primary-600 dark:text-primary-300">contact support</a>.
+              <Trans
+                i18nKey="onboarding.basic.identityLocked"
+                components={{ anchor: <a href="/contact" className="underline text-primary-600 dark:text-primary-300" /> }}
+              />
             </p>
           )}
         </div>
@@ -187,7 +221,7 @@ const BasicInfoStep = () => {
             birthday anyway. Year list already bounds 18-100. */}
         {dobLocked ? (
           <div>
-            <span className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">Date of Birth</span>
+            <span className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">{t('onboarding.basic.dateOfBirth')}</span>
             <p className="mt-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 px-4 py-3 text-sm text-neutral-700 dark:text-neutral-200">
               {new Date(formData.dateOfBirth).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })}
             </p>
@@ -196,9 +230,9 @@ const BasicInfoStep = () => {
         <DobField
           minAge={pickerMinAge(formData.gender)}
           value={formData.dateOfBirth}
-          onChange={(value) => { updateFormData('dateOfBirth', value); setFieldTouched('dateOfBirth'); validateStep(); }}
+          onChange={(value) => { updateFormData('dateOfBirth', value); setFieldTouched('dateOfBirth'); if (value) requestValidate('dateOfBirth'); }}
           error={errors.dateOfBirth}
-          hint="Used for age and horoscope matching. Your exact birthday is never shown publicly."
+          hint={t('onboarding.basic.dobHint')}
           required
         />
         )}
@@ -226,16 +260,16 @@ const BasicInfoStep = () => {
         <motion.div variants={fadeRise}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
-              label="Height"
+              label={t('onboarding.basic.height')}
               options={HEIGHT_OPTIONS}
               value={formData.height ? String(formData.height) : ''}
               onChange={(value) => updateFormData('height', value)}
               searchable
-              placeholder="Search height"
+              placeholder={t('onboarding.basic.searchHeight')}
               optional
             />
             <FormField
-              label="Weight (kg)"
+              label={t('onboarding.basic.weight')}
               type="number"
               inputMode="numeric"
               placeholder="65"
@@ -246,7 +280,7 @@ const BasicInfoStep = () => {
               optional
             />
           </div>
-          <p className="text-xs text-neutral-400 mt-1.5">Optional, but profiles with height filled appear in more filtered searches.</p>
+          <p className="text-xs text-neutral-400 mt-1.5">{t('onboarding.basic.heightNote')}</p>
         </motion.div>
       )}
     </motion.div>

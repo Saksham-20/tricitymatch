@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiChevronDown } from 'react-icons/fi';
 
 /**
@@ -18,7 +19,8 @@ import { FiChevronDown } from 'react-icons/fi';
 
 // Short month names — the full ones ("September") don't fit a third of a
 // 375px viewport and native selects can't show a different closed label.
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Labels come from i18n (`welcome.months.1`…`12`); option values stay 1-12.
+const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 export const daysInMonth = (year, month) => {
   // month is 1-12; year may be '' → assume 31/30/29 style upper bound
@@ -60,7 +62,8 @@ const PartSelect = ({ id, name, srLabel, value, onChange, hasError, children }) 
   </div>
 );
 
-const DobField = ({ label = 'Date of Birth', value, onChange, error, hint, required = false, minAge = 18, maxAge = 100 }) => {
+const DobField = ({ label, value, onChange, error, hint, required = false, minAge = 18, maxAge = 100 }) => {
+  const { t } = useTranslation();
   const [parts, setParts] = useState(() => parseValue(value));
   // Re-sync when an outside value arrives (e.g. edit-mode hydration after mount).
   const [lastValue, setLastValue] = useState(value || '');
@@ -97,20 +100,20 @@ const DobField = ({ label = 'Date of Birth', value, onChange, error, hint, requi
   return (
     <div className="space-y-2">
       <span id="dob-label" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        {label}
+        {label ?? t('welcome.dobLabel')}
         {required && <span className="text-destructive ml-1">*</span>}
       </span>
       <div className="grid grid-cols-3 gap-2.5" role="group" aria-labelledby="dob-label" aria-describedby={error ? errorId : hint ? hintId : undefined}>
-        <PartSelect id="dob-day" name="bday-day" srLabel="Day" value={parts.day} onChange={(e) => update({ day: e.target.value })} hasError={!!error}>
-          <option value="">Day</option>
+        <PartSelect id="dob-day" name="bday-day" srLabel={t('welcome.day')} value={parts.day} onChange={(e) => update({ day: e.target.value })} hasError={!!error}>
+          <option value="">{t('welcome.day')}</option>
           {days.map((d) => <option key={d} value={d}>{d}</option>)}
         </PartSelect>
-        <PartSelect id="dob-month" name="bday-month" srLabel="Month" value={parts.month} onChange={(e) => update({ month: e.target.value })} hasError={!!error}>
-          <option value="">Month</option>
-          {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+        <PartSelect id="dob-month" name="bday-month" srLabel={t('welcome.month')} value={parts.month} onChange={(e) => update({ month: e.target.value })} hasError={!!error}>
+          <option value="">{t('welcome.month')}</option>
+          {MONTHS.map((m) => <option key={m} value={m}>{t(`welcome.months.${m}`)}</option>)}
         </PartSelect>
-        <PartSelect id="dob-year" name="bday-year" srLabel="Year" value={parts.year} onChange={(e) => update({ year: e.target.value })} hasError={!!error}>
-          <option value="">Year</option>
+        <PartSelect id="dob-year" name="bday-year" srLabel={t('welcome.year')} value={parts.year} onChange={(e) => update({ year: e.target.value })} hasError={!!error}>
+          <option value="">{t('welcome.year')}</option>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </PartSelect>
       </div>

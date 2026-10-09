@@ -6,6 +6,7 @@ import { useAdminScopes } from '../../components/admin/AdminLayout';
 import {
   getSuspicious, getModerationStats, getPhotoQueue, removePhoto, updateUserStatus,
 } from '../../api/adminApi';
+import { formatDate } from '../../utils/formatDate';
 
 const TABS = [
   { id: 'suspicious', label: 'Suspicious accounts', icon: FiAlertTriangle },
@@ -88,7 +89,7 @@ function Suspicious() {
                   <span className="font-medium text-gray-900">{a.name || '—'}</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${scoreTone(a.score)}`}>Risk {a.score}</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">{a.email || a.phone} · joined {new Date(a.createdAt).toLocaleDateString('en-IN')}{a.city ? ` · ${a.city}` : ''}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{a.email || a.phone} · joined {formatDate(a.createdAt)}{a.city ? ` · ${a.city}` : ''}</p>
                 <ul className="mt-2 flex flex-wrap gap-1.5">
                   {a.signals.map((s) => (
                     <li key={s.key} className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700">{s.label}</li>

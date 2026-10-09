@@ -1,0 +1,27 @@
+{
+  "title": "Marriage Biodata",
+  "intro": "A polished PDF of your profile, ready to share with families on WhatsApp.",
+  "missing": "Add family and career details for a complete biodata.",
+  "completeProfile": "Complete profile →",
+  "pickerAria": "Biodata template",
+  "templates": {
+    "classic": {
+      "label": "Traditional",
+      "desc": "Framed page, everything centred, \"Name : value\" rows. The format families print and pass on."
+    },
+    "modern": {
+      "label": "Modern",
+      "desc": "Photo in a coloured sidebar, details in two columns. Easy to read on a phone."
+    }
+  },
+  "shareTitle": "Marriage Biodata",
+  "waText": "Sharing my marriage biodata (PDF attached) — made with TricityMatch, tricitymatch.com",
+  "downloaded": "PDF downloaded. Attach it in WhatsApp.",
+  "shareWhatsApp": "Share on WhatsApp",
+  "download": "Download",
+  "regenerate": "Regenerate biodata",
+  "preparing": "Preparing your biodata…",
+  "tryAgain": "Try again",
+  "create": "Create my biodata",
+  "error": "Couldn't generate the PDF. Please try again."
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiHeart, FiMessageCircle, FiMapPin } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
@@ -17,7 +18,8 @@ import { staggerIndex, DUR, EASE_OUT } from '../../utils/animations';
  */
 const MatchCard = ({ match, userId, index = 0, onChat }) => {
   const navigate = useNavigate();
-  const fullName = `${match.firstName || ''} ${match.lastName || ''}`.trim() || 'Unknown';
+  const { t } = useTranslation();
+  const fullName = `${match.firstName || ''} ${match.lastName || ''}`.trim() || t('cards.unknown');
   const initials = (match.firstName?.[0] || '') + (match.lastName?.[0] || '') || '?';
   
   const handleClick = () => {
@@ -50,7 +52,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
       // cards share the app-wide card radius system ProfileCard was unified to.
       className="card rounded-xl cursor-pointer group"
       role="article"
-      aria-label={`Mutual match with ${fullName}`}
+      aria-label={t('cards.mutualMatchWith', { name: fullName })}
     >
       <div className="text-center">
         {/* Profile Image */}
@@ -58,7 +60,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
           {(match.profilePhoto || match.profile_photo) ? (
             <RetryImage
               src={getImageUrl(match.profilePhoto || match.profile_photo, API_BASE_URL, 'profile')}
-              alt={`Profile photo of ${fullName}`}
+              alt={t('cards.photoOf', { name: fullName })}
               className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white dark:border-neutral-800 shadow-lg group-hover:border-primary-100 transition-colors"
               loading="lazy"
               onError={(e) => {
@@ -81,7 +83,7 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
             className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 bg-success text-white text-xs font-semibold rounded-full shadow-md flex items-center gap-1"
           >
             <FiHeart className="w-3 h-3" aria-hidden="true" />
-            <span>Mutual</span>
+            <span>{t('cards.mutual')}</span>
           </motion.div>
         </div>
         
@@ -100,12 +102,12 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
         </h3>
         <p className="text-neutral-600 text-sm flex items-center justify-center gap-1 mb-3">
           <FiMapPin className="w-3.5 h-3.5" aria-hidden="true" />
-          {match.city || 'Location not specified'}
+          {match.city || t('cards.locationNotSpecified')}
         </p>
         
         {match.compatibilityScore && (
           <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full border border-primary-100">
-            {Math.round(match.compatibilityScore)}% Compatible
+            {t('cards.compatible', { n: Math.round(match.compatibilityScore) })}
           </span>
         )}
         
@@ -113,11 +115,11 @@ const MatchCard = ({ match, userId, index = 0, onChat }) => {
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleChatClick}
-          aria-label={`Start chat with ${fullName}`}
+          aria-label={t('cards.startChatWith', { name: fullName })}
           className="mt-4 w-full min-h-[44px] py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
         >
           <FiMessageCircle className="w-4 h-4" aria-hidden="true" />
-          Message
+          {t('cards.message')}
         </motion.button>
       </div>
     </motion.div>

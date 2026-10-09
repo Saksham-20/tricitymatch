@@ -167,7 +167,7 @@ export default function AdminReferralCodes() {
 
   const results = (code) => (
     <span className="tabular-nums text-sm">
-      <Link to={membersHref(code)} className="hover:underline">{code.people ?? 0} people</Link>
+      <Link to={membersHref(code)} className="hover:underline">{code.people ?? 0} {(code.people ?? 0) === 1 ? 'person' : 'people'}</Link>
       {' · '}
       <Link to={membersHref(code, '&signedUp=yes')} className="hover:underline">{code.joined ?? code.usageCount} joined</Link>
       {' · '}

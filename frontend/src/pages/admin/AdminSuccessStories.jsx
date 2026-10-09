@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, forwardRef } from 'react';
+import toast from 'react-hot-toast';
 import { Plus, Trash2, Eye, EyeOff, Pencil, AlertCircle, RefreshCw } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 
@@ -64,21 +65,33 @@ export default function AdminSuccessStories() {
         await apiClient.post('/admin/success-stories', form);
       }
       setShowModal(false);
+      toast.success(form.status === 'published' ? 'Story saved and published' : 'Story saved as a draft');
       fetchStories();
     } catch (err) {
-      setSaveError(err.response?.data?.message || 'Save failed');
+      setSaveError(err.response?.data?.error?.message || err.response?.data?.message || 'Save failed');
     }
   };
 
   const togglePublish = async (s) => {
-    await apiClient.put(`/admin/success-stories/${s.id}`, { status: s.status === 'published' ? 'draft' : 'published' });
-    fetchStories();
+    const publishing = s.status !== 'published';
+    try {
+      await apiClient.put(`/admin/success-stories/${s.id}`, { status: publishing ? 'published' : 'draft' });
+      toast.success(publishing ? 'Published on the website' : 'Taken off the website');
+      fetchStories();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not change the story');
+    }
   };
 
   const remove = async (id) => {
     if (!window.confirm('Delete this story?')) return;
-    await apiClient.delete(`/admin/success-stories/${id}`);
-    fetchStories();
+    try {
+      await apiClient.delete(`/admin/success-stories/${id}`);
+      toast.success('Story deleted');
+      fetchStories();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not delete the story');
+    }
   };
 
   return (

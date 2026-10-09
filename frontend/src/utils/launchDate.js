@@ -23,6 +23,17 @@ export const launchDateLabel = () =>
   new Date(`${LAUNCH_DATE}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
 /**
+ * Day, month and weekday of the launch as separate words in `locale`, for the
+ * member-facing banner (Hindi/Punjabi month names). Separate calls, because
+ * some locales (pa-IN) put the month before the day in a combined format.
+ */
+export const launchDateParts = (locale = 'en-IN') => {
+  const d = new Date(`${LAUNCH_DATE}T00:00:00Z`);
+  const fmt = (opts) => d.toLocaleDateString(locale, { ...opts, timeZone: 'UTC' });
+  return { day: fmt({ day: 'numeric' }), month: fmt({ month: 'long' }), weekday: fmt({ weekday: 'long' }) };
+};
+
+/**
  * @returns {{ phase: 'before'|'today'|'after', days: number }}
  *   `days` is whole calendar days until launch (0 on the day, negative after).
  */

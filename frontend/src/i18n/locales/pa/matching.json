@@ -1,0 +1,27 @@
+{
+  "close": "ਬੰਦ ਕਰੋ",
+  "itsAMatch": "ਮੈਚ ਹੋ ਗਿਆ!",
+  "likedEachOther": "ਤੁਸੀਂ ਅਤੇ {{name}} ਨੇ ਇੱਕ-ਦੂਜੇ ਨੂੰ ਪਸੰਦ ਕੀਤਾ ਹੈ",
+  "someoneSpecial": "ਕਿਸੇ ਖ਼ਾਸ",
+  "yourProfile": "ਤੁਹਾਡੀ ਪ੍ਰੋਫ਼ਾਈਲ",
+  "theirProfile": "{{name}} ਦੀ ਪ੍ਰੋਫ਼ਾਈਲ",
+  "matchFallback": "ਮੈਚ",
+  "sendMessage": "ਸੁਨੇਹਾ ਭੇਜੋ",
+  "keepBrowsing": "ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਦੇਖਦੇ ਰਹੋ",
+  "score": {
+    "excellent": "ਬਹੁਤ ਵਧੀਆ ਮੈਚ",
+    "great": "ਵਧੀਆ ਮੈਚ",
+    "good": "ਚੰਗਾ ਮੈਚ",
+    "fair": "ਠੀਕ-ਠਾਕ ਮੈਚ"
+  },
+  "actionBar": {
+    "interestSentSuccess": "ਦਿਲਚਸਪੀ ਭੇਜ ਦਿੱਤੀ ਗਈ",
+    "interestAlreadySentAria": "ਦਿਲਚਸਪੀ ਪਹਿਲਾਂ ਹੀ ਭੇਜੀ ਜਾ ਚੁੱਕੀ ਹੈ",
+    "sendInterestAria": "ਦਿਲਚਸਪੀ ਭੇਜੋ",
+    "interestSent": "ਦਿਲਚਸਪੀ ਭੇਜੀ ਗਈ",
+    "sendInterest": "ਦਿਲਚਸਪੀ ਭੇਜੋ",
+    "removeFromShortlist": "ਸੇਵ ਕੀਤੀ ਸੂਚੀ ਵਿੱਚੋਂ ਹਟਾਓ",
+    "addToShortlist": "ਸੇਵ ਕਰੋ",
+    "sendMessage": "ਸੁਨੇਹਾ ਭੇਜੋ"
+  }
+}

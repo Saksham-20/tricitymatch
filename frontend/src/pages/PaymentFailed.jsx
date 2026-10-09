@@ -1,11 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiXCircle, FiRefreshCw, FiMail } from 'react-icons/fi';
 import Logo from '../components/common/Logo';
 import { DUR, EASE_OUT } from '../utils/animations';
 
+const CAUSES = ['balance', 'card', 'declined', 'network'];
+
 export default function PaymentFailed() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-background dark:bg-surface-dark-1 px-4">
       <div className="w-full max-w-md">
@@ -33,41 +37,36 @@ export default function PaymentFailed() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Payment failed</h1>
+            <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t('payments.failed.title')}</h1>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6">
-              We couldn't process your payment. Please check your card details and try again.
+              {t('payments.failed.description')}
             </p>
 
             <div className="bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl p-4 mb-6 text-left border border-neutral-100 dark:border-neutral-800">
-              <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-2">Common causes</p>
-              {[
-                'Insufficient account balance',
-                'Card details incorrect or expired',
-                'Transaction declined by bank',
-                'Network connection issue',
-              ].map((r) => (
+              <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-2">{t('payments.failed.commonCauses')}</p>
+              {CAUSES.map((r) => (
                 <div key={r} className="flex items-start gap-2 py-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600 mt-1.5 flex-shrink-0" />
-                  <span className="text-sm text-neutral-700 dark:text-neutral-300">{r}</span>
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">{t(`payments.failed.causes.${r}`)}</span>
                 </div>
               ))}
             </div>
 
             <div className="flex flex-col gap-3">
               <Link to="/subscription" className="btn-primary w-full flex items-center justify-center gap-2">
-                <FiRefreshCw className="w-4 h-4" /> Try again
+                <FiRefreshCw className="w-4 h-4" /> {t('payments.failed.tryAgain')}
               </Link>
               <a
                 href="mailto:support@tricitymatch.com"
                 className="btn-secondary w-full flex items-center justify-center gap-2"
               >
-                <FiMail className="w-4 h-4" /> Contact support
+                <FiMail className="w-4 h-4" /> {t('payments.failed.contactSupport')}
               </a>
               <Link
                 to="/dashboard"
                 className="w-full min-h-[44px] inline-flex items-center justify-center py-2.5 text-sm text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
               >
-                Back to Dashboard
+                {t('payments.failed.backToDashboard')}
               </Link>
             </div>
           </motion.div>

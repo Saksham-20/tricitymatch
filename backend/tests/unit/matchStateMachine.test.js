@@ -137,7 +137,7 @@ describe('match transitions', () => {
     expect(mockSendMail).not.toHaveBeenCalled();
   });
 
-  it.each(['pass', 'shortlist'])('%s on a mutual match withdraws it for both members', async (action) => {
+  it.each(['pass'])('%s on a mutual match withdraws it for both members', async (action) => {
     await act(A, B, 'like');
     await act(B, A, 'like');
     mockNotify.mockClear();
@@ -150,6 +150,21 @@ describe('match transitions', () => {
     expect(mockEvict).toHaveBeenCalledWith(A, B);
     // The other member's like stands as an ordinary one-way like.
     expect(mockRows.get(mockKey(B, A)).action).toBe('like');
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it('saving a liked profile keeps the like (and a mutual match) intact', async () => {
+    await act(A, B, 'like');
+    expect(await act(A, B, 'shortlist')).toMatchObject({ keptLike: true, withdrawn: false });
+    expect(mockRows.get(mockKey(A, B)).action).toBe('like');
+
+    await act(B, A, 'like');
+    mockNotify.mockClear();
+    const out = await act(A, B, 'shortlist');
+    expect(out).toMatchObject({ isMutual: true, withdrawn: false, keptLike: true });
+    expect(mockRows.get(mockKey(A, B))).toMatchObject({ action: 'like', isMutual: true });
+    expect(mockSever).not.toHaveBeenCalled();
+    expect(mockEvict).not.toHaveBeenCalled();
     expect(mockNotify).not.toHaveBeenCalled();
   });
 

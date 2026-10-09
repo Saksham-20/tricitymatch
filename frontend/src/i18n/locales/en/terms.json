@@ -1,0 +1,163 @@
+{
+  "title": "Terms of Service",
+  "lastUpdated": "Last updated: {{date}}",
+  "intro": {
+    "p1": "TricityMatch is a matrimonial platform for the Tricity region — Chandigarh, Mohali and Panchkula — and for families from the region living elsewhere. These Terms of Service (\"Terms\") are a legally binding agreement between you and {{entity}} (\"TricityMatch\", \"we\", \"us\"), the operator of the website tricitymatch.com and the TricityMatch mobile applications (together, the \"Service\"). Please read them carefully. By creating an account or using the Service, you accept these Terms and our <privacylink>Privacy Policy</privacylink>.",
+    "operator": "Operator:",
+    "intermediary": "TricityMatch is an \"intermediary\" under section 2(1)(w) of the Information Technology Act, 2000. We host information provided by our members; we do not author it, and we do not vouch for it."
+  },
+  "s1": {
+    "h": "1. Acceptance of these Terms",
+    "p": "By accessing, registering for, or using the Service you agree to be bound by these Terms. If you do not agree, please do not use the Service. If you are using the Service on behalf of a family member, you agree to these Terms both for yourself and on their behalf."
+  },
+  "s2": {
+    "h": "2. Eligibility",
+    "intro": "To register you must:",
+    "i1": "be of legal marriageable age in India — <b>21 years or above if you are a man, 18 years or above if you are a woman</b> (Prohibition of Child Marriage Act, 2006) — or of legal marriageable age under the law that applies to you, if higher;",
+    "i2": "be legally competent to contract and to marry, and not be within a degree of relationship prohibited by the law applicable to you;",
+    "i3": "be unmarried, divorced, widowed, or otherwise lawfully free to marry, and state your marital status truthfully. <b>Creating a profile while you are legally married is a serious misrepresentation</b> and grounds for immediate removal without refund;",
+    "i4": "not have been previously removed from the Service, and not be barred from using it under any applicable law.",
+    "p2": "The Service is intended for use in India. If you use it from elsewhere, you are responsible for complying with your local law."
+  },
+  "s3": {
+    "h": "3. Matrimonial purpose only",
+    "p": "<b>TricityMatch is a matrimonial service, not a dating service.</b> You may use it only with a genuine and present intention of entering into marriage — for yourself, or for a consenting family member. Using the Service for casual dating, companionship, friendship, commercial solicitation, advertising, recruitment, sex work, or any exploitative, immoral or unlawful purpose is prohibited and will result in removal."
+  },
+  "s4": {
+    "h": "4. Registration & account security",
+    "p1": "You agree to provide accurate, current and complete information at registration and to keep it updated. One person may hold one account. You are responsible for keeping your password and one-time passcodes confidential and for everything done under your account. Tell us at once, at <supportmail>{{supportEmail}}</supportmail>, if you believe your account has been accessed by someone else.",
+    "p2": "We verify your mobile number or email by one-time passcode at signup. That check confirms control of a contact point. It is not a check of who you are."
+  },
+  "s5": {
+    "h": "5. Guardian & family-managed profiles",
+    "intro": "Our guardian feature lets a parent, sibling or relative create and manage a profile for a family member. If you use it, you confirm that:",
+    "i1": "the person whose profile you create is of legal marriageable age (see clause 2), knows the profile exists, and has agreed to it;",
+    "i2": "you have their permission to publish their photographs, personal details and horoscope information on this platform, and to receive and act on communications about their marriage;",
+    "i3": "you will show them our <privacylink>Privacy Policy</privacylink>, and stop processing their information if they ask you to.",
+    "p2": "The person the profile describes may contact us at any time to take control of the profile, correct it, or have it deleted, whether or not they created it. We will act on their instruction over the guardian's."
+  },
+  "s6": {
+    "h": "6. Photo verification — what it is and is not",
+    "p1": "Photo verification is optional. You capture a live selfie through your device camera and our review team compares it against your profile photographs to confirm that a real person is behind the profile.",
+    "p2": "A verified badge is <b>not</b> a background check, a criminal-record check, an income check, an employment check, or a check of marital status. It is not an endorsement, a guarantee of anyone's identity, character or intentions, and it does not make any statement on the profile true. <b>We do not screen members, and we cannot.</b> Please make your own enquiries before you commit to anything."
+  },
+  "s7": {
+    "h": "7. Acceptable use",
+    "intro": "You agree not to:",
+    "i1": "post false, misleading or fraudulent information, or impersonate any person;",
+    "i2": "harass, abuse, threaten, stalk, intimidate or harm another member, on or off the platform;",
+    "i3": "ask any member for money, gifts, loans, investments, or financial or commercial favours — <em>no genuine match will ever ask you for money</em>;",
+    "i4": "demand or offer dowry, in any form. Demanding dowry is an offence under the Dowry Prohibition Act, 1961 and we will remove and report accounts that do it;",
+    "i5": "send spam, advertising, chain messages or unsolicited promotional content;",
+    "i6": "use bots, scrapers, automated scripts or bulk methods to access, copy or extract profiles or contact details;",
+    "i7": "copy, save, republish or share another member's photographs or contact details, on social media or anywhere else;",
+    "i8": "contact a member outside the platform without their consent, or continue contacting anyone who has asked you to stop;",
+    "i9": "circumvent, disable or test the security, rate limits, payment features or contact-unlock allowances of the Service;",
+    "i10": "hold more than one account, sell or transfer your account, or use another member's account.",
+    "p2": "Contact details are revealed only through your plan's unlock allowance, and only for genuine matrimonial communication with that person. Everything you unlock is another member's personal data — treat it that way."
+  },
+  "s8": {
+    "h": "8. Content you may not host, display, upload or share",
+    "intro": "In accordance with rule 3(1)(b) of the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, you must not host, display, upload, modify, publish, transmit, store, update or share any information that:",
+    "i1": "belongs to another person and to which you do not have any right;",
+    "i2": "is obscene, pornographic, paedophilic, invasive of another's privacy including bodily privacy, insulting or harassing on the basis of gender, racially or ethnically objectionable, or otherwise inconsistent with or contrary to the laws in force;",
+    "i3": "is harmful to a child;",
+    "i4": "infringes any patent, trademark, copyright or other proprietary right;",
+    "i5": "deceives or misleads the addressee about the origin of the message, or knowingly and intentionally communicates any misinformation or information which is patently false or untrue or misleading in nature;",
+    "i6": "impersonates another person;",
+    "i7": "threatens the unity, integrity, defence, security or sovereignty of India, friendly relations with foreign States, or public order, or causes incitement to the commission of any cognisable offence, or prevents investigation of any offence, or is insulting to any foreign State;",
+    "i8": "contains a software virus or any other computer code, file or programme designed to interrupt, destroy or limit the functionality of any computer resource;",
+    "i9": "violates any law for the time being in force.",
+    "p2": "We will inform you at least once every year of these rules, of our Terms and Privacy Policy, and of any change to them — and of the consequences of not complying, which include removing your content and terminating your access."
+  },
+  "s9": {
+    "h": "9. Reporting, removal & enforcement",
+    "p1": "Every profile and every conversation carries a report option, and you can also write to our Grievance Officer (clause 23). We review reports by hand. We may remove content, restrict features, suspend or terminate an account where we reasonably believe these Terms or the law have been broken, or where a member is putting others at risk.",
+    "i1": "We acknowledge a complaint within <b>24 hours</b> and decide it within <b>15 days</b>.",
+    "i2": "A complaint about content that exposes a person's private area, shows them in full or partial nudity, shows or depicts them in a sexual act, or is impersonation including morphed images, is acted on within <b>24 hours</b>.",
+    "i3": "On a court order or a notification from an authorised government agency, unlawful information is removed or disabled within <b>36 hours</b>.",
+    "i4": "Information we remove, and the records associated with it, are preserved for <b>180 days</b> for investigation, or longer where a court or agency requires it.",
+    "p2": "We may also disclose information to law-enforcement agencies where we are lawfully required to, and we cooperate with investigating agencies as the law directs."
+  },
+  "s10": {
+    "h": "10. Your content, and the licence you give us",
+    "p1": "You keep ownership of the photographs, text, voice and video intros and other content you upload. You grant us a non-exclusive, royalty-free, worldwide licence to host, store, reproduce, resize, adapt for display, and show that content to other members and their guardians, for as long as your account exists and strictly to operate the Service in line with your privacy settings. This licence ends when you delete the content or your account, except for copies we are required to preserve under clause 9 or clause 20.",
+    "p2": "You confirm you have the right to upload everything you upload, that photographs are of the person the profile describes, and that you have consent to upload any photograph containing another identifiable person.",
+    "p3": "We do not sell your content, and we do not use your photographs in advertising without asking you first. Where you agree to appear in a success story, we will tell you exactly what will be published, and you can withdraw that consent at any time."
+  },
+  "s11": {
+    "h": "11. Our intellectual property",
+    "p": "The Service — its software, design, brand, name, logo, text and compilation of profiles — belongs to us or our licensors and is protected by law. You may use it only as these Terms allow. You may not copy, scrape, frame, reverse-engineer, or build a competing or derivative service from it."
+  },
+  "s12": {
+    "h": "12. Plans, prices, taxes & payments",
+    "i1": "Basic use is free. Some features — including unlocking contact details and unrestricted messaging — require a paid membership, sold for a fixed term stated at checkout.",
+    "i2": "<b>Prices shown are in Indian Rupees and include all applicable taxes, including GST.</b> The price you see at checkout is the price you pay; there are no charges added afterwards.",
+    "i3": "<b>Memberships paid for through Razorpay (card, UPI or netbanking) do not auto-renew.</b> There is no standing instruction on your card or account. A membership simply expires at the end of its term unless you choose to buy again.",
+    "i4": "<b>A membership bought through Google Play billing is a Google Play subscription.</b> Its renewal and cancellation follow the terms Google Play shows you when you buy, and you can cancel it at any time in Google Play under Payments & subscriptions.",
+    "i5": "A membership grants the contact-unlock allowance stated at checkout. Unlocks are consumed when you use them and do not carry over after the term ends.",
+    "i6": "Where a launch or promotional price is shown against a struck-through price, the struck-through figure is our regular price for the same term. Where an offer has an end date, that date is real.",
+    "i7": "Payments are processed by Razorpay, and on Android may be processed by Google Play. We never see or store your card, UPI or bank credentials.",
+    "i8": "We may change our prices. A change never affects a membership you have already bought.",
+    "i9": "A tax invoice is available for every completed payment from Payment History in your account."
+  },
+  "s13": {
+    "h": "13. Refunds & cancellation",
+    "p1": "Our refund commitments are set out in full in our <refundlink>Refund & Conduct Policy</refundlink>, which forms part of these Terms. In short: ask within seven days of paying and we refund the membership in full, less any contact unlocks you have already used; after that a membership runs its term, but we will always refund a feature we withdrew, a sustained outage, or a double charge. Nothing in these Terms limits your rights under the Consumer Protection Act, 2019.",
+    "p2": "A member removed for harassment, fraud or misrepresentation is not refunded."
+  },
+  "s14": {
+    "h": "14. No guarantee of outcome",
+    "p1": "We help you find and reach prospective matches. We do not promise that you will receive responses, find a match, or marry, and we are not a party to any introduction, engagement, relationship or marriage that follows. Compatibility scores, horoscope matching and match suggestions are informational aids generated from the information members provide — they are not advice, and they are not predictions.",
+    "p2": "If you meet someone offline, meet in a public place, tell someone where you are going, and verify independently anything that matters to you — identity, marital status, income, employment, health, and family circumstances. Please read our <safetylink>Safety</safetylink> guidance before you meet anyone."
+  },
+  "s15": {
+    "h": "15. Third-party services",
+    "p": "Parts of the Service rely on third parties — payments (Razorpay, Google Play), image hosting (Cloudinary), email and SMS delivery, push notifications, and voice/video calling. Their handling of your data is described in our <privacylink>Privacy Policy</privacylink>. Astrologer consultations, where offered, are provided by independent practitioners; we facilitate the booking and are not responsible for the content of any consultation."
+  },
+  "s16": {
+    "h": "16. Privacy",
+    "p": "Our <privacylink>Privacy Policy</privacylink> explains what we collect, why, who we share it with, how long we keep it, and the rights you have under the Digital Personal Data Protection Act, 2023. It is incorporated into these Terms by reference."
+  },
+  "s17": {
+    "h": "17. Disclaimers",
+    "p": "The Service is provided on an \"as is\" and \"as available\" basis, without warranties of any kind, express or implied, to the fullest extent the law allows. We do not warrant that the Service will be uninterrupted, error-free or secure, or that any information a member provides about themselves is true. We are not responsible for the conduct of any member, online or offline."
+  },
+  "s18": {
+    "h": "18. Limitation of liability",
+    "p1": "To the maximum extent permitted by law, TricityMatch is not liable for indirect, incidental, special, punitive or consequential loss, or for loss of profit, opportunity, data or reputation, arising from your use of the Service or from the acts or omissions of any member.",
+    "p2": "<b>Our total aggregate liability for all claims arising in any twelve-month period is limited to the total amount you actually paid us in that period</b>, or ₹1,000 if you paid nothing.",
+    "p3": "Nothing here limits liability that cannot be limited by law, including liability for fraud, or your rights as a consumer under the Consumer Protection Act, 2019."
+  },
+  "s19": {
+    "h": "19. Indemnity",
+    "p": "You agree to indemnify and hold harmless TricityMatch, its officers and employees, from claims, damages, losses and reasonable costs arising out of information you post, your breach of these Terms or of any law, or your dealings with any other member."
+  },
+  "s20": {
+    "h": "20. Suspension, termination & what happens to your data",
+    "p1": "You may delete your account at any time from <settingslink>Settings</settingslink> — see <deletelink>how to delete your account</deletelink> for the exact steps on the website and both apps. We may suspend or terminate an account that breaches these Terms or the law, or that endangers other members.",
+    "p2": "When your account is deleted, your profile, photographs, verification selfie, messages, matches, guardian links and registration information (email, phone) are <b>erased 30 days after you ask</b>, unless you cancel first; your profile is hidden from the moment you ask, and on the website you can choose to erase immediately instead. We keep payment records for as long as tax and accounting law requires, and moderation records where another member has reported you. This is set out in detail in section 13 of the <privacylink>Privacy Policy</privacylink>."
+  },
+  "s21": {
+    "h": "21. Changes to these Terms",
+    "p": "We may update these Terms. When we do, we will change the \"Last updated\" date above and, for a material change, notify you in the app or by email. We will also remind you of these Terms, the Privacy Policy and any changes to them at least once every year. Continuing to use the Service after a change takes effect means you accept it. If you do not, you may delete your account."
+  },
+  "s22": {
+    "h": "22. Governing law & disputes",
+    "p1": "These Terms are governed by the laws of India. Please write to our Grievance Officer first — most complaints are resolved there. Subject to the paragraph below, the courts at Chandigarh have exclusive jurisdiction over disputes arising from these Terms.",
+    "p2": "If you are a consumer, nothing in this clause takes away your statutory right to bring a complaint before the consumer commission having jurisdiction where you reside or work, under the Consumer Protection Act, 2019. You may also use the National Consumer Helpline (1915) or the e-Daakhil portal."
+  },
+  "s23": {
+    "h": "23. Grievance redressal",
+    "p": "If something on the platform harms you, or a member behaves badly, or you believe we have got something wrong, tell us. We would rather fix it than have you leave.",
+    "i1": "<b>Everyday help:</b> <supportmail>{{supportEmail}}</supportmail>, or the <helplink>Help Centre</helplink>. We reply within two working days.",
+    "officer": "Grievance Officer",
+    "appointed": ". Appointed under rule 3(2) of the IT Rules, 2021 and rule 4(3) of the Consumer Protection (E-Commerce) Rules, 2020.",
+    "i3": "<b>Timelines:</b> we acknowledge every complaint within <b>24 hours</b> (and within 48 hours for consumer complaints), decide content and conduct complaints within <b>15 days</b>, and resolve consumer complaints within <b>one month</b>. Complaints of the kind described in clause 9 are acted on within 24 hours.",
+    "i4": "<b>Data protection:</b> for anything about your personal data, write to <privacymail>{{privacyEmail}}</privacymail>. If you are not satisfied with our answer you may complain to the Data Protection Board of India."
+  },
+  "s24": {
+    "h": "24. General",
+    "p": "If any clause of these Terms is held unenforceable, the rest continues in force. Our not enforcing a clause on one occasion does not waive it. You may not assign these Terms; we may assign them to a successor of the business, and will tell you if we do. These Terms, the Privacy Policy and the Refund & Conduct Policy are the entire agreement between us about the Service. We are not liable for failure caused by events outside our reasonable control."
+  }
+}

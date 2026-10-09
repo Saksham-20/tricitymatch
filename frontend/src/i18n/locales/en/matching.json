@@ -1,0 +1,27 @@
+{
+  "close": "Close",
+  "itsAMatch": "It's a Match!",
+  "likedEachOther": "You and {{name}} have liked each other",
+  "someoneSpecial": "someone special",
+  "yourProfile": "Your profile",
+  "theirProfile": "{{name}}'s profile",
+  "matchFallback": "Match",
+  "sendMessage": "Send a Message",
+  "keepBrowsing": "Keep Browsing",
+  "score": {
+    "excellent": "Excellent Match",
+    "great": "Great Match",
+    "good": "Good Match",
+    "fair": "Fair Match"
+  },
+  "actionBar": {
+    "interestSentSuccess": "Interest sent successfully",
+    "interestAlreadySentAria": "Interest already sent",
+    "sendInterestAria": "Send interest",
+    "interestSent": "Interest Sent",
+    "sendInterest": "Send Interest",
+    "removeFromShortlist": "Remove from shortlist",
+    "addToShortlist": "Add to shortlist",
+    "sendMessage": "Send message"
+  }
+}

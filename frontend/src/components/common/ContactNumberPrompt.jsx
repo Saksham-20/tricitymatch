@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import ContactNumberVerify from './ContactNumberVerify';
@@ -22,6 +23,7 @@ const EXEMPT = [
 export default function ContactNumberPrompt() {
   const { user, isAuthenticated, updateUser, logout } = useAuth();
   const { pathname } = useLocation();
+  const { t } = useTranslation();
   const [phone, setPhone] = useState(user?.phone || '');
 
   useEffect(() => { setPhone(user?.phone || ''); }, [user?.phone]);
@@ -42,10 +44,10 @@ export default function ContactNumberPrompt() {
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="contact-prompt-title">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-900 p-6 shadow-xl">
         <h2 id="contact-prompt-title" className="font-display text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-          Add your mobile number to continue
+          {t('contactNumber.promptTitle')}
         </h2>
         <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-          When someone unlocks your contact, this is the number they call. Every member needs a verified number, so nobody reaches a wrong one.
+          {t('contactNumber.promptBody')}
         </p>
         <div className="mt-5">
           <ContactNumberVerify
@@ -55,16 +57,18 @@ export default function ContactNumberPrompt() {
             onChange={setPhone}
             onVerified={(d) => {
               updateUser({ phone: d, phoneVerified: true });
-              toast.success('Number verified');
+              toast.success(t('contactNumber.numberVerified'));
             }}
           />
         </div>
         <div className="mt-5 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 p-3 text-sm text-neutral-600 dark:text-neutral-400">
-          Already joined with this number? Sign out and sign in with your mobile number instead. You can delete this account from{' '}
-          <Link to="/settings" className="font-medium text-primary-600 dark:text-primary-300 underline underline-offset-2">Settings</Link>.
+          <Trans
+            i18nKey="contactNumber.alreadyJoined"
+            components={{ anchor: <Link to="/settings" className="font-medium text-primary-600 dark:text-primary-300 underline underline-offset-2" /> }}
+          />
         </div>
         <button type="button" onClick={() => logout()} className="mt-4 text-sm text-neutral-600 dark:text-neutral-300 hover:underline py-2">
-          Sign out
+          {t('auth.signOut')}
         </button>
       </div>
     </div>

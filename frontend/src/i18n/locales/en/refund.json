@@ -1,0 +1,29 @@
+{
+  "h1": "If this is not what you expected, tell us.",
+  "intro": "We are a small Tricity team, not a national portal, and we would rather refund someone than hold on to money they regret spending. This page says exactly when we refund, how to ask, and what happens when a member behaves badly.",
+  "lastUpdated": "Last updated {{date}}",
+  "seven": {
+    "title": "Seven days, no argument",
+    "p1": "Ask within <b>seven days</b> of paying and we refund the membership in full — you do not have to justify it. Write to <supportmail>{{supportEmail}}</supportmail> from the email on your account and say you want a refund.",
+    "p2": "One exception, and it is the obvious one: if you have already unlocked contact details during those seven days, we deduct those unlocks at ₹199 for three, which is what the top-up costs. Everything else comes back."
+  },
+  "after": {
+    "title": "After seven days",
+    "p1": "A membership runs for its full term and we do not refund the unused part of it — the same way a gym membership works. If something has genuinely gone wrong, write to us anyway. We read every message and we have discretion.",
+    "p2": "We will always refund, at any point in the term, if: we removed a feature you paid for, the service was unusable for a sustained period, or you were charged twice."
+  },
+  "conduct": {
+    "title": "If a member behaves badly",
+    "p1": "Report anyone who harasses you, misrepresents themselves, or asks you for money — there is a report option on every profile and in every conversation. We review reports by hand.",
+    "p2": "A member we remove for harassment or fraud does not get a refund. If you were the one harmed and you no longer want to be here because of it, you get one — regardless of how long you have been a member."
+  },
+  "ask": {
+    "title": "How to ask, and how long it takes",
+    "p1": "Email <supportmail>{{supportEmail}}</supportmail> from your registered address with your registered phone number. We reply within two working days.",
+    "p2": "Approved refunds go back to the original payment method through Razorpay and usually take five to seven working days to appear, depending on your bank. We do not refund to a different account than the one that paid.",
+    "p3": "What we never do: charge a renewal without asking, keep charging after you cancel, or make you phone somebody to leave. You can delete your account yourself, at any time, <deletelink>from here</deletelink>."
+  },
+  "help": "Help Centre",
+  "terms": "Terms of Service",
+  "privacy": "Privacy Policy"
+}

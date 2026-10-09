@@ -4,14 +4,21 @@
  * warning token, never gold). Announces changes politely for screen readers.
  */
 
+import { useTranslation } from 'react-i18next';
+
+// English keeps its exact 'en-IN' rendering; Hindi/Punjabi get their own month
+// names with Western digits.
+const meterLocale = (lng) => (!lng || lng.startsWith('en') ? 'en-IN' : `${lng}-IN-u-nu-latn`);
+
 const ReplyMeter = ({ replyWindow }) => {
+  const { t, i18n } = useTranslation();
   if (!replyWindow) return null;
   const { messagesRemaining, expiresAt, active } = replyWindow;
   if (!active) return null;
 
   const low = messagesRemaining <= 2;
   const expiry = expiresAt
-    ? new Date(expiresAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+    ? new Date(expiresAt).toLocaleString(meterLocale(i18n.language), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
     : null;
 
   return (
@@ -24,10 +31,10 @@ const ReplyMeter = ({ replyWindow }) => {
       }`}
     >
       <span className="tabular-nums">
-        {messagesRemaining} free {messagesRemaining === 1 ? 'reply' : 'replies'} left
+        {t('chat.meter.freeRepliesLeft', { count: messagesRemaining })}
       </span>
       {expiry && <span aria-hidden="true">·</span>}
-      {expiry && <span>window closes {expiry}</span>}
+      {expiry && <span>{t('chat.meter.windowCloses', { time: expiry })}</span>}
     </div>
   );
 };

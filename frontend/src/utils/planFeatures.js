@@ -1,65 +1,118 @@
+import i18n from '../i18n';
+
 // ─── Plan feature lists ───────────────────────
 // The chat lines are DERIVED from the server's `freeChatForMutuals` flag, never
 // hardcoded: with the flag on, "Unlimited messages" as a paid feature is a lie
 // (free members message their mutual matches), and with it off, promising free
 // chat is a lie in the other direction. `planFeatures()` below is the only
 // place either line is written.
+//
+// Lines are stored as ids and turned into text at CALL time (the member can
+// switch language after this module loads). Each line keeps its id so callers
+// can drop a line by what it IS ("the unlock line", "the chain line") rather
+// than by matching English text, which would break in Hindi and Punjabi.
+
 // Placeholder for the "Everything in <the tier below this one>" line. It is
 // resolved at render time, NOT written here, because the launch offer can
 // withdraw a tier: a VIP card reading "Everything in Elite" beside a page with
 // no Elite card is a dangling reference the reader cannot resolve, and that is
 // exactly what shipped when this list hardcoded the chain.
-const EVERYTHING_IN = '\u0000EVERYTHING_IN';
+const EVERYTHING_IN = { id: 'everythingIn' };
+// The unlock count and the validity claim are re-termed from the live plan by
+// retermForLivePlan, so the values here are placeholder shapes, not claims.
+const UNLOCKS = (count) => ({ id: 'unlocks', count });
+const VALIDITY = (key) => ({ id: 'validity', key });
+const line = (key) => ({ id: key, key });
 
 const PLAN_FEATURES = {
   free: [
-    'Create profile',
-    'Browse matches',
-    'Send interest',
-    'Basic search filters',
+    line('createProfile'),
+    line('browseMatches'),
+    line('sendInterest'),
+    line('basicFilters'),
   ],
   basic_premium: [
-    'View contact details',
-    'Unlimited messages',
-    'See who viewed profile',
-    'Advanced search filters',
-    '5 contact unlocks',
+    line('viewContact'),
+    line('unlimitedMessages'),
+    line('whoViewed'),
+    line('advancedFilters'),
+    UNLOCKS(5),
   ],
   premium_plus: [
     EVERYTHING_IN,
-    '15 contact unlocks',
-    // Re-termed from the live plan by retermForLivePlan (the regex keys off the
-    // trailing "validity"), so this string is a placeholder shape, not a claim.
-    '90-day validity',
-    'Profile boost',
-    'Spotlight listing',
-    'Priority customer support',
+    UNLOCKS(15),
+    VALIDITY('validity90Days'),
+    line('profileBoost'),
+    line('spotlight'),
+    line('prioritySupport'),
   ],
   elite: [
     EVERYTHING_IN,
-    '30 contact unlocks',
-    'Priority ranking in search',
-    '6-month validity',
-    'Best value per month',
+    UNLOCKS(30),
+    line('priorityRanking'),
+    VALIDITY('validity6Months'),
+    line('bestValue'),
   ],
   vip: [
     EVERYTHING_IN,
-    'Unlimited contact unlocks',
-    'Verified badge',
-    'Full-year validity',
-    'Dedicated relationship advisor',
+    UNLOCKS(-1),
+    line('verifiedBadge'),
+    VALIDITY('validityFullYear'),
+    line('relationshipAdvisor'),
   ],
   nri: [
     EVERYTHING_IN,
-    'Unlimited contact unlocks',
-    'Priority NRI support',
-    'Timezone-aware matching',
-    'Prices in your local currency',
+    UNLOCKS(-1),
+    line('priorityNriSupport'),
+    line('timezoneMatching'),
+    line('localCurrency'),
   ],
 };
 
+const isEnglish = () => !i18n.language || i18n.language.startsWith('en');
+
 /**
- * Feature list for a tier, in the world the server says we are in.
+ * Display name for a plan key. In English the server's own name wins (it is
+ * what the plan is sold as); in Hindi/Punjabi the translated label is used.
+ */
+export const planDisplayName = (planKey, serverName) => {
+  const known = i18n.exists(`plans.names.${planKey}`);
+  if (isEnglish()) return serverName || (known ? i18n.t(`plans.names.${planKey}`) : planKey);
+  return known ? i18n.t(`plans.names.${planKey}`) : (serverName || planKey);
+};
+
+/**
+ * A server duration label ("3 months", "30 days", "1 year", "Unlimited") in
+ * the member's language. English is returned exactly as the server sent it.
+ */
+export const localDuration = (label) => {
+  if (!label || isEnglish()) return label;
+  if (label === 'Unlimited') return i18n.t('plans.duration.unlimited');
+  const m = /^(\d+) (year|month|day)s?$/.exec(label);
+  if (!m) return label;
+  return i18n.t(`plans.duration.${m[2]}`, { count: Number(m[1]) });
+};
+
+const textOf = (item, prevName) => {
+  if (item.id === 'everythingIn') {
+    return i18n.t('plans.features.everythingIn', { name: prevName || planDisplayName('free') });
+  }
+  if (item.id === 'unlocks') {
+    return item.count === -1
+      ? i18n.t('plans.features.unlimitedUnlocks')
+      : i18n.t('plans.features.unlocks', { count: item.count });
+  }
+  if (item.id === 'validity') {
+    return item.duration
+      ? i18n.t('plans.features.fullAccess', { duration: localDuration(item.duration) })
+      : i18n.t(`plans.features.${item.key}`);
+  }
+  return i18n.t(`plans.features.${item.key}`);
+};
+
+/**
+ * Feature lines for a tier as `{ id, text }`, in the world the server says we
+ * are in. Use this when a caller needs to drop a line by kind.
  *
  * Flag OFF (default): the lists above, unchanged — chat is a paid feature.
  * Flag ON: free gains the chat line, and Basic loses "Unlimited messages" and
@@ -67,30 +120,31 @@ const PLAN_FEATURES = {
  * Every "Everything in X" chain above stays valid either way, because only the
  * bottom two rungs move.
  */
-export const planFeatures = (planKey, freeChatForMutuals, livePlan, prevName) => {
+export const planFeatureItems = (planKey, freeChatForMutuals, livePlan, prevName) => {
   const base = PLAN_FEATURES[planKey] || [];
   const list = !freeChatForMutuals
     ? base
     : planKey === 'free'
-      ? [...base, 'Chat with your mutual matches']
+      ? [...base, line('chatMutuals')]
       : planKey === 'basic_premium'
         ? [
-          'View contact details',
-          '5 contact unlocks',
-          'See who viewed profile',
-          'Advanced search filters',
+          line('viewContact'),
+          UNLOCKS(5),
+          line('whoViewed'),
+          line('advancedFilters'),
         ]
         : base;
 
   // Resolve the chain line against the tier actually shown below this one.
   // With no previous tier (everything below was withdrawn) the honest
   // comparison is against Free.
-  const chained = list.map((line) =>
-    (line === EVERYTHING_IN ? `Everything in ${prevName || 'Free'}` : line)
-  );
-
-  return retermForLivePlan(chained, livePlan);
+  return retermForLivePlan(list, livePlan)
+    .map((item) => ({ id: item.id, text: textOf(item, prevName) }));
 };
+
+/** Feature lines for a tier as plain text (see planFeatureItems). */
+export const planFeatures = (planKey, freeChatForMutuals, livePlan, prevName) =>
+  planFeatureItems(planKey, freeChatForMutuals, livePlan, prevName).map((item) => item.text);
 
 /**
  * Rewrite the two lines that go stale the moment pricing moves: the unlock
@@ -105,16 +159,11 @@ const retermForLivePlan = (list, livePlan) => {
   if (!livePlan) return list;
 
   const unlocks = livePlan.contactUnlocks;
-  const unlockLine = unlocks === -1
-    ? 'Unlimited contact unlocks'
-    : typeof unlocks === 'number'
-      ? `${unlocks} contact unlock${unlocks === 1 ? '' : 's'}`
-      : null;
-  const validityLine = livePlan.duration ? `${livePlan.duration} of full access` : null;
+  const liveUnlocks = unlocks === -1 || typeof unlocks === 'number';
 
-  return list.map((line) => {
-    if (unlockLine && /contact unlocks?$/i.test(line)) return unlockLine;
-    if (validityLine && /validity$/i.test(line)) return validityLine;
-    return line;
+  return list.map((item) => {
+    if (liveUnlocks && item.id === 'unlocks') return UNLOCKS(unlocks);
+    if (livePlan.duration && item.id === 'validity') return { ...item, duration: livePlan.duration };
+    return item;
   });
 };

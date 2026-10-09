@@ -32,7 +32,7 @@ const { Op, QueryTypes } = require('sequelize');
 const { randomUUID } = require('crypto');
 const sequelize = require('../config/database');
 const { PAID_PLANS } = require('../constants/plans');
-const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getKundliMatch, buildKundliSummary, isManglikCompatible, getRashiCompatibility } = require('../utils/compatibility');
+const { calculateCompatibility, getCompatibilityBreakdown: calcBreakdown, getKundliMatch, buildKundliSummary, isManglikCompatible, manglikKnown, getRashiCompatibility } = require('../utils/compatibility');
 const { getNumerologyMatch } = require('../utils/numerology');
 const { generateKundliPDF } = require('../utils/kundli');
 const { generateBiodataPDF, TEMPLATES: BIODATA_TEMPLATES } = require('../utils/biodata');
@@ -869,8 +869,16 @@ exports.getProfile = asyncHandler(async (req, res) => {
   const contactLevel = levelFor(profile.fieldVisibility, 'contact');
   const contactShared = canSee(contactLevel, { isMutual });
 
+  // Whether there is a verified number to unlock at all. unlockContact refuses
+  // (409, nothing spent) when there is none; saying so up front spares the
+  // member a button that can only fail. A yes/no, never the number itself.
+  const contactUser = contactShared
+    ? await User.findByPk(userId, { attributes: ['phone', 'email', 'emailVerified', 'phoneVerified', 'contactPhone'] })
+    : null;
+  const contactAvailable = !!(contactUser && revealablePhone(contactUser));
+
   if (hasPremiumAccess && isContactUnlocked && contactShared) {
-    const targetUser = await User.findByPk(userId, { attributes: ['phone', 'email', 'emailVerified', 'phoneVerified', 'contactPhone'] });
+    const targetUser = contactUser;
     // Only a number the owner proved they control is ever revealed.
     const revealedPhone = revealablePhone(targetUser);
     if (profileData.User) {
@@ -927,7 +935,7 @@ exports.getProfile = asyncHandler(async (req, res) => {
     compatibilityScore,
     hasPremiumAccess,
     isContactUnlocked,
-    contactShare: { level: contactLevel, allowed: contactShared },
+    contactShare: { level: contactLevel, allowed: contactShared, available: contactAvailable },
     // Both members recorded a gotra and it is the same one. The profile page
     // shows a quiet note; nothing is hidden by this.
     sameGotra: sameGotra(viewerProfile && viewerProfile.gotra, profile.gotra),
@@ -1493,7 +1501,7 @@ exports.getHoroscopeMatch = asyncHandler(async (req, res) => {
   // Manglik
   const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
   const manglikDetail = (() => {
-    if (!myProfile.manglikStatus || !theirProfile.manglikStatus) return 'Manglik status unknown for one or both profiles';
+    if (!manglikKnown(myProfile.manglikStatus, theirProfile.manglikStatus)) return 'Manglik status unknown for one or both profiles';
     if (!manglikCompatible) return 'Manglik dosha present — recommend consulting a pandit for remedies';
     if (myProfile.manglikStatus === 'anshik_manglik' || theirProfile.manglikStatus === 'anshik_manglik') return 'Anshik (partial) Manglik — minor consideration only';
     return 'No Manglik dosha';
@@ -1537,7 +1545,7 @@ exports.downloadKundliReport = asyncHandler(async (req, res) => {
   const ashtakoot = getKundliMatch(myProfile, theirProfile);
   const manglikCompatible = isManglikCompatible(myProfile.manglikStatus, theirProfile.manglikStatus);
   const manglikDetail = (() => {
-    if (!myProfile.manglikStatus || !theirProfile.manglikStatus) return 'Manglik status unknown for one or both profiles';
+    if (!manglikKnown(myProfile.manglikStatus, theirProfile.manglikStatus)) return 'Manglik status unknown for one or both profiles';
     if (!manglikCompatible) return 'Manglik dosha present — recommend consulting a pandit for remedies';
     if (myProfile.manglikStatus === 'anshik_manglik' || theirProfile.manglikStatus === 'anshik_manglik') return 'Anshik (partial) Manglik — minor consideration only';
     return 'No Manglik dosha';
@@ -1549,6 +1557,7 @@ exports.downloadKundliReport = asyncHandler(async (req, res) => {
 
   generateKundliPDF(res, {
     myProfile, theirProfile, ashtakoot, manglikCompatible, manglikDetail, rashiScore, numerology, summary,
+    manglikKnown: manglikKnown(myProfile.manglikStatus, theirProfile.manglikStatus),
   });
 });
 

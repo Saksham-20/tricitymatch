@@ -3,6 +3,7 @@ import { getReports, updateReport } from '../../api/adminApi';
 import toast from 'react-hot-toast';
 import { FiSearch, FiEye } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
+import { formatDate } from '../../utils/formatDate';
 
 const TAB_OPTIONS = ['pending', 'reviewing', 'resolved', 'dismissed', 'all'];
 
@@ -208,7 +209,7 @@ export default function AdminReports() {
                         : <span className="text-gray-500">Unassigned</span>}
                       {r.escalatedAt && <span className="ml-1.5 text-[10px] font-semibold text-red-700">Escalated</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{new Date(r.createdAt).toLocaleDateString('en-IN')}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{formatDate(r.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => openModal(r)}

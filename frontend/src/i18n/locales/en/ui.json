@@ -1,0 +1,29 @@
+{
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "errorTitle": "Couldn't load this",
+  "errorDesc": "The connection dropped before this finished loading. Your data is safe — try again.",
+  "tryAgain": "Try again",
+  "staged": {
+    "scanning": "Scanning Tricity profiles…",
+    "gunas": "Matching 36 gunas…",
+    "family": "Checking family preferences…",
+    "finding": "Finding matches…",
+    "skip": "Skip"
+  },
+  "avatar": "Avatar",
+  "online": "Online",
+  "offline": "Offline",
+  "verified": "Verified",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "progress": "Progress",
+  "optional": "(optional)",
+  "selectPlaceholder": "Select an option",
+  "clearLabel": "Clear {{label}}",
+  "selection": "selection",
+  "searchLabel": "Search {{label}}",
+  "options": "options",
+  "searchPlaceholder": "Search...",
+  "noOptions": "No options found"
+}

@@ -1,0 +1,71 @@
+{
+  "unavailable": "Online payments are temporarily unavailable. Please try again later or contact support@tricitymatch.com.",
+  "sdkLoadFailed": "Failed to load payment SDK",
+  "plans": {
+    "free": "Free",
+    "basic_premium": "Basic Premium",
+    "premium_plus": "Premium",
+    "elite": "Elite",
+    "vip": "VIP",
+    "nri": "NRI Connect",
+    "founding_premium": "Founding Member"
+  },
+  "status": {
+    "active": "active",
+    "expired": "expired",
+    "cancelled": "cancelled",
+    "pending": "pending",
+    "failed": "failed"
+  },
+  "history": {
+    "title": "Payment history",
+    "subtitle": "Your subscription history and invoices",
+    "loadFailed": "Failed to load payment history",
+    "invoiceFailed": "Failed to download invoice",
+    "granted": "Granted",
+    "refunded": "Refunded ₹{{amount}}",
+    "downloadInvoice": "Download invoice for {{plan}} • {{date}}",
+    "totalSpent": "Total Spent",
+    "totalSpentAfterRefunds": "Total Spent (after refunds)",
+    "activePlan": "Active Plan",
+    "none": "None",
+    "validUntil": "Valid Until",
+    "errorTitle": "Couldn't load your payment history",
+    "errorDescription": "The connection dropped before this finished loading. Try again.",
+    "retry": "Try again",
+    "emptyTitle": "No payment history yet",
+    "emptyDescription": "Upgrade to a paid plan to see your transactions here.",
+    "columns": {
+      "plan": "Plan",
+      "status": "Status",
+      "amount": "Amount",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "invoice": "Invoice"
+    }
+  },
+  "success": {
+    "confirming": "Confirming your payment",
+    "title": "Payment successful",
+    "activeNamed": "Your {{name}} membership is now active.",
+    "active": "Your membership is now active.",
+    "whatsUnlocked": "What's unlocked",
+    "unlimitedCap": "Unlimited unlocks, up to {{cap}}/day",
+    "goToDashboard": "Go to Dashboard",
+    "viewHistory": "View payment history"
+  },
+  "failed": {
+    "title": "Payment failed",
+    "description": "We couldn't process your payment. Please check your card details and try again.",
+    "commonCauses": "Common causes",
+    "causes": {
+      "balance": "Insufficient account balance",
+      "card": "Card details incorrect or expired",
+      "declined": "Transaction declined by bank",
+      "network": "Network connection issue"
+    },
+    "tryAgain": "Try again",
+    "contactSupport": "Contact support",
+    "backToDashboard": "Back to Dashboard"
+  }
+}

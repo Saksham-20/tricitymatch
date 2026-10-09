@@ -1,0 +1,199 @@
+{
+  "chip": {
+    "ageMin": "ਉਮਰ ≥ {{v}}",
+    "ageMax": "ਉਮਰ ≤ {{v}}",
+    "heightMin": "ਕੱਦ ≥ {{v}} ਸੈ.ਮੀ.",
+    "heightMax": "ਕੱਦ ≤ {{v}} ਸੈ.ਮੀ.",
+    "diet": "ਖਾਣ-ਪੀਣ: {{v}}",
+    "smoking": "ਸਿਗਰਟਨੋਸ਼ੀ: {{v}}",
+    "drinking": "ਸ਼ਰਾਬ: {{v}}",
+    "incomeMin": "₹{{v}} ਲੱਖ+ ਆਮਦਨ",
+    "incomeMax": "≤ ₹{{v}} ਲੱਖ ਆਮਦਨ",
+    "verifiedOnly": "ਸਿਰਫ਼ ਤਸਦੀਕਸ਼ੁਦਾ",
+    "remove": "{{label}} ਹਟਾਓ"
+  },
+  "chipValue": {
+    "diet": {
+      "vegetarian": "ਸ਼ਾਕਾਹਾਰੀ",
+      "non-vegetarian": "ਮਾਸਾਹਾਰੀ",
+      "vegan": "ਵੀਗਨ",
+      "jain": "ਜੈਨ"
+    },
+    "habit": {
+      "never": "ਕਦੇ ਨਹੀਂ",
+      "occasionally": "ਕਦੇ-ਕਦਾਈਂ",
+      "regularly": "ਨਿਯਮਿਤ ਤੌਰ 'ਤੇ"
+    },
+    "maritalStatus": {
+      "never_married": "ਅਣਵਿਆਹੇ",
+      "divorced": "ਤਲਾਕਸ਼ੁਦਾ",
+      "widowed": "ਵਿਧਵਾ / ਵਿਧੁਰ",
+      "awaiting_divorce": "ਤਲਾਕ ਦੀ ਪ੍ਰਕਿਰਿਆ ਵਿੱਚ"
+    },
+    "manglikFilter": {
+      "manglik_only": "ਸਿਰਫ਼ ਮਾਂਗਲਿਕ",
+      "non_manglik_only": "ਸਿਰਫ਼ ਗ਼ੈਰ-ਮਾਂਗਲਿਕ",
+      "exclude_incompatible": "ਬੇਮੇਲ ਨੂੰ ਛੱਡ ਕੇ"
+    },
+    "education": {
+      "High School": "ਹਾਈ ਸਕੂਲ",
+      "Graduate": "ਗ੍ਰੈਜੂਏਟ",
+      "Post Graduate": "ਪੋਸਟ ਗ੍ਰੈਜੂਏਟ",
+      "Doctorate": "ਡਾਕਟਰੇਟ",
+      "Professional": "ਪ੍ਰੋਫ਼ੈਸ਼ਨਲ"
+    }
+  },
+  "noProfileForId": "ਇਸ ਆਈਡੀ ਨਾਲ ਕੋਈ ਪ੍ਰੋਫ਼ਾਈਲ ਨਹੀਂ ਮਿਲੀ",
+  "profileShortlisted": "ਪ੍ਰੋਫ਼ਾਈਲ ਸੇਵ ਹੋ ਗਈ!",
+  "actionFailed": "ਇਹ ਕੰਮ ਨਹੀਂ ਹੋ ਸਕਿਆ",
+  "filtersApplied": "ਫ਼ਿਲਟਰ ਲਾਗੂ ਹੋ ਗਏ",
+  "title": "ਆਪਣਾ ਮੈਚ ਲੱਭੋ",
+  "subtitle": "ਟ੍ਰਾਈਸਿਟੀ ਅਤੇ ਉਸ ਤੋਂ ਅੱਗੇ ਦੀਆਂ ਪ੍ਰੋਫ਼ਾਈਲਾਂ",
+  "profilesBadge": "{{n}}+ ਪ੍ਰੋਫ਼ਾਈਲਾਂ",
+  "sortAria": "ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਇਸ ਕ੍ਰਮ ਵਿੱਚ ਦਿਖਾਓ",
+  "sort": {
+    "compatibility": "ਸਭ ਤੋਂ ਵਧੀਆ ਮੈਚ %",
+    "age": "ਉਮਰ ਮੁਤਾਬਕ",
+    "location": "ਥਾਂ ਮੁਤਾਬਕ",
+    "recent": "ਸਭ ਤੋਂ ਨਵੀਆਂ"
+  },
+  "idPlaceholder": "ਪ੍ਰੋਫ਼ਾਈਲ ਆਈਡੀ ਹੈ? ਜਿਵੇਂ TCS-A1B2C3D4",
+  "idAria": "ਪ੍ਰੋਫ਼ਾਈਲ ਆਈਡੀ ਨਾਲ ਲੱਭੋ",
+  "finding": "ਲੱਭ ਰਹੇ ਹਾਂ…",
+  "go": "ਜਾਓ",
+  "mustHavesOff": "ਸਭ ਨੂੰ ਦਿਖਾ ਰਹੇ ਹਾਂ, ਉਨ੍ਹਾਂ ਨੂੰ ਵੀ ਜੋ ਤੁਹਾਡੀਆਂ ਜ਼ਰੂਰੀ ਸ਼ਰਤਾਂ ਤੋਂ ਬਾਹਰ ਹਨ।",
+  "mustHavesOn": "ਉਹ ਲੋਕ ਦਿਖਾ ਰਹੇ ਹਾਂ ਜੋ ਤੁਹਾਡੀਆਂ ਜ਼ਰੂਰੀ ਸ਼ਰਤਾਂ ਪੂਰੀਆਂ ਕਰਦੇ ਹਨ ({{list}})।",
+  "applyMustHaves": "ਮੇਰੀਆਂ ਜ਼ਰੂਰੀ ਸ਼ਰਤਾਂ ਲਾਗੂ ਕਰੋ",
+  "showEveryone": "ਸਭ ਨੂੰ ਦਿਖਾਓ",
+  "loadingProfiles": "ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਲੋਡ ਹੋ ਰਹੀਆਂ ਹਨ…",
+  "foundSuffix_one": "ਪ੍ਰੋਫ਼ਾਈਲ ਮਿਲੀ",
+  "foundSuffix_other": "ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਮਿਲੀਆਂ",
+  "filtersActive_one": "· {{count}} ਫ਼ਿਲਟਰ ਲੱਗਿਆ ਹੈ",
+  "filtersActive_other": "· {{count}} ਫ਼ਿਲਟਰ ਲੱਗੇ ਹਨ",
+  "clearAll": "ਸਭ ਹਟਾਓ",
+  "filterProblemTitle": "ਆਪਣੇ ਫ਼ਿਲਟਰ ਜਾਂਚੋ",
+  "filterProblemBody": "ਤੁਹਾਡੇ ਇੱਕ ਫ਼ਿਲਟਰ ਵਿੱਚ ਅਜਿਹੀ ਵੈਲਿਊ ਹੈ ਜਿਸ 'ਤੇ ਅਸੀਂ ਖੋਜ ਨਹੀਂ ਕਰ ਸਕਦੇ, ਜਿਵੇਂ 18 ਤੋਂ ਘੱਟ ਜਾਂ 99 ਤੋਂ ਵੱਧ ਉਮਰ। ਇਸਨੂੰ ਠੀਕ ਕਰਕੇ ਦੁਬਾਰਾ ਲਾਗੂ ਕਰੋ, ਜਾਂ ਫ਼ਿਲਟਰ ਹਟਾ ਦਿਓ।",
+  "clearFilters": "ਫ਼ਿਲਟਰ ਹਟਾਓ",
+  "errorTitle": "ਕੁਝ ਗੜਬੜ ਹੋ ਗਈ",
+  "errorBody": "ਅਸੀਂ ਹੁਣੇ ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਲੋਡ ਨਹੀਂ ਕਰ ਸਕੇ। ਤੁਹਾਡੇ ਫ਼ਿਲਟਰ ਠੀਕ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+  "tryAgain": "ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
+  "emptyFilteredTitle": "ਇਨ੍ਹਾਂ ਫ਼ਿਲਟਰਾਂ ਨਾਲ ਕੋਈ ਪ੍ਰੋਫ਼ਾਈਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦੀ",
+  "emptySmallTitle": "ਦਾਇਰਾ ਹਾਲੇ ਛੋਟਾ ਹੈ",
+  "emptyFilteredBody": "ਇੱਕ-ਦੋ ਫ਼ਿਲਟਰ ਥੋੜ੍ਹੇ ਢਿੱਲੇ ਕਰੋ: ਇੰਨੇ ਖ਼ਾਸ ਭਾਈਚਾਰੇ ਵਿੱਚ ਬਹੁਤ ਤੰਗ ਖੋਜ ਨਾਲ ਸਾਰੇ ਬਾਹਰ ਹੋ ਸਕਦੇ ਹਨ।",
+  "emptySmallBody": "ਹਰ ਹਫ਼ਤੇ ਟ੍ਰਾਈਸਿਟੀ ਦੇ ਨਵੇਂ ਪਰਿਵਾਰ ਜੁੜਦੇ ਹਨ। ਮਿਲਣ ਯੋਗ ਕਿਸੇ ਨੂੰ ਲੱਭਣ ਦਾ ਸਭ ਤੋਂ ਤੇਜ਼ ਤਰੀਕਾ ਹੈ ਕਿਸੇ ਭਰੋਸੇਯੋਗ ਨੂੰ ਨਾਲ ਲਿਆਉਣਾ।",
+  "refresh": "ਰੀਫ਼੍ਰੈਸ਼ ਕਰੋ",
+  "loadMore": "ਹੋਰ ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਦੇਖੋ",
+  "seenAll": "ਤੁਸੀਂ ਸਾਰੀਆਂ {{n}} ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਦੇਖ ਲਈਆਂ",
+  "panel": {
+    "verifiedOnly": "ਸਿਰਫ਼ ਤਸਦੀਕਸ਼ੁਦਾ ਪ੍ਰੋਫ਼ਾਈਲਾਂ",
+    "ageRange": "ਉਮਰ ਦੀ ਹੱਦ",
+    "minAge": "ਘੱਟੋ-ਘੱਟ ਉਮਰ",
+    "maxAge": "ਵੱਧ ਤੋਂ ਵੱਧ ਉਮਰ",
+    "to": "ਤੋਂ",
+    "minAgeAria": "ਘੱਟੋ-ਘੱਟ ਉਮਰ",
+    "maxAgeAria": "ਵੱਧ ਤੋਂ ਵੱਧ ਉਮਰ",
+    "location": "ਥਾਂ",
+    "city": "ਸ਼ਹਿਰ",
+    "cityPlaceholder": "ਜਿਵੇਂ ਚੰਡੀਗੜ੍ਹ, ਮੋਹਾਲੀ",
+    "cityAria": "ਸ਼ਹਿਰ ਜਾਂ ਥਾਂ",
+    "background": "ਪਿਛੋਕੜ",
+    "maritalStatus": "ਵਿਆਹੁਤਾ ਸਥਿਤੀ",
+    "any": "ਕੋਈ ਵੀ",
+    "religion": "ਧਰਮ",
+    "caste": "ਜਾਤ / ਭਾਈਚਾਰਾ",
+    "motherTongue": "ਮਾਂ-ਬੋਲੀ",
+    "manglik": "ਮਾਂਗਲਿਕ ਪਸੰਦ",
+    "educationCareer": "ਪੜ੍ਹਾਈ ਅਤੇ ਕਰੀਅਰ",
+    "educationLevel": "ਪੜ੍ਹਾਈ ਦਾ ਪੱਧਰ",
+    "anyEducation": "ਕੋਈ ਵੀ ਪੜ੍ਹਾਈ",
+    "profession": "ਪੇਸ਼ਾ",
+    "anyProfession": "ਕੋਈ ਵੀ ਪੇਸ਼ਾ",
+    "minIncome": "ਘੱਟੋ-ਘੱਟ ਸਾਲਾਨਾ ਆਮਦਨ (₹)",
+    "maxIncome": "ਵੱਧ ਤੋਂ ਵੱਧ ਸਾਲਾਨਾ ਆਮਦਨ (₹)",
+    "noMinimum": "ਕੋਈ ਘੱਟੋ-ਘੱਟ ਹੱਦ ਨਹੀਂ",
+    "noMaximum": "ਕੋਈ ਵੱਧ ਤੋਂ ਵੱਧ ਹੱਦ ਨਹੀਂ",
+    "lakhPlus": "₹{{n}} ਲੱਖ+",
+    "lakhOrLess": "₹{{n}} ਲੱਖ ਜਾਂ ਘੱਟ",
+    "lifestyle": "ਜੀਵਨ ਸ਼ੈਲੀ",
+    "diet": "ਖਾਣ-ਪੀਣ",
+    "smoking": "ਸਿਗਰਟਨੋਸ਼ੀ",
+    "drinking": "ਸ਼ਰਾਬ",
+    "filters": "ਫ਼ਿਲਟਰ",
+    "clearAll": "ਸਭ ਹਟਾਓ",
+    "clearAllCaps": "ਸਭ ਹਟਾਓ",
+    "applyFilters": "ਫ਼ਿਲਟਰ ਲਾਗੂ ਕਰੋ",
+    "openFilters": "ਖੋਜ ਫ਼ਿਲਟਰ ਖੋਲ੍ਹੋ",
+    "searchFilters": "ਖੋਜ ਫ਼ਿਲਟਰ",
+    "closeFilters": "ਫ਼ਿਲਟਰ ਬੰਦ ਕਰੋ",
+    "nActive": "{{n}} ਲੱਗੇ ਹਨ",
+    "clearAllFilters": "ਸਾਰੇ ਫ਼ਿਲਟਰ ਹਟਾਓ"
+  },
+  "options": {
+    "maritalStatus": {
+      "never_married": "ਅਣਵਿਆਹੇ",
+      "divorced": "ਤਲਾਕਸ਼ੁਦਾ",
+      "widowed": "ਵਿਧਵਾ / ਵਿਧੁਰ",
+      "awaiting_divorce": "ਤਲਾਕ ਦੀ ਪ੍ਰਕਿਰਿਆ ਵਿੱਚ"
+    },
+    "religion": {
+      "Hindu": "ਹਿੰਦੂ",
+      "Muslim": "ਮੁਸਲਿਮ",
+      "Sikh": "ਸਿੱਖ",
+      "Christian": "ਈਸਾਈ",
+      "Jain": "ਜੈਨ",
+      "Buddhist": "ਬੋਧੀ",
+      "Parsi": "ਪਾਰਸੀ",
+      "Jewish": "ਯਹੂਦੀ",
+      "Other": "ਹੋਰ"
+    },
+    "motherTongue": {
+      "Punjabi": "ਪੰਜਾਬੀ",
+      "Hindi": "ਹਿੰਦੀ",
+      "English": "ਅੰਗਰੇਜ਼ੀ",
+      "Haryanvi": "ਹਰਿਆਣਵੀ",
+      "Urdu": "ਉਰਦੂ",
+      "Bengali": "ਬੰਗਾਲੀ",
+      "Tamil": "ਤਾਮਿਲ",
+      "Telugu": "ਤੇਲਗੂ",
+      "Marathi": "ਮਰਾਠੀ",
+      "Gujarati": "ਗੁਜਰਾਤੀ",
+      "Other": "ਹੋਰ"
+    },
+    "manglik": {
+      "manglik_only": "ਸਿਰਫ਼ ਮਾਂਗਲਿਕ",
+      "non_manglik_only": "ਸਿਰਫ਼ ਗ਼ੈਰ-ਮਾਂਗਲਿਕ",
+      "exclude_incompatible": "ਬੇਮੇਲ ਨੂੰ ਛੱਡ ਕੇ"
+    },
+    "education": {
+      "High School": "ਹਾਈ ਸਕੂਲ",
+      "Graduate": "ਗ੍ਰੈਜੂਏਟ",
+      "Post Graduate": "ਪੋਸਟ ਗ੍ਰੈਜੂਏਟ",
+      "Doctorate": "ਡਾਕਟਰੇਟ",
+      "Professional": "ਪ੍ਰੋਫ਼ੈਸ਼ਨਲ ਡਿਗਰੀ"
+    },
+    "diet": {
+      "vegetarian": "ਸ਼ਾਕਾਹਾਰੀ",
+      "non-vegetarian": "ਮਾਸਾਹਾਰੀ",
+      "vegan": "ਵੀਗਨ",
+      "jain": "ਜੈਨ"
+    },
+    "habit": {
+      "never": "ਕਦੇ ਨਹੀਂ",
+      "occasionally": "ਕਦੇ-ਕਦਾਈਂ",
+      "regularly": "ਨਿਯਮਿਤ ਤੌਰ 'ਤੇ"
+    }
+  },
+  "saved": {
+    "heading": "ਸੇਵ ਕੀਤੀਆਂ ਖੋਜਾਂ",
+    "loadError": "ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
+    "hint": "ਕੁਝ ਫ਼ਿਲਟਰ ਚੁਣੋ, ਖੋਜ ਸੇਵ ਕਰੋ, ਅਤੇ ਨਵੀਆਂ ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਮੇਲ ਖਾਣ 'ਤੇ ਅਸੀਂ ਤੁਹਾਨੂੰ ਦੱਸਾਂਗੇ।",
+    "namePlaceholder": "ਇਸ ਖੋਜ ਦਾ ਨਾਮ ਰੱਖੋ",
+    "nameAria": "ਸੇਵ ਕੀਤੀ ਖੋਜ ਦਾ ਨਾਮ",
+    "saveAndAlert": "ਇਹ ਖੋਜ ਸੇਵ ਕਰੋ ਅਤੇ ਸੂਚਨਾਵਾਂ ਪਾਓ",
+    "deleteAria": "ਸੇਵ ਕੀਤੀ ਖੋਜ {{name}} ਹਟਾਓ",
+    "savedToast_one": "ਖੋਜ {{count}} ਫ਼ਿਲਟਰ ਨਾਲ ਸੇਵ ਹੋ ਗਈ। ਨਵੇਂ ਮੈਚ ਆਉਣ 'ਤੇ ਅਸੀਂ ਤੁਹਾਨੂੰ ਦੱਸਾਂਗੇ।",
+    "savedToast_other": "ਖੋਜ {{count}} ਫ਼ਿਲਟਰਾਂ ਨਾਲ ਸੇਵ ਹੋ ਗਈ। ਨਵੇਂ ਮੈਚ ਆਉਣ 'ਤੇ ਅਸੀਂ ਤੁਹਾਨੂੰ ਦੱਸਾਂਗੇ।",
+    "saveError": "ਖੋਜ ਸੇਵ ਨਹੀਂ ਹੋ ਸਕੀ",
+    "deleteError": "ਸੇਵ ਕੀਤੀ ਖੋਜ ਹਟਾਈ ਨਹੀਂ ਜਾ ਸਕੀ"
+  }
+}

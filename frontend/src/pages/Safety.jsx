@@ -1,52 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { FiShield, FiMessageCircle, FiMapPin, FiFlag, FiCheck, FiPhone, FiArrowRight } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 
 /* The `Eyebrow` chip that used to sit above every heading on this page is
    removed (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
 
+// Copy lives in locales/<lng>/safetyPage.json; this list only holds the keys.
 const PILLARS = [
-  {
-    icon: FiShield,
-    n: '01',
-    t: 'Profile verification',
-    body: 'The verified badge is earned, not assumed: a member captures a live selfie in-app, and our safety team matches it to their profile pictures by hand. Verified profiles carry the badge and can be filtered for — always prefer them when connecting.',
-    points: [],
-  },
-  {
-    icon: FiMessageCircle,
-    n: '02',
-    t: 'Safe messaging',
-    body: null,
-    points: [
-      'Never share financial information in chats',
-      "Don't send money to anyone you haven't met in person",
-      'Be cautious of anyone rushing you off-platform',
-      'Report suspicious behaviour with the Report button',
-    ],
-  },
-  {
-    icon: FiMapPin,
-    n: '03',
-    t: 'Meeting safely',
-    body: null,
-    points: [
-      'Meet first in a public place, with family or friends',
-      'Tell a trusted person your plans before meeting',
-      "Don't share your home address until you're comfortable",
-    ],
-  },
-  {
-    icon: FiFlag,
-    n: '04',
-    t: 'Reporting & blocking',
-    body: 'Use Report and Block on any profile. Our safety team reviews every report, and urgent ones — threats, underage members, scams — go to the front of the queue. Blocked members cannot view your profile or contact you.',
-    points: [],
-  },
+  { icon: FiShield, n: '01', key: 'verification', body: true, points: [] },
+  { icon: FiMessageCircle, n: '02', key: 'messaging', body: false, points: ['p1', 'p2', 'p3', 'p4'] },
+  { icon: FiMapPin, n: '03', key: 'meeting', body: false, points: ['p1', 'p2', 'p3'] },
+  { icon: FiFlag, n: '04', key: 'reporting', body: true, points: [] },
 ];
 
 export default function Safety() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
@@ -58,13 +28,12 @@ export default function Safety() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-14 md:pt-32 md:pb-16">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-flex items-center min-h-[44px] py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
+          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-flex items-center min-h-[44px] py-2 px-2 -mx-2 -mt-2 mb-8">{t('safetyPage.backHome')}</Link>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl">
-            Meet with <span className="text-primary-700 dark:text-primary-300 italic">confidence.</span>
+            {t('safetyPage.heroTitle')}<span className="text-primary-700 dark:text-primary-300 italic">{t('safetyPage.heroTitleEm')}</span>
           </h1>
           <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            We build the verification and privacy tools so you can focus on finding the right person.
-            Here's how we keep the platform — and you — safe.
+            {t('safetyPage.heroBody')}
           </p>
         </div>
       </section>
@@ -72,7 +41,7 @@ export default function Safety() {
       {/* Trust pillars */}
       <section className="px-4 pb-16 md:pb-20">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-px bg-neutral-200 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-          {PILLARS.map(({ icon: Icon, n, t, body, points }) => (
+          {PILLARS.map(({ icon: Icon, n, key, body, points }) => (
             <div key={n} className="bg-[#FFFAF6] dark:bg-surface-dark-3 p-7 md:p-9 flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <span className="w-11 h-11 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center">
@@ -80,14 +49,14 @@ export default function Safety() {
                 </span>
                 <span className="text-xs tracking-[0.16em] text-neutral-400 dark:text-neutral-500 tabular-nums">{n}</span>
               </div>
-              <h2 className="font-display text-xl md:text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">{t}</h2>
-              {body && <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{body}</p>}
+              <h2 className="font-display text-xl md:text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">{t(`safetyPage.pillars.${key}.t`)}</h2>
+              {body && <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{t(`safetyPage.pillars.${key}.body`)}</p>}
               {points.length > 0 && (
                 <ul className="space-y-2.5 mt-1">
                   {points.map((p) => (
                     <li key={p} className="flex items-start gap-2.5 text-sm text-neutral-700 dark:text-neutral-300">
                       <FiCheck className="w-4 h-4 text-primary-600 dark:text-primary-300 mt-0.5 flex-shrink-0" />
-                      <span>{p}</span>
+                      <span>{t(`safetyPage.pillars.${key}.${p}`)}</span>
                     </li>
                   ))}
                 </ul>
@@ -105,15 +74,16 @@ export default function Safety() {
               <FiPhone className="w-6 h-6 text-[#FDF8F2]" />
             </span>
             <div className="flex-1">
-              <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[#FDF8F2]">In immediate danger? Call 112.</h2>
+              <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[#FDF8F2]">{t('safetyPage.emergencyTitle')}</h2>
               <p className="text-[#FDF8F2]/70 max-w-xl">
-                For platform safety concerns, email{' '}
-                <a href="mailto:support@tricitymatch.com" className="underline decoration-[#FDF8F2]/60 underline-offset-4 hover:text-white">support@tricitymatch.com</a>.
-                Our team responds within 24 hours.
+                <Trans
+                  i18nKey="safetyPage.emergencyBody"
+                  components={{ mail: <a href="mailto:support@tricitymatch.com" className="underline decoration-[#FDF8F2]/60 underline-offset-4 hover:text-white" /> }}
+                />
               </p>
             </div>
             <Link to="/contact" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-6 py-3.5 rounded-xl hover:bg-white transition-colors flex-shrink-0">
-              Contact us <FiArrowRight />
+              {t('safetyPage.contactUs')} <FiArrowRight />
             </Link>
           </div>
         </div>

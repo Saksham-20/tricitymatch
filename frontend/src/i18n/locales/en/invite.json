@@ -1,0 +1,28 @@
+{
+  "shareText": "I’m on TricityMatch — a verified, Tricity-only matrimonial community. Join me:",
+  "reward_one": "You both get {{count}} contact unlock when they join.",
+  "reward_other": "You both get {{count}} contact unlocks when they join.",
+  "linkCopied": "Link copied",
+  "copyLink": "Copy invite link",
+  "gettingLink": "Getting your link…",
+  "inviteSomeone": "Invite someone you know",
+  "row": {
+    "title": "Invite someone to TricityMatch",
+    "loadFailed": "Could not load your link.",
+    "hint": "Share your personal link — they’ll see your first name when they join.",
+    "shareAria": "Share invite link",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "copied": "Copied",
+    "copy": "Copy"
+  },
+  "card": {
+    "title": "Grow the circle",
+    "body": "Every good match starts with someone you already trust. Send your invite link to a family or friend looking for a match in the Tricity.",
+    "loadFailed": "Could not load your invite link.",
+    "tryAgain": "Try again",
+    "linkAria": "Your invite link",
+    "linkLoading": "Loading your link…",
+    "share": "Share"
+  }
+}

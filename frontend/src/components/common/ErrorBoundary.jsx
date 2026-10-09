@@ -1,5 +1,9 @@
 import React, { Component } from 'react';
 import { motion } from 'framer-motion';
+import { Trans } from 'react-i18next';
+// The boundary is a class (hooks are not available), so it reads the shared
+// instance; the fallback renders fresh after a crash, in the current language.
+import i18n from '../../i18n';
 
 /**
  * Error Boundary Component
@@ -97,17 +101,17 @@ class ErrorBoundary extends Component {
                 "Oops". This is a full page crash, not a failed fetch, so the
                 honest line is "the page hit a problem" plus a working retry. */}
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-              This page hit a problem
+              {i18n.t('chrome.errorBoundary.title')}
             </h1>
             <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-              Nothing you did caused this. Try again, or go back to the home page.
+              {i18n.t('chrome.errorBoundary.body')}
             </p>
 
             {/* Error details in development */}
             {import.meta.env.DEV && this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="cursor-pointer text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
-                  Technical Details
+                  {i18n.t('chrome.errorBoundary.details')}
                 </summary>
                 <pre className="mt-2 p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-xs text-destructive overflow-auto max-h-40">
                   {this.state.error.toString()}
@@ -121,24 +125,25 @@ class ErrorBoundary extends Component {
                 onClick={this.handleRetry}
                 className="px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 hover:shadow-lg transition-[background-color,box-shadow] duration-[160ms]"
               >
-                Try Again
+                {i18n.t('chrome.errorBoundary.tryAgain')}
               </button>
               <button
                 onClick={this.handleGoHome}
                 className="px-6 py-3 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]"
               >
-                Go to Home
+                {i18n.t('chrome.errorBoundary.home')}
               </button>
             </div>
 
             <p className="mt-6 text-sm text-neutral-400">
-              If this problem persists, please{' '}
-              <a
-                href="mailto:support@tricitymatch.com"
-                className="text-primary-500 hover:underline"
-              >
-                contact support
-              </a>
+              <Trans
+                i18n={i18n}
+                i18nKey="chrome.errorBoundary.persists"
+                components={{
+                  // The link text comes from the translation.
+                  anchor: <a href="mailto:support@tricitymatch.com" className="text-primary-500 hover:underline" />,
+                }}
+              />
             </p>
           </motion.div>
         </div>

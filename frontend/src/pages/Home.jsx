@@ -1,16 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { track, STAGES } from '../utils/analytics';
 import { Link } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import Seo from '../components/common/Seo';
 import {
   FiShield, FiCheckCircle, FiArrowRight, FiUsers,
-  FiMessageCircle, FiLock, FiX,
+  FiMessageCircle, FiLock,
 } from 'react-icons/fi';
 import { FaInstagram, FaFacebook, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import api from '../api/axios';
-import useFoundingWindow from '../hooks/useFoundingWindow';
-import { launchPhase } from '../utils/launchDate';
 import { support } from '../config';
 import { revealOnce, staggerIndex } from '../utils/animations';
 import { EDITORIAL_IMAGES } from '../data/editorialImages';
@@ -28,6 +27,7 @@ import LaunchBanner from '../components/home/LaunchBanner';
    or elder mode. Reads `aiGenerated` off the manifest entry it is given, so
    swapping an entry for a licensed photograph removes the caption on its own. */
 const AiTag = ({ entry, style }) => {
+  const { t } = useTranslation();
   if (!entry?.aiGenerated) return null;
   return (
     <span
@@ -40,7 +40,7 @@ const AiTag = ({ entry, style }) => {
         ...style,
       }}
     >
-      AI-generated image
+      {t('home.aiTag')}
     </span>
   );
 };
@@ -108,7 +108,6 @@ const FontLoader = () => (
        or under the 44px floor — the rest of the page's controls (CTA
        buttons, chips, the FAQ row itself) already clear 48px. */
     html.elder .faq-toggle { width: 48px; height: 48px; }
-    html.elder .announce-dismiss { padding: 17px; }
     html.elder .story-nav-btn { width: 48px; height: 48px; }
     html.elder .social-icon { width: 48px; height: 48px; }
 
@@ -211,15 +210,17 @@ const FontLoader = () => (
       .cities-section > div:first-child { grid-template-columns: 1fr !important; padding: 40px 20px 24px !important; }
       .cities-section > div:last-child { flex-direction: column !important; height: auto !important; }
       .cities-section > div:last-child > div { flex: 1 !important; min-height: 260px !important; border-right: none !important; border-bottom: 1px solid var(--line-on-dk) !important; }
-      /* City: hide rotated vertical label, always show expanded content */
-      .cities-section > div:last-child > div > div:nth-child(2) { display: none !important; }
-      .cities-section > div:last-child > div > div:nth-child(3) { opacity: 1 !important; padding: 16px 20px 20px !important; }
+      /* City: hide rotated vertical label, always show expanded content.
+         Class selectors, not nth-child: an <img> + AiTag were added ahead of
+         these layers once and the positional rules silently hid the scrim. */
+      .city-vlabel { display: none !important; }
+      .city-expanded { opacity: 1 !important; padding: 16px 20px 20px !important; }
       /* Darken city overlay on mobile for readability */
-      .city-strip > div:nth-child(2) { background: linear-gradient(180deg, rgba(45,26,34,0.5) 0%, rgba(45,26,34,0.92) 100%) !important; }
+      .city-scrim { background: linear-gradient(180deg, rgba(45,26,34,0.5) 0%, rgba(45,26,34,0.92) 100%) !important; }
       /* City name: smaller on mobile */
-      .cities-section > div:last-child > div > div:nth-child(3) > div:nth-child(2) { font-size: 28px !important; line-height: 1 !important; margin-bottom: 8px !important; }
+      .city-name { font-size: 28px !important; line-height: 1 !important; margin-bottom: 8px !important; }
       /* City top row: compact, hide count */
-      .cities-section > div:last-child > div > div:nth-child(3) > div:nth-child(1) > div { display: none !important; }
+      .city-toprow > span:last-child { display: none !important; }
       /* City expanded content: stack desc + button vertically */
       .city-content-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
       /* City desc: tighter */
@@ -335,6 +336,7 @@ const FontLoader = () => (
    watching the hero section do the equivalent job off the main thread — the
    bar shows once the hero has scrolled out of view. */
 const StickyCTA = ({ heroRef }) => {
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
   useEffect(() => {
     const hero = heroRef?.current;
@@ -349,15 +351,15 @@ const StickyCTA = ({ heroRef }) => {
   return (
     <div className={`sticky-cta${show ? ' show' : ''}`}>
       <div className="sc-text">
-        <strong>Free to join</strong>
-        <span>No credit card · Verified in hours</span>
+        <strong>{t('home.sticky.title')}</strong>
+        <span>{t('home.sticky.sub')}</span>
       </div>
       <Link to="/onboarding" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0,
         padding: '12px 20px', borderRadius: 12,
         background: 'var(--burgundy)', color: 'var(--panel-cream)',
         fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', textDecoration: 'none',
-      }}>Create profile <FiArrowRight /></Link>
+      }}>{t('home.sticky.cta')} <FiArrowRight /></Link>
     </div>
   );
 };
@@ -378,7 +380,11 @@ const canHover = () =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+// Shared props for <Trans> headings: `<br/>` line breaks and the italic accent.
+const transBr = { br: <br /> };
+
 const Home = () => {
+  const { t } = useTranslation();
   // Top of the funnel. Everything downstream is measured against this number,
   // and until it existed there was no way to tell a quiet week from a broken
   // one.
@@ -390,14 +396,7 @@ const Home = () => {
   const [storyIdx, setStoryIdx]           = useState(0);
   const [stories, setStories]             = useState([]);
   const [faqOpen, setFaqOpen]             = useState(-1);
-  const [announcementOn, setAnnouncementOn] = useState(true);
 
-  // Fail-closed: until the server confirms the window is open, the band shows
-  // the weaker copy that is true regardless (see the FOUNDING BAND section).
-  const founding = useFoundingWindow();
-  const foundingEndsLabel = founding.endsAt
-    ? new Date(founding.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-    : '';
 
   const { scrollYProgress } = useScroll();
   const progressScaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
@@ -429,7 +428,10 @@ const Home = () => {
         setStories(list.map((s) => ({
           quote: s.quote,
           who: s.coupleNames,
-          where: [s.location, s.marriedOn ? `Married ${new Date(s.marriedOn).getFullYear()}` : null].filter(Boolean).join(' · '),
+          // `where` is composed at render (curStory/polaroid) so the
+          // "Married" word follows the current language.
+          location: s.location,
+          marriedYear: s.marriedOn ? new Date(s.marriedOn).getFullYear() : null,
           tag: s.tag || '',
           // No stock-photo fallback: a real, named, consenting couple must
           // never be illustrated with a picture of someone else (the old
@@ -472,44 +474,47 @@ const Home = () => {
      imagery via the editorial manifest. */
   const discoverPhotos = EDITORIAL_IMAGES.discoverGallery;
 
-  const processSteps = [
-    { n: '01', t: 'Create your profile',    b: 'Build a detailed profile that reflects who you truly are, then earn your verified badge with a live selfie.',       meta: ['~12 min', 'Selfie verified', 'Free'] },
-    { n: '02', t: 'Discover matches',       b: 'Our matching engine scores compatible profiles on age, location, education, lifestyle and family preferences. You stay in full control of who sees you.',                    meta: ['Smart ranking', 'Match score', 'Daily refresh'] },
-    { n: '03', t: 'Connect securely',       b: 'Every conversation is encrypted in transit and stays private. Express interest, chat, and bring family in when ready.',                  meta: ['Encrypted in transit', 'Read receipts', 'No phone reveal'] },
-    { n: '04', t: 'Begin your journey',     b: 'Take your time to talk, bring your family in, and meet somewhere public when you are ready.',                        meta: ['Family flow', 'Your pace', 'Lifelong support'] },
-  ];
+  // Copy lives in locales/<lng>/home.json (home.*); the data below only maps keys.
+  const processSteps = ['create', 'discover', 'connect', 'journey'].map((k, i) => ({
+    n: `0${i + 1}`,
+    t: t(`home.process.steps.${k}.t`),
+    b: t(`home.process.steps.${k}.b`),
+    meta: ['m1', 'm2', 'm3'].map((m) => t(`home.process.steps.${k}.${m}`)),
+  }));
 
-  const cities = [
-    { tag: 'City Beautiful',       name: 'Chandigarh', desc: 'India\'s most planned city. Cosmopolitan, career-forward, and deeply family-rooted.',         image: EDITORIAL_IMAGES.cities.chandigarh },
-    { tag: "Punjab's Rising Star", name: 'Mohali',     desc: 'Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture.',         image: EDITORIAL_IMAGES.cities.mohali },
-    { tag: 'Roots Run Deep',       name: 'Panchkula',  desc: 'Quiet, established, close-knit. Tradition and aspiration in equal measure.',                   image: EDITORIAL_IMAGES.cities.panchkula },
-  ];
+  const cities = ['chandigarh', 'mohali', 'panchkula'].map((k) => ({
+    tag: t(`home.cities.${k}.tag`),
+    name: t(`home.place.${k}`),
+    desc: t(`home.cities.${k}.desc`),
+    image: EDITORIAL_IMAGES.cities[k],
+  }));
 
-  const faqs = [
-    { q: 'Only Tricity residents?',              a: 'Yes. Every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point.' },
-    { q: 'How does profile verification work?',  a: 'Members submit a live selfie, captured in the moment and never uploaded from files, that our team matches against their profile photos. The verified badge appears once approved.' },
-    { q: 'Can I browse without an account?',     a: 'No, search and full profiles need a free account. Creating one takes about two minutes and you can start browsing right away.' },
-    { q: 'I live abroad, can NRIs join?',       a: 'Yes, if you are from the Tricity or your family is. Where you live now does not matter; the roots do. Mark yourself as an NRI during sign-up and add your country, and families looking for an NRI alliance will see it. A parent or sibling here can search alongside you through Guardian access.' },
-    { q: 'What does Premium include?',           a: 'One plan, no tiers to compare: unlimited contact unlocks, unlimited messaging, advanced filters, Incognito mode, a profile boost and a spotlight listing, for the full term. Browsing, matching and your profile stay free.' },
-    { q: 'Is my data private?',                  a: 'Yes. Conversations are encrypted in transit and access is restricted to you and your match. We never share your phone number, never sell data, never display you to non-mutual interests.' },
-    { q: 'Can families participate?',             a: 'Yes, gracefully. You choose when. They get their own view and chat channel kept respectfully separate from yours.' },
-  ];
+  const faqs = ['residents', 'verification', 'browse', 'nri', 'premium', 'privacy', 'families'].map((k) => ({
+    q: t(`home.faq.items.${k}.q`),
+    a: t(`home.faq.items.${k}.a`),
+  }));
 
   {/* Doctrine §8 bans numbered section markers ("01 /", "02 /") — the `tag`
       field below used to read "01 / Security". Kept the plain category word,
       dropped the number. */}
   const whyCards = [
-    { tag: 'Security',   title: 'Photo-verified profiles',   body: 'The verified badge is earned with a live selfie matched by human review. No uploads, no shortcuts.',           glyph: '◉' },
-    { tag: 'Technology', title: 'Intelligent matching',        body: 'Values, lifestyle, family expectations: far beyond age and location.',                                  glyph: '◇' },
-    { tag: 'Hyperlocal', title: 'Built only for the Tricity',      body: 'Made for Chandigarh, Mohali, Panchkula. Meet partners from your community.',                            glyph: '▣' },
-    { tag: 'Privacy',    title: 'Incognito browsing',              body: 'Browse privately. Appear only to those you\'ve expressed interest in.',                                  glyph: '◐' },
-    { tag: 'Comms',      title: 'Private conversations',           body: 'Encrypted in transit, with read receipts. Free members read every message for free, and once a premium member you matched with reaches out, you get five free replies over the next 48 hours.', glyph: '▲' },
-    { tag: 'Values',     title: 'Family-aware flow',               body: 'Bring family in at the right moment. Respect, not pressure.',                                            glyph: '✦' },
-  ];
+    { key: 'security',   glyph: '◉' },
+    { key: 'technology', glyph: '◇' },
+    { key: 'hyperlocal', glyph: '▣' },
+    { key: 'privacy',    glyph: '◐' },
+    { key: 'comms',      glyph: '▲' },
+    { key: 'values',     glyph: '✦' },
+  ].map(({ key, glyph }) => ({
+    tag: t(`home.why.cards.${key}.tag`),
+    title: t(`home.why.cards.${key}.title`),
+    body: t(`home.why.cards.${key}.body`),
+    glyph,
+  }));
 
   const cur       = discoverPhotos[matchIdx];
   const curStep   = processSteps[processActive];
   const curStory  = stories[storyIdx];
+  const storyWhere = (s) => [s.location, s.marriedYear ? t('home.stories.married', { year: s.marriedYear }) : null].filter(Boolean).join(' · ');
 
   /* ════════════════════════════════════════════════════════════ */
   return (
@@ -524,38 +529,6 @@ const Home = () => {
       ) : (
         <motion.div className="scroll-bar" style={{ scaleX: progressScaleX }} />
       )}
-
-      {/* ── ANNOUNCEMENT ──
-          Was a hardcoded, never-verified offer ("First month Premium free for
-          Chandigarh residents") — no such offer exists, wrong on the benefit
-          (the real founding grant is `founding.grantDays` days, not a month)
-          and wrong on the geography (open to all three Tricity cities, not
-          Chandigarh alone). Driven off the same `useFoundingWindow` read the
-          FOUNDING BAND below already uses: fail-closed, so the strip renders
-          only while the server confirms the window is open, and simply does
-          not render otherwise rather than showing a claim nobody can redeem. */}
-      <AnimatePresence>
-        {announcementOn && founding.open && launchPhase().phase === 'after' && (
-          <motion.div
-            className="home-announce"
-            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            style={{ background: 'var(--burgundy)', color: 'var(--panel-cream)', fontSize: 13, overflow: 'hidden', position: 'relative', zIndex: 40 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '10px 40px', fontFamily: 'var(--sans)' }}>
-              {/* Static dot, not a perpetual pulse — doctrine §2 ruling 7 has
-                  no exemption for a decorative "live" indicator. */}
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold-lt)', flexShrink: 0 }} />
-              <p><span style={{ fontWeight: 600, color: 'var(--gold-text)' }}>Founding offer:</span> {founding.grantDays ? `${founding.grantDays} days` : 'A period'} of Premium free, open to all Tricity members.{founding.contactUnlocks != null ? ` Includes ${founding.contactUnlocks} contact unlock${founding.contactUnlocks === 1 ? '' : 's'}.` : ''}{' '}
-                <Link to="/onboarding" style={{ textDecoration: 'underline', fontWeight: 600 }}>Claim now</Link>
-              </p>
-              {/* padding + compensating offset: 32px hit box, icon stays at right:16; html.elder bumps it to 48 */}
-              <button className="announce-dismiss" onClick={() => setAnnouncementOn(false)} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', opacity: 0.7, padding: 15, lineHeight: 0 }} aria-label="Dismiss">
-                <FiX style={{ width: 14, height: 14 }} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── LAUNCH FEATURE ── dated registration banner; renders nothing after
           LAUNCH_BANNER_UNTIL (components/home/LaunchBanner). */}
@@ -588,9 +561,9 @@ const Home = () => {
             margin: '20px 0',
           }}>
             {[
-              { text: 'From match',                                                   style: { color: 'var(--ink)', animationDelay: '.25s' } },
-              { text: 'to mandap,',                                                  style: { color: 'var(--ink)', animationDelay: '.4s' } },
-              { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>all in the Tricity.</em>, style: { animationDelay: '.55s' } },
+              { text: t('home.hero.line1'),                                           style: { color: 'var(--ink)', animationDelay: '.25s' } },
+              { text: t('home.hero.line2'),                                           style: { color: 'var(--ink)', animationDelay: '.4s' } },
+              { text: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>{t('home.hero.line3')}</em>, style: { animationDelay: '.55s' } },
             ].map((line, i) => (
               <span key={i} style={{
                 display: 'inline-block',
@@ -604,12 +577,12 @@ const Home = () => {
               as the same icon the rest of the page uses for "true/included"
               (e.g. the checklist on the DISCOVER panel below). */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, animation: 'rise 1.2s .7s both' }}>
-            {['Live selfie verification', 'Chandigarh · Mohali · Panchkula', 'Family-first matchmaking'].map((t, i) => (
+            {[t('home.hero.chipSelfie'), t('home.place.all'), t('home.hero.chipFamily')].map((chip, i) => (
               <span key={i} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 fontSize: 13, fontWeight: 500, fontFamily: 'var(--sans)', color: 'var(--burgundy-text)',
                 background: 'var(--cream-3)', border: '1px solid var(--line)', borderRadius: 999, padding: '7px 14px',
-              }}><FiCheckCircle style={{ width: 14, height: 14, flexShrink: 0 }} />{t}</span>
+              }}><FiCheckCircle style={{ width: 14, height: 14, flexShrink: 0 }} />{chip}</span>
             ))}
           </div>
 
@@ -620,7 +593,7 @@ const Home = () => {
             animation: 'rise 1.2s 0.9s both',
           }}>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', maxWidth: 420, fontFamily: 'var(--sans)' }}>
-              Chandigarh, Mohali and Panchkula only: live selfie verification, private conversations, and every family close enough to meet this week.{founding.open ? " Founding members join free while we build Tricity's most carefully verified community." : ''}
+              {t('home.hero.desc')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <Link to="/onboarding" style={{
@@ -633,9 +606,9 @@ const Home = () => {
               }}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy-dk)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(124,29,58,.5)'; }}
                 onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-              >Create free profile <FiArrowRight /></Link>
+              >{t('home.hero.cta')} <FiArrowRight /></Link>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mute)' }}>
-                Free to start · No credit card · Verified in hours
+                {t('home.hero.note')}
               </span>
               <a href="#why" style={{
                 display: 'inline-flex', gap: 8, alignItems: 'center',
@@ -646,7 +619,7 @@ const Home = () => {
               }}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.gap = '14px'; }}
                 onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.gap = '8px'; }}
-              >How it works <span>↓</span></a>
+              >{t('home.hero.how')} <span>↓</span></a>
             </div>
           </div>
         </div>
@@ -713,7 +686,7 @@ const Home = () => {
           fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase',
           color: 'var(--ink-soft)', padding: '12px 40px', borderTop: '1px solid var(--line)',
         }}>
-          {['Live selfie verification', 'Chandigarh', 'Mohali', 'Panchkula'].map((item, i) => (
+          {[t('home.hero.chipSelfie'), t('home.place.chandigarh'), t('home.place.mohali'), t('home.place.panchkula')].map((item, i) => (
             <React.Fragment key={i}>
               {i > 0 && <span style={{ width: 24, height: 1, background: 'var(--mute)', opacity: .4, flexShrink: 0 }} />}
               <span>{item}</span>
@@ -723,17 +696,13 @@ const Home = () => {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          FOUNDING BAND — the old stats-band slot (Phase S, F2/F10)
+          COMMUNITY BAND — the old stats-band slot (Phase S, F2/F10)
 
           Trust register, in order: exclusivity → verification specificity →
           hyperlocality. Community/family language, never SaaS growth-speak, and
           no number anywhere: the band that replaced fabricated metrics must not
-          smuggle new ones in.
-
-          The stronger claim (a free premium PERIOD) renders ONLY while the
-          server says the founding window is open — `useFoundingWindow` is
-          fail-closed, so a failed/slow lookup shows the weaker, always-true copy
-          rather than promising an entitlement the grant would not issue.
+          smuggle new ones in. (The founding-member offer is off by choice and
+          was removed from the site, 2026-10-08.)
       ════════════════════════════════════════════════════════ */}
       <section className="trust-strip-section section-dark" style={{ background: 'var(--panel-ink)', color: 'var(--panel-cream)', padding: '56px 40px 0', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 120%, rgba(124,29,58,.55), transparent 60%)' }} />
@@ -746,21 +715,10 @@ const Home = () => {
               "— Founding members" label above the heading. */}
           <div>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,3.6vw,48px)', lineHeight: 1.1, letterSpacing: '-.02em', margin: 0 }}>
-              Tricity's newest, most carefully verified matchmaking community. {founding.open
-                ? <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>Founding members join free.</em>
-                : <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>Built family-first.</em>}
+              <Trans i18nKey="home.community.title" components={{ em: <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }} /> }} />
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.65, color: 'rgba(253,248,242,.72)', fontFamily: 'var(--sans)', maxWidth: '34em', margin: '18px 0 28px' }}>
-              We&apos;re starting the honest way: no inflated numbers, every verified badge earned with a
-              live selfie, and matchmaking that stays inside Chandigarh, Mohali and Panchkula.
-              {/* Was rendering the offer's CLOSING date as if it were the length of
-                  the grant — someone joining today read "free until 18 November"
-                  and received `grantDays` (30), not seven-plus months. Fixed per
-                  docs/LEGAL_REVIEW_2026-09-17.md A-7: state the grant length, then
-                  the join-by deadline, matching the announcement band above. */}
-              {founding.open
-                ? ` Founding members get ${founding.grantDays ? `${founding.grantDays} days` : 'full membership'} free${founding.contactUnlocks != null ? `, including ${founding.contactUnlocks} contact unlock${founding.contactUnlocks === 1 ? '' : 's'}` : ''}, if you join before ${foundingEndsLabel}.`
-                : ' Founding members join free and shape what this becomes.'}
+              {t('home.community.body')}
             </p>
             <Link to="/onboarding" style={{
               display: 'inline-flex', alignItems: 'center', gap: 10,
@@ -771,9 +729,9 @@ const Home = () => {
             }}
               onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px -12px rgba(0,0,0,.5)'; }}
               onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-            >Become a founding member <FiArrowRight /></Link>
+            >{t('home.community.cta')} <FiArrowRight /></Link>
             <p style={{ fontFamily: 'var(--sans)', fontSize: 13, color: 'rgba(253,248,242,.55)', marginTop: 14 }}>
-              {founding.open ? 'Free during the founding period' : 'Free to join'} · Photo-verified profiles · Local, family-first
+              {t('home.community.note')}
             </p>
           </div>
 
@@ -787,11 +745,10 @@ const Home = () => {
                 cannot"). Human review only happens for verification selfies
                 and reported profiles. Fixed per docs/LEGAL_REVIEW_2026-09-17.md
                 A-9 — draft wording used as given. */}
-            {[
-              ['Verified, not vast', 'A smaller circle, where the verified badge is earned in front of a person, not assumed.'],
-              ['Tricity only', 'Matches you can actually meet: same city, same community.'],
-              ['Families welcome', 'Parents and guardians take part, the way Tricity actually matches.'],
-            ].map(([title, body]) => (
+            {['verified', 'tricity', 'families'].map((k) => [
+              t(`home.community.pledges.${k}.title`),
+              t(`home.community.pledges.${k}.body`),
+            ]).map(([title, body]) => (
               <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
                 <span aria-hidden="true" style={{ width: 22, height: 2, background: 'var(--gold)', flex: 'none', transform: 'translateY(-4px)' }} />
                 <div>
@@ -805,12 +762,8 @@ const Home = () => {
 
         {/* Safety facts kept as a quiet footer line — true, specific, unpromoted */}
         <div className="ts-badges-row" style={{ position: 'relative', borderTop: '1px solid var(--line-on-dk)', maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'space-between', gap: 16, padding: '18px 0 22px', flexWrap: 'wrap' }}>
-          {[
-            '◉ Photo-verified badge earned with a live selfie',
-            '◉ Flagged profiles reviewed by our safety team',
-            '◉ Conversations encrypted in transit · numbers never shared',
-          ].map((t, i) => (
-            <span key={i} style={{ fontSize: 13, color: 'rgba(253,248,242,.78)', fontFamily: 'var(--sans)' }}>{t}</span>
+          {['badge', 'flagged', 'encrypted'].map((k) => t(`home.community.facts.${k}`)).map((fact, i) => (
+            <span key={i} style={{ fontSize: 13, color: 'rgba(253,248,242,.78)', fontFamily: 'var(--sans)' }}>{fact}</span>
           ))}
         </div>
       </section>
@@ -828,9 +781,9 @@ const Home = () => {
         borderTop: '1px solid var(--line-on-dk)', borderBottom: '1px solid var(--line-on-dk)',
       }}>
         <div className="ribbon-track" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px 40px', fontFamily: 'var(--display)', fontSize: 22, fontStyle: 'italic', letterSpacing: '-.01em', padding: '0 20px' }}>
-          {['Verified profiles', 'Expertly matched', 'Family-first', 'Hyperlocal', 'Encrypted in transit', 'Founding community', 'Tricity built', 'Privacy first'].map((t, i) => (
+          {['verified', 'matched', 'family', 'local', 'encrypted', 'built', 'privacy'].map((k) => t(`home.ribbon.${k}`)).map((word, i) => (
             <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 40 }}>
-              {t}
+              {word}
               <span style={{ color: 'var(--gold)', fontStyle: 'normal', fontSize: 20 }}>✦</span>
             </span>
           ))}
@@ -845,10 +798,10 @@ const Home = () => {
         <div style={{ position: 'sticky', top: 80, padding: '0 28px 0 40px' }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
-              Six reasons<br />this <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>isn't</em><br />another app.
+              <Trans i18nKey="home.why.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }} /> }} />
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
-              Scroll right to read. Each principle shapes a real product decision, not just marketing copy.
+              {t('home.why.body')}
             </p>
             <div style={{ height: 2, background: 'var(--line)', borderRadius: 1, overflow: 'hidden' }}>
               <div id="why-bar" className={supportsScrollTimeline ? 'why-bar-css' : undefined}
@@ -861,7 +814,7 @@ const Home = () => {
         </div>
 
         {/* Horizontal scroll */}
-        <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label="Why TricityMatch: scroll horizontally to read" style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
+        <div id="why-scroller" className="why-scroller" tabIndex={0} role="group" aria-label={t('home.why.scrollerLabel')} style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 24px 20px', scrollSnapType: 'x mandatory' }}>
           {whyCards.map((c, i) => (
             <motion.div key={i}
               initial={revealOnce.initial}
@@ -938,10 +891,10 @@ const Home = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>
-              See how you'll<br /><em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>discover</em> matches.
+              <Trans i18nKey="home.discover.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }} /> }} />
             </h2>
             <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 420, fontFamily: 'var(--sans)', marginTop: 12 }}>
-              A compatibility score, a verified badge, and the details families check first. Every real profile shows them. The photography here is illustrative, not real members.
+              {t('home.discover.body')}
             </p>
           </div>
           <div style={{ fontFamily: 'var(--display)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -977,14 +930,10 @@ const Home = () => {
                 pasted underneath. */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
               <span style={{ fontFamily: 'var(--display)', fontSize: 'clamp(18px,2vw,24px)', lineHeight: 1.15, letterSpacing: '-.01em', color: 'var(--panel-cream)' }}>
-                What a real profile shows
+                {t('home.discover.panelTitle')}
               </span>
               <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: 0, padding: 0, listStyle: 'none' }}>
-                {[
-                  'A photo-verified badge, earned with a live selfie',
-                  'A compatibility score across the signals families weigh',
-                  'Community, city, education and profession, at a glance',
-                ].map((line) => (
+                {['badge', 'score', 'details'].map((k) => t(`home.discover.points.${k}`)).map((line) => (
                   <li key={line} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, lineHeight: 1.5, color: 'rgba(253,248,242,.85)' }}>
                     <FiCheckCircle style={{ width: 15, height: 15, color: 'var(--gold-text)', flexShrink: 0, marginTop: 2 }} />
                     {line}
@@ -1000,7 +949,7 @@ const Home = () => {
               }}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
-              >Create your free profile →</Link>
+              >{t('home.discover.cta')}</Link>
             </div>
           </motion.div>
 
@@ -1011,7 +960,7 @@ const Home = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {discoverPhotos.map((photo, i) => (
               <div key={i} className="ms-row"
-                role="button" tabIndex={0} aria-pressed={matchIdx === i} aria-label={`Show photo ${i + 1} of ${discoverPhotos.length}`}
+                role="button" tabIndex={0} aria-pressed={matchIdx === i} aria-label={t('home.discover.showPhoto', { n: i + 1, total: discoverPhotos.length })}
                 onClick={() => setMatchIdx(i)}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMatchIdx(i); } }}
                 style={{
@@ -1027,7 +976,7 @@ const Home = () => {
                 <div style={{ width: 56, height: 64, borderRadius: 4, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
                   <img src={photo.src} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .7 }}>Photo {i + 1}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', opacity: .7 }}>{t('home.discover.photo', { n: i + 1 })}</span>
                 <span style={{ color: 'var(--gold)', fontSize: 12 }}>{matchIdx === i ? '●' : '○'}</span>
               </div>
             ))}
@@ -1038,7 +987,7 @@ const Home = () => {
             }}
               onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; }}
               onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--panel-cream)'; }}
-            >Browse real profiles →</Link>
+            >{t('home.discover.browse')}</Link>
           </div>
         </div>
       </section>
@@ -1050,7 +999,7 @@ const Home = () => {
       <div className="process-steps-list" style={{ display: 'none' }}>
         <div style={{ padding: '0 0 24px', background: 'var(--cream-3)' }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,6vw,36px)', lineHeight: .96, letterSpacing: '-.025em' }}>
-            From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>forever.</em>
+            <Trans i18nKey="home.process.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }} /> }} />
           </h2>
         </div>
         {processSteps.map((s, i) => (
@@ -1083,10 +1032,10 @@ const Home = () => {
           {/* Left */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
-              From hello<br />to <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>forever.</em>
+              <Trans i18nKey="home.process.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }} /> }} />
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)' }}>
-              Four steps, designed with intentionality, because finding a partner deserves more than an algorithm.
+              {t('home.process.body')}
             </p>
             {/* Dial */}
             <div style={{ position: 'relative', width: 140, height: 140, marginTop: 24 }}>
@@ -1118,7 +1067,7 @@ const Home = () => {
                   </motion.span>
                 </AnimatePresence>
               </div>
-              <span style={{ position: 'absolute', left: '50%', bottom: -32, transform: 'translateX(-50%)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)' }}>step</span>
+              <span style={{ position: 'absolute', left: '50%', bottom: -32, transform: 'translateX(-50%)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)' }}>{t('home.process.step')}</span>
             </div>
           </div>
 
@@ -1142,7 +1091,7 @@ const Home = () => {
               {processSteps.map((s, i) => (
                 <div key={i}
                   role="button" tabIndex={0} aria-current={i === processActive}
-                  aria-label={`Show step ${i + 1}: ${s.t}`}
+                  aria-label={t('home.process.showStep', { n: i + 1, title: s.t })}
                   onClick={() => setProcessActive(i)}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setProcessActive(i); } }}
                   style={{
@@ -1172,11 +1121,11 @@ const Home = () => {
         <div style={{ padding: '48px 40px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'end' }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>
-              Three cities.<br />One <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>community.</em>
+              <Trans i18nKey="home.cities.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }} /> }} />
             </h2>
           </motion.div>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
-            Tap a city to explore. Mass-market apps don't understand what matters here: shared roots, family values, the comfort of proximity.
+            {t('home.cities.body')}
           </p>
         </div>
 
@@ -1200,7 +1149,7 @@ const Home = () => {
               <img src={c.image.src} alt={c.image.alt} className="city-bg" loading="lazy" decoding="async"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: activeCity === i ? 'scale(1)' : 'scale(1.05)' }}
               />
-              <div style={{
+              <div className="city-scrim" style={{
                 position: 'absolute', inset: 0,
                 background: activeCity === i
                   ? 'linear-gradient(180deg,rgba(124,29,58,.4) 0%,rgba(45,26,34,.95) 100%)'
@@ -1210,7 +1159,7 @@ const Home = () => {
               <AiTag entry={c.image} style={{ bottom: 10, right: 10, zIndex: 2 }} />
 
               {/* Vertical label (collapsed) */}
-              <div style={{
+              <div className="city-vlabel" style={{
                 position: 'absolute', left: 24, bottom: 24,
                 transformOrigin: 'left bottom', transform: 'rotate(-90deg) translateY(0)',
                 whiteSpace: 'nowrap', opacity: activeCity === i ? 0 : 1, transition: 'opacity 200ms ease', zIndex: 2,
@@ -1219,26 +1168,26 @@ const Home = () => {
               </div>
 
               {/* Expanded content */}
-              <div style={{
+              <div className="city-expanded" style={{
                 position: 'absolute', inset: 0, padding: 28,
                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                 opacity: activeCity === i ? 1 : 0, transition: 'opacity 250ms ease .12s', zIndex: 1,
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="city-toprow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)' }}>{c.tag}</span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.7)', textAlign: 'right' }}>Covered<br />from day one</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.7)', textAlign: 'right' }}><Trans i18nKey="home.cities.covered" components={transBr} /></span>
                 </div>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>{c.name}</div>
+                <div className="city-name" style={{ fontFamily: 'var(--display)', fontSize: 'clamp(32px,4vw,64px)', lineHeight: .9, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>{c.name}</div>
                 <div className="city-content-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
                   <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(253,248,242,.75)', maxWidth: 320, fontFamily: 'var(--sans)' }}>{c.desc}</p>
-                  <Link to="/search" aria-label={`Browse ${c.name} profiles`} onFocus={() => setActiveCity(i)} style={{
+                  <Link to="/search" aria-label={t('home.cities.browseLabel', { city: c.name })} onFocus={() => setActiveCity(i)} style={{
                     fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase',
                     padding: '10px 18px', border: '1px solid rgba(253,248,242,.4)', borderRadius: 12, color: 'var(--panel-cream)',
                     textDecoration: 'none', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', whiteSpace: 'nowrap',
                   }}
                     onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.borderColor = 'var(--panel-cream)'; }}
                     onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'rgba(253,248,242,.4)'; }}
-                  >Browse {c.name} →</Link>
+                  >{t('home.cities.browse', { city: c.name })}</Link>
                 </div>
               </div>
             </div>
@@ -1257,15 +1206,15 @@ const Home = () => {
         }}>"</span>
         <motion.div {...revealOnce} style={{ position: 'relative' }}>
           <p style={{ fontFamily: 'var(--display)', fontSize: 'clamp(28px,4vw,62px)', lineHeight: 1.05, letterSpacing: '-.02em', maxWidth: 1100, margin: '0 auto 56px' }}>
-            The right match isn't a number<br />away. <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>They're a neighbourhood</em><br />
+            <Trans i18nKey="home.quote.text" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }} /> }} /><br />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 24 }}>
-              <span style={{ display: 'inline-block', width: 80, height: 2, background: 'var(--gold)' }} />away.
+              <span style={{ display: 'inline-block', width: 80, height: 2, background: 'var(--gold)' }} />{t('home.quote.away')}
             </span>
           </p>
           <p className="quote-attribution" style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--mute)', display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <span>Founders, TricityMatch</span>
+            <span>{t('home.quote.founders')}</span>
             <span className="dot" style={{ color: 'var(--burgundy-text)' }}>·</span>
-            <span>Chandigarh</span>
+            <span>{t('home.place.chandigarh')}</span>
             <span className="dot" style={{ color: 'var(--burgundy-text)' }}>·</span>
             <span>2026</span>
           </p>
@@ -1279,20 +1228,20 @@ const Home = () => {
         <div className="trust-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'end', marginBottom: 24 }}>
           <div>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', color: 'var(--panel-cream)' }}>
-              Built on trust. Backed by <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>action.</em>
+              <Trans i18nKey="home.trust.title" components={{ em: <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }} /> }} />
             </h2>
           </div>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.75)', maxWidth: 520, fontFamily: 'var(--sans)' }}>
-            We don't just ask for trust. We earn it. Every feature is designed to protect your privacy, safety, and dignity.
+            {t('home.trust.body')}
           </p>
         </div>
         <div className="trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {[
-            { n: '01', t: 'Photo verified',         b: 'Live selfie verification earns the verified badge.',        Icon: FiShield },
-            { n: '02', t: 'Encrypted in transit',   b: 'Conversations are encrypted over the network and never shared.', Icon: FiLock },
-            { n: '03', t: 'Human-moderated',        b: 'Safety team reviews flagged profiles daily.',               Icon: FiCheckCircle },
-            { n: '04', t: 'Family approved',        b: 'Designed to include families, never pressure.',             Icon: FiUsers },
-          ].map((it, i) => (
+            { n: '01', key: 'photo',     Icon: FiShield },
+            { n: '02', key: 'encrypted', Icon: FiLock },
+            { n: '03', key: 'moderated', Icon: FiCheckCircle },
+            { n: '04', key: 'family',    Icon: FiUsers },
+          ].map(({ key, ...rest }) => ({ ...rest, t: t(`home.trust.cards.${key}.t`), b: t(`home.trust.cards.${key}.b`) })).map((it, i) => (
             <motion.div key={i}
               initial={revealOnce.initial}
               whileInView={{ ...revealOnce.whileInView, transition: { ...revealOnce.whileInView.transition, delay: staggerIndex(i) } }}
@@ -1324,10 +1273,10 @@ const Home = () => {
         <div className="refund-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 56, alignItems: 'center', maxWidth: 1280, margin: '0 auto' }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 20 }}>
-              Try it. If it's not right,<br /><em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>get your money back.</em>
+              <Trans i18nKey="home.refund.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }} /> }} />
             </h2>
             <p style={{ maxWidth: 480, fontSize: 14, lineHeight: 1.55, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 24 }}>
-              Ask within seven days of paying and we refund the membership in full, no justification needed. If you've already unlocked a few contacts, we deduct only what those unlocks cost.
+              {t('home.refund.body')}
             </p>
             <Link to="/refund-policy" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -1338,7 +1287,7 @@ const Home = () => {
               onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
               onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
             >
-              Read the refund policy <FiArrowRight />
+              {t('home.refund.link')} <FiArrowRight />
             </Link>
           </motion.div>
 
@@ -1346,11 +1295,10 @@ const Home = () => {
             borderLeft: '1px solid var(--line)', paddingLeft: 40,
             display: 'flex', flexDirection: 'column', gap: 22,
           }}>
-            {[
-              ['Seven days, no argument', 'Full refund if you ask within a week of paying.'],
-              ['Unlocks deducted at cost', 'Already viewed a few numbers? We deduct only what those unlocks cost, nothing more.'],
-              ['Real problems, always refunded', 'A dropped feature, a broken service, a double charge: refunded at any point in your term.'],
-            ].map(([title, body]) => (
+            {['seven', 'unlocks', 'problems'].map((k) => [
+              t(`home.refund.pledges.${k}.title`),
+              t(`home.refund.pledges.${k}.body`),
+            ]).map(([title, body]) => (
               <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
                 <span aria-hidden="true" style={{ width: 22, height: 2, background: 'var(--burgundy)', flex: 'none', transform: 'translateY(-4px)' }} />
                 <div>
@@ -1370,7 +1318,7 @@ const Home = () => {
       <section className="testi-section" style={{ background: 'var(--cream)', padding: '56px 40px', overflow: 'hidden' }}>
         <div style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em' }}>
-            Stories that<br />began <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>here.</em>
+            <Trans i18nKey="home.stories.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }} /> }} />
           </h2>
         </div>
         <div className="testi-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
@@ -1407,7 +1355,7 @@ const Home = () => {
                   </div>
                   <div style={{ padding: '16px 4px 0' }}>
                     <div style={{ fontFamily: 'var(--display)', fontSize: 26, fontStyle: 'italic' }}>{s.who}</div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--mute)', marginTop: 4 }}>{s.where}</div>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--mute)', marginTop: 4 }}>{storyWhere(s)}</div>
                   </div>
                 </div>
               );
@@ -1426,14 +1374,14 @@ const Home = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 24, borderTop: '1px solid var(--line)', marginTop: 'auto' }}>
               <button className="story-nav-btn" onClick={() => setStoryIdx((storyIdx - 1 + stories.length) % stories.length)}
                 style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
-                aria-label="Previous story"
+                aria-label={t('home.stories.prev')}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
                 onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
               >←</button>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em' }}>0{storyIdx + 1} / 0{stories.length}</span>
               <button className="story-nav-btn" onClick={() => setStoryIdx((storyIdx + 1) % stories.length)}
                 style={{ width: 44, height: 44, border: '1px solid var(--line)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 160ms ease, color 160ms ease, border-color 160ms ease', cursor: 'pointer', background: 'transparent', color: 'var(--ink)', fontSize: 14 }}
-                aria-label="Next story"
+                aria-label={t('home.stories.next')}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
                 onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
               >→</button>
@@ -1453,10 +1401,10 @@ const Home = () => {
         <div style={{ position: 'sticky', top: 80 }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.4vw,40px)', lineHeight: .96, letterSpacing: '-.025em', marginBottom: 24 }}>
-              Questions?<br />We've got <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }}>answers.</em>
+              <Trans i18nKey="home.faq.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--burgundy-text)' }} /> }} />
             </h2>
             <p style={{ maxWidth: 520, fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', fontFamily: 'var(--sans)', marginBottom: 32 }}>
-              If you don't find what you need, reach out. We respond within 24 hours, in English, Hindi or Punjabi.
+              {t('home.faq.body')}
             </p>
             <a href="mailto:support@tricitymatch.com" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -1467,7 +1415,7 @@ const Home = () => {
               onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--burgundy)'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'var(--burgundy)'; }}
               onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
             >
-              <FiMessageCircle /> Contact support
+              <FiMessageCircle /> {t('home.faq.contact')}
             </a>
           </motion.div>
         </div>
@@ -1528,10 +1476,10 @@ const Home = () => {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <motion.div {...revealOnce}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 'clamp(22px,2.8vw,44px)', lineHeight: .92, letterSpacing: '-.025em', marginBottom: 32 }}>
-              Every great<br />love story<br />starts with <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }}>one step.</em>
+              <Trans i18nKey="home.cta.title" components={{ ...transBr, em: <em style={{ fontStyle: 'italic', color: 'var(--gold-text)' }} /> }} />
             </h2>
             <p style={{ maxWidth: 540, margin: '0 auto 32px', fontSize: 14, lineHeight: 1.5, color: 'rgba(253,248,242,.82)', fontFamily: 'var(--sans)' }}>
-              Start where the families you'd actually meet are already looking. Free to start.
+              {t('home.cta.body')}
             </p>
             <div style={{ display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
               <Link to="/onboarding" style={{
@@ -1543,7 +1491,7 @@ const Home = () => {
               }}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--panel-ink)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
                 onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.transform = ''; }}
-              >Create profile · Free <FiArrowRight /></Link>
+              >{t('home.cta.primary')} <FiArrowRight /></Link>
               <Link to="/search" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 padding: '14px 28px', borderRadius: 12,
@@ -1553,10 +1501,10 @@ const Home = () => {
               }}
                 onMouseEnter={e => { if (!canHover()) return; e.currentTarget.style.background = 'var(--panel-cream)'; e.currentTarget.style.color = 'var(--burgundy)'; e.currentTarget.style.borderColor = 'var(--panel-cream)'; }}
                 onMouseLeave={e => { if (!canHover()) return; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--panel-cream)'; e.currentTarget.style.borderColor = 'rgba(253,248,242,.35)'; }}
-              >Browse profiles</Link>
+              >{t('home.cta.secondary')}</Link>
             </div>
             <p style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(253,248,242,.55)' }}>
-              No credit card · 12-min setup · Verified in hours
+              {t('home.cta.note')}
             </p>
           </motion.div>
         </div>
@@ -1576,9 +1524,9 @@ const Home = () => {
         {/* Grid */}
         <div className="footer-grid-inner" style={{ padding: '36px 48px', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 36, borderBottom: '1px solid var(--line-on-dk)' }}>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 20 }}>Chandigarh · Mohali · Panchkula</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--gold-text)', marginBottom: 20 }}>{t('home.place.all')}</div>
             <p style={{ fontSize: 14, color: 'rgba(253,248,242,.7)', lineHeight: 1.55, maxWidth: 320, fontFamily: 'var(--sans)', marginBottom: 24 }}>
-              Tricity's own matrimonial platform. Connecting families through verified profiles and intelligent matching.
+              {t('home.footer.about')}
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               {[
@@ -1600,19 +1548,19 @@ const Home = () => {
           {[
             /* Doctrine §7: sentence case for headings/buttons, not Title Case.
                These five were the file's one drift from that rule. */
-            { title: 'Platform', links: [['Browse profiles', '/search'], ['How it works', '/#why'], ['Pricing plans', '/subscription'], ['Success stories', '/#stories'], ['Create profile', '/onboarding']] },
+            { title: t('home.footer.platform'), links: [[t('home.footer.browse'), '/search'], [t('home.footer.howItWorks'), '/#why'], [t('home.footer.pricing'), '/subscription'], [t('home.footer.stories'), '/#stories'], [t('home.footer.create'), '/onboarding']] },
             // Cities: the crawl path into the city landing pages. Without a real
             // internal link, /matrimony/* is sitemap-only — discoverable in
             // theory, orphaned in practice.
-            { title: 'Cities',   links: [['Matrimony in Chandigarh', '/matrimony/chandigarh'], ['Matrimony in Mohali', '/matrimony/mohali'], ['Matrimony in Panchkula', '/matrimony/panchkula']] },
-            { title: 'Company',  links: [['About Us', '/about'], ['Contact', '/contact'], ['Safety centre', '/safety'], ['Privacy policy', '/privacy'], ['Terms of service', '/terms'], ['Refunds', '/refund-policy']] },
+            { title: t('home.footer.cities'), links: ['chandigarh', 'mohali', 'panchkula'].map((k) => [t('home.footer.matrimonyIn', { city: t(`home.place.${k}`) }), `/matrimony/${k}`]) },
+            { title: t('home.footer.company'), links: [[t('home.footer.aboutUs'), '/about'], [t('home.footer.contact'), '/contact'], [t('home.footer.safety'), '/safety'], [t('home.footer.privacy'), '/privacy'], [t('home.footer.terms'), '/terms'], [t('home.footer.refunds'), '/refund-policy']] },
             // Phone and address are config-gated for the same reason as WhatsApp:
             // a placeholder number in the footer is worse than no number.
-            { title: 'Contact',  links: [
+            { title: t('home.footer.contact'), links: [
               [support.email, null],
               ...(support.phone ? [[support.phone, null]] : []),
               ...(support.address ? [[support.address, null]] : []),
-              ['Help centre', '/help'],
+              [t('home.footer.help'), '/help'],
             ] },
           ].map(col => (
             <div key={col.title}>
@@ -1637,19 +1585,24 @@ const Home = () => {
 
         {/* Bottom bar */}
         <div className="footer-bottom-inner" style={{ padding: '16px 48px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(253,248,242,.5)', flexWrap: 'wrap', gap: 16 }}>
-          <span>© 2026 TricityMatch · All rights reserved</span>
+          <span>{t('home.footer.rights')}</span>
           <span>
-            Developed by{' '}
-            <a
-              href="https://www.globoniks.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'rgba(253,248,242,.8)', textDecoration: 'underline', textUnderlineOffset: 3 }}
-            >
-              Globoniks
-            </a>
+            <Trans
+              i18nKey="home.footer.developedBy"
+              components={{
+                // <Trans> fills in the link text ("Globoniks").
+                anchor: (
+                  <a
+                    href="https://www.globoniks.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'rgba(253,248,242,.8)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                  />
+                ),
+              }}
+            />
           </span>
-          <span>Made with care in Chandigarh</span>
+          <span>{t('home.footer.madeWithCare')}</span>
         </div>
       </footer>
 

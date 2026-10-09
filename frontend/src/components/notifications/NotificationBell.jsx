@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { FiBell, FiCheck } from 'react-icons/fi';
 import api from '../../api/axios';
+import i18n from '../../i18n';
 import { popIn } from '../../utils/animations';
 import {
   notifLink, iconFor, colorFor, timeAgo, announceNotificationsChanged,
@@ -114,7 +115,9 @@ const NotificationBell = ({ count = 0, onCountChange }) => {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        aria-label={`${t('navbar.notifications')}${count > 0 ? `, ${count} unread` : ''}`}
+        // The suffix and the retry label read the shared i18n instance directly;
+        // the component still re-renders on a language change through the hook.
+        aria-label={`${t('navbar.notifications')}${count > 0 ? i18n.t('notifications.bell.unreadSuffix', { count }) : ''}`}
         className="relative w-11 h-11 flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-300 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-[color,background-color] duration-[160ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
       >
         <FiBell className="w-5 h-5" aria-hidden="true" />
@@ -158,7 +161,7 @@ const NotificationBell = ({ count = 0, onCountChange }) => {
 
             <div className="max-h-[min(26rem,calc(100dvh-10rem))] overflow-y-auto overscroll-contain">
               {state === 'loading' || state === 'idle' ? (
-                <ul aria-busy="true" aria-label="Loading notifications">
+                <ul aria-busy="true" aria-label={t('notifications.bell.loading')}>
                   {[0, 1, 2].map((i) => (
                     <li key={i} className="flex items-start gap-3 px-4 py-3">
                       <div className="skeleton w-9 h-9 rounded-full flex-shrink-0" />
@@ -171,20 +174,20 @@ const NotificationBell = ({ count = 0, onCountChange }) => {
                 </ul>
               ) : state === 'error' ? (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Couldn't load your notifications.</p>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('notifications.bell.loadFailed')}</p>
                   <button
                     type="button"
                     onClick={load}
                     className="mt-3 text-sm font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 px-3 py-2"
                   >
-                    Try again
+                    {i18n.t('notifications.bell.tryAgain')}
                   </button>
                 </div>
               ) : items.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <FiBell className="w-6 h-6 mx-auto text-neutral-400" aria-hidden="true" />
                   <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{t('navbar.allCaughtUp')}</p>
-                  <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-500">Likes, matches and messages will show up here.</p>
+                  <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-500">{t('notifications.bell.emptyHint')}</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-neutral-100 dark:divide-[#252b3b]">
@@ -212,7 +215,7 @@ const NotificationBell = ({ count = 0, onCountChange }) => {
                             <span className="block text-xs text-neutral-500 dark:text-neutral-500 mt-1">{timeAgo(n.createdAt)}</span>
                           </span>
                           {!n.isRead && (
-                            <span className="mt-1.5 w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" aria-label="Unread" />
+                            <span className="mt-1.5 w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" aria-label={t('notifications.bell.unread')} />
                           )}
                         </button>
                       </li>

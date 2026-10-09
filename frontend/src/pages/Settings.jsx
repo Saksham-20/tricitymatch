@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { google as googleConfig } from '../config';
 import api from '../api/axios';
@@ -22,6 +23,7 @@ import DownloadMyData from '../components/settings/DownloadMyData';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { modal, backdrop } from '../utils/animations';
 import BlockedMembers from '../components/safety/BlockedMembers';
+import { formatDate } from '../utils/formatDate';
 
 const TABS = [
   { id: 'account',       label: 'Account',      icon: FiUser,          desc: 'Password & appearance' },
@@ -91,6 +93,7 @@ const GroupHeader = ({ title, desc }) => (
 // sign-in will not link to it. Change-email refused "that is already your
 // email", so nothing let them prove it.
 const VerifyCurrentEmail = ({ email }) => {
+  const { t } = useTranslation();
   const { setUser } = useAuth();
   const [step, setStep] = useState('idle'); // idle | code
   const [code, setCode] = useState('');
@@ -101,10 +104,10 @@ const VerifyCurrentEmail = ({ email }) => {
     setBusy(true);
     try {
       await api.post('/auth/email/verify/request');
-      toast.success(`We sent a 6-digit code to ${email}`);
+      toast.success(t('settings.verifyEmail.codeSent', { email }));
       setStep('code');
     } catch (err) {
-      toast.error(msg(err, 'Could not send the code'));
+      toast.error(msg(err, t('settings.verifyEmail.sendFailed')));
     } finally { setBusy(false); }
   };
   const confirm = async (e) => {
@@ -113,32 +116,32 @@ const VerifyCurrentEmail = ({ email }) => {
     try {
       const res = await api.post('/auth/email/verify/confirm', { code: code.trim() });
       if (res.data?.user && setUser) setUser(res.data.user);
-      toast.success('Email verified');
+      toast.success(t('settings.verifyEmail.verified'));
       setStep('idle'); setCode('');
     } catch (err) {
-      toast.error(msg(err, 'That code is not right or has expired'));
+      toast.error(msg(err, t('settings.verifyEmail.codeWrong')));
     } finally { setBusy(false); }
   };
 
   return (
     <div className="rounded-xl bg-neutral-100 dark:bg-neutral-800/60 p-4 space-y-3">
       <p className="text-sm text-neutral-700 dark:text-neutral-300">
-        Verify this email so you can reset your password by email and sign in with Google.
+        {t('settings.verifyEmail.intro')}
       </p>
       {step === 'idle' ? (
         <button type="button" onClick={send} disabled={busy} className="btn-secondary text-sm disabled:opacity-60">
-          {busy ? 'Sending…' : 'Verify this email'}
+          {busy ? t('settings.common.sending') : t('settings.verifyEmail.verifyButton')}
         </button>
       ) : (
         <form onSubmit={confirm} className="flex flex-col sm:flex-row gap-2">
           <input
             type="text" inputMode="numeric" maxLength={6} value={code} autoComplete="one-time-code"
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="6-digit code" aria-label="6-digit code from the email"
+            placeholder={t('settings.common.codePlaceholder')} aria-label={t('settings.verifyEmail.codeAria')}
             className="flex-1 px-4 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-base tracking-[0.4em] text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <button type="submit" disabled={busy || code.length !== 6} className="btn-primary text-sm disabled:opacity-60">
-            {busy ? 'Checking…' : 'Confirm'}
+            {busy ? t('settings.verifyEmail.checking') : t('settings.common.confirm')}
           </button>
         </form>
       )}
@@ -147,6 +150,7 @@ const VerifyCurrentEmail = ({ email }) => {
 };
 
 const EmailSection = () => {
+  const { t } = useTranslation();
   const { user, setUser } = useAuth();
   const currentEmail = user?.email || null;
   const [step, setStep] = useState('idle'); // 'idle' | 'otp'
@@ -167,10 +171,10 @@ const EmailSection = () => {
     setLoading(true);
     try {
       await api.post('/auth/change-email/request', { newEmail: newEmail.trim(), password });
-      toast.success('Verification code sent to your new email');
+      toast.success(t('settings.email.codeSentToNew'));
       setStep('otp');
     } catch (err) {
-      toast.error(errMsg(err, 'Could not send verification code'));
+      toast.error(errMsg(err, t('settings.email.sendCodeFailed')));
     } finally {
       setLoading(false);
     }
@@ -182,10 +186,10 @@ const EmailSection = () => {
     try {
       const res = await api.post('/auth/change-email/verify', { newEmail: newEmail.trim(), code: code.trim() });
       if (res.data?.user && setUser) setUser(res.data.user);
-      toast.success('Email updated successfully');
+      toast.success(t('settings.email.updated'));
       setStep('idle'); setNewEmail(''); setPassword(''); setCode('');
     } catch (err) {
-      toast.error(errMsg(err, 'Invalid or expired code'));
+      toast.error(errMsg(err, t('settings.email.invalidCode')));
     } finally {
       setLoading(false);
     }
@@ -195,15 +199,15 @@ const EmailSection = () => {
 
   return (
     <div>
-      <GroupHeader title="Email Address" desc="Change the email you use to sign in. We'll send a code to confirm the new address." />
+      <GroupHeader title={t('settings.email.title')} desc={t('settings.email.desc')} />
       {/* Doctrine §3.4 finding: max-w-sm (384px) left ~200px dead gutter in a
           ~584px-wide desktop panel — widened to max-w-xl (576px) here and at
           every other capped block in this file. */}
       <div className="max-w-xl space-y-3">
         <div className="text-sm text-neutral-600 dark:text-neutral-300 flex flex-wrap items-center gap-2">
-          <span>Current: <span className="font-medium text-neutral-900 dark:text-neutral-100">{currentEmail || 'No email set (phone-only account)'}</span></span>
+          <span><Trans i18nKey="settings.email.current" values={{ value: currentEmail || t('settings.email.noEmail') }} components={{ b: <span className="font-medium text-neutral-900 dark:text-neutral-100" /> }} /></span>
           {currentEmail && user?.emailVerified === false && (
-            <span className="px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-100 text-xs font-semibold">Not verified</span>
+            <span className="px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-100 text-xs font-semibold">{t('settings.email.notVerified')}</span>
           )}
         </div>
         {currentEmail && user?.emailVerified === false && <VerifyCurrentEmail email={currentEmail} />}
@@ -213,33 +217,33 @@ const EmailSection = () => {
             <input
               type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
               readOnly={!emailEditable} onFocus={() => setEmailEditable(true)}
-              placeholder="New email address" name="new-email-address" autoComplete="off" aria-label="New email address" className={inputCls} required
+              placeholder={t('settings.email.newEmail')} name="new-email-address" autoComplete="off" aria-label={t('settings.email.newEmail')} className={inputCls} required
             />
             <input
               type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="Current password (leave blank for Google accounts)" autoComplete="current-password" aria-label="Current password" className={inputCls}
+              placeholder={t('settings.email.currentPasswordPlaceholder')} autoComplete="current-password" aria-label={t('settings.common.currentPasswordAria')} className={inputCls}
             />
             <button type="submit" disabled={loading || !newEmail}
               className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 active:scale-[0.97] transition-transform duration-[120ms] disabled:opacity-60 disabled:active:scale-100">
-              {loading ? 'Sending…' : 'Send verification code'}
+              {loading ? t('settings.common.sending') : t('settings.email.sendCode')}
             </button>
           </form>
         ) : (
           <form onSubmit={verifyCode} className="space-y-3">
-            <p className="text-xs text-neutral-500">Enter the 6-digit code sent to <span className="font-medium">{newEmail}</span>.</p>
+            <p className="text-xs text-neutral-500"><Trans i18nKey="settings.email.enterCode" values={{ email: newEmail }} components={{ b: <span className="font-medium" /> }} /></p>
             <input
               type="text" inputMode="numeric" maxLength={6} value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="6-digit code" aria-label="6-digit verification code" className={`${inputCls} tracking-[0.4em] text-center`} required
+              placeholder={t('settings.common.codePlaceholder')} aria-label={t('settings.email.codeAria')} className={`${inputCls} tracking-[0.4em] text-center`} required
             />
             <div className="flex gap-2">
               <button type="button" onClick={() => setStep('idle')}
                 className="flex-1 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 active:scale-[0.97] transition-transform duration-[120ms]">
-                Back
+                {t('settings.common.back')}
               </button>
               <button type="submit" disabled={loading || code.length !== 6}
                 className="flex-1 py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 active:scale-[0.97] transition-transform duration-[120ms] disabled:opacity-60 disabled:active:scale-100">
-                {loading ? 'Verifying…' : 'Verify & update'}
+                {loading ? t('settings.email.verifying') : t('settings.email.verifyUpdate')}
               </button>
             </div>
           </form>
@@ -254,33 +258,35 @@ const EmailSection = () => {
 // existed on the server since launch with no way to reach them from the web
 // app. On a shared family device that is the difference between "someone is
 // still signed in on the tablet" and having no way to find out.
-const parseUserAgent = (ua = '') => {
+// Browser/OS names are proper nouns; only the unknown fallbacks are translated.
+const parseUserAgent = (ua = '', t) => {
   const browser = /Edg\//.test(ua) ? 'Edge'
     : /Chrome\//.test(ua) ? 'Chrome'
     : /Safari\//.test(ua) ? 'Safari'
     : /Firefox\//.test(ua) ? 'Firefox'
-    : 'Browser';
+    : t('settings.sessions.browser');
   const mobile = /Mobile|Android|iPhone|iPad/.test(ua);
   const os = /Android/.test(ua) ? 'Android'
     : /iPhone|iPad|iOS/.test(ua) ? 'iOS'
     : /Mac OS X/.test(ua) ? 'macOS'
     : /Windows/.test(ua) ? 'Windows'
     : /Linux/.test(ua) ? 'Linux'
-    : 'Unknown device';
-  return { label: `${browser} on ${os}`, mobile };
+    : t('settings.sessions.unknownDevice');
+  return { label: t('settings.sessions.deviceLabel', { browser, os }), mobile };
 };
 
-const formatWhen = (value) => {
-  if (!value) return 'not used yet';
+const formatWhen = (value, t) => {
+  if (!value) return t('settings.sessions.notUsedYet');
   const then = new Date(value);
   const mins = Math.round((Date.now() - then.getTime()) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min ago`;
-  if (mins < 60 * 24) return `${Math.round(mins / 60)} h ago`;
+  if (mins < 1) return t('settings.sessions.justNow');
+  if (mins < 60) return t('settings.sessions.minAgo', { n: mins });
+  if (mins < 60 * 24) return t('settings.sessions.hoursAgo', { n: Math.round(mins / 60) });
   return then.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 const SessionsSection = () => {
+  const { t } = useTranslation();
   const { logoutAll } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -312,9 +318,9 @@ const SessionsSection = () => {
     try {
       await api.delete(`/auth/sessions/${id}`);
       setSessions((prev) => prev.filter((s) => s.id !== id));
-      toast.success('Signed out on that device');
+      toast.success(t('settings.sessions.revoked'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not sign that device out');
+      toast.error(err.response?.data?.message || t('settings.sessions.revokeFailed'));
     } finally {
       setBusyId(null);
     }
@@ -325,7 +331,7 @@ const SessionsSection = () => {
     try {
       await logoutAll();
     } catch {
-      toast.error('Could not sign out everywhere');
+      toast.error(t('settings.sessions.allFailed'));
       setSigningOutAll(false);
       setConfirmingAll(false);
     }
@@ -334,8 +340,8 @@ const SessionsSection = () => {
   return (
     <div>
       <GroupHeader
-        title="Where you're signed in"
-        desc="Sign out any device you don't recognise. Doing that immediately ends its access."
+        title={t('settings.sessions.title')}
+        desc={t('settings.sessions.desc')}
       />
       {/* Doctrine §3.4: this was a bordered box nested inside the content
           panel's own border+shadow. The list rows already separate with
@@ -357,16 +363,16 @@ const SessionsSection = () => {
           </div>
         ) : error ? (
           <ErrorState
-            title="Couldn't load your sessions"
-            description="The connection dropped before this finished loading. Try again."
+            title={t('settings.sessions.loadErrorTitle')}
+            description={t('settings.common.connectionDropped')}
             onRetry={load}
           />
         ) : sessions.length === 0 ? (
-          <EmptyState icon={FiMonitor} title="No other active sessions" />
+          <EmptyState icon={FiMonitor} title={t('settings.sessions.empty')} />
         ) : (
           <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-y border-neutral-100 dark:border-neutral-800">
             {sessions.map((s) => {
-              const { label, mobile } = parseUserAgent(s.userAgent);
+              const { label, mobile } = parseUserAgent(s.userAgent, t);
               const Icon = mobile ? FiSmartphone : FiMonitor;
               return (
                 <div key={s.id} className="p-4 flex items-center gap-3">
@@ -378,12 +384,12 @@ const SessionsSection = () => {
                       {label}
                       {s.isCurrent && (
                         <span className="ml-2 px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-semibold uppercase tracking-wide">
-                          This device
+                          {t('settings.sessions.thisDevice')}
                         </span>
                       )}
                     </p>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                      {s.ipAddress || 'unknown IP'} · active {formatWhen(s.lastUsedAt || s.createdAt)}
+                      {t('settings.sessions.activeWhen', { ip: s.ipAddress || t('settings.sessions.unknownIp'), when: formatWhen(s.lastUsedAt || s.createdAt, t) })}
                     </p>
                   </div>
                   {!s.isCurrent && (
@@ -392,7 +398,7 @@ const SessionsSection = () => {
                       disabled={busyId === s.id}
                       className="text-xs font-semibold text-destructive hover:opacity-80 active:scale-[0.97] transition-transform duration-[120ms] disabled:opacity-50 disabled:active:scale-100 flex-shrink-0 py-3.5 px-2 -my-3.5 -mr-2"
                     >
-                      {busyId === s.id ? 'Signing out…' : 'Sign out'}
+                      {busyId === s.id ? t('settings.sessions.signingOut') : t('settings.sessions.signOut')}
                     </button>
                   )}
                 </div>
@@ -404,20 +410,20 @@ const SessionsSection = () => {
       {!loading && !error && sessions.length > 0 && (
         confirmingAll ? (
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <span className="text-sm text-neutral-600 dark:text-neutral-300">Sign out of every device, including this one?</span>
+            <span className="text-sm text-neutral-600 dark:text-neutral-300">{t('settings.sessions.confirmAll')}</span>
             <button
               onClick={signOutEverywhere}
               disabled={signingOutAll}
               className="text-sm font-semibold text-white bg-destructive hover:bg-destructive/90 active:scale-[0.97] disabled:opacity-60 disabled:active:scale-100 rounded-lg px-3 py-3 transition-[background-color,transform] duration-[160ms]"
             >
-              {signingOutAll ? 'Signing out…' : 'Yes, sign out everywhere'}
+              {signingOutAll ? t('settings.sessions.signingOut') : t('settings.sessions.yesAll')}
             </button>
             <button
               onClick={() => setConfirmingAll(false)}
               disabled={signingOutAll}
               className="text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-100 active:scale-[0.97] transition-transform duration-[120ms] disabled:active:scale-100 py-3.5 px-2 -my-3.5 -mx-2"
             >
-              Cancel
+              {t('settings.common.cancel')}
             </button>
           </div>
         ) : (
@@ -425,7 +431,7 @@ const SessionsSection = () => {
           onClick={() => setConfirmingAll(true)}
           className="mt-1 py-3 px-2 -mx-2 -mb-3 text-sm font-semibold text-destructive hover:opacity-80 active:scale-[0.97] transition-transform duration-[120ms]"
         >
-          Sign out everywhere
+          {t('settings.sessions.signOutEverywhere')}
         </button>
         )
       )}
@@ -438,6 +444,7 @@ const SessionsSection = () => {
 // still tells you where the account has been. Server groups rotations into one
 // entry per sign-in and masks the network address.
 const RecentSignIns = () => {
+  const { t } = useTranslation();
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(false);
   const [open, setOpen] = useState(false);
@@ -463,14 +470,14 @@ const RecentSignIns = () => {
         aria-expanded={open}
         className="text-sm font-semibold text-primary-700 dark:text-primary-300 hover:opacity-80 py-3 px-2 -mx-2"
       >
-        {open ? 'Hide recent sign-ins' : 'See recent sign-ins'}
+        {open ? t('settings.recentSignIns.hide') : t('settings.recentSignIns.show')}
       </button>
       {open && (error ? (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Could not load your sign-ins. Try again in a moment.</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('settings.recentSignIns.error')}</p>
       ) : !history ? (
         <Skeleton className="h-3 w-40" />
       ) : history.length === 0 ? (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">No sign-ins recorded yet.</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('settings.recentSignIns.empty')}</p>
       ) : (
         <ul className="divide-y divide-neutral-100 dark:divide-neutral-800 border-y border-neutral-100 dark:border-neutral-800">
           {history.map((h) => (
@@ -483,7 +490,7 @@ const RecentSignIns = () => {
                 </p>
               </div>
               <span className={`text-xs font-semibold flex-shrink-0 ${h.status === 'active' ? 'text-success' : 'text-neutral-500 dark:text-neutral-400'}`}>
-                {h.status === 'active' ? 'Active' : 'Ended'}
+                {h.status === 'active' ? t('settings.recentSignIns.active') : t('settings.recentSignIns.ended')}
               </span>
             </li>
           ))}
@@ -494,6 +501,7 @@ const RecentSignIns = () => {
 };
 
 const ContactNumberCard = () => {
+  const { t } = useTranslation();
   const { user, updateUser } = useAuth();
   // The number members call: a separately verified contact number if there is
   // one, otherwise the login number.
@@ -503,7 +511,7 @@ const ContactNumberCard = () => {
   const hasLoginNumber = !!(user?.phoneVerified && user?.phone);
   return (
     <div>
-      <GroupHeader title="Contact number" desc="The number members call after they unlock your contact" />
+      <GroupHeader title={t('settings.contactNumber.title')} desc={t('settings.contactNumber.desc')} />
       <div className="px-4 max-w-xl space-y-2">
         <ContactNumberVerify
           flow="account"
@@ -516,12 +524,12 @@ const ContactNumberCard = () => {
             // is a separate contact number; otherwise it becomes the login number.
             const separate = hasLoginNumber && d !== user.phone;
             updateUser(separate ? { contactPhone: d } : { phone: d, phoneVerified: true, contactPhone: null });
-            toast.success('Number verified');
+            toast.success(t('settings.contactNumber.verified'));
           }}
         />
         {hasLoginNumber && (
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            You sign in with +91 {user.phone}. A different contact number here does not change how you sign in. Each new number is verified by a code.
+            {t('settings.contactNumber.loginNote', { phone: user.phone })}
           </p>
         )}
       </div>
@@ -534,6 +542,7 @@ const ContactNumberCard = () => {
 // password they could not use it at all. The link goes to their Google inbox,
 // the same proof Google sign-in rests on.
 const SetPasswordByEmail = ({ email }) => {
+  const { t } = useTranslation();
   const [state, setState] = useState('idle'); // idle | sending | sent | error
   const send = async () => {
     setState('sending');
@@ -546,28 +555,36 @@ const SetPasswordByEmail = ({ email }) => {
   };
   return (
     <div>
-      <GroupHeader title="Password" desc="You sign in with Google, so there is no password on your account." />
+      <GroupHeader title={t('settings.setPassword.title')} desc={t('settings.setPassword.desc')} />
       <div className="max-w-xl space-y-3">
         <p className="text-sm text-neutral-600 dark:text-neutral-300">
-          Want a password as well, for example to use the TricityMatch app? We&apos;ll email <strong className="text-neutral-800 dark:text-neutral-100">{email}</strong> a link to set one.
+          <Trans i18nKey="settings.setPassword.intro" values={{ email }} components={{ b: <strong className="text-neutral-800 dark:text-neutral-100" /> }} />
         </p>
         {state === 'sent' ? (
           <p role="status" className="text-sm text-success dark:text-green-300 flex items-center gap-1.5">
-            <FiCheck className="w-4 h-4" aria-hidden="true" /> Sent. The link works once and expires in an hour.
+            <FiCheck className="w-4 h-4" aria-hidden="true" /> {t('settings.setPassword.sent')}
           </p>
         ) : (
           <button type="button" onClick={send} disabled={state === 'sending' || !email} className="btn-secondary disabled:opacity-60">
-            {state === 'sending' ? 'Sending…' : 'Email me a link to set a password'}
+            {state === 'sending' ? t('settings.common.sending') : t('settings.setPassword.button')}
           </button>
         )}
-        {state === 'error' && <p role="alert" className="text-sm text-destructive dark:text-red-300">Could not send the email. Please try again in a minute.</p>}
+        {state === 'error' && <p role="alert" className="text-sm text-destructive dark:text-red-300">{t('settings.setPassword.error')}</p>}
       </div>
     </div>
   );
 };
 
+// Staff (partners, managers, admins) use this page for their password, sign-in
+// security and appearance only. Profile privacy, verification, the number
+// members call, invites and pausing a profile are member things: staff accounts
+// are never listed, so those controls would do nothing.
+const isMemberAccount = (user) => !user?.role || user.role === 'user';
+
 const AccountTab = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const member = isMemberAccount(user);
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState({ current: false, newPw: false, confirm: false });
@@ -578,11 +595,11 @@ const AccountTab = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (form.newPassword !== form.confirmPassword) {
-      toast.error('New passwords do not match');
+      toast.error(t('settings.account.mismatch'));
       return;
     }
     if (form.newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters');
+      toast.error(t('settings.account.tooShort'));
       return;
     }
     setLoading(true);
@@ -592,26 +609,26 @@ const AccountTab = () => {
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       });
-      toast.success('Password changed successfully');
+      toast.success(t('settings.account.changed'));
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not change your password. Try again.');
+      toast.error(err.response?.data?.message || t('settings.account.changeFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   const pwFields = [
-    { key: 'current', label: 'Current Password',    field: 'currentPassword' },
-    { key: 'newPw',   label: 'New Password',         field: 'newPassword' },
-    { key: 'confirm', label: 'Confirm New Password', field: 'confirmPassword' },
+    { key: 'current', label: t('settings.account.currentPassword'), field: 'currentPassword' },
+    { key: 'newPw',   label: t('settings.account.newPassword'),     field: 'newPassword' },
+    { key: 'confirm', label: t('settings.account.confirmPassword'), field: 'confirmPassword' },
   ];
 
   return (
     <div className="space-y-8">
-      <ContactNumberCard />
+      {member && <ContactNumberCard />}
 
       {/* Doctrine §3.4 finding: Invite/Appearance/More were each their own
           bordered box nested inside the content panel's own border+shadow —
@@ -619,56 +636,63 @@ const AccountTab = () => {
           that already separate rows with `divide-y`, so the outer border is
           dropped in favour of that hairline instead of declaring elevation
           twice. Appearance/More also widen max-w-sm → max-w-xl (finding #4). */}
-      <div>
-        <GroupHeader title="Invite" desc="Bring someone you'd vouch for into the community" />
-        <div className="px-4 max-w-xl">
-          <InviteLink variant="row" />
+      {member && (
+        <div>
+          <GroupHeader title={t('settings.account.inviteTitle')} desc={t('settings.account.inviteDesc')} />
+          <div className="px-4 max-w-xl">
+            <InviteLink variant="row" />
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
-        <GroupHeader title="Appearance" desc="Customize how TricityMatch looks for you" />
+        <GroupHeader title={t('settings.account.appearanceTitle')} desc={t('settings.account.appearanceDesc')} />
         <div className="divide-y divide-neutral-100 dark:divide-neutral-800 max-w-xl">
           <Toggle
             value={isDark}
             onChange={toggleDark}
-            label="Dark Mode"
-            desc="Switch between light and dark theme"
+            label={t('settings.account.darkMode')}
+            desc={t('settings.account.darkModeDesc')}
           />
           <Toggle
             value={isElder}
             onChange={toggleElder}
-            label="Elder Mode"
-            desc="Larger text and higher contrast for easier reading"
+            label={t('settings.account.elderMode')}
+            desc={t('settings.account.elderModeDesc')}
           />
           <div className="flex items-center justify-between py-3.5">
             <div>
-              <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Language</p>
+              <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{t('settings.account.language')}</p>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">English · हिन्दी · ਪੰਜਾਬੀ</p>
             </div>
-            <LanguageSwitcher />
+            <LanguageSwitcher showLabel={false} />
           </div>
         </div>
       </div>
 
       <div>
-        <GroupHeader title="More" desc="Verification, family, support & astrology services" />
+        <GroupHeader title={t('settings.account.moreTitle')} desc={!member ? t('settings.account.moreDescStaff') : user?.features?.astrologerMarketplace ? t('settings.account.moreDescAstro') : t('settings.account.moreDesc')} />
         <div className="divide-y divide-neutral-100 dark:divide-neutral-800 max-w-xl">
           {[
-            { to: '/verification', icon: FiShield, label: 'Verification' },
-            { to: '/guardian',     icon: FiUsers,  label: 'Guardian & Family' },
+            ...(member ? [
+              { to: '/verification', icon: FiShield, label: t('settings.account.links.verification') },
+              { to: '/guardian',     icon: FiUsers,  label: t('settings.account.links.guardian') },
+            ] : []),
             // D7: astrologer entry only when the server flag is on
-            ...(user?.features?.astrologerMarketplace
-              ? [{ to: '/astrologers', icon: FiStar, label: 'Talk to an Astrologer' }]
+            ...(member && user?.features?.astrologerMarketplace
+              ? [{ to: '/astrologers', icon: FiStar, label: t('settings.account.links.astrologers') }]
+              : []),
+            ...(['marketing', 'marketing_manager'].includes(user?.role)
+              ? [{ to: '/marketing', icon: FiUsers, label: t('settings.account.links.partner') }]
               : []),
             // Members had no in-product route to support at all — the contact
             // form was reachable only from the marketing footer.
-            { to: '/help', icon: FiHelpCircle, label: 'Help & Support' },
+            { to: '/help', icon: FiHelpCircle, label: t('settings.account.links.help') },
             // A promoted personal account keeps its member profile, so the panel
             // needs a door from inside the app — otherwise the only way in is
             // typing /admin, which nobody tells them.
             ...(['sub_admin', 'admin', 'super_admin'].includes(user?.role)
-              ? [{ to: '/admin', icon: FiShield, label: 'Admin panel' }]
+              ? [{ to: '/admin', icon: FiShield, label: t('settings.account.links.admin') }]
               : []),
           ].map(({ to, icon: Icon, label }) => (
             <Link key={to} to={to} className="flex items-center justify-between p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[160ms]">
@@ -691,7 +715,7 @@ const AccountTab = () => {
         <SetPasswordByEmail email={user?.email} />
       ) : (
       <div>
-        <GroupHeader title="Change Password" desc="Must be 8+ characters with uppercase, lowercase, number, and special character." />
+        <GroupHeader title={t('settings.account.changePasswordTitle')} desc={t('settings.account.changePasswordDesc')} />
         <form onSubmit={handleChangePassword} className="space-y-4 max-w-xl">
           {pwFields.map(({ key, label, field }) => (
             <div key={key}>
@@ -705,7 +729,6 @@ const AccountTab = () => {
                   onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
                   required
                   className="input-field pr-10"
-                  placeholder="••••••••"
                   autoComplete={key === 'current' ? 'current-password' : 'new-password'}
                 />
                 <button
@@ -715,7 +738,7 @@ const AccountTab = () => {
                   // target). w-11 h-11 (44px) flush to the input's edge pads
                   // the target without growing the visible glyph.
                   className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
-                  aria-label={show[key] ? 'Hide password' : 'Show password'}
+                  aria-label={show[key] ? t('settings.common.hidePassword') : t('settings.common.showPassword')}
                 >
                   {show[key] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
                 </button>
@@ -728,10 +751,10 @@ const AccountTab = () => {
             className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {loading ? (
-              <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Updating…</>
+              <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> {t('settings.account.updating')}</>
             ) : success ? (
-              <><FiCheck className="w-4 h-4" /> Password Updated</>
-            ) : 'Update Password'}
+              <><FiCheck className="w-4 h-4" /> {t('settings.account.updated')}</>
+            ) : t('settings.account.update')}
           </button>
         </form>
       </div>
@@ -744,6 +767,7 @@ const AccountTab = () => {
 
 // ─── Privacy tab ──────────────────────────────────────────────────────────────
 const PrivacyTab = () => {
+  const { t } = useTranslation();
   // Backend validates: ['everyone', 'matches_only']
   const [settings, setSettings] = useState({
     profileVisibility: 'everyone',
@@ -794,9 +818,9 @@ const PrivacyTab = () => {
     setSaving(true);
     try {
       await api.put('/profile/privacy', settings);
-      toast.success('Privacy settings saved');
+      toast.success(t('settings.privacy.saved'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not save your privacy settings. Try again.');
+      toast.error(err.response?.data?.message || t('settings.privacy.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -828,10 +852,10 @@ const PrivacyTab = () => {
   if (loadError) {
     return (
       <div className="space-y-6">
-        <GroupHeader title="Profile Visibility" desc="Control who can discover and view your profile" />
+        <GroupHeader title={t('settings.privacy.visibilityTitle')} desc={t('settings.privacy.visibilityDesc')} />
         <ErrorState
-          title="Couldn't load your privacy settings"
-          description="We couldn't confirm your current settings, so nothing is shown rather than risk saving the wrong ones over them. Try again."
+          title={t('settings.privacy.loadErrorTitle')}
+          description={t('settings.privacy.loadErrorDesc')}
           onRetry={load}
         />
       </div>
@@ -841,9 +865,9 @@ const PrivacyTab = () => {
   return (
     <div className="space-y-8">
       <div>
-        <GroupHeader title="Profile Visibility" desc="Control who can discover and view your profile" />
+        <GroupHeader title={t('settings.privacy.visibilityTitle')} desc={t('settings.privacy.visibilityDesc')} />
         <div className="max-w-xl">
-          <label htmlFor="setting-profile-visibility" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">Who can see your profile</label>
+          <label htmlFor="setting-profile-visibility" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{t('settings.privacy.whoCanSee')}</label>
           <select
             id="setting-profile-visibility"
             name="profileVisibility"
@@ -851,31 +875,31 @@ const PrivacyTab = () => {
             onChange={(e) => setSettings((s) => ({ ...s, profileVisibility: e.target.value }))}
             className="input-field"
           >
-            <option value="everyone">Everyone</option>
-            <option value="matches_only">Matches Only</option>
+            <option value="everyone">{t('settings.privacy.everyone')}</option>
+            <option value="matches_only">{t('settings.privacy.matchesOnly')}</option>
           </select>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            With "Matches Only", only members you have already liked can send you an interest, and only your matches can open your profile.
+            {t('settings.privacy.matchesOnlyNote')}
           </p>
         </div>
         <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 overflow-hidden max-w-xl mt-5">
           <Toggle
             value={settings.incognitoMode}
             onChange={(v) => setSettings((s) => ({ ...s, incognitoMode: v }))}
-            label="Incognito mode"
-            desc="Browse without leaving a trace: your visits are not recorded, and you stay out of search and daily matches until you switch it off."
+            label={t('settings.privacy.incognito')}
+            desc={t('settings.privacy.incognitoDesc')}
           />
         </div>
       </div>
 
       <div>
-        <GroupHeader title="Details you share" desc="Choose who sees your contact details, income and birth details: everyone, only your matches, or no one" />
+        <GroupHeader title={t('settings.privacy.sharedTitle')} desc={t('settings.privacy.sharedDesc')} />
         <div className="max-w-xl space-y-4">
-          {[
-            ['contact', 'Phone number and email', 'Who can use an unlock to see them. "Only me" means nobody, even a paid member.'],
-            ['income', 'Income', 'Also stops people finding you with an income filter'],
-            ['birthDetails', 'Birth time and place', 'Used for horoscope reports; your star sign match still works'],
-          ].map(([key, label, hint]) => (
+          {['contact', 'income', 'birthDetails'].map((key) => [
+            key,
+            t(`settings.privacy.fields.${key}.label`),
+            t(`settings.privacy.fields.${key}.hint`),
+          ]).map(([key, label, hint]) => (
             <div key={key}>
               <label htmlFor={`setting-field-${key}`} className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{label}</label>
               <select
@@ -885,9 +909,9 @@ const PrivacyTab = () => {
                 onChange={(e) => setSettings((s) => ({ ...s, fieldVisibility: { ...s.fieldVisibility, [key]: e.target.value } }))}
                 className="input-field"
               >
-                <option value="everyone">Everyone who can see my profile</option>
-                <option value="matches">Only my matches</option>
-                <option value="hidden">Only me</option>
+                <option value="everyone">{t('settings.privacy.options.everyone')}</option>
+                <option value="matches">{t('settings.privacy.options.matches')}</option>
+                <option value="hidden">{t('settings.privacy.options.hidden')}</option>
               </select>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{hint}</p>
             </div>
@@ -896,19 +920,19 @@ const PrivacyTab = () => {
       </div>
 
       <div>
-        <GroupHeader title="Activity Status" desc="Choose what others can see about your online activity" />
+        <GroupHeader title={t('settings.privacy.activityTitle')} desc={t('settings.privacy.activityDesc')} />
         <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-w-xl">
           <Toggle
             value={settings.showOnlineStatus}
             onChange={(v) => setSettings((s) => ({ ...s, showOnlineStatus: v }))}
-            label="Show Online Status"
-            desc="Let others see when you're online"
+            label={t('settings.privacy.showOnline')}
+            desc={t('settings.privacy.showOnlineDesc')}
           />
           <Toggle
             value={settings.showLastSeen}
             onChange={(v) => setSettings((s) => ({ ...s, showLastSeen: v }))}
-            label="Show Last Seen"
-            desc="Let others see when you were last active"
+            label={t('settings.privacy.showLastSeen')}
+            desc={t('settings.privacy.showLastSeenDesc')}
           />
         </div>
       </div>
@@ -920,13 +944,13 @@ const PrivacyTab = () => {
           className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {saving ? (
-            <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Saving…</>
-          ) : 'Save Privacy Settings'}
+            <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> {t('settings.privacy.saving')}</>
+          ) : t('settings.privacy.save')}
         </button>
       </div>
 
       <div>
-        <GroupHeader title="Blocked members" desc="Blocked members can't message, call or find you, and you won't see them" />
+        <GroupHeader title={t('settings.privacy.blockedTitle')} desc={t('settings.privacy.blockedDesc')} />
         <BlockedMembers />
       </div>
     </div>
@@ -935,6 +959,7 @@ const PrivacyTab = () => {
 
 // ─── Notifications tab ────────────────────────────────────────────────────────
 const NotificationsTab = () => {
+  const { t } = useTranslation();
   // Server-side preferences (GET/PUT /notifications/preferences). They used to be
   // a localStorage key that nothing read, so every toggle here did nothing.
   const [prefs, setPrefs] = useState(null); // null = loading
@@ -955,32 +980,32 @@ const NotificationsTab = () => {
     setPrefs(next); // optimistic
     try {
       await api.put('/notifications/preferences', { [key]: next[key] });
-      toast.success('Preference saved');
+      toast.success(t('settings.notifications.saved'));
     } catch {
       setPrefs(before);
-      toast.error('Could not save. Try again.');
+      toast.error(t('settings.notifications.failed'));
     }
   };
 
   // Only the notices we actually send. Payment, security and verification
   // messages are not optional and are not listed.
   const items = [
-    { key: 'matches',   label: 'New matches', desc: 'When you and another member like each other (app, push and email)' },
-    { key: 'interests', label: 'Interests',   desc: 'When someone likes your profile' },
+    { key: 'matches',   label: t('settings.notifications.matches'),   desc: t('settings.notifications.matchesDesc') },
+    { key: 'interests', label: t('settings.notifications.interests'), desc: t('settings.notifications.interestsDesc') },
   ];
 
   if (loadError) {
     return (
       <div className="space-y-4">
-        <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">Could not load your preferences. <button type="button" className="underline" onClick={load}>Try again</button></p>
+        <GroupHeader title={t('settings.notifications.title')} desc={t('settings.notifications.desc')} />
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('settings.notifications.loadError')} <button type="button" className="underline" onClick={load}>{t('settings.notifications.tryAgain')}</button></p>
       </div>
     );
   }
   if (!prefs) {
     return (
       <div className="space-y-4">
-        <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
+        <GroupHeader title={t('settings.notifications.title')} desc={t('settings.notifications.desc')} />
         <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-w-xl">
           {[0, 1].map((i) => (
             <div key={i} className="py-3.5 flex items-center justify-between gap-4">
@@ -998,7 +1023,7 @@ const NotificationsTab = () => {
 
   return (
     <div className="space-y-6">
-      <GroupHeader title="Notification Preferences" desc="Choose which alerts you want to receive" />
+      <GroupHeader title={t('settings.notifications.title')} desc={t('settings.notifications.desc')} />
       <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-w-xl">
         {items.map(({ key, label, desc }) => (
           <Toggle key={key} value={prefs[key]} onChange={() => togglePref(key)} label={label} desc={desc} />
@@ -1010,6 +1035,7 @@ const NotificationsTab = () => {
 
 // ─── Verification tab — photo (selfie) verification, no ID documents ─────────
 const VerificationTab = () => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState(null); // null = loading
   // Major fix: a genuine fetch failure used to `setStatus({ status:
   // 'not_submitted' })`, rendering byte-identical to "you haven't submitted
@@ -1033,7 +1059,7 @@ const VerificationTab = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selfiePhoto) { toast.error('Selfie photo is required'); return; }
+    if (!selfiePhoto) { toast.error(t('settings.verification.selfieRequired')); return; }
 
     setSubmitting(true);
     try {
@@ -1041,10 +1067,10 @@ const VerificationTab = () => {
       fd.append('selfiePhoto', selfiePhoto);
 
       const res = await api.post('/verification/submit', fd, { headers: captureHeaders(selfiePhoto) });
-      toast.success('Selfie submitted. We will review within 24 hours.');
+      toast.success(t('settings.verification.submitted'));
       setStatus(res.data.verification);
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not submit your selfie. Try again.');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || t('settings.verification.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -1074,10 +1100,10 @@ const VerificationTab = () => {
   if (loadError) {
     return (
       <div className="space-y-6">
-        <GroupHeader title="Photo Verification" desc="Get a verified badge by matching a selfie to your profile photos" />
+        <GroupHeader title={t('settings.verification.title')} desc={t('settings.verification.desc')} />
         <ErrorState
-          title="Couldn't load your verification status"
-          description="The connection dropped before this finished loading. Try again."
+          title={t('settings.verification.loadErrorTitle')}
+          description={t('settings.common.connectionDropped')}
           onRetry={load}
         />
       </div>
@@ -1088,7 +1114,7 @@ const VerificationTab = () => {
   if (status.status === 'approved') {
     return (
       <div className="space-y-6">
-        <GroupHeader title="Photo Verification" desc="Your profile is verified and trusted by other members" />
+        <GroupHeader title={t('settings.verification.title')} desc={t('settings.verification.approvedDesc')} />
         {/* Doctrine §3.4 finding: dropped the border — the tint alone already
             carries the state (the same bg-success-light/15 idiom Badge.jsx
             uses without a border elsewhere), so it no longer reads as a
@@ -1099,14 +1125,14 @@ const VerificationTab = () => {
             <FiCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="font-semibold text-success text-sm">Photo Verified</p>
+            <p className="font-semibold text-success text-sm">{t('settings.verification.photoVerified')}</p>
             <p className="text-xs text-success/80 mt-0.5">
-              Verified {status.verifiedAt ? `on ${new Date(status.verifiedAt).toLocaleDateString('en-IN')}` : ''}
+              {status.verifiedAt ? t('settings.verification.verifiedOn', { date: formatDate(status.verifiedAt) }) : t('settings.verification.verifiedPlain')}
             </p>
             {/* "3× more responses" was invented precision with no source
                 (doctrine §7 finding) — reworded to a plain, unquantified
                 statement instead of dropping the incentive entirely. */}
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">You have a verified badge on your profile, a signal other members trust.</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">{t('settings.verification.badgeNote')}</p>
           </div>
         </div>
       </div>
@@ -1117,7 +1143,7 @@ const VerificationTab = () => {
   if (status.status === 'pending') {
     return (
       <div className="space-y-6">
-        <GroupHeader title="Photo Verification" desc="Your selfie is under review" />
+        <GroupHeader title={t('settings.verification.title')} desc={t('settings.verification.pendingDesc')} />
         {/* Same ghost/nested-card fix as the approved state above: tint
             carries the state, border dropped; max-w-sm → max-w-xl. */}
         <div className="flex items-start gap-4 p-5 bg-warning-light dark:bg-warning/15 rounded-2xl max-w-xl">
@@ -1125,11 +1151,11 @@ const VerificationTab = () => {
             <FiClock className="w-5 h-5 text-warning" />
           </div>
           <div>
-            <p className="font-semibold text-warning text-sm">Under Review</p>
+            <p className="font-semibold text-warning text-sm">{t('settings.verification.underReview')}</p>
             <p className="text-xs text-warning/80 mt-0.5">
-              Submitted {status.submittedAt ? new Date(status.submittedAt).toLocaleDateString('en-IN') : ''}
+              {status.submittedAt ? t('settings.verification.submittedOn', { date: formatDate(status.submittedAt) }) : t('settings.verification.submittedPlain')}
             </p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">We typically review selfies within 24 hours. You'll receive an email when it's done.</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">{t('settings.verification.reviewNote')}</p>
           </div>
         </div>
       </div>
@@ -1140,17 +1166,17 @@ const VerificationTab = () => {
   return (
     <div className="space-y-6">
       <GroupHeader
-        title="Photo Verification"
-        desc="Get a verified badge by matching a selfie to your profile photos. No documents needed."
+        title={t('settings.verification.title')}
+        desc={t('settings.verification.formDesc')}
       />
 
       {/* How it works */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl">
-        {[
-          { step: '1', title: 'Take a Selfie', desc: 'Good light, face clearly visible' },
-          { step: '2', title: 'Team Review', desc: 'Matched to your profile photos' },
-          { step: '3', title: 'Get Verified', desc: 'Badge added to your profile' },
-        ].map(({ step, title, desc }) => (
+        {['1', '2', '3'].map((step) => ({
+          step,
+          title: t(`settings.verification.steps.${step}.title`),
+          desc: t(`settings.verification.steps.${step}.desc`),
+        })).map(({ step, title, desc }) => (
           <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700">
             <div className="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 text-xs font-bold flex items-center justify-center mb-2">{step}</div>
             <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-100">{title}</p>
@@ -1164,9 +1190,9 @@ const VerificationTab = () => {
         <div className="flex items-start gap-3 p-4 bg-destructive/5 border border-destructive/15 rounded-xl max-w-xl">
           <FiX className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-destructive">Previous submission rejected</p>
+            <p className="text-sm font-semibold text-destructive">{t('settings.verification.rejected')}</p>
             <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5">{status.adminNotes}</p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Please resubmit a clearer selfie.</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{t('settings.verification.resubmit')}</p>
           </div>
         </div>
       )}
@@ -1177,7 +1203,7 @@ const VerificationTab = () => {
 
         <div className="flex items-start gap-2 p-3.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700 rounded-xl text-xs text-neutral-500 dark:text-neutral-400">
           <FiShield className="w-3.5 h-3.5 text-primary-400 flex-shrink-0 mt-0.5" />
-          <span>Your selfie is captured live from your camera (no uploads) and only used by our team to verify your profile photos. It is never shown to other members.</span>
+          <span>{t('settings.verification.privacyNote')}</span>
         </div>
 
         <button
@@ -1186,9 +1212,9 @@ const VerificationTab = () => {
           className="btn-primary flex items-center gap-2 disabled:opacity-50"
         >
           {submitting ? (
-            <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Submitting…</>
+            <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> {t('settings.verification.submitting')}</>
           ) : (
-            <><FiUpload className="w-4 h-4" /> Submit for Verification</>
+            <><FiUpload className="w-4 h-4" /> {t('settings.verification.submit')}</>
           )}
         </button>
       </form>
@@ -1198,6 +1224,7 @@ const VerificationTab = () => {
 
 // ─── Danger Zone tab ──────────────────────────────────────────────────────────
 const DangerTab = ({ goToTab }) => {
+  const { t } = useTranslation();
   const { logout, user, updateUser } = useAuth();
   const hasPaidPlan = Boolean(user?.subscriptionPlan && user.subscriptionPlan !== 'free');
   // Delete after a grace period by default; immediate erasure is an explicit choice.
@@ -1212,9 +1239,9 @@ const DangerTab = ({ goToTab }) => {
     try {
       const { data } = await api.post(pause ? '/profile/me/pause' : '/profile/me/resume');
       updateUser({ Profile: { ...(user?.Profile || {}), pausedAt: pause ? (data.pausedAt || new Date().toISOString()) : null, isActive: !pause } });
-      toast.success(pause ? 'Your profile is hidden' : 'Your profile is visible again');
+      toast.success(pause ? t('settings.danger.hidden') : t('settings.danger.visible'));
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not change that. Try again.');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || t('settings.danger.changeFailed'));
     } finally {
       setLifecycleBusy(false);
     }
@@ -1225,9 +1252,9 @@ const DangerTab = ({ goToTab }) => {
     try {
       await api.post('/auth/account/cancel-deletion');
       updateUser({ deletionScheduledFor: null, Profile: { ...(user?.Profile || {}), isActive: !user?.Profile?.pausedAt } });
-      toast.success('Deletion cancelled. Your account stays.');
+      toast.success(t('settings.danger.cancelled'));
     } catch {
-      toast.error('Could not cancel. Try again.');
+      toast.error(t('settings.danger.cancelFailed'));
     } finally {
       setLifecycleBusy(false);
     }
@@ -1292,28 +1319,28 @@ const DangerTab = ({ goToTab }) => {
     try {
       if (deleteNow) {
         await api.delete('/auth/account', { data });
-        toast.success('Account deleted');
+        toast.success(t('settings.danger.deleted'));
         await logout();
       } else {
         const res = await api.post('/auth/account/schedule-deletion', data);
         if (res.data?.immediate) {
-          toast.success('Account deleted');
+          toast.success(t('settings.danger.deleted'));
           await logout();
           return;
         }
         updateUser({ deletionScheduledFor: res.data.scheduledFor, Profile: { ...(user?.Profile || {}), isActive: false } });
-        toast.success(`Deletion scheduled for ${fmtDate(new Date(res.data.scheduledFor))}`);
+        toast.success(t('settings.danger.scheduled', { date: fmtDate(new Date(res.data.scheduledFor)) }));
         closeModal();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Could not delete your account. Try again.');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || t('settings.danger.deleteFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = () => {
-    if (!password) { toast.error('Please enter your password'); return; }
+    if (!password) { toast.error(t('settings.danger.enterPassword')); return; }
     return deleteWith({ password });
   };
 
@@ -1352,38 +1379,38 @@ const DangerTab = ({ goToTab }) => {
 
   return (
     <div className="space-y-6">
-      <GroupHeader title="Pause or delete" desc="Take a break without losing anything, or delete your account" />
+      <GroupHeader title={t('settings.danger.title')} desc={t('settings.danger.desc')} />
 
       {scheduledFor && (
         <div role="status" className="rounded-2xl bg-neutral-100 dark:bg-neutral-800 p-5 max-w-xl">
-          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Your account is scheduled for deletion</h4>
+          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{t('settings.danger.scheduledTitle')}</h4>
           <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
-            It will be permanently deleted on {fmtDate(scheduledFor)}. Your profile is hidden until then. Changed your mind? Cancel and everything stays as it was.
+            {t('settings.danger.scheduledBody', { date: fmtDate(scheduledFor) })}
           </p>
           <button
             onClick={cancelScheduledDeletion}
             disabled={lifecycleBusy}
             className="px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 transition-[background-color,transform] duration-[160ms] cursor-pointer"
           >
-            Cancel deletion
+            {t('settings.danger.cancelDeletion')}
           </button>
         </div>
       )}
 
       {!scheduledFor && (
         <div className="rounded-2xl bg-neutral-100 dark:bg-neutral-800 p-5 max-w-xl">
-          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{paused ? 'Your profile is paused' : 'Pause my profile'}</h4>
+          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{paused ? t('settings.danger.pausedTitle') : t('settings.danger.pauseTitle')}</h4>
           <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
             {paused
-              ? 'Nobody can find or open your profile, and you cannot send or answer interests until you resume. Nothing has been deleted.'
-              : 'Hide your profile from search and suggestions for now. Your matches, messages and details stay, and you can resume any time.'}
+              ? t('settings.danger.pausedBody')
+              : t('settings.danger.pauseBody')}
           </p>
           <button
             onClick={() => setPaused(!paused)}
             disabled={lifecycleBusy}
             className="px-4 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:scale-[0.97] text-neutral-800 dark:text-neutral-100 text-sm font-semibold disabled:opacity-60 transition-[background-color,transform] duration-[160ms] cursor-pointer"
           >
-            {paused ? 'Resume my profile' : 'Pause my profile'}
+            {paused ? t('settings.danger.resume') : t('settings.danger.pause')}
           </button>
         </div>
       )}
@@ -1393,25 +1420,21 @@ const DangerTab = ({ goToTab }) => {
           longer reads as a card nested in the panel's own border. Widened
           max-w-sm → max-w-xl (finding #4). */}
       <div className="rounded-2xl bg-destructive/5 p-5 max-w-xl">
-        <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Delete Account</h4>
+        <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{t('settings.danger.deleteTitle')}</h4>
         <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4 leading-relaxed">
-          Erases your profile, photos, matches and messages. Your profile is hidden straight away and the deletion happens after 30 days, so you can change your mind by signing in and cancelling. After that it cannot be undone. Payment records and any safety reports about you are kept as the law and our{' '}
-          <Link to="/refund-policy" className="underline underline-offset-2">policies</Link> require.
+          <Trans i18nKey="settings.danger.deleteBody" components={{ anchor: <Link to="/refund-policy" className="underline underline-offset-2" /> }} />
         </p>
         {hasPaidPlan && (
           <p className="text-sm text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 mb-4 leading-relaxed">
-            You have an active membership. Deleting your account ends it straight away and the remaining time is not refunded. See the{' '}
-            <Link to="/refund-policy" className="underline underline-offset-2">refund policy</Link>{' '}
-            first if you think you are owed a refund.
+            <Trans i18nKey="settings.danger.paidNote" components={{ anchor: <Link to="/refund-policy" className="underline underline-offset-2" /> }} />
           </p>
         )}
         {typeof goToTab === 'function' && (
           <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4">
-            Want a copy of your information?{' '}
-            <button type="button" onClick={() => goToTab('account')} className="underline underline-offset-2 text-primary-700 dark:text-primary-300 cursor-pointer">
-              Download my data first
-            </button>
-            .
+            <Trans
+              i18nKey="settings.danger.copyPrompt"
+              components={{ btn: <button type="button" onClick={() => goToTab('account')} className="underline underline-offset-2 text-primary-700 dark:text-primary-300 cursor-pointer" /> }}
+            />
           </p>
         )}
         <button
@@ -1419,7 +1442,7 @@ const DangerTab = ({ goToTab }) => {
           disabled={Boolean(scheduledFor)}
           className="px-4 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-50 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
         >
-          Delete My Account
+          {t('settings.danger.deleteButton')}
         </button>
       </div>
 
@@ -1437,21 +1460,21 @@ const DangerTab = ({ goToTab }) => {
               aria-labelledby="delete-account-title"
               className="bg-white dark:bg-neutral-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
             >
-              <h3 id="delete-account-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Confirm Account Deletion</h3>
+              <h3 id="delete-account-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">{t('settings.danger.modalTitle')}</h3>
               <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
                 {googleOnly
-                  ? 'You signed up with Google. Confirm with the same Google account.'
-                  : 'Enter your password to confirm.'}
-                {' '}{deleteNow ? 'Everything is erased now and this cannot be undone.' : 'Your account will be deleted in 30 days; you can cancel before then.'}
+                  ? t('settings.danger.googleConfirm')
+                  : t('settings.danger.passwordConfirm')}
+                {' '}{deleteNow ? t('settings.danger.nowWarning') : t('settings.danger.laterNote')}
               </p>
               <label className="flex items-start gap-2 mb-5 text-sm text-neutral-600 dark:text-neutral-300 cursor-pointer">
                 <input type="checkbox" checked={deleteNow} onChange={(e) => setDeleteNow(e.target.checked)} className="mt-1" />
-                <span>Delete immediately instead of waiting 30 days</span>
+                <span>{t('settings.danger.deleteNowCheckbox')}</span>
               </label>
               {googleOnly && (
                 googleConfig.isConfigured
                   ? <div ref={googleBtnRef} className="mb-5 flex justify-center" aria-busy={loading} />
-                  : <p role="alert" className="mb-5 text-sm text-destructive">Google confirmation isn&apos;t available right now. Contact support to delete your account.</p>
+                  : <p role="alert" className="mb-5 text-sm text-destructive">{t('settings.danger.googleUnavailable')}</p>
               )}
               <div className={`relative mb-5 ${googleOnly ? 'hidden' : ''}`}>
                 <input
@@ -1459,15 +1482,15 @@ const DangerTab = ({ goToTab }) => {
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your current password"
-                  aria-label="Current password"
+                  placeholder={t('settings.danger.passwordPlaceholder')}
+                  aria-label={t('settings.common.currentPasswordAria')}
                   autoComplete="current-password"
                   className="input-field pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                  aria-label={showPw ? t('settings.common.hidePassword') : t('settings.common.showPassword')}
                   // Doctrine §3.5: was p-2.5 around a 16px icon (~36px hit
                   // target); w-11 h-11 flush to the field's edge pads the
                   // target without growing the visible glyph.
@@ -1481,7 +1504,7 @@ const DangerTab = ({ goToTab }) => {
                   onClick={closeModal}
                   className="flex-1 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 active:scale-[0.97] transition-[background-color,transform] duration-[160ms] cursor-pointer"
                 >
-                  Cancel
+                  {t('settings.common.cancel')}
                 </button>
                 {!googleOnly && (
                   <button
@@ -1489,7 +1512,7 @@ const DangerTab = ({ goToTab }) => {
                     disabled={loading}
                     className="flex-1 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 active:scale-[0.97] text-white text-sm font-semibold disabled:opacity-60 disabled:active:scale-100 transition-[background-color,transform] duration-[160ms] cursor-pointer"
                   >
-                    {loading ? 'Working…' : deleteNow ? 'Delete now' : 'Schedule deletion'}
+                    {loading ? t('settings.danger.working') : deleteNow ? t('settings.danger.deleteNow') : t('settings.danger.schedule')}
                   </button>
                 )}
               </div>
@@ -1503,6 +1526,10 @@ const DangerTab = ({ goToTab }) => {
 
 // ─── Main Settings page ───────────────────────────────────────────────────────
 export default function Settings() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const member = isMemberAccount(user);
+  const tabs = member ? TABS : TABS.filter((tab) => tab.id === 'account');
   const [activeTab, setActiveTab] = useState('account');
 
   const renderTab = () => {
@@ -1521,8 +1548,8 @@ export default function Settings() {
       <div className="max-w-4xl mx-auto">
 
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold text-neutral-900 dark:text-neutral-100">Settings</h1>
-          <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">Manage your account preferences and privacy</p>
+          <h1 className="font-display text-3xl font-bold text-neutral-900 dark:text-neutral-100">{t('settings.page.title')}</h1>
+          <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">{member ? t('settings.page.subtitleMember') : t('settings.page.subtitleStaff')}</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -1534,9 +1561,10 @@ export default function Settings() {
               shell: light mode reads elevation from the shadow, dark mode
               (where a shadow barely registers) reads it from the border
               instead, never both at once. */}
+          {tabs.length > 1 && (
           <div className="md:w-56 flex-shrink-0 w-full">
             <nav className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 overflow-hidden">
-              {TABS.map(({ id, label, icon: Icon, desc }) => (
+              {tabs.map(({ id, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
@@ -1562,14 +1590,15 @@ export default function Settings() {
                     <p className={`text-sm font-semibold leading-none ${
                       activeTab === id ? 'text-primary-700 dark:text-primary-300' : id === 'danger' ? 'text-destructive/80' : 'text-neutral-700 dark:text-neutral-200'
                     }`}>
-                      {label}
+                      {t(`settings.tabs.${id}.label`)}
                     </p>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">{desc}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">{t(`settings.tabs.${id}.desc`)}</p>
                   </div>
                 </button>
               ))}
             </nav>
           </div>
+          )}
 
           {/* Content panel */}
           {/* w-full: the parent row is `items-start`, so on the sub-md column

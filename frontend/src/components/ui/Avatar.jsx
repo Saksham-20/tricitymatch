@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
 
 /**
@@ -21,6 +22,7 @@ const Avatar = ({
   className,
   ...props
 }) => {
+  const { t } = useTranslation();
   const sizes = {
     xs: 'w-6 h-6 text-xs',
     sm: 'w-8 h-8 text-sm',
@@ -63,7 +65,7 @@ const Avatar = ({
         {src ? (
           <img
             src={src}
-            alt={name || 'Avatar'}
+            alt={name || t('ui.avatar')}
             className={cn(
               'w-full h-full object-cover',
               blur && 'blur-md'
@@ -83,7 +85,7 @@ const Avatar = ({
             online ? 'bg-success' : 'bg-neutral-400',
             indicatorSizes[size]
           )}
-          aria-label={online ? 'Online' : 'Offline'}
+          aria-label={online ? t('ui.online') : t('ui.offline')}
         />
       )}
 
@@ -91,7 +93,7 @@ const Avatar = ({
       {verified && (
         <span
           role="img"
-          aria-label="Verified"
+          aria-label={t('ui.verified')}
           className={cn(
             'absolute -bottom-0.5 -right-0.5 bg-success rounded-full p-0.5 border-2 border-white dark:border-surface-dark-3',
             size === 'xs' && 'hidden',

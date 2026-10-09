@@ -1,0 +1,199 @@
+{
+  "chip": {
+    "ageMin": "आयु ≥ {{v}}",
+    "ageMax": "आयु ≤ {{v}}",
+    "heightMin": "कद ≥ {{v}} सेमी",
+    "heightMax": "कद ≤ {{v}} सेमी",
+    "diet": "खान-पान: {{v}}",
+    "smoking": "धूम्रपान: {{v}}",
+    "drinking": "शराब: {{v}}",
+    "incomeMin": "₹{{v}} लाख+ आय",
+    "incomeMax": "≤ ₹{{v}} लाख आय",
+    "verifiedOnly": "केवल सत्यापित",
+    "remove": "{{label}} हटाएँ"
+  },
+  "chipValue": {
+    "diet": {
+      "vegetarian": "शाकाहारी",
+      "non-vegetarian": "मांसाहारी",
+      "vegan": "वीगन",
+      "jain": "जैन"
+    },
+    "habit": {
+      "never": "कभी नहीं",
+      "occasionally": "कभी-कभी",
+      "regularly": "नियमित रूप से"
+    },
+    "maritalStatus": {
+      "never_married": "अविवाहित",
+      "divorced": "तलाकशुदा",
+      "widowed": "विधवा / विधुर",
+      "awaiting_divorce": "तलाक की प्रक्रिया में"
+    },
+    "manglikFilter": {
+      "manglik_only": "केवल मांगलिक",
+      "non_manglik_only": "केवल गैर-मांगलिक",
+      "exclude_incompatible": "असंगत को छोड़कर"
+    },
+    "education": {
+      "High School": "हाई स्कूल",
+      "Graduate": "ग्रेजुएट",
+      "Post Graduate": "पोस्ट ग्रेजुएट",
+      "Doctorate": "डॉक्टरेट",
+      "Professional": "प्रोफ़ेशनल"
+    }
+  },
+  "noProfileForId": "इस आईडी से कोई प्रोफ़ाइल नहीं मिली",
+  "profileShortlisted": "प्रोफ़ाइल सेव हो गई!",
+  "actionFailed": "यह काम नहीं हो सका",
+  "filtersApplied": "फ़िल्टर लागू हो गए",
+  "title": "अपना मैच खोजें",
+  "subtitle": "ट्राइसिटी और उससे आगे की प्रोफ़ाइलें",
+  "profilesBadge": "{{n}}+ प्रोफ़ाइलें",
+  "sortAria": "प्रोफ़ाइलें इस क्रम में दिखाएँ",
+  "sort": {
+    "compatibility": "सबसे अच्छा मैच %",
+    "age": "आयु के अनुसार",
+    "location": "जगह के अनुसार",
+    "recent": "सबसे नई"
+  },
+  "idPlaceholder": "प्रोफ़ाइल आईडी है? जैसे TCS-A1B2C3D4",
+  "idAria": "प्रोफ़ाइल आईडी से खोजें",
+  "finding": "खोज रहे हैं…",
+  "go": "जाएँ",
+  "mustHavesOff": "सबको दिखा रहे हैं, उन्हें भी जो आपकी ज़रूरी शर्तों से बाहर हैं।",
+  "mustHavesOn": "वे लोग दिखा रहे हैं जो आपकी ज़रूरी शर्तें पूरी करते हैं ({{list}})।",
+  "applyMustHaves": "मेरी ज़रूरी शर्तें लागू करें",
+  "showEveryone": "सबको दिखाएँ",
+  "loadingProfiles": "प्रोफ़ाइलें लोड हो रही हैं…",
+  "foundSuffix_one": "प्रोफ़ाइल मिली",
+  "foundSuffix_other": "प्रोफ़ाइलें मिलीं",
+  "filtersActive_one": "· {{count}} फ़िल्टर लगा है",
+  "filtersActive_other": "· {{count}} फ़िल्टर लगे हैं",
+  "clearAll": "सब हटाएँ",
+  "filterProblemTitle": "अपने फ़िल्टर जाँचें",
+  "filterProblemBody": "आपके एक फ़िल्टर में ऐसी वैल्यू है जिस पर हम खोज नहीं कर सकते, जैसे 18 से कम या 99 से ज़्यादा उम्र। उसे ठीक करके फिर से लागू करें, या फ़िल्टर हटा दें।",
+  "clearFilters": "फ़िल्टर हटाएँ",
+  "errorTitle": "कुछ गड़बड़ हो गई",
+  "errorBody": "अभी हम प्रोफ़ाइलें लोड नहीं कर पाए। आपके फ़िल्टर ठीक हैं। कृपया फिर से कोशिश करें।",
+  "tryAgain": "फिर से कोशिश करें",
+  "emptyFilteredTitle": "इन फ़िल्टरों से कोई प्रोफ़ाइल मेल नहीं खाती",
+  "emptySmallTitle": "दायरा अभी छोटा है",
+  "emptyFilteredBody": "एक-दो फ़िल्टर थोड़े ढीले करें: इतने ख़ास समुदाय में बहुत तंग खोज से सब बाहर हो सकते हैं।",
+  "emptySmallBody": "हर हफ़्ते ट्राइसिटी के नए परिवार जुड़ते हैं। मिलने लायक किसी को ढूँढने का सबसे तेज़ तरीका है किसी भरोसेमंद व्यक्ति को साथ लाना।",
+  "refresh": "रीफ़्रेश करें",
+  "loadMore": "और प्रोफ़ाइलें देखें",
+  "seenAll": "आपने सभी {{n}} प्रोफ़ाइलें देख लीं",
+  "panel": {
+    "verifiedOnly": "केवल सत्यापित प्रोफ़ाइलें",
+    "ageRange": "आयु सीमा",
+    "minAge": "न्यूनतम आयु",
+    "maxAge": "अधिकतम आयु",
+    "to": "से",
+    "minAgeAria": "न्यूनतम आयु",
+    "maxAgeAria": "अधिकतम आयु",
+    "location": "जगह",
+    "city": "शहर",
+    "cityPlaceholder": "जैसे चंडीगढ़, मोहाली",
+    "cityAria": "शहर या जगह",
+    "background": "पृष्ठभूमि",
+    "maritalStatus": "वैवाहिक स्थिति",
+    "any": "कोई भी",
+    "religion": "धर्म",
+    "caste": "जाति / समुदाय",
+    "motherTongue": "मातृभाषा",
+    "manglik": "मांगलिक पसंद",
+    "educationCareer": "शिक्षा और करियर",
+    "educationLevel": "शिक्षा का स्तर",
+    "anyEducation": "कोई भी शिक्षा",
+    "profession": "पेशा",
+    "anyProfession": "कोई भी पेशा",
+    "minIncome": "न्यूनतम सालाना आय (₹)",
+    "maxIncome": "अधिकतम सालाना आय (₹)",
+    "noMinimum": "कोई न्यूनतम नहीं",
+    "noMaximum": "कोई अधिकतम नहीं",
+    "lakhPlus": "₹{{n}} लाख+",
+    "lakhOrLess": "₹{{n}} लाख या कम",
+    "lifestyle": "जीवनशैली",
+    "diet": "खान-पान",
+    "smoking": "धूम्रपान",
+    "drinking": "शराब",
+    "filters": "फ़िल्टर",
+    "clearAll": "सब हटाएँ",
+    "clearAllCaps": "सब हटाएँ",
+    "applyFilters": "फ़िल्टर लागू करें",
+    "openFilters": "खोज फ़िल्टर खोलें",
+    "searchFilters": "खोज फ़िल्टर",
+    "closeFilters": "फ़िल्टर बंद करें",
+    "nActive": "{{n}} लगे हैं",
+    "clearAllFilters": "सभी फ़िल्टर हटाएँ"
+  },
+  "options": {
+    "maritalStatus": {
+      "never_married": "अविवाहित",
+      "divorced": "तलाकशुदा",
+      "widowed": "विधवा / विधुर",
+      "awaiting_divorce": "तलाक की प्रक्रिया में"
+    },
+    "religion": {
+      "Hindu": "हिंदू",
+      "Muslim": "मुस्लिम",
+      "Sikh": "सिख",
+      "Christian": "ईसाई",
+      "Jain": "जैन",
+      "Buddhist": "बौद्ध",
+      "Parsi": "पारसी",
+      "Jewish": "यहूदी",
+      "Other": "अन्य"
+    },
+    "motherTongue": {
+      "Punjabi": "पंजाबी",
+      "Hindi": "हिंदी",
+      "English": "अंग्रेज़ी",
+      "Haryanvi": "हरियाणवी",
+      "Urdu": "उर्दू",
+      "Bengali": "बंगाली",
+      "Tamil": "तमिल",
+      "Telugu": "तेलुगु",
+      "Marathi": "मराठी",
+      "Gujarati": "गुजराती",
+      "Other": "अन्य"
+    },
+    "manglik": {
+      "manglik_only": "केवल मांगलिक",
+      "non_manglik_only": "केवल गैर-मांगलिक",
+      "exclude_incompatible": "असंगत को छोड़कर"
+    },
+    "education": {
+      "High School": "हाई स्कूल",
+      "Graduate": "ग्रेजुएट",
+      "Post Graduate": "पोस्ट ग्रेजुएट",
+      "Doctorate": "डॉक्टरेट",
+      "Professional": "प्रोफ़ेशनल डिग्री"
+    },
+    "diet": {
+      "vegetarian": "शाकाहारी",
+      "non-vegetarian": "मांसाहारी",
+      "vegan": "वीगन",
+      "jain": "जैन"
+    },
+    "habit": {
+      "never": "कभी नहीं",
+      "occasionally": "कभी-कभी",
+      "regularly": "नियमित रूप से"
+    }
+  },
+  "saved": {
+    "heading": "सेव की गई खोजें",
+    "loadError": "लोड नहीं हो सका। फिर से कोशिश करें",
+    "hint": "कुछ फ़िल्टर चुनें, खोज सेव करें, और नई प्रोफ़ाइलें मेल खाने पर हम आपको बताएँगे।",
+    "namePlaceholder": "इस खोज का नाम रखें",
+    "nameAria": "सेव की गई खोज का नाम",
+    "saveAndAlert": "यह खोज सेव करें और सूचनाएँ पाएँ",
+    "deleteAria": "सेव की गई खोज {{name}} हटाएँ",
+    "savedToast_one": "खोज {{count}} फ़िल्टर के साथ सेव हो गई। नए मैच आने पर हम आपको बताएँगे।",
+    "savedToast_other": "खोज {{count}} फ़िल्टरों के साथ सेव हो गई। नए मैच आने पर हम आपको बताएँगे।",
+    "saveError": "खोज सेव नहीं हो सकी",
+    "deleteError": "सेव की गई खोज हटाई नहीं जा सकी"
+  }
+}

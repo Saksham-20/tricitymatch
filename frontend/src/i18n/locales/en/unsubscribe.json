@@ -1,0 +1,29 @@
+{
+  "idle": {
+    "title": "Unsubscribe from reminder emails",
+    "body": "We will stop the photo reminders, plan follow-ups and the weekly matches email. Emails about payments, your membership dates, sign-in codes and account security will still reach you."
+  },
+  "invalid": {
+    "title": "This link is not valid",
+    "body": "Open the latest email from us and use the unsubscribe link at the bottom, or write to us and we will do it for you."
+  },
+  "done": {
+    "title": "You are unsubscribed",
+    "body": "We will not send you reminder emails. Emails about payments, membership dates and account security will still reach you."
+  },
+  "undone": {
+    "title": "Reminder emails are back on",
+    "body": "You will get our reminder emails again. You can turn them off from the link at the bottom of any of them."
+  },
+  "error": {
+    "title": "That did not go through",
+    "fallback": "Connection failed. Try again."
+  },
+  "unsubscribing": "Unsubscribing",
+  "unsubscribe": "Unsubscribe",
+  "turningBackOn": "Turning back on",
+  "undo": "Undo",
+  "tryAgain": "Try again",
+  "emailSupport": "Email support",
+  "backHome": "Back to home"
+}

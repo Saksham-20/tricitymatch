@@ -1,0 +1,222 @@
+{
+  "names": {
+    "chandigarh": "Chandigarh",
+    "mohali": "Mohali",
+    "panchkula": "Panchkula"
+  },
+  "hero": {
+    "line1": "Matrimony in {{city}},",
+    "line2": "built for {{city}}."
+  },
+  "cta": "Create your profile",
+  "tagline": "Free to join · Verified with a live selfie",
+  "founding": {
+    "heading": "We're building this one verified {{city}} family at a time: <em>and doing it in the open.</em>",
+    "body": "No inflated numbers and no borrowed profiles. Everyone here chose to be here, every verified badge was earned with a live selfie, and nobody is matched outside the Tricity. Creating a profile is free, and the first families here shape what this becomes."
+  },
+  "verify": {
+    "heading": "How verification works",
+    "sub": "The single thing most worth checking before a family invests time in a match.",
+    "live": {
+      "title": "A live selfie, in the app",
+      "body": "The camera opens in the browser and the photo is captured there and then. The flow has no upload option, and our servers only accept a selfie that came from a camera session they started, since an uploaded file can be borrowed or lifted from someone else’s profile."
+    },
+    "human": {
+      "title": "Matched by a person",
+      "body": "A reviewer on our team compares that selfie against the profile photos side by side. No score, no automated pass. A human decides."
+    },
+    "badge": {
+      "title": "The badge, and what it means",
+      "body": "Approved profiles carry a verified badge and can be filtered for. It means one specific thing: this person’s photos match their face. We do not stretch it to mean anything else."
+    }
+  },
+  "faqHeading": "Questions {{city}} families ask",
+  "closing": {
+    "heading": "Start with a profile your family would stand behind",
+    "body": "It takes about two minutes. You choose what is visible, who can message you, and whether your family can see your matches."
+  },
+  "otherCities": "Other Tricity cities",
+  "matrimonyIn": "Matrimony in {{city}}",
+  "community": {
+    "breadcrumb": "Breadcrumb",
+    "line1": "{{community}} matrimony",
+    "line2": "in {{city}}.",
+    "matchHeading": "How {{community}} families here tend to match",
+    "everything": "Everything about matrimony in {{city}}",
+    "verifyHeading": "Every badge here was earned with a live selfie: <em>checked by a person, not a score.</em>",
+    "verifyBody": "The camera opens in the browser and the photo is taken there and then: there is no upload option anywhere in the flow, because an uploaded file can be borrowed or edited. A reviewer on our team compares it against the profile photos by hand.",
+    "faqHeading": "Questions families ask"
+  },
+  "cities": {
+    "chandigarh": {
+      "lede": "A planned city where families still match the old way — through people they know. TricityMatch keeps that intact and adds the one thing word-of-mouth cannot: a verified profile you can check before anyone picks up the phone.",
+      "locality": {
+        "heading": "What matchmaking in Chandigarh actually looks like",
+        "body": "A Sector 8 family and a Sector 44 family are a fifteen-minute drive apart, and that changes everything about how a match progresses. Meetings happen the same week, not the same quarter. Elders come along. The sector a family has lived in for thirty years carries as much context as any biodata line.",
+        "points": [
+          "Sector-wise proximity means first meetings happen in person, quickly — usually with family present.",
+          "Punjabi, Hindi and English-speaking families, with strong Sikh, Hindu and Jain communities across the sectors.",
+          "Government service, PGI and Panjab University academia, law, and a young IT-and-startup cohort in the southern sectors.",
+          "Gotra, caste and Manglik preferences are set by the families themselves — we filter on what you tell us, and never assume."
+        ]
+      },
+      "faqs": [
+        {
+          "q": "Do you only cover Chandigarh?",
+          "a": "We cover Chandigarh, Mohali and Panchkula — and nothing else. A single-district focus is the point: a match is only useful if the two families can reasonably meet."
+        },
+        {
+          "q": "Can parents or a guardian handle the profile?",
+          "a": "Yes. A parent, sibling or guardian can create and manage a profile on someone’s behalf, and a member can invite family to view their matches with a read-only guardian link."
+        },
+        {
+          "q": "How do you check that a profile is real?",
+          "a": "The verified badge is earned with a live selfie captured in the app — never an uploaded file — which our team matches by hand against the profile photos. Uploads can be doctored; a live capture is far harder to fake."
+        },
+        {
+          "q": "Is horoscope and gotra matching supported?",
+          "a": "Yes. Ashtakoot guna matching, Manglik status and gotra exclusions are built in, and a full Kundli match report can be downloaded for any profile."
+        }
+      ]
+    },
+    "mohali": {
+      "lede": "Mohali grew fast, and its families are split between the old phases and the new sectors along the Airport Road. TricityMatch is built for exactly that mix — same city, same weekend, families who can meet each other properly.",
+      "locality": {
+        "heading": "What matchmaking in Mohali actually looks like",
+        "body": "Mohali runs on two clocks. The older phases hold families who have been here for decades, with settled community networks. The newer sectors and the Aerocity–Airport Road belt hold younger professionals, many the first in their family to work in IT or healthcare. A good match here often crosses that line — and the platform should not pretend the two are the same.",
+        "points": [
+          "Phases 1–11 and the newer sectors read as different neighbourhoods to families — both are covered, and city is a filter you control.",
+          "A large Sikh-Punjabi base alongside families who moved in for work from across the region.",
+          "IT parks, the Quark/Rajiv Gandhi tech belt, healthcare and a substantial NRI cohort with family still in Mohali.",
+          "NRI members declare their status at signup, so “settled abroad, family in Mohali” is something you can see rather than guess."
+        ]
+      },
+      "faqs": [
+        {
+          "q": "Does Mohali include SAS Nagar, Kharar and Zirakpur?",
+          "a": "Mohali on TricityMatch means SAS Nagar and its phases and sectors. Neighbouring towns are outside the Tricity focus for now — we would rather cover three cities properly than five badly."
+        },
+        {
+          "q": "I live abroad but my family is in Mohali. Does that work?",
+          "a": "Yes. NRI members declare their status during signup, and families searching locally can see it up front instead of finding out three conversations in."
+        },
+        {
+          "q": "How private are conversations?",
+          "a": "Messages are encrypted in transit and your phone number is never shown to another member. Contact details are only shared when you choose to unlock them."
+        },
+        {
+          "q": "What does it cost to join?",
+          "a": "Creating a profile, browsing and expressing interest are free. Paid plans exist for contact unlocks and messaging — with the price and what it includes shown before you pay, never after."
+        }
+      ]
+    },
+    "panchkula": {
+      "lede": "Panchkula is the quietest corner of the Tricity and the most family-led in how matches are made. Introductions still travel through relatives and neighbours — we simply make the first check a verified profile instead of a phone call.",
+      "locality": {
+        "heading": "What matchmaking in Panchkula actually looks like",
+        "body": "Families here tend to move deliberately: an introduction is discussed at home well before anyone meets. That suits a platform where parents and guardians can take part openly rather than looking over a shoulder. Being minutes from both Chandigarh and Mohali means a Panchkula family is rarely limited to Panchkula matches.",
+        "points": [
+          "Sectors 1–28 plus the Pinjore–Kalka side, with strong Haryanvi, Punjabi and Hindi-speaking family networks.",
+          "Government service, Chandigarh-based professionals commuting daily, business families and the education sector.",
+          "Guardian access is built in — a parent can view matches and shortlists read-only, without taking over the account.",
+          "Cross-Tricity by default: Panchkula families routinely meet Chandigarh and Mohali families the same week."
+        ]
+      },
+      "faqs": [
+        {
+          "q": "Can I see matches from Chandigarh and Mohali too?",
+          "a": "Yes — all three cities are one community. City is a filter, not a wall, so you can keep it tight or open it up as you like."
+        },
+        {
+          "q": "Can my parents see my matches?",
+          "a": "Only if you invite them. A guardian link gives a parent or sibling read-only access to your matches and shortlist — they can advise, but they cannot message anyone as you."
+        },
+        {
+          "q": "What happens if someone behaves badly?",
+          "a": "Block and Report are on every profile. Reported profiles go to a human safety queue, and a member who is removed loses access to their conversations."
+        },
+        {
+          "q": "Do I have to get verified?",
+          "a": "No, but verified profiles carry a badge and can be filtered for, so they get taken more seriously. It takes about a minute with a live selfie."
+        }
+      ]
+    }
+  },
+  "communities": {
+    "jat-sikh": {
+      "name": "Jat Sikh",
+      "lede": "Jat Sikh families across the Tricity still match largely through people they know — a relative in the village, a family friend two sectors over. What is missing from that network is not trust, it is reach.",
+      "body": "Most families we hear from are looking within a fairly tight set of expectations: a comparable land or professional background, a family the elders can place, and gotra kept clear on both sides. Many keep ties to a home village in Ludhiana, Moga, Sangrur or Patiala district even after two generations in the city, and that village connection is often the first thing checked.",
+      "points": [
+        "Gotra is recorded on the profile, and you can choose to leave out matches who share it. Set it once and it applies to every search, daily match and suggestion, for you and for them.",
+        "Families frequently want a match who has stayed close to the faith and to the village connection; both are things you can state plainly on a profile rather than discover on a call.",
+        "Punjabi as a first language is common, and the site is fully usable in Punjabi.",
+        "NRI matches — Canada, the UK and Australia especially — are ordinary here rather than exceptional, and a profile can declare it up front."
+      ],
+      "faq": {
+        "q": "Can we exclude our own gotra from matches?",
+        "a": "Yes. Gotra is a field on the profile with a switch to leave out matches who share it. Once it is on, members with your gotra do not appear in your searches, daily matches or suggestions, and you do not appear in theirs. Members who have not entered a gotra are still shown."
+      }
+    },
+    "khatri-arora": {
+      "name": "Khatri & Arora",
+      "lede": "Khatri and Arora families are among the oldest business communities in the Tricity, and matchmaking here has always run on reputation — who the family is, what the family does, who else knows them.",
+      "body": "Conversations tend to move quickly to profession and family business, and a first meeting is often at a family home rather than a restaurant. Many families are Hindu, many are Sikh, and a fair number hold both traditions at once — which is why we do not force a single religion field to carry the whole answer, and why sub-caste is recorded separately from caste.",
+      "points": [
+        "Caste and sub-caste are separate fields, so an Arora family looking within Arora is not shown every Khatri profile and vice versa.",
+        "Business and professional background is prominent on the profile — the thing these conversations turn on first.",
+        "Both Hindu and Sikh traditions are common in these families; religion and caste are independent filters, not one combined guess.",
+        "Manglik status can be recorded and matched where a family follows it, and ignored entirely where they do not."
+      ],
+      "faq": {
+        "q": "We are Arora but follow Sikh traditions. How is that handled?",
+        "a": "Religion and caste are separate fields on the profile and separate filters in search, so you can be Sikh by faith and Arora by community without either one being inferred from the other."
+      }
+    },
+    "brahmin": {
+      "name": "Brahmin",
+      "lede": "For most Brahmin families in the Tricity the horoscope is not a formality — it is the first gate, and a match that fails it does not reach a conversation.",
+      "body": "That makes the order of things different from other communities: kundli details often get exchanged before photographs. Families in Panchkula and the Chandigarh sectors are frequently in teaching, medicine, law or government service, and preference for a similar background is common. Gotra is kept clear on both sides as a matter of course, and a family pandit is usually consulted before anything is agreed.",
+      "points": [
+        "Full Ashtakoot guna matching — all eight kootas, out of 36 — with Manglik and dosha flagged, and a downloadable match report you can take to your family pandit.",
+        "Birth date, time and place are recorded properly, so the calculation uses real inputs rather than an approximation.",
+        "Gotra is a first-class field and can be excluded from matches on both sides.",
+        "Nothing is decided by the score. The report is a starting point for your own astrologer, not a verdict."
+      ],
+      "faq": {
+        "q": "Can we get the kundli matching in writing?",
+        "a": "Yes — the full Ashtakoot report, including guna breakdown, Manglik status and numerology, downloads as a PDF you can share with family or take to your pandit."
+      }
+    },
+    "aggarwal": {
+      "name": "Aggarwal",
+      "lede": "Aggarwal families in the Tricity are concentrated in trade, wholesale, real estate and increasingly in professional practice — and matches are usually assessed by both families together, in person, early.",
+      "body": "Gotra out of the traditional eighteen is checked as standard, and families generally look for a comparable business or professional standing on both sides. Panchkula and the Chandigarh sectors carry long-established families; Mohali and Zirakpur have a newer, faster-growing set. Both are a short drive apart, which is precisely why a hyperlocal match is worth more here than a national one.",
+      "points": [
+        "Gotra is recorded and can be excluded from matches on both sides.",
+        "Family business and profession sit prominently on the profile, alongside education.",
+        "Vegetarian preference is a normal filter rather than an afterthought — diet is a search field.",
+        "A guardian can run the search: a parent or sibling gets their own login and a read-only view of shortlists."
+      ],
+      "faq": {
+        "q": "Can my father manage the profile and the shortlist?",
+        "a": "Yes. Guardian access gives a parent or sibling their own login to browse and shortlist on your behalf. They never see your conversations."
+      }
+    },
+    "ramgarhia": {
+      "name": "Ramgarhia",
+      "lede": "Ramgarhia families across Mohali, Chandigarh and Panchkula carry a strong tradition of skilled trades and engineering — and, more than most communities here, a genuinely global spread.",
+      "body": "A large number of families have close relatives in the UK, Canada or East Africa, so an NRI match is a routine consideration rather than an unusual one. Within the Tricity the community is tightly connected through the gurdwara and through trade networks, which means references are easy to check and reputation travels. Sub-caste is often specified precisely, and gotra is kept clear on both sides.",
+      "points": [
+        "Sub-caste is a separate field from caste, so a preference stated precisely is matched precisely.",
+        "NRI status, country of residence and residency status are declared on the profile — no guessing from a phone number.",
+        "Punjabi interface throughout, for family members who would rather not use English.",
+        "Family groups let both sides bring elders into one conversation once a match is mutual."
+      ],
+      "faq": {
+        "q": "We are looking for a match settled abroad. Is that supported?",
+        "a": "Yes. Members living outside India declare it on the profile along with the country and residency status, and it is a filter in search — so an NRI preference is matched rather than inferred."
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "backHome": "← Back to home",
+  "backHomeButton": "Back to home",
+  "title": "Contact us",
+  "intro": "Have a question, concern, or feedback? Send us a message and we'll get back to you.",
+  "sentTitle": "Message sent",
+  "sentBody": "Thanks for reaching out — we've received your message and will reply within 24–48 hours.",
+  "fields": {
+    "name": "Your Name",
+    "namePlaceholder": "Enter your name",
+    "email": "Email",
+    "phone": "Phone (optional)",
+    "phonePlaceholder": "10-digit phone number",
+    "subject": "Subject (optional)",
+    "subjectPlaceholder": "What is this about?",
+    "message": "Message",
+    "messagePlaceholder": "How can we help?"
+  },
+  "agree": "I agree to the <terms>Terms & Conditions</terms> and <privacy>Privacy Policy</privacy>, and to TricityMatch contacting me about this enquiry.",
+  "errors": {
+    "name": "Please enter your name",
+    "email": "Please enter a valid email",
+    "message": "Message must be at least 10 characters",
+    "agreed": "Please agree to the Privacy Policy so we can respond to you",
+    "send": "Could not send your message. Please try again."
+  },
+  "sending": "Sending…",
+  "send": "Send message",
+  "emailSupport": "Email support",
+  "responseTime": "Response time",
+  "responseTimeBody": "Within 24–48 hours on business days (Mon–Sat, 10am–6pm IST).",
+  "reportAbuse": "Report abuse",
+  "reportAbuseBody": "To report a suspicious profile, use the \"Report\" button on the profile, or email us with the profile ID.",
+  "grievance": "Grievance Officer",
+  "grievanceBody": "Complaints are acknowledged within 24 hours and decided within 15 days. See clause 23 of our <terms>Terms</terms>."
+}

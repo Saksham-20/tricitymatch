@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiCheckCircle } from 'react-icons/fi';
 import api from '../../api/axios';
 import OtpBoxes from '../ui/OtpBoxes';
@@ -27,9 +28,12 @@ export default function ContactNumberVerify({
   onChange,
   onVerified,
   error = '',
-  label = 'Mobile number',
-  hint = 'Members you connect with will call this number after they unlock your contact.',
+  label,
+  hint,
 }) {
+  const { t } = useTranslation();
+  const shownLabel = label ?? t('auth.mobileNumber');
+  const shownHint = hint ?? t('contactNumber.defaultHint');
   const [phone, setPhone] = useState(digitsOnly(value));
   const [otpSent, setOtpSent] = useState(false);
   const [code, setCode] = useState('');
@@ -37,6 +41,14 @@ export default function ContactNumberVerify({
   const [verifying, setVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [message, setMessage] = useState('');
+
+  // The parent often learns the number after this mounts (the signed-in user
+  // arrives from /auth/me a moment later). Take it then, but never under a
+  // code that was already sent to the number on screen.
+  useEffect(() => {
+    if (!otpSent) setPhone(digitsOnly(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   useEffect(() => {
     if (cooldown <= 0) return undefined;
@@ -53,7 +65,7 @@ export default function ContactNumberVerify({
   };
 
   const send = async () => {
-    if (!isValid(phone)) { setMessage('Enter a valid 10-digit mobile number'); return; }
+    if (!isValid(phone)) { setMessage(t('validation.validMobile')); return; }
     if (cooldown > 0) return;
     setSending(true);
     setMessage('');
@@ -72,7 +84,7 @@ export default function ContactNumberVerify({
         }
       }
     } catch (err) {
-      setMessage(errOf(err, 'Could not send the code. Try again.'));
+      setMessage(errOf(err, t('auth.sendCodeFailed')));
     } finally {
       setSending(false);
     }
@@ -94,7 +106,7 @@ export default function ContactNumberVerify({
       onVerified?.(phone, proof);
     } catch (err) {
       setCode('');
-      setMessage(errOf(err, 'That code did not match. Try again.'));
+      setMessage(errOf(err, t('contactNumber.codeNoMatch')));
     } finally {
       setVerifying(false);
     }
@@ -105,7 +117,7 @@ export default function ContactNumberVerify({
   return (
     <div className="space-y-2">
       <label htmlFor="contact-number" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        {label} <span className="text-destructive ml-1">*</span>
+        {shownLabel} <span className="text-destructive ml-1">*</span>
       </label>
       <div className="flex gap-2">
         <div className="flex flex-1 items-center rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus-within:ring-2 focus-within:ring-primary-500">
@@ -121,7 +133,7 @@ export default function ContactNumberVerify({
             disabled={verifying}
             className="w-full bg-transparent py-3 pr-3 text-base outline-none"
           />
-          {verified && isValid(phone) && <FiCheckCircle className="mr-3 h-4 w-4 text-success" aria-label="Verified" />}
+          {verified && isValid(phone) && <FiCheckCircle className="mr-3 h-4 w-4 text-success" aria-label={t('contactNumber.verifiedAria')} />}
         </div>
         {!verified && !otpSent && (
           <button
@@ -130,14 +142,14 @@ export default function ContactNumberVerify({
             disabled={sending || !isValid(phone)}
             className="rounded-xl bg-primary-700 px-4 text-sm font-medium text-white hover:bg-primary-600 disabled:opacity-50"
           >
-            {sending ? 'Sending…' : 'Verify'}
+            {sending ? t('auth.sending') : t('contactNumber.verify')}
           </button>
         )}
       </div>
 
       {otpSent && !verified && (
         <div className="space-y-2">
-          <p className="text-xs text-neutral-500">Enter the {OTP_LENGTH}-digit code sent to +91 {phone}.</p>
+          <p className="text-xs text-neutral-500">{t('contactNumber.enterCodeSent', { count: OTP_LENGTH, phone })}</p>
           <OtpBoxes length={OTP_LENGTH} value={code} onChange={setCode} onComplete={verify} disabled={verifying} error={!!message} autoFocus />
           <button
             type="button"
@@ -145,14 +157,14 @@ export default function ContactNumberVerify({
             disabled={cooldown > 0 || sending}
             className="text-xs text-primary-700 hover:underline disabled:text-neutral-400 disabled:no-underline"
           >
-            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+            {cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : t('auth.resendCode')}
           </button>
         </div>
       )}
 
-      {verified && isValid(phone) && <p className="text-xs text-success">Verified. This is the number members will call.</p>}
+      {verified && isValid(phone) && <p className="text-xs text-success">{t('contactNumber.verifiedNote')}</p>}
       {shown && <p role="alert" className="text-xs text-destructive">{shown}</p>}
-      {!shown && !verified && <p className="text-xs text-neutral-400">{hint}</p>}
+      {!shown && !verified && <p className="text-xs text-neutral-400">{shownHint}</p>}
     </div>
   );
 }

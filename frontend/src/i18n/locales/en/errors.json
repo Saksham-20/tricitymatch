@@ -1,0 +1,9 @@
+{
+  "generic": "Something went wrong",
+  "authUnavailable": "Auth context unavailable. Please refresh.",
+  "cantReachServer": "Can't reach the server. Check your connection and try again.",
+  "loginFailed": "Login failed",
+  "credentialsMismatch": "That email or mobile number and password don't match. Check them, or reset your password.",
+  "signupFailed": "Signup failed",
+  "logoutAllFailed": "Failed to logout from all devices"
+}

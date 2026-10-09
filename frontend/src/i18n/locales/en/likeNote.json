@@ -1,0 +1,10 @@
+{
+  "dialogAria": "Like {{name}} with a note",
+  "titlePhoto": "Like {{name}}'s photo",
+  "titleAnswer": "Like {{name}}'s answer",
+  "close": "Close",
+  "placeholder": "Add a note (optional): say what caught your eye…",
+  "noteAria": "Note to send with your like",
+  "sending": "Sending…",
+  "send": "Send like"
+}

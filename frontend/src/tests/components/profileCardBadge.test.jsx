@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import ProfileCard from '../../components/cards/ProfileCard';
 
 /**
- * A free founding grant must not wear the label of a plan somebody bought, and
+ * A free founding grant gets no plan badge (it was never a purchase, and the
+ * offer is off by choice), and
  * the plan on sale (premium_plus) is called "Premium", not "Plus" (DISC-26).
  */
 const base = { userId: 'u1', firstName: 'Asha', lastName: 'Verma', city: 'Mohali', dateOfBirth: '1996-04-12', isPremium: true, profilePhoto: 'https://res.cloudinary.com/demo/image/upload/a.jpg' };
@@ -18,10 +19,10 @@ const badge = (premiumPlan) => {
 };
 
 describe('ProfileCard plan badge', () => {
-  it('labels a founding grant as Founding, not Premium', () => {
+  it('shows no plan badge for a founding grant', () => {
     const text = badge('founding_premium');
-    expect(text).toContain('Founding');
-    expect(text).not.toMatch(/Premium(?! Member)/);
+    expect(text).not.toContain('Founding');
+    expect(text).not.toContain('Premium');
   });
 
   it('calls the plan on sale Premium, not Plus', () => {

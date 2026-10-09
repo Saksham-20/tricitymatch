@@ -47,8 +47,8 @@ export default function SuccessStories() {
       <section className="px-4 pt-24 pb-12 md:pt-32 md:pb-14 text-center">
         <div className="max-w-3xl mx-auto">
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05]">
-            Found on TricityMatch,
-            <span className="text-primary-700 dark:text-primary-300 italic"> married for life.</span>
+            {t('stories.heroLead')}
+            <span className="text-primary-700 dark:text-primary-300 italic">{t('stories.heroAccent')}</span>
           </h1>
           <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400">{t('successStories.subtitle')}</p>
         </div>
@@ -71,22 +71,24 @@ export default function SuccessStories() {
             </div>
           ) : error ? (
             <ErrorState
-              title="Couldn't load stories"
-              description="Something went wrong fetching these. Please try again."
+              title={t('stories.errorTitle')}
+              description={t('stories.errorBody')}
               onRetry={load}
               className="max-w-md mx-auto bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl"
             />
           ) : stories.length === 0 ? (
             <EmptyState
               icon={FiHeart}
-              title="No stories yet"
+              title={t('stories.emptyTitle')}
               description={t('successStories.empty')}
               className="max-w-md mx-auto bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl"
             />
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            // flex + justify-center, not a 3-col grid: with one or two
+            // published stories a grid parks them left under a centred heading.
+            <div className="flex flex-wrap justify-center gap-6">
               {stories.map((s) => (
-                <article key={s.id} className="bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden flex flex-col">
+                <article key={s.id} className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden flex flex-col">
                   {s.photoUrl && (
                     <img src={s.photoUrl} alt={s.coupleNames} className="w-full h-52 object-cover" loading="lazy" />
                   )}
@@ -96,7 +98,7 @@ export default function SuccessStories() {
                     <div className="mt-auto pt-4 border-t border-neutral-200 dark:border-neutral-800">
                       <p className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">{s.coupleNames}</p>
                       <p className="text-xs uppercase tracking-[0.12em] text-neutral-600 dark:text-neutral-400 mt-1 tabular-nums">
-                        {s.location}{s.marriedOn ? ` · ${t('successStories.married')} ${new Date(s.marriedOn).getFullYear()}` : ''}
+                        {[s.location, s.marriedOn && `${t('successStories.married')} ${new Date(s.marriedOn).getFullYear()}`].filter(Boolean).join(' · ')}
                       </p>
                     </div>
                   </div>
@@ -110,7 +112,7 @@ export default function SuccessStories() {
       {/* CTA */}
       <section className="px-4 pb-24">
         <div className="max-w-5xl mx-auto rounded-3xl bg-primary-600 text-[#FDF8F2] px-8 py-14 text-center">
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Write your own story.</h2>
+          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">{t('stories.ctaTitle')}</h2>
           {/* Was "Thousands of Tricity families found their forever here" — an
               unsupported headcount, the same species of claim as the "Join
               thousands of families" line removed from Home.jsx (see
@@ -118,10 +120,10 @@ export default function SuccessStories() {
               published stories; the honest claim is that they're real, not a
               count we don't have. */}
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
-            Real Tricity couples found their forever here. Yours could be next.
+            {t('stories.ctaBody')}
           </p>
           <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-xl hover:bg-white transition-colors">
-            Create free profile <FiArrowRight />
+            {t('stories.ctaButton')} <FiArrowRight />
           </Link>
         </div>
       </section>

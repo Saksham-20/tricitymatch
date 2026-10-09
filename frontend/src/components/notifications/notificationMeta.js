@@ -2,6 +2,8 @@ import {
   FiBell, FiHeart, FiMessageCircle, FiEye, FiStar,
   FiCheckCircle, FiShield, FiInfo, FiClock,
 } from 'react-icons/fi';
+import { formatDate } from '../../utils/formatDate';
+import i18n from '../../i18n';
 
 // Shared by the Notifications page and the navbar bell, so a notification
 // looks the same and goes to the same place wherever it is opened.
@@ -57,13 +59,14 @@ export const colorFor = (n) => TYPE_COLORS[n?.type] || NEUTRAL;
 export function timeAgo(date) {
   const diff = Date.now() - new Date(date).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1)    return 'Just now';
-  if (minutes < 60)   return `${minutes}m ago`;
+  // Read the language at call time, not at import: the member can switch it.
+  if (minutes < 1)    return i18n.t('notifications.time.justNow');
+  if (minutes < 60)   return i18n.t('notifications.time.minutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24)     return `${hours}h ago`;
+  if (hours < 24)     return i18n.t('notifications.time.hoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7)       return `${days}d ago`;
-  return new Date(date).toLocaleDateString('en-IN');
+  if (days < 7)       return i18n.t('notifications.time.daysAgo', { count: days });
+  return formatDate(date);
 }
 
 // Most server notices are type 'system' (the Notifications.type ENUM is narrow

@@ -1,6 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const Progress = ({ value = 0, max = 100, showLabel = true, label }) => {
+  const { t } = useTranslation();
   const percentage = Math.min(100, Math.max(0, (value / max) * 100));
   const rounded = Math.round(percentage);
 
@@ -12,7 +14,7 @@ const Progress = ({ value = 0, max = 100, showLabel = true, label }) => {
         aria-valuenow={rounded}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={label || 'Progress'}
+        aria-label={label || t('ui.progress')}
       >
         <div
           className="h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-[width] duration-300 ease-[var(--ease-in-out)]"

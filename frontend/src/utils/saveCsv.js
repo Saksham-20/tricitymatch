@@ -37,8 +37,10 @@ export async function saveCsv(res, fallbackName) {
   return { expected, incomplete };
 }
 
+const singular = (noun) => (noun === 'people' ? 'person' : noun.replace(/s$/, ''));
+
 export const describeExport = (noun, { expected, incomplete }) => {
   if (incomplete) return { ok: false, text: `The ${noun} file stopped part-way and is incomplete. Run the export again.` };
-  if (expected === null) return { ok: true, text: `${noun} export downloaded.` };
-  return { ok: true, text: `Downloaded ${expected.toLocaleString('en-IN')} ${expected === 1 ? noun.replace(/s$/, '') : noun}.` };
+  if (expected === null) return { ok: true, text: `${noun[0].toUpperCase()}${noun.slice(1)} export downloaded.` };
+  return { ok: true, text: `Downloaded ${expected.toLocaleString('en-IN')} ${expected === 1 ? singular(noun) : noun}.` };
 };

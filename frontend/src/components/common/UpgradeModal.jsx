@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { FiX, FiLock, FiArrowRight, FiZap, FiShield } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import api from '../../api/axios';
@@ -26,10 +27,12 @@ const GRID_KEYS = ['basic_premium', 'premium_plus', 'elite', 'vip'];
  * Reusable upgrade prompt modal
  * @param {boolean} isOpen - controls visibility
  * @param {function} onClose - close handler
- * @param {string} feature - name of the locked feature (e.g. "View Phone Number")
+ * @param {string} feature - name of the locked feature (e.g. "View Phone Number");
+ *   defaults to a translated "this feature"
  * @param {string} description - optional longer description
  */
-const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }) => {
+const UpgradeModal = ({ isOpen, onClose, feature, description }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [plans, setPlans] = useState({});
   // idle | loading | loaded | error — never a static catalogue fallback. A
@@ -116,7 +119,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
             className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] my-auto"
             role="dialog"
             aria-modal="true"
-            aria-label="Upgrade to Premium"
+            aria-label={t('upgrade.title')}
           >
             {/* Header — surface with burgundy carried as accents only (doctrine
                 §3: burgundy is never a large flat/gradient fill). A thin accent
@@ -126,7 +129,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
               <button
                 onClick={onClose}
                 ref={closeBtnRef}
-                aria-label="Close"
+                aria-label={t('upgrade.close')}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors"
               >
                 <FiX className="w-4 h-4" />
@@ -137,10 +140,10 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
               </div>
 
               <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">
-                Upgrade to Premium
+                {t('upgrade.title')}
               </h2>
               <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                {description || `Unlock "${feature}" and get access to premium features`}
+                {description || t('upgrade.unlockFeature', { feature: feature || t('upgrade.thisFeature') })}
               </p>
             </div>
 
@@ -149,7 +152,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
                 this file used to ship. */}
             <div className="px-5 py-5 space-y-3 overflow-y-auto flex-1">
               {status === 'loading' && (
-                <div className="space-y-3" aria-busy="true" aria-label="Loading plans">
+                <div className="space-y-3" aria-busy="true" aria-label={t('upgrade.loadingPlans')}>
                   {[0, 1].map((i) => (
                     <div key={i} className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800">
                       <Skeleton variant="circle" className="w-9 h-9 flex-shrink-0" />
@@ -164,8 +167,8 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
 
               {status === 'error' && (
                 <ErrorState
-                  title="Couldn't load plans"
-                  description="We couldn't reach the pricing service. Check your connection and try again."
+                  title={t('upgrade.errorTitle')}
+                  description={t('upgrade.errorBody')}
                   onRetry={fetchPlans}
                   className="py-6"
                 />
@@ -173,12 +176,12 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
 
               {status === 'loaded' && visiblePlans.length === 0 && (
                 <div className="text-center py-6">
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Plans are being updated right now.</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('upgrade.updating')}</p>
                   <button
                     onClick={() => { onClose(); navigate('/subscription'); }}
                     className="mt-3 text-sm font-semibold text-primary-600 underline underline-offset-2"
                   >
-                    Check current plans
+                    {t('upgrade.checkPlans')}
                   </button>
                 </div>
               )}
@@ -192,8 +195,8 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
                 // shows, never silently) — GET /subscription/plans serves
                 // `unlockDailyCap` only on the tier it applies to.
                 const unlocksLabel = plan.contactUnlocks === -1
-                  ? (plan.unlockDailyCap ? `Unlimited unlocks · up to ${plan.unlockDailyCap}/day` : 'Unlimited unlocks')
-                  : `${plan.contactUnlocks} unlocks`;
+                  ? (plan.unlockDailyCap ? t('upgrade.unlimitedCap', { cap: plan.unlockDailyCap }) : t('upgrade.unlimited'))
+                  : t('upgrade.unlocks', { count: plan.contactUnlocks });
                 return (
                   <button
                     key={key}
@@ -238,7 +241,7 @@ const UpgradeModal = ({ isOpen, onClose, feature = 'this feature', description }
                 onClick={() => { onClose(); navigate('/subscription'); }}
                 className="w-full py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 transition-colors shadow-burgundy flex items-center justify-center gap-2"
               >
-                View All Plans <FiArrowRight className="w-4 h-4" />
+                {t('upgrade.viewAll')} <FiArrowRight className="w-4 h-4" />
               </button>
             </div>
           </motion.div>

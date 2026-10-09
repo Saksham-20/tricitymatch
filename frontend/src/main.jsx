@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
 import App from './App.jsx'
 import './index.css'
-import './i18n'
+import { i18nReady } from './i18n'
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -38,11 +38,15 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator && window.location.host
   });
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <HelmetProvider>
-      <App />
-    </HelmetProvider>
-  </React.StrictMode>,
-)
+// Hindi/Punjabi strings are fetched on demand; wait for the chosen language so
+// the first paint is never a mix of keys and English. English resolves at once.
+i18nReady.finally(() => {
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <HelmetProvider>
+        <App />
+      </HelmetProvider>
+    </React.StrictMode>,
+  );
+});
 

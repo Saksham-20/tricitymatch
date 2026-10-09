@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiCheck } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
@@ -8,6 +9,7 @@ import { CITY_VALUES } from '../../../constants/profileOptions';
 import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 const PreferencesStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const CITIES = CITY_VALUES;
   const EDUCATION_OPTIONS = ['12th Pass', 'Diploma', 'Bachelor', 'Master', 'PhD', 'Professional Degree'];
@@ -21,7 +23,7 @@ const PreferencesStep = () => {
     const d = formDataRef.current;
     const newErrors = {};
     if (d.preferredAgeMin && d.preferredAgeMax && d.preferredAgeMin > d.preferredAgeMax) {
-      newErrors.preferredAge = 'Minimum age cannot be greater than maximum age';
+      newErrors.preferredAge = t('onboarding.preferences.ageRangeError');
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -66,7 +68,7 @@ const PreferencesStep = () => {
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise} className="grid grid-cols-2 gap-4">
         <FormField
-          label="Preferred Age (Min)"
+          label={t('onboarding.preferences.ageMin')}
           type="number"
           inputMode="numeric"
           placeholder="20"
@@ -78,7 +80,7 @@ const PreferencesStep = () => {
           max="70"
         />
         <FormField
-          label="Preferred Age (Max)"
+          label={t('onboarding.preferences.ageMax')}
           type="number"
           inputMode="numeric"
           placeholder="35"
@@ -91,25 +93,25 @@ const PreferencesStep = () => {
       </motion.div>
 
       <motion.div variants={fadeRise} className="-mt-3">
-        {mustHaveRow('age', "Must-have: only show me people in this age range")}
+        {mustHaveRow('age', t('onboarding.preferences.mustAge'))}
       </motion.div>
 
       <motion.div variants={fadeRise}>
         <Select
-          label="Preferred Education"
+          label={t('onboarding.preferences.education')}
           options={EDUCATION_OPTIONS.map(e => ({ value: e, label: e }))}
           value={formData.preferredEducation}
           onChange={(value) => updateFormData('preferredEducation', value)}
-          placeholder="Any education level"
+          placeholder={t('onboarding.preferences.anyEducation')}
         />
-        {mustHaveRow('education', "Must-have: this level or higher")}
+        {mustHaveRow('education', t('onboarding.preferences.mustEducation'))}
       </motion.div>
 
       <motion.div variants={fadeRise}>
         <label className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-          Preferred Cities
+          {t('onboarding.preferences.cities')}
         </label>
-        <p className="text-xs text-neutral-500 mb-3">Tap all the cities you're open to.</p>
+        <p className="text-xs text-neutral-500 mb-3">{t('onboarding.preferences.citiesHint')}</p>
         <div className="flex flex-wrap gap-2">
           {CITIES.map((city) => {
             const selected = formData.preferredCity?.includes(city);
@@ -131,12 +133,12 @@ const PreferencesStep = () => {
             );
           })}
         </div>
-        {mustHaveRow('city', "Must-have: only show me people in these cities")}
+        {mustHaveRow('city', t('onboarding.preferences.mustCity'))}
       </motion.div>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 text-sm text-neutral-600 dark:text-neutral-300">
-        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">Smarter match recommendations</p>
-        <p>Preferences guide who we suggest first. Anything you mark as a must-have is a rule: people who do not meet it will not appear in your search (you can switch this off from the search page).</p>
+        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">{t('onboarding.preferences.infoTitle')}</p>
+        <p>{t('onboarding.preferences.infoBody')}</p>
       </motion.div>
     </motion.div>
   );

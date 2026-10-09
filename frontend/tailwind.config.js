@@ -7,6 +7,22 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Classes built from a constant (`${HOVER}:scale-105`, `${GROUP_HOVER}:...`)
+  // never appear whole in the source, so the scanner cannot see them. Without
+  // this list `group-hover:pointer-events-auto` was never generated and the
+  // chat message toolbar (react / reply / edit / delete) showed on hover but
+  // could not be clicked. Add any new `${HOVER}:` class here.
+  safelist: [
+    '[@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100',
+    '[@media(hover:hover)_and_(pointer:fine)]:group-hover:pointer-events-auto',
+    '[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5',
+    '[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1.5',
+    '[@media(hover:hover)_and_(pointer:fine)]:hover:scale-105',
+    '[@media(hover:hover)_and_(pointer:fine)]:hover:scale-110',
+    '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-burgundy',
+    '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-burgundy-lg',
+    '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover',
+  ],
   theme: {
     extend: {
       // Royal Elegance Color Palette

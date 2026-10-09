@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiCheck } from 'react-icons/fi';
 import { getPasswordStrength } from '../../utils/validators';
 
@@ -8,23 +9,25 @@ import { getPasswordStrength } from '../../utils/validators';
  * Renders nothing until the user starts typing, then ticks each rule
  * in real time so users fix issues before submitting (no type→reject→retype).
  */
+// `labelKey` values are i18n keys, translated at render.
 const RULES = [
-  { key: 'len', label: 'At least 8 characters', test: (p) => p.length >= 8 },
-  { key: 'upper', label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
-  { key: 'lower', label: 'One lowercase letter', test: (p) => /[a-z]/.test(p) },
-  { key: 'num', label: 'One number', test: (p) => /[0-9]/.test(p) },
-  { key: 'sym', label: 'One symbol (!@#$…)', test: (p) => /[^A-Za-z0-9\s]/.test(p) },
+  { key: 'len', labelKey: 'validation.atLeast8', test: (p) => p.length >= 8 },
+  { key: 'upper', labelKey: 'validation.oneUpper', test: (p) => /[A-Z]/.test(p) },
+  { key: 'lower', labelKey: 'validation.oneLower', test: (p) => /[a-z]/.test(p) },
+  { key: 'num', labelKey: 'validation.oneNumber', test: (p) => /[0-9]/.test(p) },
+  { key: 'sym', labelKey: 'validation.oneSymbol', test: (p) => /[^A-Za-z0-9\s]/.test(p) },
 ];
 
 const STRENGTH = [
-  { label: '', color: '' },
-  { label: 'Weak', color: 'bg-destructive' },
-  { label: 'Fair', color: 'bg-warning' },
-  { label: 'Good', color: 'bg-warning' },
-  { label: 'Strong', color: 'bg-success' },
+  { labelKey: '', color: '' },
+  { labelKey: 'signup.strengthWeak', color: 'bg-destructive' },
+  { labelKey: 'signup.strengthFair', color: 'bg-warning' },
+  { labelKey: 'signup.strengthGood', color: 'bg-warning' },
+  { labelKey: 'signup.strengthStrong', color: 'bg-success' },
 ];
 
 const PasswordRequirements = ({ password = '' }) => {
+  const { t } = useTranslation();
   if (!password) return null;
   const strength = getPasswordStrength(password);
   const meta = STRENGTH[strength] || STRENGTH[0];
@@ -48,8 +51,8 @@ const PasswordRequirements = ({ password = '' }) => {
               transition={{ duration: 0.25, ease: [0.77, 0, 0.175, 1] }}
             />
           </div>
-          {meta.label && (
-            <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400 w-12 text-right">{meta.label}</span>
+          {meta.labelKey && (
+            <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400 min-w-[3rem] text-right">{t(meta.labelKey)}</span>
           )}
         </div>
 
@@ -71,7 +74,7 @@ const PasswordRequirements = ({ password = '' }) => {
                 >
                   {ok && <FiCheck className="w-2.5 h-2.5" strokeWidth={3} />}
                 </span>
-                {rule.label}
+                {t(rule.labelKey)}
               </li>
             );
           })}

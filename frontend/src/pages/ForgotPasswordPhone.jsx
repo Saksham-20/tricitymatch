@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import api from '../api/axios';
 import { FiArrowLeft, FiCheck, FiEye, FiEyeOff } from 'react-icons/fi';
 import { validatePassword } from '../utils/validators';
@@ -33,6 +34,7 @@ export default function ForgotPasswordPhone() {
   const [cooldown, setCooldown] = useState(0);
   const [resent, setResent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (cooldown <= 0) return undefined;
@@ -42,14 +44,14 @@ export default function ForgotPasswordPhone() {
 
   const sendLink = async (e) => {
     e.preventDefault();
-    if (!PHONE_RE.test(toTen(phone))) { setError('Enter your 10-digit mobile number'); return; }
-    if (!EMAIL_RE.test(email.trim())) { setError('Enter the email address on your account, or get a code by text instead'); return; }
+    if (!PHONE_RE.test(toTen(phone))) { setError(t('passwordReset.enterMobile')); return; }
+    if (!EMAIL_RE.test(email.trim())) { setError(t('passwordReset.enterAccountEmail')); return; }
     setError(''); setBusy(true);
     try {
       await api.post('/auth/forgot-password/phone-email', { phone: toTen(phone), email: email.trim() });
       setStep('emailSent');
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not send the link. Try again.');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || t('passwordReset.sendLinkFailed'));
     } finally {
       setBusy(false);
     }
@@ -57,7 +59,7 @@ export default function ForgotPasswordPhone() {
 
   const sendCode = async (e) => {
     e?.preventDefault?.();
-    if (!PHONE_RE.test(toTen(phone))) { setError('Enter your 10-digit mobile number'); return; }
+    if (!PHONE_RE.test(toTen(phone))) { setError(t('passwordReset.enterMobile')); return; }
     setError(''); setBusy(true);
     try {
       await api.post('/auth/forgot-password/phone', { phone: toTen(phone) });
@@ -65,7 +67,7 @@ export default function ForgotPasswordPhone() {
       setCooldown(RESEND_SECONDS);
       setResent(false);
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not send the code. Try again.');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || t('auth.sendCodeFailed'));
     } finally {
       setBusy(false);
     }
@@ -82,7 +84,7 @@ export default function ForgotPasswordPhone() {
       setCooldown(RESEND_SECONDS);
       setResent(true);
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not send the code. Try again.');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || t('auth.sendCodeFailed'));
     } finally {
       setBusy(false);
     }
@@ -90,14 +92,14 @@ export default function ForgotPasswordPhone() {
 
   const reset = async (e) => {
     e.preventDefault();
-    if (code.length < 4) { setError('Enter the code we sent'); return; }
-    if (!validatePassword(password)) { setError('Use 8+ characters with uppercase, lowercase, a number, and a symbol'); return; }
+    if (code.length < 4) { setError(t('passwordReset.enterTheCode')); return; }
+    if (!validatePassword(password)) { setError(t('validation.passwordRule')); return; }
     setError(''); setBusy(true);
     try {
       await api.post('/auth/reset-password/phone', { phone: toTen(phone), code, password });
       setStep('done');
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.response?.data?.message || 'That code is not right or has expired.');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || t('passwordReset.codeWrong'));
     } finally {
       setBusy(false);
     }
@@ -114,38 +116,38 @@ export default function ForgotPasswordPhone() {
         {step === 'emailSent' ? (
           <div className="card dark:bg-surface-dark-3 dark:border-neutral-800 text-center space-y-4">
             <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mx-auto"><FiCheck className="w-7 h-7 text-success" /></div>
-            <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100">Check your email</h1>
+            <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100">{t('auth.checkEmail')}</h1>
             <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
-              If <strong className="text-neutral-700 dark:text-neutral-300">{email.trim()}</strong> is the email on the account with this mobile number, we&apos;ve sent a reset link. Check your inbox and spam folder. Using the link also verifies your email.
+              <Trans i18nKey="passwordReset.phoneEmailSentBody" values={{ email: email.trim() }} components={{ b: <strong className="text-neutral-700 dark:text-neutral-300" /> }} />
             </p>
             <div className="rounded-2xl bg-neutral-100 dark:bg-neutral-800/60 p-4 text-left">
-              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">No email after a few minutes?</p>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">The email may be different from the one on your account. Get a code by text message instead.</p>
+              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{t('passwordReset.noEmailTitle')}</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{t('passwordReset.maybeDifferent')}</p>
               <button type="button" onClick={() => sendCode()} disabled={busy}
                 className="mt-3 w-full btn-secondary text-sm disabled:opacity-60">
-                {busy ? 'Please wait…' : 'Text me a code instead'}
+                {busy ? t('auth.pleaseWait') : t('passwordReset.textCodeInstead')}
               </button>
               {error && <p role="alert" className="mt-2 text-sm text-destructive dark:text-red-300">{error}</p>}
             </div>
             <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 font-medium inline-flex items-center gap-1">
-              <FiArrowLeft className="w-4 h-4" /> Back to sign in
+              <FiArrowLeft className="w-4 h-4" /> {t('passwordReset.backToSignIn')}
             </Link>
           </div>
         ) : step === 'done' ? (
           <div className="card dark:bg-surface-dark-3 dark:border-neutral-800 text-center">
             <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4"><FiCheck className="w-7 h-7 text-success" /></div>
-            <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Password updated</h1>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">Every device was signed out. Sign in with your mobile number and new password.</p>
-            <Link to="/login" className="btn-primary inline-flex">Sign in</Link>
+            <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">{t('passwordReset.passwordUpdated')}</h1>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">{t('passwordReset.signedOutEverywhere')}</p>
+            <Link to="/login" className="btn-primary inline-flex">{t('auth.signIn')}</Link>
           </div>
         ) : (
           <form onSubmit={step === 'phone' ? sendLink : reset} noValidate className="card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5">
             <div className="text-center">
-              <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-1">Signed up with your mobile?</h1>
+              <h1 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-1">{t('passwordReset.mobileTitle')}</h1>
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
                 {step === 'phone'
-                  ? 'Enter your mobile number and the email you gave when you joined. We\'ll email you a reset link.'
-                  : 'If this number can be reset, we sent a code to it. Enter it with a new password.'}
+                  ? t('passwordReset.phoneStepBody')
+                  : t('passwordReset.codeStepBody')}
               </p>
             </div>
 
@@ -154,12 +156,12 @@ export default function ForgotPasswordPhone() {
             {step === 'phone' ? (
               <>
                 <div>
-                  <label htmlFor="reset-phone" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">Mobile number</label>
+                  <label htmlFor="reset-phone" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{t('auth.mobileNumber')}</label>
                   <input id="reset-phone" type="tel" inputMode="numeric" autoComplete="tel-national" autoFocus className={field}
-                    placeholder="10-digit number" value={phone} onChange={(e) => { setPhone(e.target.value); setError(''); }} />
+                    placeholder={t('passwordReset.tenDigitPlaceholder')} value={phone} onChange={(e) => { setPhone(e.target.value); setError(''); }} />
                 </div>
                 <div>
-                  <label htmlFor="reset-email" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">Email on your account</label>
+                  <label htmlFor="reset-email" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{t('passwordReset.emailOnAccount')}</label>
                   <input id="reset-email" type="email" inputMode="email" autoComplete="email" className={field}
                     placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} />
                 </div>
@@ -167,36 +169,36 @@ export default function ForgotPasswordPhone() {
             ) : (
               <>
                 <div>
-                  <p className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Code</p>
+                  <p className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{t('passwordReset.code')}</p>
                   <OtpBoxes length={4} value={code} onChange={setCode} />
                 </div>
                 <div>
-                  <label htmlFor="reset-new-password" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">New password</label>
+                  <label htmlFor="reset-new-password" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{t('auth.newPassword')}</label>
                   <div className="relative">
                     <input id="reset-new-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" className={`${field} pr-12`} value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                       className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
                     >
                       {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                     </button>
                   </div>
-                  <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1.5">8+ characters with uppercase, lowercase, a number, and a symbol.</p>
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1.5">{t('validation.passwordHint')}</p>
                 </div>
               </>
             )}
 
             <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60">
-              {busy ? 'Please wait…' : step === 'phone' ? 'Email me a reset link' : 'Set new password'}
+              {busy ? t('auth.pleaseWait') : step === 'phone' ? t('passwordReset.emailMeLink') : t('passwordReset.setNewPassword')}
             </button>
 
             {step === 'phone' && (
               <div className="text-center">
                 <button type="button" onClick={() => sendCode()} disabled={busy}
                   className="text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-300 underline underline-offset-2 disabled:opacity-60 py-2">
-                  No email on your account? Text me a code instead
+                  {t('passwordReset.noEmailTextInstead')}
                 </button>
               </div>
             )}
@@ -204,24 +206,24 @@ export default function ForgotPasswordPhone() {
             {step === 'code' && (
               <div className="text-center space-y-2">
                 <p className="text-sm text-neutral-500 dark:text-neutral-400" aria-live="polite">
-                  {resent ? 'We sent another code. ' : ''}No code yet?{' '}
+                  {resent ? `${t('passwordReset.sentAnother')} ` : ''}{t('passwordReset.noCodeYet')}{' '}
                   <button type="button" onClick={resend} disabled={cooldown > 0 || busy}
                     className="font-medium text-primary-600 dark:text-primary-300 disabled:text-neutral-400 disabled:dark:text-neutral-500 disabled:cursor-not-allowed">
-                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend the code'}
+                    {cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : t('passwordReset.resendTheCode')}
                   </button>
                 </p>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Codes are sent only to the mobile number you verified when you joined.
+                  {t('passwordReset.codesOnlyVerified')}
                 </p>
                 <button type="button" onClick={() => { setStep('phone'); setCode(''); setError(''); setCooldown(0); }} className="block mx-auto text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 font-medium">
-                  Use a different number
+                  {t('passwordReset.useDifferentNumber')}
                 </button>
               </div>
             )}
 
             <div className="text-center">
               <Link to="/forgot-password" className="text-sm text-primary-500 dark:text-primary-300 font-medium inline-flex items-center gap-1">
-                <FiArrowLeft className="w-4 h-4" /> Reset with just your email
+                <FiArrowLeft className="w-4 h-4" /> {t('passwordReset.resetWithEmail')}
               </Link>
             </div>
           </form>

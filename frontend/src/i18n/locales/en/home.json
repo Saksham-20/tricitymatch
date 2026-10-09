@@ -1,0 +1,281 @@
+{
+  "aiTag": "AI-generated image",
+  "place": {
+    "chandigarh": "Chandigarh",
+    "mohali": "Mohali",
+    "panchkula": "Panchkula",
+    "all": "Chandigarh · Mohali · Panchkula"
+  },
+  "sticky": {
+    "title": "Free to join",
+    "sub": "No credit card · Verified in hours",
+    "cta": "Create profile"
+  },
+  "hero": {
+    "line1": "From match",
+    "line2": "to mandap,",
+    "line3": "all in the Tricity.",
+    "chipSelfie": "Live selfie verification",
+    "chipFamily": "Family-first matchmaking",
+    "desc": "Chandigarh, Mohali and Panchkula only: live selfie verification, private conversations, and every family close enough to meet this week.",
+    "cta": "Create free profile",
+    "note": "Free to start · No credit card · Verified in hours",
+    "how": "How it works"
+  },
+  "community": {
+    "title": "Tricity's newest, most carefully verified matchmaking community. <em>Built family-first.</em>",
+    "body": "We're starting the honest way: no inflated numbers, every verified badge earned with a live selfie, and matchmaking that stays inside Chandigarh, Mohali and Panchkula. Creating a profile is free, and the first families here shape what this becomes.",
+    "cta": "Create your free profile",
+    "note": "Free to join · Photo-verified profiles · Local, family-first",
+    "pledges": {
+      "verified": {
+        "title": "Verified, not vast",
+        "body": "A smaller circle, where the verified badge is earned in front of a person, not assumed."
+      },
+      "tricity": {
+        "title": "Tricity only",
+        "body": "Matches you can actually meet: same city, same community."
+      },
+      "families": {
+        "title": "Families welcome",
+        "body": "Parents and guardians take part, the way Tricity actually matches."
+      }
+    },
+    "facts": {
+      "badge": "◉ Photo-verified badge earned with a live selfie",
+      "flagged": "◉ Flagged profiles reviewed by our safety team",
+      "encrypted": "◉ Conversations encrypted in transit · numbers never shared"
+    }
+  },
+  "ribbon": {
+    "verified": "Verified profiles",
+    "matched": "Expertly matched",
+    "family": "Family-first",
+    "local": "Hyperlocal",
+    "encrypted": "Encrypted in transit",
+    "built": "Tricity built",
+    "privacy": "Privacy first"
+  },
+  "why": {
+    "title": "Six reasons<br/>this <em>isn't</em><br/>another app.",
+    "body": "Scroll right to read. Each principle shapes a real product decision, not just marketing copy.",
+    "scrollerLabel": "Why TricityMatch: scroll horizontally to read",
+    "cards": {
+      "security": {
+        "tag": "Security",
+        "title": "Photo-verified profiles",
+        "body": "The verified badge is earned with a live selfie matched by human review. No uploads, no shortcuts."
+      },
+      "technology": {
+        "tag": "Technology",
+        "title": "Intelligent matching",
+        "body": "Values, lifestyle, family expectations: far beyond age and location."
+      },
+      "hyperlocal": {
+        "tag": "Hyperlocal",
+        "title": "Built only for the Tricity",
+        "body": "Made for Chandigarh, Mohali, Panchkula. Meet partners from your community."
+      },
+      "privacy": {
+        "tag": "Privacy",
+        "title": "Incognito browsing",
+        "body": "Browse privately. Appear only to those you've expressed interest in."
+      },
+      "comms": {
+        "tag": "Comms",
+        "title": "Private conversations",
+        "body": "Encrypted in transit, with read receipts. Free members read every message for free, and once a premium member you matched with reaches out, you get five free replies over the next 48 hours."
+      },
+      "values": {
+        "tag": "Values",
+        "title": "Family-aware flow",
+        "body": "Bring family in at the right moment. Respect, not pressure."
+      }
+    }
+  },
+  "discover": {
+    "title": "See how you'll<br/><em>discover</em> matches.",
+    "body": "A compatibility score, a verified badge, and the details families check first. Every real profile shows them. The photography here is illustrative, not real members.",
+    "panelTitle": "What a real profile shows",
+    "points": {
+      "badge": "A photo-verified badge, earned with a live selfie",
+      "score": "A compatibility score across the signals families weigh",
+      "details": "Community, city, education and profession, at a glance"
+    },
+    "cta": "Create your free profile →",
+    "showPhoto": "Show photo {{n}} of {{total}}",
+    "photo": "Photo {{n}}",
+    "browse": "Browse real profiles →"
+  },
+  "process": {
+    "title": "From hello<br/>to <em>forever.</em>",
+    "body": "Four steps, designed with intentionality, because finding a partner deserves more than an algorithm.",
+    "step": "step",
+    "showStep": "Show step {{n}}: {{title}}",
+    "steps": {
+      "create": {
+        "t": "Create your profile",
+        "b": "Build a detailed profile that reflects who you truly are, then earn your verified badge with a live selfie.",
+        "m1": "~12 min",
+        "m2": "Selfie verified",
+        "m3": "Free"
+      },
+      "discover": {
+        "t": "Discover matches",
+        "b": "Our matching engine scores compatible profiles on age, location, education, lifestyle and family preferences. You stay in full control of who sees you.",
+        "m1": "Smart ranking",
+        "m2": "Match score",
+        "m3": "Daily refresh"
+      },
+      "connect": {
+        "t": "Connect securely",
+        "b": "Every conversation is encrypted in transit and stays private. Express interest, chat, and bring family in when ready.",
+        "m1": "Encrypted in transit",
+        "m2": "Read receipts",
+        "m3": "No phone reveal"
+      },
+      "journey": {
+        "t": "Begin your journey",
+        "b": "Take your time to talk, bring your family in, and meet somewhere public when you are ready.",
+        "m1": "Family flow",
+        "m2": "Your pace",
+        "m3": "Lifelong support"
+      }
+    }
+  },
+  "cities": {
+    "title": "Three cities.<br/>One <em>community.</em>",
+    "body": "Tap a city to explore. Mass-market apps don't understand what matters here: shared roots, family values, the comfort of proximity.",
+    "covered": "Covered<br/>from day one",
+    "browseLabel": "Browse {{city}} profiles",
+    "browse": "Browse {{city}} →",
+    "chandigarh": {
+      "tag": "City Beautiful",
+      "desc": "India's most planned city. Cosmopolitan, career-forward, and deeply family-rooted."
+    },
+    "mohali": {
+      "tag": "Punjab's Rising Star",
+      "desc": "Tech parks, AIIMS, IIT. Young professionals building careers without leaving culture."
+    },
+    "panchkula": {
+      "tag": "Roots Run Deep",
+      "desc": "Quiet, established, close-knit. Tradition and aspiration in equal measure."
+    }
+  },
+  "quote": {
+    "text": "The right match isn't a number<br/>away. <em>They're a neighbourhood</em>",
+    "away": "away.",
+    "founders": "Founders, TricityMatch"
+  },
+  "trust": {
+    "title": "Built on trust. Backed by <em>action.</em>",
+    "body": "We don't just ask for trust. We earn it. Every feature is designed to protect your privacy, safety, and dignity.",
+    "cards": {
+      "photo": {
+        "t": "Photo verified",
+        "b": "Live selfie verification earns the verified badge."
+      },
+      "encrypted": {
+        "t": "Encrypted in transit",
+        "b": "Conversations are encrypted over the network and never shared."
+      },
+      "moderated": {
+        "t": "Human-moderated",
+        "b": "Safety team reviews flagged profiles daily."
+      },
+      "family": {
+        "t": "Family approved",
+        "b": "Designed to include families, never pressure."
+      }
+    }
+  },
+  "refund": {
+    "title": "Try it. If it's not right,<br/><em>get your money back.</em>",
+    "body": "Ask within seven days of paying and we refund the membership in full, no justification needed. If you've already unlocked a few contacts, we deduct only what those unlocks cost.",
+    "link": "Read the refund policy",
+    "pledges": {
+      "seven": {
+        "title": "Seven days, no argument",
+        "body": "Full refund if you ask within a week of paying."
+      },
+      "unlocks": {
+        "title": "Unlocks deducted at cost",
+        "body": "Already viewed a few numbers? We deduct only what those unlocks cost, nothing more."
+      },
+      "problems": {
+        "title": "Real problems, always refunded",
+        "body": "A dropped feature, a broken service, a double charge: refunded at any point in your term."
+      }
+    }
+  },
+  "stories": {
+    "title": "Stories that<br/>began <em>here.</em>",
+    "married": "Married {{year}}",
+    "prev": "Previous story",
+    "next": "Next story"
+  },
+  "faq": {
+    "title": "Questions?<br/>We've got <em>answers.</em>",
+    "body": "If you don't find what you need, reach out. We respond within 24 hours, in English, Hindi or Punjabi.",
+    "contact": "Contact support",
+    "items": {
+      "residents": {
+        "q": "Only Tricity residents?",
+        "a": "Yes. Every profile is from Chandigarh, Mohali, or Panchkula, or has direct family ties to the region. Hyperlocal is the point."
+      },
+      "verification": {
+        "q": "How does profile verification work?",
+        "a": "Members submit a live selfie, captured in the moment and never uploaded from files, that our team matches against their profile photos. The verified badge appears once approved."
+      },
+      "browse": {
+        "q": "Can I browse without an account?",
+        "a": "No, search and full profiles need a free account. Creating one takes about two minutes and you can start browsing right away."
+      },
+      "nri": {
+        "q": "I live abroad, can NRIs join?",
+        "a": "Yes, if you are from the Tricity or your family is. Where you live now does not matter; the roots do. Mark yourself as an NRI during sign-up and add your country, and families looking for an NRI alliance will see it. A parent or sibling here can search alongside you through Guardian access."
+      },
+      "premium": {
+        "q": "What does Premium include?",
+        "a": "One plan, no tiers to compare: unlimited contact unlocks, unlimited messaging, advanced filters, Incognito mode, a profile boost and a spotlight listing, for the full term. Browsing, matching and your profile stay free."
+      },
+      "privacy": {
+        "q": "Is my data private?",
+        "a": "Yes. Conversations are encrypted in transit and access is restricted to you and your match. We never share your phone number, never sell data, never display you to non-mutual interests."
+      },
+      "families": {
+        "q": "Can families participate?",
+        "a": "Yes, gracefully. You choose when. They get their own view and chat channel kept respectfully separate from yours."
+      }
+    }
+  },
+  "cta": {
+    "title": "Every great<br/>love story<br/>starts with <em>one step.</em>",
+    "body": "Start where the families you'd actually meet are already looking. Free to start.",
+    "primary": "Create profile · Free",
+    "secondary": "Browse profiles",
+    "note": "No credit card · 12-min setup · Verified in hours"
+  },
+  "footer": {
+    "about": "Tricity's own matrimonial platform. Connecting families through verified profiles and intelligent matching.",
+    "platform": "Platform",
+    "browse": "Browse profiles",
+    "howItWorks": "How it works",
+    "pricing": "Pricing plans",
+    "stories": "Success stories",
+    "create": "Create profile",
+    "cities": "Cities",
+    "matrimonyIn": "Matrimony in {{city}}",
+    "company": "Company",
+    "aboutUs": "About Us",
+    "contact": "Contact",
+    "safety": "Safety centre",
+    "privacy": "Privacy policy",
+    "terms": "Terms of service",
+    "refunds": "Refunds",
+    "help": "Help centre",
+    "rights": "© 2026 TricityMatch · All rights reserved",
+    "developedBy": "Developed by <anchor>Globoniks</anchor>",
+    "madeWithCare": "Made with care in Chandigarh"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "calling": "Calling…",
+  "incomingCall": "Incoming call",
+  "incomingVideoCall": "Incoming video call",
+  "connected": "Connected",
+  "connecting": "Connecting…",
+  "unknown": "Unknown",
+  "caller": "caller",
+  "dialogLabel": "Call",
+  "decline": "Decline",
+  "accept": "Accept",
+  "mute": "Mute",
+  "unmute": "Unmute",
+  "cameraOn": "Turn camera on",
+  "cameraOff": "Turn camera off",
+  "endCall": "End call",
+  "toast": {
+    "notConfigured": "Calling is not configured on this site.",
+    "mediaError": "Could not access microphone/camera.",
+    "startFailed": "Could not start call.",
+    "joinFailed": "Could not join call.",
+    "declined": "{{name}} declined the call",
+    "declinedNoName": "They declined the call"
+  }
+}

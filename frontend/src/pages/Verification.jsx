@@ -32,8 +32,9 @@ function StatusPill({ status }) {
 // Loading skeleton matches the settled layout's shape (trust-score card +
 // status card + photo-verification card), not a spinner (doctrine §6).
 function VerificationSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8" aria-busy="true" aria-label="Loading verification status">
+    <div className="max-w-3xl mx-auto px-4 py-8" aria-busy="true" aria-label={t('verification.loadingStatus')}>
       <div className="flex items-center gap-3 mb-1">
         <Skeleton variant="circle" className="w-7 h-7" />
         <Skeleton className="h-7 w-40" />
@@ -94,18 +95,18 @@ export default function Verification() {
 
   const submitSelfie = async (e) => {
     e.preventDefault();
-    if (!selfie) { setSubmitError('Capture a selfie before submitting.'); return; }
+    if (!selfie) { setSubmitError(t('verification.captureFirst')); return; }
     setSubmitError('');
     setSubmitting(true);
     try {
       const form = new FormData();
       form.append('selfiePhoto', selfie);
       await api.post('/verification/submit', form, { headers: captureHeaders(selfie) });
-      toast.success('Selfie submitted for review');
+      toast.success(t('verification.submitted'));
       setSelfie(null);
       loadStatus();
     } catch (err) {
-      setSubmitError(err.response?.data?.error?.message || err.response?.data?.message || 'Could not submit your selfie. Try again.');
+      setSubmitError(err.response?.data?.error?.message || err.response?.data?.message || t('verification.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -134,8 +135,9 @@ export default function Verification() {
             <h1 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100">{t('verification.title')}</h1>
           </div>
           <ErrorState
-            title="Couldn't load your verification status"
-            description="Something went wrong on our end. Try again."
+            title={t('verification.loadErrorTitle')}
+            description={t('verification.loadErrorDescription')}
+            retryLabel={t('verification.tryAgain')}
             onRetry={loadStatus}
           />
         </div>
@@ -174,8 +176,8 @@ export default function Verification() {
             {/* A card label, not a section heading — kept one step below the
                 h4-h6 scale the two real <h2>s below use, so it never reads as
                 a heading of equal weight (doctrine §3.2, audit finding). */}
-            <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Trust Score</p>
-            <p className="text-sm text-neutral-500">Verify your profile to build trust and get more responses.</p>
+            <p className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{t('verification.trustScore')}</p>
+            <p className="text-sm text-neutral-500">{t('verification.trustScoreHint')}</p>
           </div>
         </motion.div>
 
@@ -211,23 +213,18 @@ export default function Verification() {
               above (family is still Playfair via the global h1,h2,h3 rule). */}
           <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-1">{t('verification.tierSelfie')}</h2>
           <p className="text-sm text-neutral-500 mb-4">
-            Take a live selfie with your camera. Our team matches it against your profile
-            photos. No documents needed, and the selfie is never shown to other members.
+            {t('verification.selfieIntro')}
           </p>
 
           {/* Why verify — one standard neutral info panel (doctrine §8: no
               rainbow-tinted info boxes; this is a free feature, so no gold either). */}
           <div className="mb-5 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 p-4">
-            <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide mb-2">Why get verified</p>
+            <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide mb-2">{t('verification.whyVerify')}</p>
             <ul className="space-y-1.5">
-              {[
-                'A verified badge on your profile that families trust',
-                'Higher ranking in search results',
-                'You appear in "Verified only" searches',
-              ].map((perk) => (
+              {['perkBadge', 'perkRanking', 'perkVerifiedSearch'].map((perk) => (
                 <li key={perk} className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-300">
                   <FiCheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                  {perk}
+                  {t(`verification.${perk}`)}
                 </li>
               ))}
             </ul>
@@ -242,24 +239,24 @@ export default function Verification() {
 
           {selfieStatus === 'approved' ? (
             <div className="flex items-center gap-2 text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 rounded-xl p-4 text-sm font-medium">
-              <FiCheckCircle className="w-5 h-5" /> Your profile is verified. The badge is live for other members.
+              <FiCheckCircle className="w-5 h-5" /> {t('verification.approvedNote')}
             </div>
           ) : selfieStatus === 'pending' ? (
             <div className="flex items-center gap-2 text-warning bg-warning-light dark:bg-warning/15 border border-warning/20 dark:border-warning/30 rounded-xl p-4 text-sm font-medium">
-              <FiClock className="w-5 h-5" /> Your selfie is with our team for review. We'll notify you once it's done.
+              <FiClock className="w-5 h-5" /> {t('verification.pendingNote')}
             </div>
           ) : selfieStatus === 'flagged' ? (
             <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4 text-sm font-medium">
-              <FiClock className="w-5 h-5" /> Your verification is in review with our team. We'll notify you once it's done.
+              <FiClock className="w-5 h-5" /> {t('verification.flaggedNote')}
             </div>
           ) : (
             <form onSubmit={submitSelfie} noValidate>
               {/* How it works */}
               <div className="grid grid-cols-3 gap-2.5 mb-5">
                 {[
-                  { step: '1', title: 'Take a selfie', desc: 'Good light, face clearly visible' },
-                  { step: '2', title: 'Team review', desc: 'Matched to your profile photos' },
-                  { step: '3', title: 'Get the badge', desc: 'Verified tick on your profile' },
+                  { step: '1', title: t('verification.step1Title'), desc: t('verification.step1Desc') },
+                  { step: '2', title: t('verification.step2Title'), desc: t('verification.step2Desc') },
+                  { step: '3', title: t('verification.step3Title'), desc: t('verification.step3Desc') },
                 ].map(({ step, title, desc }) => (
                   <div key={step} className="flex flex-col items-center text-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-100 dark:border-neutral-700">
                     <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 text-xs font-bold flex items-center justify-center mb-1.5">{step}</div>
@@ -282,7 +279,7 @@ export default function Verification() {
                 disabled={submitting || !selfie}
                 className="mt-2 w-full sm:w-auto min-h-11 btn-primary"
               >
-                {submitting ? t('common.loading') : 'Submit for review'}
+                {submitting ? t('common.loading') : t('verification.submitForReview')}
               </button>
             </form>
           )}

@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiEyeOff, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark, FiUsers } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
 import { saveCsv, describeExport } from '../../utils/saveCsv';
+import planLabel from '../../utils/planLabel';
+import { formatDate } from '../../utils/formatDate';
 
 // Must match User model status enum: active/inactive/banned/pending/deleted.
 const STATUS_OPTIONS   = ['all', 'active', 'inactive', 'banned', 'pending', 'deleted'];
@@ -508,7 +510,7 @@ export default function AdminUsers() {
                       </select>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN') : '—'}
+                      {u.createdAt ? formatDate(u.createdAt) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       {/* `activePlan` is derived server-side with the same predicate the
@@ -518,7 +520,7 @@ export default function AdminUsers() {
                           including one an admin had just upgraded. */}
                       {u.activePlan && u.activePlan !== 'free' ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-                          {String(u.activePlan).replace(/_/g, ' ')}
+                          {planLabel(u.activePlan)}
                         </span>
                       ) : (
                         <span className="text-xs text-gray-500">Free</span>

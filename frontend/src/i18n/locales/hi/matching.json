@@ -1,0 +1,27 @@
+{
+  "close": "बंद करें",
+  "itsAMatch": "मैच हो गया!",
+  "likedEachOther": "आपने और {{name}} ने एक-दूसरे को पसंद किया है",
+  "someoneSpecial": "किसी ख़ास",
+  "yourProfile": "आपकी प्रोफ़ाइल",
+  "theirProfile": "{{name}} की प्रोफ़ाइल",
+  "matchFallback": "मैच",
+  "sendMessage": "संदेश भेजें",
+  "keepBrowsing": "प्रोफ़ाइलें देखते रहें",
+  "score": {
+    "excellent": "बेहतरीन मैच",
+    "great": "बहुत अच्छा मैच",
+    "good": "अच्छा मैच",
+    "fair": "ठीक-ठाक मैच"
+  },
+  "actionBar": {
+    "interestSentSuccess": "रुचि भेज दी गई",
+    "interestAlreadySentAria": "रुचि पहले ही भेजी जा चुकी है",
+    "sendInterestAria": "रुचि भेजें",
+    "interestSent": "रुचि भेजी गई",
+    "sendInterest": "रुचि भेजें",
+    "removeFromShortlist": "सेव की गई सूची से हटाएँ",
+    "addToShortlist": "सेव करें",
+    "sendMessage": "संदेश भेजें"
+  }
+}

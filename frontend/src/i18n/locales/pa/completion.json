@@ -1,0 +1,52 @@
+{
+  "fields": {
+    "firstName": "ਪਹਿਲਾ ਨਾਂ",
+    "lastName": "ਉਪਨਾਮ",
+    "gender": "ਲਿੰਗ",
+    "dateOfBirth": "ਜਨਮ ਮਿਤੀ",
+    "city": "ਸ਼ਹਿਰ",
+    "profilePhoto": "ਪ੍ਰੋਫ਼ਾਈਲ ਫ਼ੋਟੋ",
+    "bio": "ਆਪਣੇ ਬਾਰੇ ਲਿਖੋ",
+    "education": "ਪੜ੍ਹਾਈ",
+    "profession": "ਪੇਸ਼ਾ",
+    "height": "ਕੱਦ",
+    "weight": "ਭਾਰ",
+    "religion": "ਧਰਮ",
+    "maritalStatus": "ਵਿਆਹੁਤਾ ਸਥਿਤੀ",
+    "motherTongue": "ਮਾਂ-ਬੋਲੀ",
+    "lifestyle": "ਜੀਵਨ-ਸ਼ੈਲੀ ਦੀ ਪਸੰਦ"
+  },
+  "cta": {
+    "firstName": "ਪਹਿਲਾ ਨਾਂ ਜੋੜੋ",
+    "lastName": "ਉਪਨਾਮ ਜੋੜੋ",
+    "gender": "ਲਿੰਗ ਜੋੜੋ",
+    "dateOfBirth": "ਜਨਮ ਮਿਤੀ ਜੋੜੋ",
+    "city": "ਸ਼ਹਿਰ ਜੋੜੋ",
+    "profilePhoto": "ਪ੍ਰੋਫ਼ਾਈਲ ਫ਼ੋਟੋ ਜੋੜੋ",
+    "bio": "ਆਪਣੇ ਬਾਰੇ ਲਿਖੋ",
+    "education": "ਪੜ੍ਹਾਈ ਜੋੜੋ",
+    "profession": "ਪੇਸ਼ਾ ਜੋੜੋ",
+    "height": "ਕੱਦ ਜੋੜੋ",
+    "weight": "ਭਾਰ ਜੋੜੋ",
+    "religion": "ਧਰਮ ਜੋੜੋ",
+    "maritalStatus": "ਵਿਆਹੁਤਾ ਸਥਿਤੀ ਜੋੜੋ",
+    "motherTongue": "ਮਾਂ-ਬੋਲੀ ਜੋੜੋ",
+    "lifestyle": "ਜੀਵਨ-ਸ਼ੈਲੀ ਦੀ ਪਸੰਦ ਜੋੜੋ"
+  },
+  "tips": {
+    "profilePhoto": "ਸਾਫ਼ ਫ਼ੋਟੋ ਨਾਲ ਪਰਿਵਾਰ ਤੁਹਾਡੀ ਪ੍ਰੋਫ਼ਾਈਲ ਪਛਾਣ ਸਕਦੇ ਹਨ ਤੇ ਉਸ ਉੱਤੇ ਭਰੋਸਾ ਕਰਦੇ ਹਨ",
+    "bio": "ਛੋਟੀ ਜਿਹੀ ਜਾਣ-ਪਛਾਣ ਮੈਚਾਂ ਨੂੰ ਤੁਹਾਡੇ ਨਾਲ ਜੁੜਨ ਵਿੱਚ ਮਦਦ ਕਰਦੀ ਹੈ",
+    "lifestyle": "ਖਾਣ-ਪੀਣ, ਸਿਗਰਟਨੋਸ਼ੀ ਤੇ ਸ਼ਰਾਬ ਦੀ ਪਸੰਦ ਜੋੜੋ"
+  },
+  "fieldsMissing_one": "{{count}} ਜਾਣਕਾਰੀ ਬਾਕੀ ਹੈ। ਆਪਣੀ ਪ੍ਰੋਫ਼ਾਈਲ ਪੂਰੀ ਕਰੋ।",
+  "fieldsMissing_other": "{{count}} ਜਾਣਕਾਰੀਆਂ ਬਾਕੀ ਹਨ। ਆਪਣੀ ਪ੍ਰੋਫ਼ਾਈਲ ਪੂਰੀ ਕਰੋ।",
+  "plusMore": "+{{count}} ਹੋਰ",
+  "completeProfile": "ਪ੍ਰੋਫ਼ਾਈਲ ਪੂਰੀ ਕਰੋ",
+  "strong": "ਮਜ਼ਬੂਤ ਪ੍ਰੋਫ਼ਾਈਲ",
+  "almost": "ਲਗਭਗ ਪੂਰੀ",
+  "needsAttention": "ਧਿਆਨ ਦੇਣ ਦੀ ਲੋੜ",
+  "complete": "ਪ੍ਰੋਫ਼ਾਈਲ ਪੂਰੀ ਹੈ",
+  "completeBody": "ਤੁਸੀਂ ਸਾਰੇ ਖੋਜ ਨਤੀਜਿਆਂ ਵਿੱਚ ਦਿਸ ਰਹੇ ਹੋ",
+  "strength": "ਪ੍ਰੋਫ਼ਾਈਲ ਦੀ ਮਜ਼ਬੂਤੀ",
+  "alsoMissing": "ਇਹ ਵੀ ਬਾਕੀ ਹੈ: {{list}}"
+}

@@ -1,0 +1,32 @@
+{
+  "matchTitle": "{{n}}% ਮੈਚ",
+  "matchBadge": "{{n}}% ਮੈਚ",
+  "plan": {
+    "vip": "VIP",
+    "nri": "NRI",
+    "elite": "ਐਲੀਟ",
+    "premium": "ਪ੍ਰੀਮੀਅਮ"
+  },
+  "upgradeToView": "ਦੇਖਣ ਲਈ ਅਪਗ੍ਰੇਡ ਕਰੋ",
+  "profileFallback": "ਪ੍ਰੋਫ਼ਾਈਲ",
+  "profileOf": "{{name}} ਦੀ ਪ੍ਰੋਫ਼ਾਈਲ",
+  "online": "ਆਨਲਾਈਨ",
+  "removeFromShortlist": "ਸੇਵ ਕੀਤੀ ਸੂਚੀ ਵਿੱਚੋਂ ਹਟਾਓ",
+  "shortlist": "ਸੇਵ ਕਰੋ",
+  "unlike": "ਪਸੰਦ ਹਟਾਓ",
+  "expressInterestAria": "ਦਿਲਚਸਪੀ ਭੇਜੋ",
+  "verifiedProfile": "ਤਸਦੀਕਸ਼ੁਦਾ ਪ੍ਰੋਫ਼ਾਈਲ",
+  "verified": "ਤਸਦੀਕਸ਼ੁਦਾ",
+  "ageYrs": "{{age}} ਸਾਲ",
+  "unlockProfile": "ਪ੍ਰੋਫ਼ਾਈਲ ਅਨਲੌਕ ਕਰੋ",
+  "message": "ਸੁਨੇਹਾ",
+  "interestSent": "ਦਿਲਚਸਪੀ ਭੇਜੀ ਗਈ",
+  "expressInterest": "ਦਿਲਚਸਪੀ ਭੇਜੋ",
+  "unknown": "ਅਣਜਾਣ",
+  "mutualMatchWith": "{{name}} ਨਾਲ ਆਪਸੀ ਮੈਚ",
+  "photoOf": "{{name}} ਦੀ ਪ੍ਰੋਫ਼ਾਈਲ ਫ਼ੋਟੋ",
+  "mutual": "ਆਪਸੀ",
+  "locationNotSpecified": "ਥਾਂ ਨਹੀਂ ਦੱਸੀ ਗਈ",
+  "compatible": "{{n}}% ਮੇਲ",
+  "startChatWith": "{{name}} ਨਾਲ ਚੈਟ ਸ਼ੁਰੂ ਕਰੋ"
+}

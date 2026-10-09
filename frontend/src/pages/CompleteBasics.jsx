@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import FormField from '../components/ui/FormField';
@@ -10,10 +11,11 @@ import { validateName, validateAge } from '../utils/validators';
 import { minAgeFor, pickerMinAge, minAgeMessage } from '../utils/marriageableAge';
 import apiErrorMessage from '../utils/apiError';
 
+// Labels are i18n keys, translated at render.
 const GENDERS = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'other', label: 'Other' },
+  { value: 'male', labelKey: 'welcome.genderMale' },
+  { value: 'female', labelKey: 'welcome.genderFemale' },
+  { value: 'other', labelKey: 'welcome.genderOther' },
 ];
 
 const dateOnly = (v) => (v ? String(v).slice(0, 10) : '');
@@ -47,6 +49,7 @@ export default function CompleteBasics() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const headingRef = useRef(null);
+  const { t } = useTranslation();
 
   useEffect(() => { headingRef.current?.focus(); }, []);
 
@@ -61,10 +64,10 @@ export default function CompleteBasics() {
 
   const validate = () => {
     const e = {};
-    if (!validateName(form.firstName)) e.firstName = 'Please enter your first name (letters only)';
-    if (!validateName(form.lastName)) e.lastName = 'Please enter your last name (letters only)';
-    if (!form.gender) e.gender = 'Please choose your gender';
-    if (!form.dateOfBirth) e.dateOfBirth = 'Please enter your date of birth';
+    if (!validateName(form.firstName)) e.firstName = t('welcome.errFirstName');
+    if (!validateName(form.lastName)) e.lastName = t('welcome.errLastName');
+    if (!form.gender) e.gender = t('welcome.errGender');
+    if (!form.dateOfBirth) e.dateOfBirth = t('welcome.errDob');
     else if (form.gender && !validateAge(form.dateOfBirth, minAgeFor(form.gender), 100)) e.dateOfBirth = minAgeMessage(form.gender);
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -90,7 +93,7 @@ export default function CompleteBasics() {
         navigate(returnTo, { replace: true });
       }
     } catch (err) {
-      setSaveError(apiErrorMessage(err, 'Could not save. Please try again.'));
+      setSaveError(apiErrorMessage(err, t('welcome.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -102,10 +105,10 @@ export default function CompleteBasics() {
         <Seo title="Verify your mobile number" noindex />
         <div className="mx-auto max-w-lg rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-6 sm:p-8 space-y-5">
           <div>
-            <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Step 2 of 2</p>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-50 mt-1">Verify your mobile number</h1>
+            <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t('welcome.step2of2')}</p>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-50 mt-1">{t('welcome.verifyMobileTitle')}</h1>
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-              When a member unlocks your contact, this is the number they call, so every member needs a verified one. You choose who can unlock it in Settings → Privacy.
+              {t('welcome.verifyMobileBody')}
             </p>
           </div>
           <ContactNumberVerify
@@ -119,13 +122,15 @@ export default function CompleteBasics() {
             }}
           />
           <div className="rounded-xl bg-neutral-100 dark:bg-neutral-800/60 p-4 text-sm text-neutral-600 dark:text-neutral-400">
-            <p className="font-medium text-neutral-800 dark:text-neutral-200">Already joined with this number?</p>
+            <p className="font-medium text-neutral-800 dark:text-neutral-200">{t('welcome.alreadyJoinedTitle')}</p>
             <p className="mt-1">
-              Then you have two accounts. Sign out and sign in with your mobile number instead. You can delete this new account from{' '}
-              <a href="/settings" className="font-medium text-primary-600 dark:text-primary-300 underline underline-offset-2">Settings</a>.
+              <Trans
+                i18nKey="welcome.alreadyJoinedBody"
+                components={{ anchor: <a href="/settings" className="font-medium text-primary-600 dark:text-primary-300 underline underline-offset-2" /> }}
+              />
             </p>
             <button type="button" onClick={() => logout()} className="mt-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 underline underline-offset-2">
-              Sign out
+              {t('auth.signOut')}
             </button>
           </div>
         </div>
@@ -139,21 +144,21 @@ export default function CompleteBasics() {
       <form onSubmit={save} noValidate className="mx-auto max-w-lg rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-6 sm:p-8 space-y-6">
         <div>
           <h1 ref={headingRef} tabIndex={-1} className="font-serif text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-50 focus:outline-none">
-            A few basics first
+            {t('welcome.basicsTitle')}
           </h1>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-            Your name, gender and date of birth decide who sees your profile and who you are shown. It takes a moment.
+            {t('welcome.basicsBody')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label="First name" autoComplete="given-name" value={form.firstName} onChange={(v) => set('firstName', v)} error={errors.firstName} required />
-          <FormField label="Last name" autoComplete="family-name" value={form.lastName} onChange={(v) => set('lastName', v)} error={errors.lastName} required />
+          <FormField label={t('welcome.firstName')} autoComplete="given-name" value={form.firstName} onChange={(v) => set('firstName', v)} error={errors.firstName} required />
+          <FormField label={t('welcome.lastName')} autoComplete="family-name" value={form.lastName} onChange={(v) => set('lastName', v)} error={errors.lastName} required />
         </div>
 
         <fieldset>
           <legend className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-            Gender <span className="text-destructive ml-1">*</span>
+            {t('welcome.gender')} <span className="text-destructive ml-1">*</span>
           </legend>
           <div className="grid grid-cols-3 gap-2.5">
             {GENDERS.map((g) => (
@@ -167,7 +172,7 @@ export default function CompleteBasics() {
                   className="sr-only peer"
                 />
                 <span className="flex items-center justify-center min-h-[2.75rem] py-3 rounded-xl border-2 text-sm font-semibold transition-colors duration-[160ms] border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-primary-300 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-checked:text-primary-700 dark:peer-checked:bg-primary-900/30 dark:peer-checked:text-primary-300 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-focus-visible:ring-offset-2">
-                  {g.label}
+                  {t(g.labelKey)}
                 </span>
               </label>
             ))}
@@ -183,13 +188,13 @@ export default function CompleteBasics() {
           required
         />
         <p className="text-xs text-neutral-500 dark:text-neutral-400 -mt-3">
-          Gender and date of birth cannot be changed later. If one is ever wrong, contact support.
+          {t('welcome.lockedNote')}
         </p>
 
         {saveError && <p role="alert" className="text-sm text-destructive dark:text-red-300">{saveError}</p>}
 
         <button type="submit" disabled={saving} className="btn-primary w-full">
-          {saving ? 'Saving…' : 'Continue'}
+          {saving ? t('auth.saving') : t('auth.continue')}
         </button>
       </form>
     </div>

@@ -165,6 +165,14 @@ exports.matchAction = asyncHandler(async (req, res) => {
     const previousAction = match ? match.action : null;
     const wasMutual = Boolean(match && match.isMutual);
 
+    // One row per pair, so 'shortlist' on a liked row used to REPLACE the like:
+    // tapping Save on someone you had sent an interest to silently withdrew it,
+    // and on a mutual match ended the match and the chat. A sent interest
+    // already keeps the profile (Matches > Sent), so Save is a no-op there.
+    if (action === 'shortlist' && previousAction === 'like') {
+      return { match, isMutualMatch: wasMutual, newlyMutual: false, withdrawn: false, firstLike: false, keptLike: true };
+    }
+
     // Calculate compatibility
     const [currentProfile, matchedProfile] = await Promise.all([
       Profile.findOne({ where: { userId: currentUserId }, transaction: t }),
@@ -313,6 +321,10 @@ exports.matchAction = asyncHandler(async (req, res) => {
   // interest, so only like/shortlist count. Emitted unconditionally on those:
   // the partial unique index (userId, eventType) collapses every later like into
   // a no-op, so this stays "first". Fire-and-forget: never awaited.
+  if (result.keptLike) {
+    return res.json({ success: true, match: result.match, isMutual: result.isMutualMatch, newMatch: false, withdrawn: false, keptLike: true });
+  }
+
   if (action === 'like' || action === 'shortlist') {
     trackEvent(currentUserId, 'first_interest_sent');
   }

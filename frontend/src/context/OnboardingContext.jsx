@@ -48,10 +48,15 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
       const parsed = saved ? JSON.parse(saved) : null;
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) draft = parsed;
     } catch { draft = null; }
-    if (!draft) return getInitialFormData();
+    // Arriving from "Create it for them" means the profile is for someone
+    // else: start with that card chosen, even over a leftover self draft.
+    const forOther = (data) => (mode === 'create_for_other' && (!data.creatingFor || data.creatingFor === 'self')
+      ? { ...data, creatingFor: 'other' }
+      : data);
+    if (!draft) return forOther(getInitialFormData());
     // Always start with empty credential fields — drafts written by older
     // builds may still contain a plain-text password; never rehydrate one.
-    return { ...getInitialFormData(), ...draft, password: '', confirmPassword: '' };
+    return forOther({ ...getInitialFormData(), ...draft, password: '', confirmPassword: '' });
   });
 
   const [currentStep, setCurrentStep] = useState(() => {
@@ -339,6 +344,7 @@ function getInitialFormData() {
     // Profile Content
     bio: '',
     interestTags: [],
+    profilePrompts: {},
     personalityValues: {},
     // Social connections — display-only links, per-link visibility.
     // Shape: { instagram: { url, visibility }, ... }
@@ -369,6 +375,11 @@ function getInitialFormData() {
   };
 }
 
+// Step title/description in the current language (English is the step's own
+// title/description). `t` is the component's useTranslation() function.
+export const stepTitle = (step, t) => (step?.key ? t(`onboarding.steps.${step.key}.title`, { defaultValue: step.title }) : step?.title);
+export const stepDescription = (step, t) => (step?.key ? t(`onboarding.steps.${step.key}.description`, { defaultValue: step.description }) : step?.description);
+
 // Step definitions for the onboarding flow
 export const STEPS = [
   // NOTE: the old standalone "Welcome" step (a Terms-only gate) was removed — the
@@ -384,6 +395,7 @@ export const STEPS = [
   {
     id: 1,
     number: 1,
+    key: 'createAccount',
     title: 'Create Account',
     icon: 'User',
     description: 'Use your email or mobile — set a password, verify, and you’re in.',
@@ -394,6 +406,7 @@ export const STEPS = [
   {
     id: 2,
     number: 2,
+    key: 'basicInfo',
     title: 'Basic Information',
     icon: 'Info',
     description: 'Just your name, gender and birthday — the rest can wait.',
@@ -405,6 +418,7 @@ export const STEPS = [
   {
     id: 3,
     number: 3,
+    key: 'location',
     title: 'Location',
     icon: 'MapPin',
     description: 'Where are you based?',
@@ -415,6 +429,7 @@ export const STEPS = [
   {
     id: 4,
     number: 4,
+    key: 'religion',
     title: 'Religion & Community',
     icon: 'Heart',
     description: 'Your religious background — all optional',
@@ -425,6 +440,7 @@ export const STEPS = [
   {
     id: 4.5,
     number: 4,
+    key: 'horoscope',
     title: 'Horoscope & Kundli',
     icon: 'Sun',
     description: 'Only if it matters to you',
@@ -435,6 +451,7 @@ export const STEPS = [
   {
     id: 5,
     number: 5,
+    key: 'marital',
     title: 'Marital Status',
     icon: 'Ring',
     description: 'Tell us about your relationship status',
@@ -445,6 +462,7 @@ export const STEPS = [
   {
     id: 6,
     number: 6,
+    key: 'education',
     title: 'Education & Career',
     icon: 'Briefcase',
     description: 'Your professional background — all optional',
@@ -455,6 +473,7 @@ export const STEPS = [
   {
     id: 7,
     number: 7,
+    key: 'family',
     title: 'Family Background',
     icon: 'Users',
     description: 'Tell us about your family — all optional',
@@ -465,6 +484,7 @@ export const STEPS = [
   {
     id: 8,
     number: 8,
+    key: 'lifestyle',
     title: 'Lifestyle',
     icon: 'Smile',
     description: 'Your lifestyle preferences — all optional',
@@ -475,6 +495,7 @@ export const STEPS = [
   {
     id: 9,
     number: 9,
+    key: 'about',
     title: 'About Yourself',
     icon: 'BookOpen',
     description: 'Tell us more about yourself — all optional',
@@ -489,6 +510,7 @@ export const STEPS = [
     // the last step (Photos) becomes unreachable.
     id: 9.5,
     number: 10,
+    key: 'social',
     title: 'Social Connections',
     icon: 'Link',
     description: 'Add your social links — all optional',
@@ -499,6 +521,7 @@ export const STEPS = [
   {
     id: 10,
     number: 10,
+    key: 'preferences',
     title: 'Preferences',
     icon: 'Heart',
     description: 'What are you looking for? — all optional',
@@ -509,6 +532,7 @@ export const STEPS = [
   {
     id: 11,
     number: 11,
+    key: 'photos',
     title: 'Photos',
     icon: 'Camera',
     description: 'Upload your profile photo',
@@ -519,6 +543,7 @@ export const STEPS = [
   {
     id: 12,
     number: 12,
+    key: 'verification',
     title: 'Verification',
     icon: 'Shield',
     description: 'Verify your contact information',

@@ -4,6 +4,7 @@ import {
   getRankingWeights, saveRankingWeights, resetRankingWeights,
   getRankingExperiment, startRankingExperiment, stopRankingExperiment,
 } from '../../api/adminApi';
+import { formatDate } from '../../utils/formatDate';
 
 const PLAN_LABELS = {
   basic_premium: 'Basic Premium',
@@ -129,7 +130,7 @@ function ExperimentSection() {
           <p>
             <span className="font-medium">{exp.name}</span>{' '}
             <span className={running ? 'text-green-700' : 'text-gray-400'}>({running ? 'running' : 'stopped'})</span>
-            {' · '}{exp.sharePct}% get the variant · since {new Date(exp.startedAt).toLocaleDateString('en-IN')}
+            {' · '}{exp.sharePct}% get the variant · since {formatDate(exp.startedAt)}
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
             Variant changes: {Object.entries(exp.overrides).map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')}

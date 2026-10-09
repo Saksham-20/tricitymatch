@@ -1,8 +1,25 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const dir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  // Same import aliases as vite.config.js, so `@/i18n` etc. resolve in tests.
+  resolve: {
+    alias: {
+      '@': path.resolve(dir, './src'),
+      '@components': path.resolve(dir, './src/components'),
+      '@pages': path.resolve(dir, './src/pages'),
+      '@context': path.resolve(dir, './src/context'),
+      '@api': path.resolve(dir, './src/api'),
+      '@utils': path.resolve(dir, './src/utils'),
+      '@hooks': path.resolve(dir, './src/hooks'),
+      '@assets': path.resolve(dir, './src/assets'),
+    },
+  },
   // Build-time constants that `vite.config.js` injects. Without them here, any
   // test whose import graph reaches `src/config/index.js` dies with
   // "__APP_VERSION__ is not defined" — a config gap, not a product bug.

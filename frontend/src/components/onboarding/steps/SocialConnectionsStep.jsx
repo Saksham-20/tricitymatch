@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Trans, useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import {
   FiInstagram, FiLinkedin, FiFacebook, FiTwitter, FiYoutube, FiLink, FiUsers, FiEyeOff, FiMusic,
@@ -7,12 +8,12 @@ import {
 import { staggerContainer, fadeRise } from '../../../utils/animations';
 
 const PLATFORMS = [
-  { key: 'instagram', label: 'Instagram', icon: FiInstagram, color: '#E1306C', placeholder: '@handle or profile link' },
+  { key: 'instagram', label: 'Instagram', icon: FiInstagram, color: '#E1306C', placeholder: '@handle or profile link', placeholderKey: 'handleOrLink' },
   { key: 'linkedin', label: 'LinkedIn', icon: FiLinkedin, color: '#0077B5', placeholder: 'linkedin.com/in/you' },
   { key: 'facebook', label: 'Facebook', icon: FiFacebook, color: '#1877F2', placeholder: 'facebook.com/you' },
-  { key: 'twitter', label: 'X (Twitter)', icon: FiTwitter, color: '#1DA1F2', placeholder: '@handle' },
-  { key: 'youtube', label: 'YouTube', icon: FiYoutube, color: '#FF0000', placeholder: 'Channel link' },
-  { key: 'website', label: 'Website', icon: FiLink, color: '#8B2346', placeholder: 'yoursite.com' },
+  { key: 'twitter', label: 'X (Twitter)', icon: FiTwitter, color: '#1DA1F2', placeholder: '@handle', placeholderKey: 'handle' },
+  { key: 'youtube', label: 'YouTube', icon: FiYoutube, color: '#FF0000', placeholder: 'Channel link', placeholderKey: 'channelLink' },
+  { key: 'website', label: 'Website', labelKey: 'website', icon: FiLink, color: '#8B2346', placeholder: 'yoursite.com' },
 ];
 
 // No "Everyone": a social link is a way to reach someone off the site, so it
@@ -35,6 +36,7 @@ const readEntry = (entry) => {
  * credibility and visibility, they are not a verification tier.
  */
 export default function SocialConnectionsStep() {
+  const { t } = useTranslation();
   const { formData, updateFormData } = useOnboarding();
   const links = formData.socialMediaLinks || {};
 
@@ -56,16 +58,14 @@ export default function SocialConnectionsStep() {
       {/* No in-body <h2> — the editor stepper already labels this section, and a
           second heading duplicated it. */}
       <p className="text-neutral-500 mb-6 text-sm">
-        Add your social profiles to look more real and approachable. Optional, you
-        choose who sees each one. These are shown as links only, we never post or
-        read anything.
+        {t('onboarding.social.intro')}
       </p>
 
       {/* Spotify playlist — surfaced on the profile as a "my vibe" link. */}
       <motion.div variants={fadeRise} className="rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 mb-4">
         <label htmlFor="social-spotify" className="flex items-center gap-2 mb-2.5 text-sm font-semibold text-neutral-800 dark:text-neutral-200">
           <FiMusic className="w-4 h-4 flex-shrink-0" style={{ color: '#1DB954' }} />
-          Spotify playlist
+          {t('onboarding.social.spotify')}
         </label>
         <input
           id="social-spotify"
@@ -80,20 +80,20 @@ export default function SocialConnectionsStep() {
       </motion.div>
 
       <motion.div variants={fadeRise} className="space-y-4">
-        {PLATFORMS.map(({ key, label, icon: Icon, color, placeholder }) => {
+        {PLATFORMS.map(({ key, label, labelKey, icon: Icon, color, placeholder, placeholderKey }) => {
           const { url, visibility } = readEntry(links[key]);
           return (
             <div key={key} className="rounded-xl border border-neutral-200 dark:border-neutral-700 p-4">
               <div className="flex items-center gap-2 mb-2.5">
                 <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
-                <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{label}</span>
+                <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{labelKey ? t(`onboarding.social.${labelKey}`) : label}</span>
               </div>
 
               <input
                 type="text"
                 value={url}
                 onChange={(e) => setLink(key, { url: e.target.value })}
-                placeholder={placeholder}
+                placeholder={placeholderKey ? t(`onboarding.social.${placeholderKey}`) : placeholder}
                 className="w-full px-3 py-2.5 text-sm bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-700 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-colors duration-[160ms]"
               />
 
@@ -113,7 +113,7 @@ export default function SocialConnectionsStep() {
                             : 'border-neutral-200 dark:border-neutral-700 text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800'
                         }`}
                       >
-                        <VIcon className="w-3.5 h-3.5" /> {vLabel}
+                        <VIcon className="w-3.5 h-3.5" /> {t(`profileOptions.socialVisibility.${value}`, { defaultValue: vLabel })}
                       </button>
                     );
                   })}
@@ -125,8 +125,7 @@ export default function SocialConnectionsStep() {
       </motion.div>
 
       <p className="text-xs text-neutral-400 mt-5">
-        Links are shown only to members you have matched with. Set a link to
-        <span className="font-semibold"> Hidden</span> to keep it just for you. Add profile links only, never a phone number.
+        <Trans i18nKey="onboarding.social.footer" components={{ b: <span className="font-semibold" /> }} />
       </p>
     </motion.div>
   );

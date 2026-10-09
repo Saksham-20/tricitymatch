@@ -1,0 +1,54 @@
+{
+  "title": "My Matches",
+  "subtitle": "Everyone you’ve saved, matched with, or who’s shown interest.",
+  "tabsAria": "Match lists",
+  "tabs": {
+    "shortlist": {
+      "label": "Saved",
+      "title": "Nothing saved yet",
+      "line": "Tap the bookmark on a profile to save it here for later.",
+      "supply": "New Tricity members join every week, so this list grows as the community does."
+    },
+    "mutual": {
+      "label": "Mutual",
+      "title": "No mutual matches yet",
+      "line": "When you and someone both express interest, they show up here.",
+      "supply": "A mutual match needs two people. The surest way to get one is to bring someone you already trust into the circle."
+    },
+    "sent": {
+      "label": "Sent",
+      "title": "You haven’t reached out yet",
+      "line": "Profiles you like show up here. Today’s matches are waiting.",
+      "supply": "Expressing interest is free, and a thoughtful like is how every mutual match starts."
+    },
+    "likes": {
+      "label": "Likes You",
+      "title": "No interests received yet",
+      "line": "Members who like you will appear here.",
+      "supply": "A complete, photo-verified profile gets seen first, and the more Tricity families here, the more eyes on yours."
+    }
+  },
+  "errorTitle": "Couldn’t load this list",
+  "errorBody": "Something went wrong. Give it another try.",
+  "premiumTitle": "See who likes you",
+  "premiumBody": "Upgrade to Premium to reveal every member who’s already expressed interest in your profile.",
+  "upgradeToPremium": "Upgrade to Premium",
+  "discoverProfiles": "Discover profiles",
+  "likedPhotoYou": "You liked a photo",
+  "likedAnswerYou": "You liked their answer",
+  "likedPhoto": "Liked a photo",
+  "likedAnswer": "Liked their answer",
+  "actionError": "Could not perform that action",
+  "interestExpressed": "Interest expressed!",
+  "interestWithdrawn": "Interest withdrawn",
+  "removedFromShortlist": "Removed from your shortlist",
+  "endMatch": {
+    "title": "End your match with {{name}}?",
+    "thisMember": "this member",
+    "body": "Withdrawing your interest ends the match. Neither of you can message the other until you both like each other again. They are not told.",
+    "confirm": "End match",
+    "cancel": "Keep match"
+  },
+  "keptLikeMutual": "You're already matched. Find them under Matches → Mutual.",
+  "keptLikeSent": "Already in your sent interests. Find them under Matches → Sent."
+}

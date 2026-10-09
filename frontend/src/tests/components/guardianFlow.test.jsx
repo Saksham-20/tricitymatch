@@ -6,9 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k) => k }),
-}));
+// Real i18n (loaded by the test setup), so pages render their English strings.
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('../../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 vi.mock('../../components/common/Seo', () => ({ default: () => null }));

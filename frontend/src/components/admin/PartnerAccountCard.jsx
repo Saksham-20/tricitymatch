@@ -4,6 +4,7 @@ import { FiEdit2, FiKey, FiMail, FiRefreshCw, FiCopy, FiCheck } from 'react-icon
 import { updateMarketingUser, resetMarketingUserPassword, resendPartnerWelcome } from '../../api/adminApi';
 import copyText from '../../utils/copyText';
 import generatePassword from '../../utils/generatePassword';
+import { formatLeadPhone } from '../../utils/leadContact';
 
 /**
  * Looking after a partner's account once it exists: correct a typo'd email or
@@ -133,7 +134,7 @@ export default function PartnerAccountCard({ user, onChanged }) {
     <section aria-label="Partner account" className="mb-8 bg-white border border-gray-200 rounded-2xl p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-1">Account</h2>
       <p className="text-sm text-gray-600 mb-4">
-        {user.email}{user.phone ? ` · ${user.phone}` : ''}. Their own password-reset email goes to this address, so fix it here if it is wrong.
+        {user.email}{user.phone ? ` · ${formatLeadPhone(user.phone)}` : ''}. Their own password-reset email goes to this address, so fix it here if it is wrong.
       </p>
       <div className="flex flex-wrap gap-3">
         <button type="button" className={btn} onClick={openEdit}><FiEdit2 size={14} aria-hidden="true" /> Edit details</button>
@@ -178,7 +179,7 @@ export default function PartnerAccountCard({ user, onChanged }) {
                 <div>
                   <label htmlFor="rp-password" className={label}>New password</label>
                   <div className="flex gap-2">
-                    <input id="rp-password" type={shown ? 'text' : 'password'} minLength={12} autoComplete="new-password" className={input} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="12+ characters, upper, lower, number, symbol" required />
+                    <input id="rp-password" type={shown ? 'text' : 'password'} minLength={8} autoComplete="new-password" className={input} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8+ characters, upper, lower, number, symbol" required />
                     <button type="button" onClick={() => { setPassword(generatePassword()); setShown(true); }} className="inline-flex items-center gap-1.5 whitespace-nowrap border px-3 rounded-lg text-sm font-medium hover:bg-gray-50 min-h-[44px]">
                       <FiRefreshCw size={14} aria-hidden="true" /> Generate
                     </button>

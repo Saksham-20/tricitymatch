@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FiPlay, FiPause, FiAlertCircle } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
 const fmt = (ms) => {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -12,6 +13,7 @@ const fmt = (ms) => {
 };
 
 const VoiceBubble = ({ mediaUrl, durationMs, light = false }) => {
+  const { t } = useTranslation();
   const [state, setState] = useState('idle'); // idle | loading | playing | paused | failed
   const [progress, setProgress] = useState(0);
   const audioRef = useRef(null);
@@ -51,13 +53,13 @@ const VoiceBubble = ({ mediaUrl, durationMs, light = false }) => {
     return (
       <button onClick={() => { audioRef.current = null; setState('idle'); toggle(); }} className={`flex items-center gap-2 ${fg}`}>
         <FiAlertCircle className="w-4 h-4" />
-        <span className="text-sm underline">Couldn&apos;t play. Tap to retry.</span>
+        <span className="text-sm underline">{t('chat.voice.couldntPlay')}</span>
       </button>
     );
   }
 
   return (
-    <div className="flex items-center gap-3 min-w-[180px]" aria-label="Voice message">
+    <div className="flex items-center gap-3 min-w-[180px]" aria-label={t('chat.voiceMessage')}>
       {/* min-w/min-h in rem, not the p-2 padding this used to rely on alone
           (doctrine §3.5: hit target >= 44px, elder >= 48px — p-2 around a
           16px icon was ~32px). dark: pair is needed because bg-primary-100
@@ -67,7 +69,7 @@ const VoiceBubble = ({ mediaUrl, durationMs, light = false }) => {
           pink circle. */}
       <button
         onClick={toggle}
-        aria-label={state === 'playing' ? 'Pause voice message' : 'Play voice message'}
+        aria-label={state === 'playing' ? t('chat.voice.pause') : t('chat.voice.play')}
         className={`flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-full flex-shrink-0 ${light ? 'bg-white/20 hover:bg-white/30' : 'bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/30 dark:hover:bg-primary-900/40'} transition-colors`}
       >
         {state === 'loading' ? (

@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FiMic, FiX, FiTrash2, FiSend, FiPlay, FiPause, FiRefreshCw } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
 // Pointer-gated hover (doctrine §4.7) — a touch tap fires a false hover that
 // never un-fires, leaving the send button looking permanently "raised".
@@ -25,6 +26,7 @@ const fmt = (ms) => {
 };
 
 const VoiceRecorder = ({ onSend, onClose }) => {
+  const { t } = useTranslation();
   // idle | denied | recording | review | uploading | failed
   const [phase, setPhase] = useState('idle');
   const [elapsed, setElapsed] = useState(0);
@@ -131,13 +133,13 @@ const VoiceRecorder = ({ onSend, onClose }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 w-full" role="group" aria-label="Voice message recorder">
+    <div className="flex items-center gap-3 w-full" role="group" aria-label={t('chat.recorder.label')}>
       {phase === 'denied' && (
         <>
           <p className="flex-1 text-sm text-neutral-600 dark:text-neutral-300">
-            Microphone is blocked. Enable it in your browser settings, or type your message instead.
+            {t('chat.recorder.micBlocked')}
           </p>
-          <button onClick={onClose} aria-label="Close recorder" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={onClose} aria-label={t('chat.recorder.close')} className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiX className="w-5 h-5" />
           </button>
         </>
@@ -150,15 +152,15 @@ const VoiceRecorder = ({ onSend, onClose }) => {
             <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive" />
           </span>
           <span className={`text-sm font-medium tabular-nums ${elapsed >= WARN_MS ? 'text-destructive' : 'text-neutral-700 dark:text-neutral-200'}`}>
-            {fmt(elapsed)}{elapsed >= WARN_MS && ' · stopping soon'}
+            {fmt(elapsed)}{elapsed >= WARN_MS && ` · ${t('chat.recorder.stoppingSoon')}`}
           </span>
           <div className="flex-1" />
-          <button onClick={cancel} aria-label="Cancel recording" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={cancel} aria-label={t('chat.recorder.cancelRecording')} className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiTrash2 className="w-5 h-5" />
           </button>
           <button
             onClick={stopAndReview}
-            aria-label="Stop recording"
+            aria-label={t('chat.recorder.stopRecording')}
             className="p-3 rounded-full bg-gradient-hero text-white shadow-burgundy"
           >
             <FiMic className="w-5 h-5" />
@@ -168,31 +170,31 @@ const VoiceRecorder = ({ onSend, onClose }) => {
 
       {phase === 'review' && (
         <>
-          <button onClick={togglePlay} aria-label={playing ? 'Pause preview' : 'Play preview'} className="p-3 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700">
+          <button onClick={togglePlay} aria-label={playing ? t('chat.recorder.pausePreview') : t('chat.recorder.playPreview')} className="p-3 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700">
             {playing ? <FiPause className="w-5 h-5" /> : <FiPlay className="w-5 h-5" />}
           </button>
           <span className="text-sm text-neutral-600 dark:text-neutral-300 tabular-nums">{fmt(durationRef.current)}</span>
           <div className="flex-1" />
-          <button onClick={cancel} aria-label="Discard voice message" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={cancel} aria-label={t('chat.recorder.discardVoice')} className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiTrash2 className="w-5 h-5" />
           </button>
-          <button onClick={send} aria-label="Send voice message" className={`p-3 rounded-full bg-gradient-hero text-white shadow-burgundy ${HOVER}:scale-105 transition-transform`}>
+          <button onClick={send} aria-label={t('chat.recorder.sendVoice')} className={`p-3 rounded-full bg-gradient-hero text-white shadow-burgundy ${HOVER}:scale-105 transition-transform`}>
             <FiSend className="w-5 h-5" />
           </button>
         </>
       )}
 
       {phase === 'uploading' && (
-        <p className="flex-1 text-sm text-neutral-500 animate-pulse">Sending voice message…</p>
+        <p className="flex-1 text-sm text-neutral-500 animate-pulse">{t('chat.recorder.sending')}</p>
       )}
 
       {phase === 'failed' && (
         <>
-          <p className="flex-1 text-sm text-destructive">Upload failed.</p>
+          <p className="flex-1 text-sm text-destructive">{t('chat.recorder.uploadFailed')}</p>
           <button onClick={send} className="inline-flex items-center gap-1.5 min-h-[2.75rem] text-sm font-medium text-primary-700 hover:text-primary-800">
-            <FiRefreshCw className="w-4 h-4" /> Retry
+            <FiRefreshCw className="w-4 h-4" /> {t('common.retry')}
           </button>
-          <button onClick={cancel} aria-label="Discard" className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
+          <button onClick={cancel} aria-label={t('chat.recorder.discard')} className="p-3 rounded-full hover:bg-neutral-100 text-neutral-500">
             <FiX className="w-5 h-5" />
           </button>
         </>

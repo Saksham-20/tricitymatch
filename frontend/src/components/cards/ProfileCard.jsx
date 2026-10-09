@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import {
   FiHeart, FiBookmark, FiMapPin, FiBook, FiBriefcase,
   FiLock, FiCheckCircle, FiArrowRight, FiCheck, FiMessageCircle,
@@ -19,6 +20,7 @@ const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
    Animated compatibility arc — circular score indicator
    ────────────────────────────────────────────────────────── */
 const CompatArc = ({ score }) => {
+  const { t } = useTranslation();
   if (!score) return null;
   // Compatibility is shown to every member, free or paid — gold is reserved
   // for premium marks (doctrine §3.1), so the match-quality scale is two-tier
@@ -33,7 +35,7 @@ const CompatArc = ({ score }) => {
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="relative w-12 h-12 flex-shrink-0" title={`${Math.round(score)}% match`}>
+    <div className="relative w-12 h-12 flex-shrink-0" title={t('cards.matchTitle', { n: Math.round(score) })}>
       <svg width="48" height="48" viewBox="0 0 48 48" className="transform -rotate-90">
         <circle cx="24" cy="24" r={radius} fill="none" stroke="currentColor" strokeWidth="3" className="text-neutral-100 dark:text-neutral-700" />
         <motion.circle
@@ -83,24 +85,29 @@ const ShimmerBar = ({ score }) => {
   );
 };
 
-// Badge copy per plan. A founding grant is a free 30-day offer, so it must not
-// wear the same crown label as a plan somebody bought; the plan on sale is
-// named "Premium" (premium_plus), and every other paid tier says its own name.
+// Badge copy per plan: the plan on sale is named "Premium" (premium_plus), and
+// every other paid tier says its own name. A founding grant gets no badge at
+// all: it was a free offer, never a purchase, and the offer is off by choice.
+const showsPlanBadge = (profile) => Boolean(profile.isPremium) && profile.premiumPlan !== 'founding_premium';
 const PLAN_BADGE = {
   vip: ['VIP', 'VIP Member'],
   nri: ['NRI', 'NRI Member'],
   elite: ['Elite', 'Elite Member'],
   premium_plus: ['Premium', 'Premium Member'],
   basic_premium: ['Premium', 'Premium Member'],
-  founding_premium: ['Founding', 'Founding Member'],
 };
-const planBadgeLabel = (plan) => (PLAN_BADGE[plan] || PLAN_BADGE.premium_plus)[0];
+// Shown label comes from the locale files (cards.plan.*); the English words
+// above stay as the reference for what each tier is called.
+const PLAN_BADGE_KEY = { vip: 'vip', nri: 'nri', elite: 'elite', premium_plus: 'premium', basic_premium: 'premium' };
+const planBadgeLabel = (plan, t) => t(`cards.plan.${PLAN_BADGE_KEY[plan] || 'premium'}`);
 const planBadgeTitle = (plan) => (PLAN_BADGE[plan] || PLAN_BADGE.premium_plus)[1];
 
 /* ──────────────────────────────────────────────────────────
    Premium blur overlay
    ────────────────────────────────────────────────────────── */
-const PremiumBlur = () => (
+const PremiumBlur = () => {
+  const { t } = useTranslation();
+  return (
   <div
     className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 bg-white/25 dark:bg-neutral-900/40"
     style={{
@@ -111,10 +118,11 @@ const PremiumBlur = () => (
       <FiLock className="w-5 h-5 text-gold-600" />
     </div>
     <p className="text-xs font-semibold text-neutral-800 bg-white/80 px-4 py-1.5 rounded-full shadow-sm">
-      Upgrade to view
+      {t('cards.upgradeToView')}
     </p>
   </div>
-);
+  );
+};
 
 /* ──────────────────────────────────────────────────────────
    Detail chip
@@ -144,6 +152,7 @@ const ProfileCard = ({
   primaryCta = 'interest',
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isLiked, setIsLiked] = useState(profile.matchStatus === 'like');
   const [isShortlisted, setIsShortlisted] = useState(profile.matchStatus === 'shortlist');
   const [imgError, setImgError] = useState(false);
@@ -152,15 +161,15 @@ const ProfileCard = ({
     if (profile.age) return profile.age;
     if (profile.dateOfBirth) {
       const d = new Date(profile.dateOfBirth);
-      const t = new Date();
-      const a = t.getFullYear() - d.getFullYear();
-      const m = t.getMonth() - d.getMonth();
-      return m < 0 || (m === 0 && t.getDate() < d.getDate()) ? a - 1 : a;
+      const now = new Date();
+      const a = now.getFullYear() - d.getFullYear();
+      const m = now.getMonth() - d.getMonth();
+      return m < 0 || (m === 0 && now.getDate() < d.getDate()) ? a - 1 : a;
     }
     return 'N/A';
   };
 
-  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Profile';
+  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || t('cards.profileFallback');
   const initials = ((profile.firstName?.[0] || '') + (profile.lastName?.[0] || '')).toUpperCase() || '?';
 
   const handleCardClick = () => userId && navigate(`/profile/${userId}`);
@@ -172,6 +181,8 @@ const ProfileCard = ({
     const next = !isLiked;
     setIsLiked(next);
     if ((await onLike?.(next)) === false) setIsLiked(!next);
+    // One state per pair on the server: an interest replaces a save.
+    else if (next) setIsShortlisted(false);
   };
   const handleShortlist = async (e) => {
     e.stopPropagation();
@@ -213,7 +224,7 @@ const ProfileCard = ({
       className={`group relative bg-white rounded-xl overflow-hidden cursor-pointer shadow-card ${HOVER}:shadow-card-hover ${HOVER}:-translate-y-1.5 transition-[transform,box-shadow] duration-[200ms] h-full flex flex-col`}
       onClick={handleCardClick}
       role="article"
-      aria-label={`Profile of ${fullName}`}
+      aria-label={t('cards.profileOf', { name: fullName })}
     >
       {hasPhoto ? (
         /* ── Photo Section ──────────────────────────── */
@@ -234,50 +245,55 @@ const ProfileCard = ({
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 via-black/10 to-transparent opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 transition-opacity duration-[250ms] pointer-events-none" />
           )}
 
-          {/* Online indicator */}
-          {isOnline && (
-            <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 px-2.5 py-1 bg-white/85 backdrop-blur-md rounded-full shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-success" />
-              <span className="text-[11px] font-semibold text-neutral-700">Online</span>
-            </div>
-          )}
+          {/* Status chips stack top-left. They used to be positioned one by
+              one: Online and the match badge shared the same spot, and the
+              plan badge sat under the 44px shortlist/like buttons. */}
+          <div className="absolute top-3.5 left-3.5 right-[7.5rem] flex flex-col items-start gap-1.5 pointer-events-none">
+            {/* Online indicator */}
+            {isOnline && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/85 backdrop-blur-md rounded-full shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-success" />
+                <span className="text-[11px] font-semibold text-neutral-700">{t('cards.online')}</span>
+              </div>
+            )}
 
-          {/* Match badge */}
-          {profile.compatibilityScore >= 80 && !isPremiumLocked && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              className="absolute top-3.5 left-3.5 px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 text-white shadow-lg"
-              style={{
-                background: 'linear-gradient(135deg, rgba(30,30,30,0.85), rgba(50,50,50,0.8))',
-                backdropFilter: 'blur(6px)',
-              }}
-            >
-              <FiCheckCircle className="w-3.5 h-3.5 text-success" />
-              {Math.round(profile.compatibilityScore)}% Match
-            </motion.div>
-          )}
+            {/* Match badge */}
+            {profile.compatibilityScore >= 80 && !isPremiumLocked && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 text-white shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(30,30,30,0.85), rgba(50,50,50,0.8))',
+                  backdropFilter: 'blur(6px)',
+                }}
+              >
+                <FiCheckCircle className="w-3.5 h-3.5 text-success" />
+                {t('cards.matchBadge', { n: Math.round(profile.compatibilityScore) })}
+              </motion.div>
+            )}
 
-          {/* Premium crown badge — tier-specific */}
-          {profile.isPremium && (
-            <motion.div
-              // Never scale(0) (doctrine §4.5/§8) — starts at 0.95 + opacity 0.
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.4, type: 'spring' }}
-              className={`absolute top-3.5 right-14 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold text-white shadow-lg ${
-                profile.premiumPlan === 'vip'
-                  ? 'bg-gold-500'
-                  : profile.premiumPlan === 'premium_plus'
-                  ? 'bg-primary-600'
-                  : 'bg-primary-400'
-              }`}
-            >
-              <FaCrown className="w-3 h-3" />
-              {planBadgeLabel(profile.premiumPlan)}
-            </motion.div>
-          )}
+            {/* Premium crown badge — tier-specific */}
+            {showsPlanBadge(profile) && (
+              <motion.div
+                // Never scale(0) (doctrine §4.5/§8) — starts at 0.95 + opacity 0.
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.4, type: 'spring' }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold text-white shadow-lg ${
+                  profile.premiumPlan === 'vip'
+                    ? 'bg-gold-500'
+                    : profile.premiumPlan === 'premium_plus'
+                    ? 'bg-primary-600'
+                    : 'bg-primary-400'
+                }`}
+              >
+                <FaCrown className="w-3 h-3" />
+                {planBadgeLabel(profile.premiumPlan, t)}
+              </motion.div>
+            )}
+          </div>
 
           {/* ── Action buttons (bookmark + like) ──── */}
           {showActions && !isPremiumLocked && (
@@ -285,7 +301,7 @@ const ProfileCard = ({
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={handleShortlist}
-                aria-label={isShortlisted ? 'Remove from shortlist' : 'Shortlist'}
+                aria-label={isShortlisted ? t('cards.removeFromShortlist') : t('cards.shortlist')}
                 // 44px hit-target floor (doctrine §3.5) — was w-10/40px,
                 // below the floor the photoless header's equivalent button
                 // already meets.
@@ -299,7 +315,7 @@ const ProfileCard = ({
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={handleLike}
-                aria-label={isLiked ? 'Unlike' : 'Express interest'}
+                aria-label={isLiked ? t('cards.unlike') : t('cards.expressInterestAria')}
                 className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-colors duration-[160ms] ${HOVER}:scale-110 ${isLiked
                     ? 'bg-primary-500 text-white'
                     : 'bg-white/70 backdrop-blur-md text-primary-400 hover:bg-white hover:text-primary-500 ring-1 ring-white/50'
@@ -352,10 +368,10 @@ const ProfileCard = ({
                 <FiCheckCircle
                   className="w-3.5 h-3.5 text-primary-600 flex-shrink-0"
                   role="img"
-                  aria-label="Verified profile"
+                  aria-label={t('cards.verifiedProfile')}
                 />
               )}
-              {profile.isPremium && (
+              {showsPlanBadge(profile) && (
                 <FaCrown
                   className={`w-3 h-3 flex-shrink-0 ${
                     profile.premiumPlan === 'vip'
@@ -369,7 +385,7 @@ const ProfileCard = ({
               )}
             </div>
             <p className="text-[12px] text-neutral-500 truncate">
-              {getAge()} yrs{profile.city ? ` · ${profile.city}` : ''}
+              {t('cards.ageYrs', { age: getAge() })}{profile.city ? ` · ${profile.city}` : ''}
             </p>
           </div>
 
@@ -389,7 +405,7 @@ const ProfileCard = ({
               className={`flex-shrink-0 px-2 py-1 rounded-full text-[11px] font-bold ${
                 profile.compatibilityScore >= 85 ? 'text-success bg-success-50' : 'text-primary-700 bg-primary-50'
               }`}
-              title={`${Math.round(profile.compatibilityScore)}% match`}
+              title={t('cards.matchTitle', { n: Math.round(profile.compatibilityScore) })}
             >
               {Math.round(profile.compatibilityScore)}%
             </span>
@@ -405,7 +421,7 @@ const ProfileCard = ({
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={handleShortlist}
-              aria-label={isShortlisted ? 'Remove from shortlist' : 'Shortlist'}
+              aria-label={isShortlisted ? t('cards.removeFromShortlist') : t('cards.shortlist')}
               // `hover:bg-neutral-100` has a dark-mode override (index.css);
               // `hover:text-neutral-800` doesn't, so it stayed near-black on
               // that dark hover background — dropped rather than adding a
@@ -440,16 +456,16 @@ const ProfileCard = ({
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.4, type: 'spring', stiffness: 260 }}
-                    title="Verified profile"
+                    title={t('cards.verifiedProfile')}
                     className="flex items-center gap-0.5 px-2 py-1 bg-primary-50 rounded-full border border-primary-200"
                   >
                     <FiCheckCircle className="w-3.5 h-3.5 text-primary-600 flex-shrink-0" />
-                    <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider">Verified</span>
+                    <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider">{t('cards.verified')}</span>
                   </motion.div>
                 )}
               </div>
               <p className="text-[13px] text-neutral-400 mt-0.5 font-medium">
-                {getAge()} yrs
+                {t('cards.ageYrs', { age: getAge() })}
               </p>
             </div>
             {profile.compatibilityScore && (
@@ -496,7 +512,7 @@ const ProfileCard = ({
                 className="flex-1 py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-gold-400 to-gold-500 text-primary-900 text-sm font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-colors duration-[160ms] shadow-gold"
               >
                 <FaCrown className="w-3.5 h-3.5" />
-                Unlock profile
+                {t('cards.unlockProfile')}
               </button>
             ) : primaryCta === 'message' ? (
               <>
@@ -505,14 +521,14 @@ const ProfileCard = ({
                   onClick={(e) => { e.stopPropagation(); navigate(`/chat?to=${userId}`); }}
                   className="flex-1 py-3 text-sm font-semibold rounded-xl transition-colors duration-[160ms] bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-burgundy inline-flex items-center justify-center gap-1.5"
                 >
-                  <FiMessageCircle className="w-4 h-4" /> Message
+                  <FiMessageCircle className="w-4 h-4" /> {t('cards.message')}
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={handleCardClick}
                   className="flex-1 py-3 text-sm font-semibold rounded-xl transition-colors duration-[160ms] border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
                 >
-                  View Profile
+                  {t('common.viewProfile')}
                   <FiArrowRight className="w-3.5 h-3.5" />
                 </motion.button>
               </>
@@ -527,15 +543,15 @@ const ProfileCard = ({
                     }`}
                 >
                   {isLiked ? (
-                    <span className="inline-flex items-center justify-center gap-1.5"><FiCheck className="w-4 h-4" /> Interest Sent</span>
-                  ) : 'Express Interest'}
+                    <span className="inline-flex items-center justify-center gap-1.5"><FiCheck className="w-4 h-4" /> {t('cards.interestSent')}</span>
+                  ) : t('cards.expressInterest')}
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={handleCardClick}
                   className="flex-1 py-3 text-sm font-semibold rounded-xl transition-colors duration-[160ms] border border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 flex items-center justify-center gap-1.5"
                 >
-                  View Profile
+                  {t('common.viewProfile')}
                   <FiArrowRight className="w-3.5 h-3.5" />
                 </motion.button>
               </>

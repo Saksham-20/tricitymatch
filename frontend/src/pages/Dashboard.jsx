@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import {
   FiEye, FiHeart, FiUsers, FiTrendingUp, FiMessageCircle,
   FiStar, FiArrowRight, FiCheckCircle, FiSun, FiMoon, FiCoffee,
@@ -19,12 +20,13 @@ import ProfileCompletionMeter, { getCompletionData } from '../components/profile
 import { getImageUrl } from '../utils/cloudinary';
 import UpgradeModal from '../components/common/UpgradeModal';
 import SectionHeader from '../components/common/SectionHeader';
-import FoundingBadge from '../components/common/FoundingBadge';
 import InviteLink from '../components/common/InviteLink';
 import PhotoNudge from '../components/profile/PhotoNudge';
 import { Skeleton, EmptyState } from '../components/ui';
 import StagedLoader, { useStagedReveal } from '../components/ui/StagedLoader';
 import RetryImage from '../components/ui/RetryImage';
+import planLabel from '../utils/planLabel';
+import AccountStateBanner from '../components/account/AccountStateBanner';
 
 // ─── Card shell — declared once (doctrine §3.4: border OR shadow, never both).
 // Light mode reads elevation from the burgundy-tinted `shadow-card`; a shadow
@@ -60,6 +62,7 @@ const CardSkeleton = () => (
 
 // ─── Suggestion card — premium inline component ────────────────────────────
 const SuggestionCard = ({ profile, index }) => {
+  const { t } = useTranslation();
   const { celebrate } = useMatchCelebration();
   const [isLiked, setIsLiked] = useState(profile.matchStatus === 'like');
   const [likeBusy, setLikeBusy] = useState(false);
@@ -76,17 +79,17 @@ const SuggestionCard = ({ profile, index }) => {
       // Taking an interest back is 'undo' (the row goes away). 'pass' would
       // record a rejection and hide this member from future suggestions.
       const res = await api.post(`/match/${profile.userId}`, { action: next ? 'like' : 'undo' });
-      toast.success(next ? 'Interest expressed' : 'Interest withdrawn');
+      toast.success(next ? t('dashboard.suggestion.interestExpressed') : t('dashboard.suggestion.interestWithdrawn'));
       if (res.data?.newMatch) celebrate(profile);
     } catch (err) {
       setIsLiked(!next); // revert optimistic update
-      toast.error(err.response?.data?.message || 'Could not update. Please try again');
+      toast.error(err.response?.data?.message || t('dashboard.suggestion.updateFailed'));
     } finally {
       setLikeBusy(false);
     }
   };
 
-  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Profile';
+  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || t('dashboard.fallback.profile');
   const initials  = (profile.firstName?.[0] || '') + (profile.lastName?.[0] || '') || '?';
   const age = profile.age || (profile.dateOfBirth
     ? new Date().getFullYear() - new Date(profile.dateOfBirth).getFullYear()
@@ -140,7 +143,7 @@ const SuggestionCard = ({ profile, index }) => {
           onClick={toggleLike}
           disabled={likeBusy}
           aria-pressed={isLiked}
-          aria-label={isLiked ? `Remove ${fullName} from your interests` : `Express interest in ${fullName}`}
+          aria-label={isLiked ? t('dashboard.suggestion.removeInterest', { name: fullName }) : t('dashboard.suggestion.expressInterest', { name: fullName })}
           className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-colors duration-[160ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 disabled:opacity-60 ${
             isLiked ? 'bg-primary-500 text-white' : 'bg-white/90 backdrop-blur-sm text-neutral-500 hover:text-primary-500'
           }`}
@@ -161,7 +164,7 @@ const SuggestionCard = ({ profile, index }) => {
           ) : (
             <p className="text-white font-semibold text-sm leading-tight">{fullName}</p>
           )}
-          {age && <p className="text-white/90 text-xs">{age} yrs · {profile.city || 'India'}</p>}
+          {age && <p className="text-white/90 text-xs">{t('dashboard.suggestion.ageCity', { age, city: profile.city || t('dashboard.fallback.city') })}</p>}
         </div>
       </div>
 
@@ -173,7 +176,7 @@ const SuggestionCard = ({ profile, index }) => {
         {/* Shown here only when the photo badge above isn't already showing it
             (score >= 75), so the percentage never prints twice on one card. */}
         {score && score < 75 && (
-          <span className={`text-xs font-bold ml-auto ${scoreColor}`}>{Math.round(score)}% match</span>
+          <span className={`text-xs font-bold ml-auto ${scoreColor}`}>{t('dashboard.suggestion.matchPercent', { score: Math.round(score) })}</span>
         )}
       </div>
 
@@ -193,24 +196,35 @@ const SuggestionCard = ({ profile, index }) => {
 };
 
 // ─── Subscription status / upgrade card ────────────────────────────────────
+// Styling by tier family; the NAME always comes from planLabel so this card
+// calls a plan what the pricing page calls it. Every key the server can send
+// must resolve here: founding_premium/elite/nri used to fall through to the
+// free styling and read "Free plan" for members on an active grant.
+const GOLD_META    = { color: 'text-gold-700', bg: 'bg-gold-50 dark:bg-gold-900/20', crown: 'text-gold-500 dark:text-gold-400' };
+const PRIMARY_META = { color: 'text-primary-600 dark:text-primary-300', bg: 'bg-primary-50 dark:bg-primary-900/20', crown: 'text-primary-400 dark:text-primary-300' };
+// `color` drops its `dark:` variant on gold: `.text-gold-700` is already
+// recolored for dark mode by a global !important rule in index.css.
 const PLAN_META = {
-  free:          { label: 'Free plan',      color: 'text-neutral-500 dark:text-neutral-400', bg: 'bg-neutral-100 dark:bg-neutral-800',   crown: null },
-  basic_premium: { label: 'Basic Premium',  color: 'text-primary-600 dark:text-primary-300', bg: 'bg-primary-50 dark:bg-primary-900/20', crown: 'text-primary-400 dark:text-primary-300' },
-  // `color` drops its `dark:` variant: `.text-gold-700` is already recolored
-  // for dark mode by a global !important rule in index.css.
-  premium_plus:  { label: 'Premium Plus',   color: 'text-gold-700',                           bg: 'bg-gold-50 dark:bg-gold-900/20',       crown: 'text-gold-500 dark:text-gold-400' },
-  vip:           { label: 'VIP Member',     color: 'text-gold-700',                           bg: 'bg-gold-50 dark:bg-gold-900/20',       crown: 'text-gold-500 dark:text-gold-400' },
+  basic_premium: PRIMARY_META,
+  founding_premium: PRIMARY_META,
+  premium_plus: GOLD_META,
+  elite: GOLD_META,
+  vip: GOLD_META,
+  nri: GOLD_META,
 };
 
 const SubscriptionStatusCard = ({ subscription, navigate }) => {
+  const { t } = useTranslation();
   const plan   = subscription?.planType || 'free';
-  const meta   = PLAN_META[plan] || PLAN_META.free;
+  const meta   = { ...(PLAN_META[plan] || PRIMARY_META), label: t('dashboard.plan.label', { plan: planLabel(plan) }) };
   const isFree = plan === 'free' || subscription?.status !== 'active';
 
   const unlocksAllowed = subscription?.contactUnlocksAllowed ?? null;
   const unlocksUsed    = subscription?.contactUnlocksUsed    ?? 0;
   const unlocksLeft    = unlocksAllowed === null ? null : Math.max(0, unlocksAllowed - unlocksUsed);
-  const showUnlockBar  = plan === 'basic_premium' && unlocksAllowed !== null;
+  // null = unlimited; any finite allowance (founding grant, basic, elite)
+  // gets the counter, not an "Unlimited unlocks" badge it doesn't have.
+  const showUnlockBar  = unlocksAllowed !== null && unlocksAllowed >= 0;
 
   const endDate = subscription?.endDate ? new Date(subscription.endDate) : null;
   const daysLeft = endDate
@@ -228,15 +242,15 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
             <FaCrown className="w-5 h-5 text-gold-600 dark:text-gold-400" />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-100">Unlock premium features</p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">See who viewed you, unlock contacts, and more</p>
+            <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-100">{t('dashboard.plan.freeTitle')}</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{t('dashboard.plan.freeBody')}</p>
           </div>
         </div>
         <button
           onClick={() => navigate('/subscription')}
           className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 bg-gold text-[#1A1A1A] rounded-xl text-sm font-semibold hover:bg-gold-400 transition-colors duration-[160ms] shadow-gold"
         >
-          Upgrade to premium
+          {t('dashboard.plan.upgrade')}
         </button>
       </div>
     );
@@ -256,23 +270,23 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
               <div className="flex items-center gap-1.5 mt-0.5">
                 <FiCalendar className="w-3 h-3 text-neutral-400" />
                 <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {daysLeft > 0 ? `${daysLeft} days remaining` : 'Expires today'}
+                  {daysLeft > 0 ? t('dashboard.plan.daysRemaining', { count: daysLeft }) : t('dashboard.plan.expiresToday')}
                 </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Unlock counter (basic_premium only) or unlimited badge */}
+        {/* Unlock counter (finite plans) or unlimited badge */}
         <div className="flex items-center gap-4">
           {showUnlockBar ? (
             <div className="flex-1 sm:flex-none sm:w-48">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
                   <FiUnlock className="w-3.5 h-3.5 text-primary-500" />
-                  <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Contact unlocks</span>
+                  <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">{t('dashboard.plan.contactUnlocks')}</span>
                 </div>
-                <span className="text-xs font-bold text-primary-600 dark:text-primary-300">{unlocksLeft} / {unlocksAllowed} left</span>
+                <span className="text-xs font-bold text-primary-600 dark:text-primary-300">{t('dashboard.plan.unlocksLeft', { left: unlocksLeft, total: unlocksAllowed })}</span>
               </div>
               <div
                 className="h-2 bg-white/70 dark:bg-black/30 rounded-full overflow-hidden"
@@ -280,7 +294,7 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
                 aria-valuenow={unlocksAllowed - unlocksLeft}
                 aria-valuemin={0}
                 aria-valuemax={unlocksAllowed}
-                aria-label="Contact unlocks used"
+                aria-label={t('dashboard.plan.unlocksUsed')}
               >
                 <div
                   className="h-full bg-primary-500 rounded-full transition-[width] duration-[250ms]"
@@ -291,14 +305,14 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/70 dark:bg-black/20 rounded-full shadow-sm">
               <FiZap className="w-3.5 h-3.5 text-gold-500" />
-              <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Unlimited unlocks</span>
+              <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">{t('dashboard.plan.unlimited')}</span>
             </div>
           )}
           <button
             onClick={() => navigate('/subscription')}
             className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-primary-500 transition-colors duration-[160ms] whitespace-nowrap py-3.5 px-2 -my-3.5 -mx-2"
           >
-            Manage plan
+            {t('dashboard.plan.manage')}
           </button>
         </div>
       </div>
@@ -308,6 +322,7 @@ const SubscriptionStatusCard = ({ subscription, navigate }) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats]               = useState({ viewsThisWeek: 0, totalViews: 0, likesReceived: 0 });
@@ -336,12 +351,17 @@ const Dashboard = () => {
   // Time-based greeting
   const greeting = useMemo(() => {
     const hour      = new Date().getHours();
-    const firstName = user?.firstName || user?.Profile?.firstName || user?.profile?.firstName || 'there';
-    if (hour >= 5  && hour < 12) return { text: `Good morning, ${firstName}`, icon: FiCoffee, subtext: 'Start your day with meaningful connections' };
-    if (hour >= 12 && hour < 17) return { text: `Good afternoon, ${firstName}`, icon: FiSun,    subtext: 'Perfect time to explore new profiles' };
-    if (hour >= 17 && hour < 21) return { text: `Good evening, ${firstName}`, icon: FiSun,    subtext: 'New profiles from the Tricity are waiting to meet you' };
-    return                               { text: `Good night, ${firstName}`,   icon: FiMoon,   subtext: 'Your perfect match might be just a click away' };
-  }, [user]);
+    const name = user?.firstName || user?.Profile?.firstName || user?.profile?.firstName || t('dashboard.greeting.there');
+    const g = (part, icon) => ({
+      text: t(`dashboard.greeting.${part}`, { name }),
+      icon,
+      subtext: t(`dashboard.greeting.${part}Sub`),
+    });
+    if (hour >= 5  && hour < 12) return g('morning', FiCoffee);
+    if (hour >= 12 && hour < 17) return g('afternoon', FiSun);
+    if (hour >= 17 && hour < 21) return g('evening', FiSun);
+    return g('night', FiMoon);
+  }, [user, t]);
 
   useEffect(() => { loadDashboardData(); }, []);
 
@@ -382,12 +402,14 @@ const Dashboard = () => {
       const failures = settled.filter(r => r.status === 'rejected').length;
       setLoadError(failures >= 3 || profileRes.status === 'rejected');
 
+      const memberFallback = t('dashboard.fallback.member');
+      const cityFallback = t('dashboard.fallback.city');
       const normalizeProfile = (p) => ({
         ...p,
         userId:       p.userId || p.id || p.User?.id,
-        firstName:    p.firstName || p.first_name || 'Unknown',
+        firstName:    p.firstName || p.first_name || memberFallback,
         lastName:     p.lastName  || p.last_name  || '',
-        city:         p.city      || p.location   || 'India',
+        city:         p.city      || p.location   || cityFallback,
         profilePhoto: p.profilePhoto || p.profile_photo || null,
       });
 
@@ -414,9 +436,9 @@ const Dashboard = () => {
           raw.map(p => ({
             ...p,
             userId:       p.userId || p.id || p.User?.id,
-            firstName:    p.firstName || p.first_name || 'Unknown',
+            firstName:    p.firstName || p.first_name || memberFallback,
             lastName:     p.lastName  || p.last_name  || '',
-            city:         p.city      || p.location   || 'India',
+            city:         p.city      || p.location   || cityFallback,
             profilePhoto: p.profilePhoto || p.profile_photo || null,
           })).filter(p => p.userId)
         );
@@ -430,9 +452,9 @@ const Dashboard = () => {
           raw.map(m => ({
             ...m,
             userId:       m.userId || m.id || m.User?.id,
-            firstName:    m.firstName || m.first_name || 'Unknown',
+            firstName:    m.firstName || m.first_name || memberFallback,
             lastName:     m.lastName  || m.last_name  || '',
-            city:         m.city      || m.location   || 'India',
+            city:         m.city      || m.location   || cityFallback,
             profilePhoto: m.profilePhoto || m.profile_photo || null,
           })).filter(m => m.userId)
         );
@@ -488,8 +510,8 @@ const Dashboard = () => {
   const statsConfig = [
     {
       key:       'viewsThisWeek',
-      label:     'Profile Views',
-      sublabel:  'This week',
+      label:     t('dashboard.stats.profileViews'),
+      sublabel:  t('dashboard.stats.thisWeek'),
       icon:      FiEye,
       iconBg:    'bg-primary-50 dark:bg-primary-900/30',
       iconColor: 'text-primary-500',
@@ -499,8 +521,8 @@ const Dashboard = () => {
       // Plain stat, shown to every tier — not a premium marker, so it stays
       // neutral rather than gold (doctrine §3.1).
       key:       'totalViews',
-      label:     'Total Views',
-      sublabel:  'All time',
+      label:     t('dashboard.stats.totalViews'),
+      sublabel:  t('dashboard.stats.allTime'),
       icon:      FiTrendingUp,
       iconBg:    'bg-neutral-100 dark:bg-neutral-800',
       iconColor: 'text-neutral-500 dark:text-neutral-400',
@@ -508,8 +530,8 @@ const Dashboard = () => {
     },
     {
       key:       'likesReceived',
-      label:     'Interests Received',
-      sublabel:  'Total',
+      label:     t('dashboard.stats.interestsReceived'),
+      sublabel:  t('dashboard.stats.total'),
       icon:      FiHeart,
       iconBg:    'bg-primary-50 dark:bg-primary-900/30',
       iconColor: 'text-primary-400',
@@ -517,8 +539,8 @@ const Dashboard = () => {
     },
     {
       key:        'mutualMatches',
-      label:      'Mutual Matches',
-      sublabel:   'Ready to chat',
+      label:      t('dashboard.stats.mutualMatches'),
+      sublabel:   t('dashboard.stats.readyToChat'),
       icon:       FiUsers,
       // `dark:` variants dropped on iconBg/iconColor/numColor: `.bg-success-50`
       // and `.text-success` are already recolored for dark mode by global
@@ -597,9 +619,9 @@ const Dashboard = () => {
     (Date.now() - new Date(userProfile.createdAt).getTime()) < 48 * 3600 * 1000;
   const isFirstRun = !loadError && (completionPercent < 60 || accountIsNew);
   const setupChecklist = [
-    { id: 'photo', label: 'Add your photo', desc: 'A clear photo helps families recognise and trust your profile', done: !!profileForMeter.profilePhoto, icon: FiCamera },
-    { id: 'bio',   label: 'Write about yourself', desc: 'A short bio helps families connect', done: !!(profileForMeter.bio && String(profileForMeter.bio).trim().length >= 20), icon: FiUser },
-    { id: 'prefs', label: 'Set partner preferences', desc: 'Sharpen who we match you with', done: !!(profileForMeter.preferredAgeMin || profileForMeter.preferredCity || profileForMeter.preferredEducation), icon: FiSliders },
+    { id: 'photo', label: t('dashboard.checklist.photo'), desc: t('dashboard.checklist.photoDesc'), done: !!profileForMeter.profilePhoto, icon: FiCamera },
+    { id: 'bio',   label: t('dashboard.checklist.bio'), desc: t('dashboard.checklist.bioDesc'), done: !!(profileForMeter.bio && String(profileForMeter.bio).trim().length >= 20), icon: FiUser },
+    { id: 'prefs', label: t('dashboard.checklist.prefs'), desc: t('dashboard.checklist.prefsDesc'), done: !!(profileForMeter.preferredAgeMin || profileForMeter.preferredCity || profileForMeter.preferredEducation), icon: FiSliders },
   ];
 
   // Verified or pending review both mean "nothing to prompt right now" — and
@@ -640,17 +662,19 @@ const Dashboard = () => {
               <FiAlertCircle className="w-5 h-5 text-destructive" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Couldn't load your dashboard</p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">Something went wrong on our side or your connection dropped. Your profile is safe.</p>
+              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{t('dashboard.error.title')}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{t('dashboard.error.body')}</p>
             </div>
             <button
               onClick={loadDashboardData}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors duration-[160ms] flex-shrink-0"
             >
-              <FiRefreshCw className="w-4 h-4" /> Retry
+              <FiRefreshCw className="w-4 h-4" /> {t('common.retry')}
             </button>
           </motion.div>
         )}
+
+        <AccountStateBanner />
 
         {/* ── Header — a plain greeting row, not a decorated hero band. No
                eyebrow label above the heading (doctrine §8 — it carries its
@@ -664,7 +688,6 @@ const Dashboard = () => {
                 <greeting.icon className="w-6 h-6 text-primary-500 flex-shrink-0" aria-hidden="true" />
                 {greeting.text}
               </h1>
-              <FoundingBadge user={user} />
             </div>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1.5">{greeting.subtext}</p>
 
@@ -674,7 +697,7 @@ const Dashboard = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-800 rounded-full">
                     <FiStar className="w-3.5 h-3.5 text-primary-500" />
                     <span className="text-primary-700 dark:text-primary-300 text-xs font-medium">
-                      {stats.viewsThisWeek} profile views this week
+                      {t('dashboard.header.viewsThisWeek', { count: stats.viewsThisWeek })}
                     </span>
                   </div>
                 )}
@@ -685,7 +708,7 @@ const Dashboard = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-success-50 border border-success-100 dark:border-success-500/30 rounded-full">
                     <FiUsers className="w-3.5 h-3.5 text-success" />
                     <span className="text-success text-xs font-medium">
-                      {community.newThisWeek} new {community.newThisWeek === 1 ? 'member' : 'members'} joined this week
+                      {t('dashboard.header.newMembers', { count: community.newThisWeek })}
                     </span>
                   </div>
                 )}
@@ -702,14 +725,14 @@ const Dashboard = () => {
               className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-xl text-sm font-semibold [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5 transition-transform duration-[160ms] shadow-burgundy"
             >
               <FiSearch className="w-4 h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap">Find matches</span>
+              <span className="whitespace-nowrap">{t('dashboard.header.findMatches')}</span>
             </Link>
             <Link
               to="/chat"
               className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-transparent text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-700 rounded-xl text-sm font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors duration-[160ms]"
             >
               <FiMessageCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap">Messages</span>
+              <span className="whitespace-nowrap">{t('navbar.messages')}</span>
             </Link>
           </div>
         </motion.header>
@@ -763,9 +786,9 @@ const Dashboard = () => {
             animate="animate"
           >
             <SectionHeader
-              title="Mutual Matches"
-              subtitle="These people liked you back. Start a conversation."
-              count={`${mutualMatches.length} new`}
+              title={t('dashboard.stats.mutualMatches')}
+              subtitle={t('dashboard.mutual.subtitle')}
+              count={t('dashboard.mutual.countNew', { count: mutualMatches.length })}
               countTone="ok"
               action={
                 <Link
@@ -773,7 +796,7 @@ const Dashboard = () => {
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors duration-[160ms] shadow-burgundy"
                 >
                   <FiMessageCircle className="w-4 h-4" />
-                  Open chat
+                  {t('dashboard.mutual.openChat')}
                 </Link>
               }
             />
@@ -795,9 +818,9 @@ const Dashboard = () => {
         {dailyMatches.length > 0 && (
           <motion.section variants={fadeInUp}>
             <SectionHeader
-              title="Today's Matches"
-              subtitle="Hand-picked for you, refreshed every day"
-              count="Daily"
+              title={t('dailyMatches.title')}
+              subtitle={t('dashboard.daily.subtitle')}
+              count={t('dashboard.daily.count')}
             />
 
             <div className="flex gap-4 overflow-x-auto pb-3 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-5 scrollbar-hide snap-x snap-mandatory">
@@ -815,7 +838,7 @@ const Dashboard = () => {
                 to="/search"
                 className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm py-3 px-3 -my-3 -mx-3"
               >
-                See more matches <FiArrowRight className="w-4 h-4" />
+                {t('dashboard.daily.seeMore')} <FiArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
@@ -825,14 +848,14 @@ const Dashboard = () => {
                   onClick={() => navigate('/subscription')}
                   className="inline-flex items-center gap-2 px-5 py-3 bg-gold text-[#1A1A1A] text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors duration-[160ms] shadow-gold"
                 >
-                  <FaCrown className="w-3.5 h-3.5" /> Upgrade to see more matches today
+                  <FaCrown className="w-3.5 h-3.5" /> {t('dailyMatches.upgrade')}
                 </button>
               </div>
             )}
 
             {/* Anticipation line — the daily set refreshes at midnight IST. */}
             <p className="mt-3 text-center text-xs text-neutral-500 dark:text-neutral-500">
-              Fresh matches arrive at midnight. Check back tomorrow.
+              {t('dashboard.daily.fresh')}
             </p>
           </motion.section>
         )}
@@ -844,16 +867,16 @@ const Dashboard = () => {
         <motion.section variants={fadeInUp}>
           <SectionHeader
             tone="gold"
-            title="Who Viewed You"
-            subtitle={hasPremium ? 'People who visited your profile recently' : 'Upgrade to see who viewed your profile'}
-            count={hasPremium && profileViewers.length > 0 ? `${profileViewers.length} recent` : undefined}
+            title={t('dashboard.viewers.title')}
+            subtitle={hasPremium ? t('dashboard.viewers.subtitlePremium') : t('dashboard.viewers.subtitleFree')}
+            count={hasPremium && profileViewers.length > 0 ? t('dashboard.viewers.countRecent', { count: profileViewers.length }) : undefined}
             countTone="gold"
           />
 
           {hasPremium && profileViewers.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {profileViewers.slice(0, 6).map((viewer, i) => {
-                const viewerName = `${viewer.firstName || ''} ${viewer.lastName || ''}`.trim() || 'User';
+                const viewerName = `${viewer.firstName || ''} ${viewer.lastName || ''}`.trim() || t('dashboard.fallback.member');
                 const initials = (viewer.firstName?.[0] || '') + (viewer.lastName?.[0] || '') || '?';
                 return (
                   <motion.div
@@ -869,7 +892,7 @@ const Dashboard = () => {
                     {viewer.userId && (
                       <Link
                         to={`/profile/${viewer.userId}`}
-                        aria-label={`View ${viewerName}'s profile`}
+                        aria-label={t('dashboard.viewers.viewProfile', { name: viewerName })}
                         className="absolute inset-0 z-10 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
                       />
                     )}
@@ -898,7 +921,7 @@ const Dashboard = () => {
           ) : hasPremium && profileViewers.length === 0 ? (
             <div className={`${CARD} rounded-2xl p-8 text-center`}>
               <FiEye className="w-8 h-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">No one has viewed your profile yet. Complete your profile to attract visitors.</p>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('dashboard.viewers.empty')}</p>
             </div>
           ) : (
             /* Locked state for free users */
@@ -914,14 +937,14 @@ const Dashboard = () => {
                 <div className="w-12 h-12 rounded-2xl bg-gold-50 dark:bg-gold-900/30 flex items-center justify-center mb-3">
                   <FiLock className="w-5 h-5 text-gold-600 dark:text-gold-400" />
                 </div>
-                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">Premium feature</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4 max-w-xs text-center">See who's interested in your profile</p>
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">{t('dashboard.viewers.locked')}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4 max-w-xs text-center">{t('dashboard.viewers.lockedBody')}</p>
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowUpgradeModal(true)}
                   className="inline-flex items-center gap-2 px-5 py-3 bg-gold text-[#1A1A1A] text-sm font-semibold rounded-xl hover:bg-gold-400 transition-colors duration-[160ms] shadow-gold"
                 >
-                  <FaCrown className="w-3.5 h-3.5" /> Upgrade to premium
+                  <FaCrown className="w-3.5 h-3.5" /> {t('dashboard.plan.upgrade')}
                 </motion.button>
               </div>
             </div>
@@ -975,16 +998,16 @@ const Dashboard = () => {
         {/* ── What you were doing: recently viewed, curated browsing ─────── */}
         {recentlyViewed.length > 0 && (
           <motion.section variants={fadeInUp}>
-            <SectionHeader title="Recently Viewed" />
+            <SectionHeader title={t('recentlyViewed.title')} />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {recentlyViewed.slice(0, 6).map((p, i) => {
-                const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'User';
+                const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || t('dashboard.fallback.member');
                 const initials = (p.firstName?.[0] || '') + (p.lastName?.[0] || '') || '?';
                 return (
                   <Link
                     key={`recent-${p.userId}`}
                     to={`/profile/${p.userId}`}
-                    aria-label={`View ${name}'s profile`}
+                    aria-label={t('dashboard.viewers.viewProfile', { name })}
                     className={`block cursor-pointer ${CARD} rounded-xl overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1`}
                   >
                     <div className="relative h-28 bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
@@ -1015,15 +1038,15 @@ const Dashboard = () => {
         {curatedSuggestions.length > 0 && (
           <motion.section variants={fadeInUp}>
             <SectionHeader
-              title="Curated for You"
-              subtitle="A wider set of profiles matched to your preferences"
-              count="For you"
+              title={t('dashboard.curated.title')}
+              subtitle={t('dashboard.curated.subtitle')}
+              count={t('dashboard.curated.count')}
               action={
                 <Link
                   to="/search"
                   className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm hover:text-primary-600 transition-colors duration-[160ms] py-3 -my-3 px-1 -mx-1"
                 >
-                  View all
+                  {t('dashboard.curated.viewAll')}
                   <FiArrowRight className="w-4 h-4" />
                 </Link>
               }
@@ -1044,7 +1067,7 @@ const Dashboard = () => {
                 to="/search"
                 className="inline-flex items-center gap-1.5 text-primary-500 font-semibold text-sm py-3 px-3 -my-3 -mx-3"
               >
-                View all profiles <FiArrowRight className="w-4 h-4" />
+                {t('dashboard.curated.viewAllProfiles')} <FiArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </motion.section>
@@ -1062,9 +1085,9 @@ const Dashboard = () => {
           >
             <EmptyState
               icon={FiUsers}
-              title="You're early. That's the point."
-              description="We're building this community one verified Tricity family at a time, so there isn't much here yet. Sharpen your preferences so we match you well from the first profile, and invite someone you'd trust with an introduction."
-              actionLabel="Browse profiles"
+              title={t('dashboard.empty.title')}
+              description={t('dashboard.empty.body')}
+              actionLabel={t('dashboard.empty.browse')}
               onAction={() => navigate('/search')}
               className="py-16"
             />
@@ -1075,7 +1098,7 @@ const Dashboard = () => {
                 className="btn-secondary inline-flex items-center gap-2"
               >
                 <FiSliders className="w-4 h-4" />
-                Set preferences
+                {t('dashboard.empty.setPrefs')}
               </motion.button>
             </div>
             <div className="mt-4 flex justify-center pb-6">
@@ -1096,8 +1119,8 @@ const Dashboard = () => {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        feature="Profile Viewers"
-        description="See who's viewing your profile and show your interest"
+        feature={t('dashboard.upgradeModal.feature')}
+        description={t('dashboard.upgradeModal.description')}
       />
     </motion.div>
   );

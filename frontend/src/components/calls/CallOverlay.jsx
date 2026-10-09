@@ -1,12 +1,14 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPhone, FiPhoneOff, FiMic, FiMicOff, FiVideo, FiVideoOff } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { useCall } from '../../context/CallContext';
 
 const Avatar = ({ name, photo, size = 'lg' }) => {
+  const { t } = useTranslation();
   const dim = size === 'lg' ? 'w-28 h-28 text-3xl' : 'w-20 h-20 text-2xl';
   if (photo) {
-    return <img src={photo} alt={name || 'caller'} className={`${dim} rounded-full object-cover shadow-xl`} />;
+    return <img src={photo} alt={name || t('calls.caller')} className={`${dim} rounded-full object-cover shadow-xl`} />;
   }
   const initials = (name || 'U').split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
   return (
@@ -34,6 +36,7 @@ const RoundButton = ({ onClick, danger, active, label, children }) => (
 );
 
 const CallOverlay = () => {
+  const { t } = useTranslation();
   const {
     status, peer, type, muted, camOff, remoteJoined,
     acceptIncoming, declineIncoming, hangUp, toggleMute, toggleCam,
@@ -43,9 +46,9 @@ const CallOverlay = () => {
 
   const isVideo = type === 'video';
   const statusLabel =
-    status === 'calling' ? 'Calling…'
-    : status === 'ringing' ? `Incoming ${isVideo ? 'video ' : ''}call`
-    : remoteJoined ? 'Connected' : 'Connecting…';
+    status === 'calling' ? t('calls.calling')
+    : status === 'ringing' ? (isVideo ? t('calls.incomingVideoCall') : t('calls.incomingCall'))
+    : remoteJoined ? t('calls.connected') : t('calls.connecting');
 
   return (
     <AnimatePresence>
@@ -56,7 +59,7 @@ const CallOverlay = () => {
         className="fixed inset-0 z-[200] bg-surface-dark-1/95 backdrop-blur-md flex flex-col items-center justify-between py-12"
         role="dialog"
         aria-modal="true"
-        aria-label="Call"
+        aria-label={t('calls.dialogLabel')}
       >
         {/* Remote video fills the screen during an active video call */}
         {isVideo && status === 'active' && (
@@ -76,7 +79,7 @@ const CallOverlay = () => {
           <div className="flex-1 flex flex-col items-center justify-center gap-5 z-10">
             <Avatar name={peer?.name} photo={peer?.photo} />
             <div className="text-center">
-              <h2 className="text-2xl font-semibold text-white">{peer?.name || 'Unknown'}</h2>
+              <h2 className="text-2xl font-semibold text-white">{peer?.name || t('calls.unknown')}</h2>
               <p className="text-white/60 mt-1">{statusLabel}</p>
             </div>
           </div>
@@ -86,24 +89,24 @@ const CallOverlay = () => {
         <div className="z-20 flex items-center gap-5">
           {status === 'ringing' ? (
             <>
-              <RoundButton onClick={declineIncoming} danger label="Decline">
+              <RoundButton onClick={declineIncoming} danger label={t('calls.decline')}>
                 <FiPhoneOff className="w-6 h-6" />
               </RoundButton>
-              <RoundButton onClick={acceptIncoming} label="Accept">
+              <RoundButton onClick={acceptIncoming} label={t('calls.accept')}>
                 <FiPhone className="w-6 h-6 text-success" />
               </RoundButton>
             </>
           ) : (
             <>
-              <RoundButton onClick={toggleMute} active={muted} label={muted ? 'Unmute' : 'Mute'}>
+              <RoundButton onClick={toggleMute} active={muted} label={muted ? t('calls.unmute') : t('calls.mute')}>
                 {muted ? <FiMicOff className="w-6 h-6" /> : <FiMic className="w-6 h-6" />}
               </RoundButton>
               {isVideo && (
-                <RoundButton onClick={toggleCam} active={camOff} label={camOff ? 'Turn camera on' : 'Turn camera off'}>
+                <RoundButton onClick={toggleCam} active={camOff} label={camOff ? t('calls.cameraOn') : t('calls.cameraOff')}>
                   {camOff ? <FiVideoOff className="w-6 h-6" /> : <FiVideo className="w-6 h-6" />}
                 </RoundButton>
               )}
-              <RoundButton onClick={hangUp} danger label="End call">
+              <RoundButton onClick={hangUp} danger label={t('calls.endCall')}>
                 <FiPhoneOff className="w-6 h-6" />
               </RoundButton>
             </>

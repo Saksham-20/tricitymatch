@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FiMail, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
 import api from '../api/axios';
@@ -12,6 +13,7 @@ import api from '../api/axios';
 const LINK_RE = { u: /^[0-9a-f-]{36}$/i, t: /^[0-9a-f]{32}$/i };
 
 export default function Unsubscribe() {
+  const { t: tr } = useTranslation();
   const [params] = useSearchParams();
   const u = params.get('u') || '';
   const t = params.get('t') || '';
@@ -30,7 +32,7 @@ export default function Unsubscribe() {
       await api.post(`/email/${action}`, { u, t });
       setStatus(action === 'unsubscribe' ? 'done' : 'undone');
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Connection failed. Try again.');
+      setError(err.response?.data?.error?.message || tr('unsubscribe.error.fallback'));
       setStatus('error');
     }
   };
@@ -39,28 +41,28 @@ export default function Unsubscribe() {
 
   let icon = FiMail;
   let iconTone = 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300';
-  let title = 'Unsubscribe from reminder emails';
-  let body = 'We will stop the photo reminders, plan follow-ups and the weekly matches email. Emails about payments, your membership dates, sign-in codes and account security will still reach you.';
+  let title = tr('unsubscribe.idle.title');
+  let body = tr('unsubscribe.idle.body');
 
   if (!linkOk) {
     icon = FiAlertCircle;
     iconTone = 'bg-destructive/10 text-destructive dark:text-red-300';
-    title = 'This link is not valid';
-    body = 'Open the latest email from us and use the unsubscribe link at the bottom, or write to us and we will do it for you.';
+    title = tr('unsubscribe.invalid.title');
+    body = tr('unsubscribe.invalid.body');
   } else if (status === 'done') {
     icon = FiCheckCircle;
     iconTone = 'bg-success-50 dark:bg-success-500/20 text-success dark:text-success-100';
-    title = 'You are unsubscribed';
-    body = 'We will not send you reminder emails. Emails about payments, membership dates and account security will still reach you.';
+    title = tr('unsubscribe.done.title');
+    body = tr('unsubscribe.done.body');
   } else if (status === 'undone') {
     icon = FiCheckCircle;
     iconTone = 'bg-success-50 dark:bg-success-500/20 text-success dark:text-success-100';
-    title = 'Reminder emails are back on';
-    body = 'You will get our reminder emails again. You can turn them off from the link at the bottom of any of them.';
+    title = tr('unsubscribe.undone.title');
+    body = tr('unsubscribe.undone.body');
   } else if (status === 'error') {
     icon = FiAlertCircle;
     iconTone = 'bg-destructive/10 text-destructive dark:text-red-300';
-    title = 'That did not go through';
+    title = tr('unsubscribe.error.title');
     body = error;
   }
 
@@ -94,7 +96,7 @@ export default function Unsubscribe() {
                 aria-busy={working}
                 onClick={() => run('unsubscribe')}
               >
-                {working ? 'Unsubscribing' : 'Unsubscribe'}
+                {working ? tr('unsubscribe.unsubscribing') : tr('unsubscribe.unsubscribe')}
               </button>
             )}
 
@@ -106,19 +108,19 @@ export default function Unsubscribe() {
                 aria-busy={working}
                 onClick={() => run('resubscribe')}
               >
-                {working ? 'Turning back on' : 'Undo'}
+                {working ? tr('unsubscribe.turningBackOn') : tr('unsubscribe.undo')}
               </button>
             )}
 
             {status === 'error' && (
               <button type="button" className="btn-primary w-full" onClick={() => run(lastAction)}>
-                Try again
+                {tr('unsubscribe.tryAgain')}
               </button>
             )}
 
             {!linkOk && (
               <a href="mailto:support@tricitymatch.com" className="btn-primary w-full flex items-center justify-center">
-                Email support
+                {tr('unsubscribe.emailSupport')}
               </a>
             )}
 
@@ -126,7 +128,7 @@ export default function Unsubscribe() {
               to="/"
               className="w-full min-h-[44px] py-3 flex items-center justify-center text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors duration-150"
             >
-              Back to home
+              {tr('unsubscribe.backHome')}
             </Link>
           </div>
         </div>

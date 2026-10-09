@@ -5,6 +5,7 @@ import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { FiSend, FiMessageCircle, FiChevronLeft, FiLock, FiMic, FiX, FiCornerUpLeft } from 'react-icons/fi';
 import SafetyMenu from '../components/safety/SafetyMenu';
 import { API_BASE_URL } from '../utils/api';
@@ -81,12 +82,12 @@ const DateSeparator = ({ date }) => (
 );
 
 // Sidebar avatar with initials fallback
-const ConversationAvatar = ({ name, photo, size = 'w-14 h-14', textSize = 'text-lg' }) => (
+const ConversationAvatar = ({ name, photo, size = 'w-14 h-14', textSize = 'text-lg', fallbackAlt = 'Profile' }) => (
   photo ? (
     <>
       <RetryImage
         src={getImageUrl(photo, API_BASE_URL, 'thumbnail')}
-        alt={name || 'Profile'}
+        alt={name || fallbackAlt}
         className={`${size} rounded-full object-cover ring-2 ring-white shadow-md`}
         loading="lazy"
         onError={(e) => {
@@ -105,7 +106,24 @@ const ConversationAvatar = ({ name, photo, size = 'w-14 h-14', textSize = 'text-
   )
 );
 
+// Conversation-list time: the clock for today, the date before that (the
+// thread itself already shows exact times).
+// English keeps the browser's own locale (as before); Hindi/Punjabi use their
+// own month names with Western digits.
+const indicLocale = (lng) => `${lng}-IN-u-nu-latn`;
+const isEnglish = (lng) => !lng || lng.startsWith('en');
+
+const listStamp = (iso, lng) => {
+  const d = new Date(iso);
+  const now = new Date();
+  const locale = isEnglish(lng) ? [] : indicLocale(lng);
+  return d.toDateString() === now.toDateString()
+    ? d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+};
+
 const Chat = () => {
+  const { t, i18n } = useTranslation();
   const { socket } = useSocket();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -131,7 +149,7 @@ const Chat = () => {
   // tells a member something false about their own matches.
   const [loadError, setLoadError] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeFeature, setUpgradeFeature] = useState('Chat & Messaging');
+  const [upgradeFeature, setUpgradeFeature] = useState('chatMessaging');
   // Access lost WHILE the thread is open — subscription expired, or the flag
   // turned off. Thread stays readable; only the composer closes.
   const [revoked, setRevoked] = useState(false);
@@ -210,6 +228,33 @@ const Chat = () => {
     if (selected && !selected.locked) loadMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.userId, selected?.locked]);
+
+  // The list's preview line and order follow the newest message, sent or
+  // received, in any thread. Without this the row kept saying "Say hello"
+  // after a conversation had started, until a reload.
+  const bumpConversation = useCallback((message) => {
+    if (!message || !user) return;
+    const otherId = message.senderId === user.id ? message.receiverId : message.senderId;
+    setConversations((prev) => {
+      const i = prev.findIndex((r) => r.userId === otherId);
+      if (i === -1) return prev;
+      if (prev[i].lastMessage?.id === message.id) return prev;
+      const incomingElsewhere = message.senderId !== user.id && openThreadRef.current !== otherId;
+      const row = {
+        ...prev[i],
+        lastMessage: message,
+        unreadCount: incomingElsewhere ? (prev[i].unreadCount || 0) + 1 : prev[i].unreadCount,
+      };
+      return [row, ...prev.slice(0, i), ...prev.slice(i + 1)];
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (!socket) return undefined;
+    const onNewAny = ({ message }) => bumpConversation(message);
+    socket.on('message:new', onNewAny);
+    return () => socket.off('message:new', onNewAny);
+  }, [socket, bumpConversation]);
 
   useEffect(() => {
     if (selected && !selected.locked && socket) {
@@ -337,7 +382,7 @@ const Chat = () => {
         }
       } else {
         setLoadError(true);
-        toast.error('Failed to load conversations');
+        toast.error(t('chat.toast.loadConversations'));
       }
     } finally {
       setLoading(false);
@@ -356,6 +401,10 @@ const Chat = () => {
       const response = await api.get(`/chat/messages/${threadId}`);
       if (stale()) return;
       setMessages(response.data.messages || []);
+      // Opening the thread reads it: clear the row's badge and let the nav
+      // badge refetch now rather than on its next 30s poll.
+      setConversations((prev) => prev.map((r) => (r.userId === threadId && r.unreadCount ? { ...r, unreadCount: 0 } : r)));
+      window.dispatchEvent(new Event('tm:chat-read'));
       // D1: the thread response carries {reason, replyWindow} — drives the
       // composer state machine (normal / meter / paywalled).
       const access = response.data.chatAccess || null;
@@ -373,7 +422,7 @@ const Chat = () => {
         if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
           if (chatEverWorked.current) {
             setRevoked(true);
-            toast.error(apiErrorMessage(error, 'Premium subscription required'));
+            toast.error(apiErrorMessage(error, t('chat.toast.premiumRequired')));
           } else {
             setAccessDenied(true);
           }
@@ -392,6 +441,7 @@ const Chat = () => {
 
   const appendOwn = (sentMessage) => {
     setMessages((prev) => (prev.some((m) => m.id === sentMessage.id) ? prev : [...prev, sentMessage]));
+    bumpConversation(sentMessage);
   };
 
   const sendMessage = async (e) => {
@@ -436,12 +486,12 @@ const Chat = () => {
           setReplyWindow(errBody.replyWindow || { active: false, messagesRemaining: 0, messagesUsed: 5, firstReplyAt: null, expiresAt: null });
         } else if (code === 'PREMIUM_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
           setRevoked(true);
-          toast.error(error.response?.data?.error?.message || 'Premium subscription required to send messages');
+          toast.error(error.response?.data?.error?.message || t('chat.toast.premiumToSend'));
         } else {
-          toast.error(errBody?.message || 'Failed to send message');
+          toast.error(errBody?.message || t('chat.toast.sendFailed'));
         }
       } else {
-        toast.error('Failed to send message');
+        toast.error(t('chat.toast.sendFailed'));
       }
     } finally {
       setSending(false);
@@ -477,7 +527,7 @@ const Chat = () => {
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions: response.data.reactions } : m)));
     } catch (error) {
       setMessages(prevMessages);
-      toast.error(error.response?.data?.error?.message || 'Could not react');
+      toast.error(error.response?.data?.error?.message || t('chat.toast.reactFailed'));
     }
   };
 
@@ -494,7 +544,7 @@ const Chat = () => {
 
   const saveEdit = async (messageId) => {
     if (!editContent.trim()) {
-      toast.error('Message cannot be empty');
+      toast.error(t('chat.toast.empty'));
       return;
     }
     try {
@@ -504,10 +554,10 @@ const Chat = () => {
       // Server broadcasts the edit (ES1) — no client emit.
       setEditingMessage(null);
       setEditContent('');
-      toast.success('Message updated');
+      toast.success(t('chat.toast.updated'));
     } catch (error) {
       if (isDev) console.error('Failed to edit message:', error.response?.data || error.message);
-      toast.error(apiErrorMessage(error, 'Failed to edit message'));
+      toast.error(apiErrorMessage(error, t('chat.toast.editFailed')));
     }
   };
 
@@ -517,10 +567,10 @@ const Chat = () => {
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
       // Server broadcasts the deletion (SOCK-3/ES1) — no client emit.
       setDeleteConfirm(null);
-      toast.success('Message deleted');
+      toast.success(t('chat.toast.deleted'));
     } catch (error) {
       if (isDev) console.error('Failed to delete message:', error.response?.data || error.message);
-      toast.error(apiErrorMessage(error, 'Failed to delete message'));
+      toast.error(apiErrorMessage(error, t('chat.toast.deleteFailed')));
     }
   };
 
@@ -557,9 +607,10 @@ const Chat = () => {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    if (date.toDateString() === today.toDateString()) return 'Today';
-    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    if (date.toDateString() === today.toDateString()) return t('chat.today');
+    if (date.toDateString() === yesterday.toDateString()) return t('chat.yesterday');
+    const lng = i18n.language;
+    return date.toLocaleDateString(isEnglish(lng) ? 'en-US' : indicLocale(lng), { weekday: 'long', month: 'short', day: 'numeric' });
   };
 
   const groupMessagesByDate = (msgs) => {
@@ -579,7 +630,7 @@ const Chat = () => {
   const handleSelect = (row) => {
     if (row.locked) {
       // ES5 locked row: readable context, tap explains instead of erroring.
-      setUpgradeFeature('Chat & Messaging');
+      setUpgradeFeature('chatMessaging');
       setShowUpgradeModal(true);
       return;
     }
@@ -601,8 +652,8 @@ const Chat = () => {
     setShowMobileSidebar(false);
   };
 
-  const openLockedAffordance = (featureLabel) => {
-    setUpgradeFeature(featureLabel);
+  const openLockedAffordance = (featureKey) => {
+    setUpgradeFeature(featureKey);
     setShowUpgradeModal(true);
   };
 
@@ -649,19 +700,19 @@ const Chat = () => {
             <div className="w-24 h-24 mx-auto mb-6 bg-gold-50 dark:bg-gold-900/20 border border-gold-100 dark:border-gold-800/40 rounded-full flex items-center justify-center">
               <FiLock className="w-12 h-12 text-gold-600 dark:text-gold-400" />
             </div>
-            <h2 className="text-2xl font-bold font-display text-neutral-800 dark:text-neutral-100 mb-3">Chat is a premium feature</h2>
+            <h1 className="text-2xl font-bold font-display text-neutral-800 dark:text-neutral-100 mb-3">{t('chat.premiumTitle')}</h1>
             <p className="text-neutral-500 dark:text-neutral-400 mb-6 leading-relaxed">
-              Unlock messaging to connect with your matches. Upgrade to a premium plan today.
+              {t('chat.premiumBody')}
             </p>
             <button
               onClick={() => setShowUpgradeModal(true)}
               className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-xl font-semibold ${HOVER}:shadow-burgundy ${HOVER}:scale-105 transition-[transform,box-shadow] duration-[160ms]`}
             >
-              Upgrade now
+              {t('chat.upgradeNow')}
             </button>
           </div>
         </div>
-        <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="Chat & Messaging" />
+        <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature={t('chat.features.chatMessaging')} />
       </>
     );
   }
@@ -670,8 +721,8 @@ const Chat = () => {
     return (
       <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <ErrorState
-          title="Couldn't load your conversations"
-          description="The connection dropped before this finished loading. Your messages are safe. Try again."
+          title={t('chat.listErrorTitle')}
+          description={t('chat.listErrorBody')}
           onRetry={loadConversations}
           className="max-w-md"
         />
@@ -684,9 +735,9 @@ const Chat = () => {
       <div className="min-h-[calc(100dvh-4rem)] bg-[#FDF8F2] dark:bg-surface-dark-2 flex items-center justify-center p-4">
         <EmptyState
           icon={FiMessageCircle}
-          title="Chat opens when you both match"
-          description="When you and someone else both like each other, you'll be able to start a conversation here."
-          actionLabel="Find your match"
+          title={t('chat.emptyTitle')}
+          description={t('chat.emptyBody')}
+          actionLabel={t('chat.emptyAction')}
           onAction={() => navigate('/search')}
           className="max-w-md"
         />
@@ -711,19 +762,19 @@ const Chat = () => {
       `}>
         <div className="relative p-4 border-b border-neutral-100 dark:border-neutral-800 bg-primary-50 dark:bg-primary-900/20 overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary-500 to-primary-700" />
-          <h2 className="text-xl font-bold font-display text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+          <h1 className="text-xl font-bold font-display text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             <FiMessageCircle className="w-6 h-6 text-primary-500" />
-            Messages
-          </h2>
-          <p className="text-neutral-500 text-sm mt-1">{conversations.length} conversation{conversations.length !== 1 ? 's' : ''}</p>
+            {t('navbar.messages')}
+          </h1>
+          <p className="text-neutral-500 text-sm mt-1">{t('chat.conversationCount', { count: conversations.length })}</p>
         </div>
 
         <div className="flex-1 overflow-y-auto sidebar-scrollbar">
           {conversations.map((row) => {
             const isSelected = selected?.userId === row.userId;
             const preview = row.lastMessage
-              ? (row.lastMessage.messageType === 'voice' ? 'Voice message' : sanitizeText(row.lastMessage.content))
-              : 'Say hello';
+              ? (row.lastMessage.messageType === 'voice' ? t('chat.voiceMessage') : sanitizeText(row.lastMessage.content))
+              : t('chat.sayHello');
             return (
               // A real <button>, not a clickable <div> — conversation switching is
               // the primary navigation in this screen, and a <div onClick> is
@@ -744,7 +795,7 @@ const Chat = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className="relative flex-shrink-0">
-                    <ConversationAvatar name={row.firstName} photo={row.profilePhoto} />
+                    <ConversationAvatar name={row.firstName} photo={row.profilePhoto} fallbackAlt={t('chat.profile')} />
                     {row.unreadCount > 0 && !row.locked && (
                       <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-primary-600 text-white text-[11px] font-semibold flex items-center justify-center tabular-nums">
                         {row.unreadCount > 9 ? '9+' : row.unreadCount}
@@ -756,16 +807,16 @@ const Chat = () => {
                     <div className="flex items-center justify-between">
                       <span className={`font-semibold truncate flex items-center gap-1.5 ${isSelected ? 'text-primary-600' : 'text-neutral-800 dark:text-neutral-100'}`}>
                         {row.name}
-                        {row.locked && <FiLock className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" aria-label="Premium required" />}
+                        {row.locked && <FiLock className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" aria-label={t('chat.premiumRequired')} />}
                       </span>
                       <span className="text-xs text-neutral-400 flex-shrink-0">
                         {row.lastMessage?.createdAt
-                          ? new Date(row.lastMessage.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          ? listStamp(row.lastMessage.createdAt, i18n.language)
                           : ''}
                       </span>
                     </div>
                     <p className={`text-sm truncate mt-0.5 ${row.unreadCount > 0 && !row.locked ? 'text-neutral-800 dark:text-neutral-200 font-medium' : 'text-neutral-500'}`}>
-                      {row.locked ? 'Upgrade to open this conversation' : preview}
+                      {row.locked ? t('chat.upgradeToOpen') : preview}
                     </p>
                   </div>
                 </div>
@@ -785,7 +836,7 @@ const Chat = () => {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowMobileSidebar(true)}
-                    aria-label="Back to conversations"
+                    aria-label={t('chat.backToConversations')}
                     className="md:hidden p-3 -ml-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
                   >
                     <FiChevronLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
@@ -795,15 +846,15 @@ const Chat = () => {
                     type="button"
                     onClick={() => navigate(`/profile/${selected.userId}`)}
                     className="flex items-center gap-3 -m-1 p-1 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-left"
-                    aria-label={`View ${selected.firstName || 'match'}'s profile`}
+                    aria-label={selected.firstName ? t('chat.viewProfileOf', { name: selected.firstName }) : t('chat.viewMatchProfile')}
                   >
                     <div className="relative">
-                      <ConversationAvatar name={selected.firstName} photo={selected.profilePhoto} size="w-11 h-11" textSize="text-base" />
+                      <ConversationAvatar name={selected.firstName} photo={selected.profilePhoto} size="w-11 h-11" textSize="text-base" fallbackAlt={t('chat.profile')} />
                     </div>
                     <div>
                       <h3 className="font-semibold text-neutral-800 dark:text-neutral-100">{selected.name}</h3>
                       <p className="text-xs text-neutral-400 font-medium">
-                        {isTyping ? <span className="text-primary-600 dark:text-primary-300">typing…</span> : 'View profile'}
+                        {isTyping ? <span className="text-primary-600 dark:text-primary-300">{t('chat.typing')}</span> : t('chat.viewProfile')}
                       </p>
                     </div>
                   </button>
@@ -832,14 +883,14 @@ const Chat = () => {
               ref={chatContainerRef}
               className="flex-1 overflow-y-auto chat-scrollbar px-4 py-4 bg-[#FDF8F2] dark:bg-surface-dark-2"
               role="log"
-              aria-label="Chat messages"
+              aria-label={t('chat.chatMessagesLabel')}
             >
               {messagesLoading ? (
                 <MessagePaneSkeleton />
               ) : messagesError ? (
                 <ErrorState
-                  title="Couldn't load this conversation"
-                  description="The connection dropped before this finished loading. Nothing here was lost. Try again."
+                  title={t('chat.threadErrorTitle')}
+                  description={t('chat.threadErrorBody')}
                   onRetry={() => loadMessages()}
                   className="max-w-md mx-auto mt-10"
                 />
@@ -848,7 +899,7 @@ const Chat = () => {
                   <div className="flex justify-center mb-6">
                     <div className="px-4 py-2 bg-white/90 dark:bg-surface-dark-3 backdrop-blur rounded-full shadow-sm border border-neutral-200 dark:border-neutral-700">
                       <p className="text-xs text-neutral-600 dark:text-neutral-300">
-                        You matched with {selected.firstName}. Make a meaningful connection...
+                        {t('chat.matchedWith', { name: selected.firstName })}
                       </p>
                     </div>
                   </div>
@@ -917,13 +968,13 @@ const Chat = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 px-4 py-3">
                   <FiLock className="w-4 h-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400" aria-hidden="true" />
                   <p className="flex-1 text-sm text-neutral-600 dark:text-neutral-300">
-                    Your messaging access ended. You can still read this conversation.
+                    {t('chat.accessEnded')}
                   </p>
                   <Link
                     to="/subscription"
                     className="inline-flex items-center justify-center min-h-[2.75rem] px-5 rounded-xl bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
                   >
-                    See plans
+                    {t('chat.seePlans')}
                   </Link>
                 </div>
               ) : windowEnded ? (
@@ -943,9 +994,9 @@ const Chat = () => {
                     <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-100 dark:bg-surface-dark-2 border-l-2 border-primary-400">
                       <FiCornerUpLeft className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" aria-hidden="true" />
                       <p className="flex-1 text-xs text-neutral-500 line-clamp-1">
-                        {replyingTo.messageType === 'voice' ? 'Voice message' : sanitizeText(replyingTo.content)}
+                        {replyingTo.messageType === 'voice' ? t('chat.voiceMessage') : sanitizeText(replyingTo.content)}
                       </p>
-                      <button onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="flex-shrink-0 flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -mr-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400">
+                      <button onClick={() => setReplyingTo(null)} aria-label={t('chat.cancelReply')} className="flex-shrink-0 flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -mr-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400">
                         <FiX className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -954,14 +1005,14 @@ const Chat = () => {
                     <div className="flex-1 relative">
                       {/* Visually hidden but real — a placeholder alone is
                           never the label (doctrine §6/§8). */}
-                      <label htmlFor="chat-composer-input" className="sr-only">Message</label>
+                      <label htmlFor="chat-composer-input" className="sr-only">{t('chat.messageLabel')}</label>
                       <input
                         ref={composerInputRef}
                         id="chat-composer-input"
                         type="text"
                         value={newMessage}
                         onChange={(e) => handleTyping(e.target.value)}
-                        placeholder="Type a message"
+                        placeholder={t('chat.placeholder')}
                         className="w-full px-5 py-3 text-base bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-800 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-neutral-900 transition-[background-color,box-shadow] duration-[160ms]"
                         disabled={sending}
                       />
@@ -972,8 +1023,8 @@ const Chat = () => {
                     {!newMessage.trim() && !isGrantThread && (
                       <button
                         type="button"
-                        onClick={() => (canRich ? setShowRecorder(true) : openLockedAffordance('Voice notes'))}
-                        aria-label={canRich ? 'Record a voice message' : 'Voice notes — premium feature'}
+                        onClick={() => (canRich ? setShowRecorder(true) : openLockedAffordance('voiceNotes'))}
+                        aria-label={canRich ? t('chat.recordVoice') : t('chat.voiceNotesLocked')}
                         className="relative p-3 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-500 dark:text-neutral-300 transition-colors duration-[160ms]"
                       >
                         <FiMic className="w-5 h-5" />
@@ -984,7 +1035,7 @@ const Chat = () => {
                     <button
                       type="submit"
                       disabled={sending || !newMessage.trim()}
-                      aria-label="Send message"
+                      aria-label={t('chat.sendMessage')}
                       className={`
                         p-3 rounded-full transition-[background-color,box-shadow,transform] duration-[160ms]
                         ${newMessage.trim()
@@ -1009,9 +1060,9 @@ const Chat = () => {
               <div className="w-32 h-32 mx-auto mb-6 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center">
                 <FiMessageCircle className="w-16 h-16 text-primary-400" />
               </div>
-              <h3 className="text-xl font-semibold font-display text-neutral-700 dark:text-neutral-100 mb-2">Start a conversation</h3>
+              <h3 className="text-xl font-semibold font-display text-neutral-700 dark:text-neutral-100 mb-2">{t('chat.startTitle')}</h3>
               <p className="text-neutral-500 dark:text-neutral-300 max-w-sm">
-                Select a match from the sidebar to begin your journey of meaningful connection.
+                {t('chat.startBody')}
               </p>
             </div>
           </div>
@@ -1023,7 +1074,7 @@ const Chat = () => {
         <div className="md:hidden fixed inset-0 bg-black/50 z-[60]" onClick={() => setShowMobileSidebar(false)} />
       )}
 
-      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature={upgradeFeature} />
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature={t(`chat.features.${upgradeFeature}`)} />
     </div>
   );
 };

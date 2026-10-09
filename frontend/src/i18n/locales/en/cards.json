@@ -1,0 +1,32 @@
+{
+  "matchTitle": "{{n}}% match",
+  "matchBadge": "{{n}}% Match",
+  "plan": {
+    "vip": "VIP",
+    "nri": "NRI",
+    "elite": "Elite",
+    "premium": "Premium"
+  },
+  "upgradeToView": "Upgrade to view",
+  "profileFallback": "Profile",
+  "profileOf": "Profile of {{name}}",
+  "online": "Online",
+  "removeFromShortlist": "Remove from shortlist",
+  "shortlist": "Shortlist",
+  "unlike": "Unlike",
+  "expressInterestAria": "Express interest",
+  "verifiedProfile": "Verified profile",
+  "verified": "Verified",
+  "ageYrs": "{{age}} yrs",
+  "unlockProfile": "Unlock profile",
+  "message": "Message",
+  "interestSent": "Interest Sent",
+  "expressInterest": "Express Interest",
+  "unknown": "Unknown",
+  "mutualMatchWith": "Mutual match with {{name}}",
+  "photoOf": "Profile photo of {{name}}",
+  "mutual": "Mutual",
+  "locationNotSpecified": "Location not specified",
+  "compatible": "{{n}}% Compatible",
+  "startChatWith": "Start chat with {{name}}"
+}

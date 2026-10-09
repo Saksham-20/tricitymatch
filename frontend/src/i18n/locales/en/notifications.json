@@ -1,0 +1,39 @@
+{
+  "title": "Notifications",
+  "markAllRead": "Mark all read",
+  "loadMore": "Load more",
+  "deleteAria": "Delete notification",
+  "deleteTitle": "Delete",
+  "toast": {
+    "loadFailed": "Failed to load notifications",
+    "allRead": "All notifications marked as read",
+    "markAllFailed": "Failed to mark all as read",
+    "deleteFailed": "Could not delete that notification"
+  },
+  "error": {
+    "title": "Couldn't load notifications",
+    "body": "The connection dropped before this finished loading. Try again."
+  },
+  "empty": {
+    "title": "No notifications yet",
+    "body": "We'll notify you when something happens",
+    "action": "Browse profiles"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo_one": "{{count}}m ago",
+    "minutesAgo_other": "{{count}}m ago",
+    "hoursAgo_one": "{{count}}h ago",
+    "hoursAgo_other": "{{count}}h ago",
+    "daysAgo_one": "{{count}}d ago",
+    "daysAgo_other": "{{count}}d ago"
+  },
+  "bell": {
+    "unreadSuffix": ", {{count}} unread",
+    "loading": "Loading notifications",
+    "loadFailed": "Couldn't load your notifications.",
+    "tryAgain": "Try again",
+    "emptyHint": "Likes, matches and messages will show up here.",
+    "unread": "Unread"
+  }
+}

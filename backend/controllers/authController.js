@@ -1206,7 +1206,7 @@ exports.changePassword = asyncHandler(async (req, res) => {
   // Verify current password
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) {
-    throw createError.unauthorized('Current password is incorrect');
+    throw createError.unauthorized('Current password is incorrect', 'INVALID_PASSWORD');
   }
 
   // Reusing the same password reported success and revoked the other sessions
@@ -1318,7 +1318,7 @@ exports.revokeSession = asyncHandler(async (req, res) => {
 const reauthenticateMember = async (user, { password, googleCredential }, action) => {
   if (user.password) {
     if (!password) throw createError.badRequest(`Password is required to ${action}`);
-    if (!(await user.comparePassword(password))) throw createError.unauthorized('Incorrect password');
+    if (!(await user.comparePassword(password))) throw createError.unauthorized('Incorrect password', 'INVALID_PASSWORD');
     return;
   }
   if (!user.googleId) throw createError.badRequest(`Password is required to ${action}`);
@@ -1896,7 +1896,7 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
   if (user.password) {
     if (!password) throw createError.badRequest('Current password is required');
     const ok = await user.comparePassword(password);
-    if (!ok) throw createError.unauthorized('Incorrect password');
+    if (!ok) throw createError.unauthorized('Incorrect password', 'INVALID_PASSWORD');
   }
 
   if (user.email && user.email.toLowerCase() === normalized) {

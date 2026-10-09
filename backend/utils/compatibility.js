@@ -429,6 +429,9 @@ const getRashiCompatibility = (rashi1, rashi2) => {
 };
 
 // ─── Manglik compatibility ────────────────────────────────────────────────────
+// Both members have said whether they are manglik ('not_sure' is not an answer).
+const manglikKnown = (m1, m2) => Boolean(m1 && m2 && m1 !== 'not_sure' && m2 !== 'not_sure');
+
 const isManglikCompatible = (m1, m2) => {
   if (!m1 || !m2 || m1 === 'not_sure' || m2 === 'not_sure') return true;
   if (m1 === 'non_manglik' && m2 === 'manglik') return false;
@@ -631,7 +634,7 @@ const getCompatibilityBreakdown = (profile1, profile2) => {
       ...ashtakoot,
       manglikCompatible: manglikOk,
       manglikDetail: (() => {
-        if (!profile1.manglikStatus || !profile2.manglikStatus) return 'Manglik status unknown';
+        if (!manglikKnown(profile1.manglikStatus, profile2.manglikStatus)) return 'Manglik status unknown';
         if (!manglikOk) return 'Manglik dosha — consult pandit';
         if (profile1.manglikStatus === 'anshik_manglik' || profile2.manglikStatus === 'anshik_manglik') return 'Anshik Manglik — minor consideration';
         return 'No Manglik dosha';
@@ -720,5 +723,6 @@ module.exports = {
   getBhakootScore,
   calculateAge,
   isManglikCompatible,
+  manglikKnown,
   getRashiCompatibility,
 };

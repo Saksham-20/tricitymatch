@@ -1,0 +1,25 @@
+{
+  "calling": "ਕਾਲ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ…",
+  "incomingCall": "ਆਉਣ ਵਾਲੀ ਕਾਲ",
+  "incomingVideoCall": "ਆਉਣ ਵਾਲੀ ਵੀਡੀਓ ਕਾਲ",
+  "connected": "ਜੁੜ ਗਏ",
+  "connecting": "ਜੋੜਿਆ ਜਾ ਰਿਹਾ ਹੈ…",
+  "unknown": "ਅਣਜਾਣ",
+  "caller": "ਕਾਲ ਕਰਨ ਵਾਲੇ",
+  "dialogLabel": "ਕਾਲ",
+  "decline": "ਮਨ੍ਹਾ ਕਰੋ",
+  "accept": "ਚੁੱਕੋ",
+  "mute": "ਮਿਊਟ ਕਰੋ",
+  "unmute": "ਅਨਮਿਊਟ ਕਰੋ",
+  "cameraOn": "ਕੈਮਰਾ ਚਾਲੂ ਕਰੋ",
+  "cameraOff": "ਕੈਮਰਾ ਬੰਦ ਕਰੋ",
+  "endCall": "ਕਾਲ ਖ਼ਤਮ ਕਰੋ",
+  "toast": {
+    "notConfigured": "ਇਸ ਸਾਈਟ 'ਤੇ ਕਾਲਿੰਗ ਅਜੇ ਚਾਲੂ ਨਹੀਂ ਹੈ।",
+    "mediaError": "ਮਾਈਕ੍ਰੋਫ਼ੋਨ/ਕੈਮਰਾ ਵਰਤਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ।",
+    "startFailed": "ਕਾਲ ਸ਼ੁਰੂ ਨਹੀਂ ਹੋ ਸਕੀ।",
+    "joinFailed": "ਕਾਲ ਨਾਲ ਜੁੜ ਨਹੀਂ ਸਕੇ।",
+    "declined": "{{name}} ਨੇ ਕਾਲ ਨਹੀਂ ਚੁੱਕੀ",
+    "declinedNoName": "ਉਨ੍ਹਾਂ ਨੇ ਕਾਲ ਨਹੀਂ ਚੁੱਕੀ"
+  }
+}

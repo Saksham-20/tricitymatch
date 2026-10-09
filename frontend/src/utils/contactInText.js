@@ -7,6 +7,8 @@
  * in step; the server is the authority.
  */
 
+import i18n from '../i18n';
+
 const ZERO_WIDTH = new RegExp('[\\u200B-\\u200D\\u2060\\uFEFF]', 'g');
 
 const NUMBER_WORDS = {
@@ -75,5 +77,9 @@ export const CONTACT_IN_TEXT_MESSAGES = {
   link: 'Please take the link out. Social profiles go in Social connections, where only your matches can see them.',
   upi: 'Please take the payment ID out. Never share payment details on your profile.',
 };
+
+/** The message for `kind` in the current language (English: CONTACT_IN_TEXT_MESSAGES). */
+export const contactInTextMessage = (kind) =>
+  (kind ? i18n.t(`editor.contact.${kind}`, { defaultValue: CONTACT_IN_TEXT_MESSAGES[kind] }) : '');
 
 export { findContactInText, runHasMobile };

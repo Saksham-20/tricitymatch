@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FiCheck, FiCopy, FiLink, FiShare2, FiAlertCircle } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { getMyInviteLink } from '../../api/invite';
 import { useAuth } from '../../context/AuthContext';
 
@@ -20,13 +21,9 @@ import { useAuth } from '../../context/AuthContext';
  * (mobile) — a dead share button is worse than none.
  */
 
-const SHARE_TEXT = 'I’m on TricityMatch — a verified, Tricity-only matrimonial community. Join me:';
-
-// Reward line. Rendered only when the server reports a live reward, and worded
-// for both sides because that is what actually happens (utils/inviteReward.js
-// credits the inviter and the invitee equally).
-const rewardLine = (n) =>
-  `You both get ${n} contact unlock${n === 1 ? '' : 's'} when they join.`;
+// Reward line (`invite.reward`). Rendered only when the server reports a live
+// reward, and worded for both sides because that is what actually happens
+// (utils/inviteReward.js credits the inviter and the invitee equally).
 
 export const copyToClipboard = async (text) => {
   try {
@@ -54,6 +51,7 @@ export const copyToClipboard = async (text) => {
 };
 
 export default function InviteLink({ variant = 'card', className = '' }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [url, setUrl] = useState('');
   // Server-owned and env-tunable (INVITE_REWARD_UNLOCKS). 0 means the reward is
@@ -91,8 +89,8 @@ export default function InviteLink({ variant = 'card', className = '' }) {
 
   useEffect(() => {
     if (!copied) return undefined;
-    const t = setTimeout(() => setCopied(false), 2200);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setCopied(false), 2200);
+    return () => clearTimeout(timer);
   }, [copied]);
 
   const handleCopy = async () => {
@@ -106,13 +104,14 @@ export default function InviteLink({ variant = 'card', className = '' }) {
     const link = url || (await load());
     if (!link) return;
     try {
-      await navigator.share({ title: 'TricityMatch', text: SHARE_TEXT, url: link });
+      await navigator.share({ title: 'TricityMatch', text: t('invite.shareText'), url: link });
     } catch {
       /* user dismissed the sheet — not an error */
     }
   };
 
-  const copyLabel = copied ? 'Link copied' : 'Copy invite link';
+  const copyLabel = copied ? t('invite.linkCopied') : t('invite.copyLink');
+  const rewardLine = (count) => t('invite.reward', { count });
 
   if (!isMember) return null;
 
@@ -126,7 +125,7 @@ export default function InviteLink({ variant = 'card', className = '' }) {
         className={`inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-xl border border-primary-200 text-primary-700 dark:text-primary-300 bg-white dark:bg-primary-900/40 hover:bg-primary-50 dark:hover:bg-primary-900/50 text-sm font-medium transition-colors disabled:opacity-60 ${className}`}
       >
         {copied ? <FiCheck className="w-4 h-4" /> : <FiLink className="w-4 h-4" />}
-        {state === 'loading' ? 'Getting your link…' : copied ? 'Link copied' : 'Invite someone you know'}
+        {state === 'loading' ? t('invite.gettingLink') : copied ? t('invite.linkCopied') : t('invite.inviteSomeone')}
       </button>
     );
   }
@@ -136,13 +135,13 @@ export default function InviteLink({ variant = 'card', className = '' }) {
     return (
       <div className={`flex items-center justify-between gap-4 py-3 ${className}`}>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Invite someone to TricityMatch</p>
+          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{t('invite.row.title')}</p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             {state === 'error'
-              ? 'Could not load your link.'
+              ? t('invite.row.loadFailed')
               : reward > 0
                 ? rewardLine(reward)
-                : 'Share your personal link — they’ll see your first name when they join.'}
+                : t('invite.row.hint')}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -150,7 +149,7 @@ export default function InviteLink({ variant = 'card', className = '' }) {
             <button
               type="button"
               onClick={handleShare}
-              aria-label="Share invite link"
+              aria-label={t('invite.row.shareAria')}
               className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
             >
               <FiShare2 className="w-4 h-4" />
@@ -163,7 +162,7 @@ export default function InviteLink({ variant = 'card', className = '' }) {
             className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors disabled:opacity-60"
           >
             {copied ? <FiCheck className="w-4 h-4" /> : <FiCopy className="w-4 h-4" />}
-            {state === 'error' ? 'Retry' : state === 'loading' ? 'Loading…' : copied ? 'Copied' : 'Copy'}
+            {state === 'error' ? t('invite.row.retry') : state === 'loading' ? t('invite.row.loading') : copied ? t('invite.row.copied') : t('invite.row.copy')}
           </button>
         </div>
       </div>
@@ -178,10 +177,9 @@ export default function InviteLink({ variant = 'card', className = '' }) {
           <FiLink className="w-4 h-4" />
         </span>
         <div className="min-w-0">
-          <h3 className="font-serif text-lg text-neutral-900 dark:text-neutral-100 leading-tight">Grow the circle</h3>
+          <h3 className="font-serif text-lg text-neutral-900 dark:text-neutral-100 leading-tight">{t('invite.card.title')}</h3>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-            Every good match starts with someone you already trust. Send your invite link to a family
-            or friend looking for a match in the Tricity.
+            {t('invite.card.body')}
           </p>
           {reward > 0 && (
             <p className="text-sm font-medium text-primary-700 dark:text-primary-300 mt-2">
@@ -194,9 +192,9 @@ export default function InviteLink({ variant = 'card', className = '' }) {
       {state === 'error' ? (
         <div className="mt-4 flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
           <FiAlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-          <span>Could not load your invite link.</span>
+          <span>{t('invite.card.loadFailed')}</span>
           <button type="button" onClick={load} className="text-primary-700 dark:text-primary-300 underline underline-offset-2 min-h-[44px]">
-            Try again
+            {t('invite.card.tryAgain')}
           </button>
         </div>
       ) : (
@@ -204,8 +202,8 @@ export default function InviteLink({ variant = 'card', className = '' }) {
           <div className="mt-4 flex items-center gap-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 px-3 py-2.5">
             <input
               readOnly
-              aria-label="Your invite link"
-              value={state === 'loading' ? 'Loading your link…' : url}
+              aria-label={t('invite.card.linkAria')}
+              value={state === 'loading' ? t('invite.card.linkLoading') : url}
               onFocus={(e) => e.target.select()}
               className="flex-1 min-w-0 bg-transparent text-xs text-neutral-700 dark:text-neutral-300 focus:outline-none truncate"
             />
@@ -227,7 +225,7 @@ export default function InviteLink({ variant = 'card', className = '' }) {
                 disabled={state === 'loading'}
                 className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm font-medium transition-colors disabled:opacity-60"
               >
-                <FiShare2 className="w-4 h-4" /> Share
+                <FiShare2 className="w-4 h-4" /> {t('invite.card.share')}
               </button>
             )}
           </div>

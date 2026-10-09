@@ -1,0 +1,22 @@
+{
+  "bottomNav": "Mobile navigation",
+  "accountState": {
+    "deletionTitle": "Your account will be deleted on {{date}}",
+    "pausedTitle": "Your profile is paused",
+    "deletionBody": "Your profile is hidden until then. Cancel and everything stays as it was.",
+    "pausedBody": "Nobody can find or contact you, and you cannot send interests, until you resume.",
+    "cancelDeletion": "Cancel deletion",
+    "resume": "Resume my profile",
+    "cancelled": "Deletion cancelled. Your account stays.",
+    "resumed": "Your profile is visible again",
+    "failed": "Could not change that. Try again."
+  },
+  "errorBoundary": {
+    "title": "This page hit a problem",
+    "body": "Nothing you did caused this. Try again, or go back to the home page.",
+    "details": "Technical Details",
+    "tryAgain": "Try Again",
+    "home": "Go to Home",
+    "persists": "If this problem persists, please <anchor>contact support</anchor>"
+  }
+}

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { Trans, useTranslation } from 'react-i18next';
 import { FiCamera, FiCheck, FiPlus, FiStar, FiTrash2 } from 'react-icons/fi';
 import api from '../../api/axios';
 import RetryImage from '../ui/RetryImage';
@@ -27,6 +28,7 @@ export const orderedPhotos = (profile) => {
  * change so the page can re-render from server truth.
  */
 export default function PhotoManager({ profile, onChange }) {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(null);
@@ -45,12 +47,12 @@ export default function PhotoManager({ profile, onChange }) {
       const res = await work();
       await refresh();
       if (res?.data?.photosUnderReview > 0) {
-        toast('Some photos are being checked by our team before they appear.', { icon: null });
+        toast(t('photos.underReview'), { icon: null });
       } else if (okMessage) {
         toast.success(okMessage);
       }
     } catch (err) {
-      toast.error(errOf(err, 'Could not update your photos. Please try again.'));
+      toast.error(errOf(err, t('photos.updateFailed')));
     } finally {
       setBusy(false);
       setConfirming(null);
@@ -62,33 +64,33 @@ export default function PhotoManager({ profile, onChange }) {
     e.target.value = '';
     if (!picked.length) return;
     const images = picked.filter((f) => f.type.startsWith('image/'));
-    if (images.length !== picked.length) toast.error('Only image files can be added.');
+    if (images.length !== picked.length) toast.error(t('photos.onlyImages'));
     const tooBig = images.filter((f) => f.size > MAX_BYTES);
-    if (tooBig.length) toast.error('Each photo must be 5MB or smaller.');
+    if (tooBig.length) toast.error(t('photos.tooBig'));
     const ok = images.filter((f) => f.size <= MAX_BYTES).slice(0, room);
-    if (images.length - tooBig.length > room) toast.error(`You can have up to ${MAX_PHOTOS} photos. Delete one to add another.`);
+    if (images.length - tooBig.length > room) toast.error(t('photos.limit', { max: MAX_PHOTOS }));
     if (!ok.length) return;
     const fd = new FormData();
     ok.forEach((f) => fd.append('photos', f));
-    run(() => api.put('/profile/me', fd), ok.length === 1 ? 'Photo added' : 'Photos added');
+    run(() => api.put('/profile/me', fd), t('photos.added', { count: ok.length }));
   };
 
   const makeMain = (url) => {
     const fd = new FormData();
     fd.append('profilePhoto', url);
-    run(() => api.put('/profile/me', fd), 'Main photo updated');
+    run(() => api.put('/profile/me', fd), t('photos.mainUpdated'));
   };
 
-  const remove = (url) => run(() => api.delete('/profile/me/photo', { data: { photoUrl: url } }), 'Photo deleted');
+  const remove = (url) => run(() => api.delete('/profile/me/photo', { data: { photoUrl: url } }), t('photos.deleted'));
 
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h3 className="font-display text-lg font-semibold text-neutral-900 dark:text-neutral-100">Your photos</h3>
-        <span className="text-xs text-neutral-500 dark:text-neutral-400">{photos.length} of {MAX_PHOTOS}</span>
+        <h3 className="font-display text-lg font-semibold text-neutral-900 dark:text-neutral-100">{t('photos.yourPhotos')}</h3>
+        <span className="text-xs text-neutral-500 dark:text-neutral-400">{t('photos.countOf', { count: photos.length, max: MAX_PHOTOS })}</span>
       </div>
 
-      <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3" aria-label="Your photos">
+      <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3" aria-label={t('photos.yourPhotos')}>
         {photos.map((url, i) => {
           const isMain = url === main;
           const asking = confirming === url;
@@ -100,13 +102,13 @@ export default function PhotoManager({ profile, onChange }) {
               </div>
               <RetryImage
                 src={getImageUrl(url, API_BASE_URL, 'full')}
-                alt={isMain ? 'Main photo' : `Photo ${i + 1}`}
+                alt={isMain ? t('photos.mainPhoto') : t('photos.photoN', { n: i + 1 })}
                 className="relative w-full h-full object-cover"
                 onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
               />
               {isMain && (
                 <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-neutral-900/80 px-2 py-1 text-[11px] font-semibold text-white">
-                  <FiCheck className="w-3 h-3" /> Main photo
+                  <FiCheck className="w-3 h-3" /> {t('photos.mainPhoto')}
                 </span>
               )}
               <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
@@ -117,7 +119,7 @@ export default function PhotoManager({ profile, onChange }) {
                     onClick={() => makeMain(url)}
                     className="min-h-[2.75rem] flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-white/90 px-2 text-xs font-semibold text-neutral-900 hover:bg-white disabled:opacity-60"
                   >
-                    <FiStar className="w-3.5 h-3.5" /> Make main
+                    <FiStar className="w-3.5 h-3.5" /> {t('photos.makeMain')}
                   </button>
                 )}
                 {asking ? (
@@ -127,15 +129,15 @@ export default function PhotoManager({ profile, onChange }) {
                     onClick={() => remove(url)}
                     className="min-h-[2.75rem] flex-1 rounded-lg bg-destructive px-2 text-xs font-semibold text-white disabled:opacity-60"
                   >
-                    Confirm delete
+                    {t('photos.confirmDelete')}
                   </button>
                 ) : (
                   <button
                     type="button"
                     disabled={busy || photos.length <= 1}
                     onClick={() => setConfirming(url)}
-                    aria-label={`Delete photo ${i + 1}`}
-                    title={photos.length <= 1 ? 'Add another photo before deleting this one' : 'Delete photo'}
+                    aria-label={t('photos.deletePhotoN', { n: i + 1 })}
+                    title={photos.length <= 1 ? t('photos.addBeforeDelete') : t('photos.deletePhoto')}
                     className="min-h-[2.75rem] min-w-[2.75rem] inline-flex items-center justify-center rounded-lg bg-white/90 text-neutral-900 hover:bg-white disabled:opacity-50"
                   >
                     <FiTrash2 className="w-4 h-4" />
@@ -155,7 +157,7 @@ export default function PhotoManager({ profile, onChange }) {
               className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-600 text-neutral-600 dark:text-neutral-300 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 disabled:opacity-60"
             >
               <FiPlus className="w-6 h-6" />
-              <span className="text-sm font-medium">{busy ? 'Working…' : 'Add photo'}</span>
+              <span className="text-sm font-medium">{busy ? t('photos.working') : t('photos.addPhoto')}</span>
             </button>
           </li>
         )}
@@ -165,20 +167,22 @@ export default function PhotoManager({ profile, onChange }) {
 
       <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
         {photos.length === 0
-          ? 'Add a clear, recent photo of your face. Profiles with photos get far more interest.'
-          : 'Up to six photos, 5MB each. New photos are checked by our team if our system is unsure, and appear once approved.'}
+          ? t('photos.emptyHint')
+          : t('photos.galleryHint')}
       </p>
       {/* The disabled delete only says why in a hover title, which a phone never shows. */}
       {photos.length === 1 && (
         <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-300">
-          To change this photo, add the new one first, then delete this one.
+          {t('photos.changeOnlyPhoto')}
         </p>
       )}
       {confirming && (
         <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-300" role="status">
-          Tap &ldquo;Confirm delete&rdquo; to remove this photo for good, or{' '}
-          <button type="button" className="underline" onClick={() => setConfirming(null)}>keep it</button>.
-          {confirming === main && ' Your next photo becomes your main photo.'}
+          <Trans
+            i18nKey="photos.confirmPrompt"
+            components={{ btn: <button type="button" className="underline" onClick={() => setConfirming(null)} /> }}
+          />
+          {confirming === main && ` ${t('photos.nextBecomesMain')}`}
         </p>
       )}
     </div>

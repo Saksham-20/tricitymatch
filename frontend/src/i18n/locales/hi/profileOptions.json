@@ -1,0 +1,75 @@
+{
+  "gender": { "male": "पुरुष", "female": "महिला", "other": "अन्य" },
+  "manglikStatus": {
+    "manglik": "मांगलिक",
+    "non_manglik": "मांगलिक नहीं",
+    "anshik_manglik": "आंशिक मांगलिक",
+    "not_sure": "पता नहीं"
+  },
+  "maritalStatus": {
+    "never_married": "अविवाहित",
+    "divorced": "तलाकशुदा",
+    "widowed": "विधवा / विधुर",
+    "awaiting_divorce": "तलाक की प्रक्रिया में"
+  },
+  "familyType": { "joint": "संयुक्त परिवार", "nuclear": "एकल परिवार" },
+  "familyStatus": {
+    "middle_class": "मध्यम वर्ग",
+    "upper_middle_class": "उच्च मध्यम वर्ग",
+    "affluent": "संपन्न",
+    "rich": "धनी"
+  },
+  "familyValues": { "traditional": "पारंपरिक", "moderate": "संतुलित", "liberal": "खुले विचारों वाले" },
+  "livingArrangement": { "with_family": "परिवार के साथ", "alone": "अकेले", "with_roommates": "रूममेट्स के साथ" },
+  "relocate": { "yes": "हाँ", "maybe": "शायद, हालात पर निर्भर", "no": "नहीं" },
+  "skinTone": { "fair": "गोरा", "wheatish": "गेहुँआ", "dark": "साँवला" },
+  "diet": { "vegetarian": "शाकाहारी", "non-vegetarian": "मांसाहारी", "vegan": "वीगन", "jain": "जैन" },
+  "habit": { "never": "कभी नहीं", "occasionally": "कभी-कभी", "regularly": "नियमित रूप से" },
+  "income": {
+    "300000": "₹0 - 3 लाख",
+    "500000": "₹3 - 5 लाख",
+    "1000000": "₹5 - 10 लाख",
+    "1500000": "₹10 - 15 लाख",
+    "2500000": "₹15 - 25 लाख",
+    "5000000": "₹25 - 50 लाख",
+    "10000000": "₹50 लाख+",
+    "0": "बताना नहीं चाहते"
+  },
+  "rashi": {
+    "Mesha": "मेष",
+    "Vrishabha": "वृषभ",
+    "Mithuna": "मिथुन",
+    "Karka": "कर्क",
+    "Simha": "सिंह",
+    "Kanya": "कन्या",
+    "Tula": "तुला",
+    "Vrishchika": "वृश्चिक",
+    "Dhanu": "धनु",
+    "Makara": "मकर",
+    "Kumbha": "कुंभ",
+    "Meena": "मीन"
+  },
+  "socialVisibility": { "matches_only": "सिर्फ़ मैच", "hidden": "छिपा हुआ" },
+  "enum": {
+    "vegetarian": "शाकाहारी",
+    "non-vegetarian": "मांसाहारी",
+    "eggetarian": "अंडाहारी",
+    "vegan": "वीगन",
+    "jain": "जैन",
+    "never": "कभी नहीं",
+    "occasionally": "कभी-कभी",
+    "regularly": "नियमित रूप से",
+    "fair": "गोरा",
+    "wheatish": "गेहुँआ",
+    "dark": "साँवला",
+    "traditional": "पारंपरिक",
+    "moderate": "संतुलित",
+    "liberal": "खुले विचारों वाले",
+    "with_family": "परिवार के साथ",
+    "alone": "अकेले",
+    "with_roommates": "रूममेट्स के साथ",
+    "yes": "हाँ",
+    "maybe": "शायद",
+    "no": "नहीं"
+  }
+}

@@ -32,7 +32,8 @@ describe('saving a streamed CSV', () => {
   it('words the result for the toast', () => {
     expect(describeExport('members', { expected: 1204, incomplete: false })).toEqual({ ok: true, text: 'Downloaded 1,204 members.' });
     expect(describeExport('members', { expected: 1, incomplete: false }).text).toBe('Downloaded 1 member.');
-    expect(describeExport('members', { expected: null, incomplete: false }).text).toBe('members export downloaded.');
+    expect(describeExport('members', { expected: null, incomplete: false }).text).toBe('Members export downloaded.');
+    expect(describeExport('people', { expected: 1, incomplete: false }).text).toBe('Downloaded 1 person.');
     expect(describeExport('members', { expected: 9, incomplete: true }).ok).toBe(false);
   });
 });

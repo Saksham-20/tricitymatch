@@ -42,15 +42,16 @@ const ageOn = (dateOfBirth, today = new Date()) => {
 /**
  * @returns {string|null} the reason this (gender, dob) pair is not allowed, or
  *          null when it is fine. A missing DOB is not an error here — callers
- *          decide whether a date is required.
+ *          decide whether a date is required. `who` names the person the message
+ *          is about — staff entering a member's details are not "you".
  */
-const marriageableAgeProblem = (gender, dateOfBirth, today = new Date()) => {
+const marriageableAgeProblem = (gender, dateOfBirth, today = new Date(), { who = 'You' } = {}) => {
   if (dateOfBirth === null || dateOfBirth === undefined || dateOfBirth === '') return null;
   const age = ageOn(dateOfBirth, today);
   if (age === null) return 'Invalid date of birth';
   if (age > MAX_AGE) return 'Invalid date of birth';
   const min = minAgeFor(gender);
-  if (age < min) return `You must be at least ${min} years old`;
+  if (age < min) return `${who} must be at least ${min} years old`;
   return null;
 };
 

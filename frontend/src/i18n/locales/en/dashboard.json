@@ -1,0 +1,122 @@
+{
+  "greeting": {
+    "there": "there",
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}",
+    "night": "Good night, {{name}}",
+    "morningSub": "Start your day with meaningful connections",
+    "afternoonSub": "Perfect time to explore new profiles",
+    "eveningSub": "New profiles from the Tricity are waiting to meet you",
+    "nightSub": "Your perfect match might be just a click away"
+  },
+  "fallback": {
+    "member": "Member",
+    "city": "India",
+    "profile": "Profile"
+  },
+  "suggestion": {
+    "interestExpressed": "Interest expressed",
+    "interestWithdrawn": "Interest withdrawn",
+    "updateFailed": "Could not update. Please try again",
+    "removeInterest": "Remove {{name}} from your interests",
+    "expressInterest": "Express interest in {{name}}",
+    "ageCity": "{{age}} yrs · {{city}}",
+    "matchPercent": "{{score}}% match"
+  },
+  "plan": {
+    "label": "{{plan}} plan",
+    "freeTitle": "Unlock premium features",
+    "freeBody": "See who viewed you, unlock contacts, and more",
+    "upgrade": "Upgrade to premium",
+    "daysRemaining_one": "{{count}} days remaining",
+    "daysRemaining_other": "{{count}} days remaining",
+    "expiresToday": "Expires today",
+    "contactUnlocks": "Contact unlocks",
+    "unlocksLeft": "{{left}} / {{total}} left",
+    "unlocksUsed": "Contact unlocks used",
+    "unlimited": "Unlimited unlocks",
+    "manage": "Manage plan"
+  },
+  "stats": {
+    "profileViews": "Profile Views",
+    "thisWeek": "This week",
+    "totalViews": "Total Views",
+    "allTime": "All time",
+    "interestsReceived": "Interests Received",
+    "total": "Total",
+    "mutualMatches": "Mutual Matches",
+    "readyToChat": "Ready to chat"
+  },
+  "error": {
+    "title": "Couldn't load your dashboard",
+    "body": "Something went wrong on our side or your connection dropped. Your profile is safe."
+  },
+  "header": {
+    "viewsThisWeek": "{{count}} profile views this week",
+    "newMembers_one": "{{count}} new member joined this week",
+    "newMembers_other": "{{count}} new members joined this week",
+    "findMatches": "Find matches"
+  },
+  "checklist": {
+    "photo": "Add your photo",
+    "photoDesc": "A clear photo helps families recognise and trust your profile",
+    "bio": "Write about yourself",
+    "bioDesc": "A short bio helps families connect",
+    "prefs": "Set partner preferences",
+    "prefsDesc": "Sharpen who we match you with"
+  },
+  "mutual": {
+    "subtitle": "These people liked you back. Start a conversation.",
+    "countNew": "{{count}} new",
+    "openChat": "Open chat"
+  },
+  "daily": {
+    "subtitle": "Hand-picked for you, refreshed every day",
+    "count": "Daily",
+    "seeMore": "See more matches",
+    "fresh": "Fresh matches arrive at midnight. Check back tomorrow."
+  },
+  "viewers": {
+    "title": "Who Viewed You",
+    "subtitlePremium": "People who visited your profile recently",
+    "subtitleFree": "Upgrade to see who viewed your profile",
+    "countRecent": "{{count}} recent",
+    "viewProfile": "View {{name}}'s profile",
+    "empty": "No one has viewed your profile yet. Complete your profile to attract visitors.",
+    "locked": "Premium feature",
+    "lockedBody": "See who's interested in your profile"
+  },
+  "curated": {
+    "title": "Curated for You",
+    "subtitle": "A wider set of profiles matched to your preferences",
+    "count": "For you",
+    "viewAll": "View all",
+    "viewAllProfiles": "View all profiles"
+  },
+  "empty": {
+    "title": "You're early. That's the point.",
+    "body": "We're building this community one verified Tricity family at a time, so there isn't much here yet. Sharpen your preferences so we match you well from the first profile, and invite someone you'd trust with an introduction.",
+    "browse": "Browse profiles",
+    "setPrefs": "Set preferences"
+  },
+  "upgradeModal": {
+    "feature": "Profile Viewers",
+    "description": "See who's viewing your profile and show your interest"
+  },
+  "nudge": {
+    "hide": "Hide this reminder",
+    "photo": {
+      "title": "Add a photo to your profile",
+      "body": "Families look for a photograph first. Without one your profile shows below everyone else in search, and most people will scroll past it.",
+      "note": "Blurred for anyone you have not matched with. You control this in Settings → Privacy.",
+      "cta": "Add my photo"
+    },
+    "verify": {
+      "title": "Get your profile verified",
+      "body": "A live selfie, checked by our team against your photos. Verified profiles carry a badge, rank higher in search, and are the ones families take seriously.",
+      "note": "Takes about a minute. The selfie is never shown on your profile.",
+      "cta": "Verify my profile"
+    }
+  }
+}

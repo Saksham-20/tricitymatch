@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation, Trans } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import CheckBox from '../../ui/CheckBox';
 import OtpBoxes from '../../ui/OtpBoxes';
 import SmartContactField, { detectContactType, phoneDigits } from '../SmartContactField';
-import { validateEmail, validatePassword, IDENTIFIER_ERROR } from '../../../utils/validators';
+import { validateEmail, validatePassword, identifierError } from '../../../utils/validators';
 import PasswordRequirements from '../../common/PasswordRequirements';
 import ReferralCodeField from '../ReferralCodeField';
 import { ConsentNotice, TermsCheckbox, MarketingCheckbox } from '../../auth/SignupConsent';
@@ -23,6 +24,7 @@ const CreateAccountStep = () => {
   const isGuardian = mode === 'create_for_other';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
 
   // Google signup lands on the same "finish your basics" page as a Google
   // sign-in from the login page; an existing member just goes in.
@@ -59,12 +61,12 @@ const CreateAccountStep = () => {
   }, [cooldown]);
 
   const relationshipOptions = [
-    { value: 'parent', label: 'Parent (Mother/Father)' },
-    { value: 'sibling', label: 'Sibling (Brother/Sister)' },
-    { value: 'child', label: 'Child (Son/Daughter)' },
-    { value: 'relative', label: 'Other Relative' },
-    { value: 'friend', label: 'Friend' },
-    { value: 'other', label: 'Other' },
+    { value: 'parent', label: t('signup.rel.parent') },
+    { value: 'sibling', label: t('signup.rel.sibling') },
+    { value: 'child', label: t('signup.rel.child') },
+    { value: 'relative', label: t('signup.rel.relative') },
+    { value: 'friend', label: t('signup.rel.friend') },
+    { value: 'other', label: t('signup.rel.other') },
   ];
 
   // Writing the single identifier fans out into the canonical email / phone
@@ -94,7 +96,7 @@ const CreateAccountStep = () => {
     // Send only needs a valid contact — password/terms are gated at "Next" so a
     // user can confirm their email/phone without a confusing credential error
     // on the OTP button.
-    if (!idType || !idValid()) { setStepErrors({ identifier: IDENTIFIER_ERROR }); return; }
+    if (!idType || !idValid()) { setStepErrors({ identifier: identifierError() }); return; }
     if (cooldown > 0) return;
 
     setOtpSending(true);
@@ -106,7 +108,7 @@ const CreateAccountStep = () => {
       setStepErrors({});
     } catch (err) {
       setAccountExists(err.response?.data?.error?.code === 'CONFLICT');
-      setStepErrors({ identifier: err.response?.data?.error?.message || 'Could not send the code. Try again.' });
+      setStepErrors({ identifier: err.response?.data?.error?.message || t('auth.sendCodeFailed') });
     } finally {
       setOtpSending(false);
     }
@@ -123,7 +125,7 @@ const CreateAccountStep = () => {
       setStepErrors({});
     } catch (err) {
       setOtpCode('');
-      setStepErrors({ otp: err.response?.data?.error?.message || 'Invalid code. Try again.' });
+      setStepErrors({ otp: err.response?.data?.error?.message || t('signup.invalidCode') });
     } finally {
       setOtpVerifying(false);
     }
@@ -136,31 +138,31 @@ const CreateAccountStep = () => {
 
     if (isGuardian) {
       // Guardian path keeps the legacy multi-field form; verification is its own step.
-      if (!data.creatingFor) newErrors.creatingFor = 'Please select who this profile is for';
+      if (!data.creatingFor) newErrors.creatingFor = t('signup.errWhoFor');
       const phone = (data.phone || '').replace(/[\s-]/g, '');
       const hasEmail = !!data.email;
-      if (!hasEmail && !phone) newErrors.email = 'Enter an email or phone number';
+      if (!hasEmail && !phone) newErrors.email = t('signup.errEmailOrPhone');
       else {
-        if (hasEmail && !validateEmail(data.email)) newErrors.email = 'Invalid email address';
-        if (phone && !/^[6-9]\d{9}$/.test(phone)) newErrors.phone = 'Enter a valid 10-digit Indian mobile number';
+        if (hasEmail && !validateEmail(data.email)) newErrors.email = t('validation.invalidEmail');
+        if (phone && !/^[6-9]\d{9}$/.test(phone)) newErrors.phone = t('validation.validIndianMobile');
       }
-      if (!data.password) newErrors.password = 'Password is required';
-      else if (!validatePassword(data.password)) newErrors.password = 'Min 8 chars (uppercase, lowercase, number, symbol)';
+      if (!data.password) newErrors.password = t('validation.passwordRequired');
+      else if (!validatePassword(data.password)) newErrors.password = t('validation.passwordShortRule');
       if (data.creatingFor !== 'self') {
-        if (!data.relationshipToProfile) newErrors.relationshipToProfile = 'Please select your relationship';
-        if (!data.yourName || data.yourName.trim().length < 2) newErrors.yourName = 'Name is required (at least 2 characters)';
-        if (!data.yourPhone || data.yourPhone.trim().length < 10) newErrors.yourPhone = 'Valid phone number is required';
+        if (!data.relationshipToProfile) newErrors.relationshipToProfile = t('signup.errRelationship');
+        if (!data.yourName || data.yourName.trim().length < 2) newErrors.yourName = t('signup.errYourName');
+        if (!data.yourPhone || data.yourPhone.trim().length < 10) newErrors.yourPhone = t('signup.errYourPhone');
         // Your email is optional, but if given it must be valid AND differ from
         // the profile owner's email (you can't be your own guardian).
         if (data.yourEmail) {
-          if (!validateEmail(data.yourEmail)) newErrors.yourEmail = 'Enter a valid email address';
+          if (!validateEmail(data.yourEmail)) newErrors.yourEmail = t('validation.enterValidEmail');
           else if (hasEmail && data.yourEmail.trim().toLowerCase() === data.email.trim().toLowerCase()) {
-            newErrors.yourEmail = 'Use a different email from the profile owner';
+            newErrors.yourEmail = t('signup.errDifferentEmail');
           }
         }
       }
-      if (!data.account_agree) newErrors.account_agree = 'Please agree to the Terms & Privacy Policy to continue';
-      if (data.creatingFor !== 'self' && !data.account_attest) newErrors.account_attest = 'Please confirm the person agrees to this profile';
+      if (!data.account_agree) newErrors.account_agree = t('validation.agreeTerms');
+      if (data.creatingFor !== 'self' && !data.account_attest) newErrors.account_attest = t('signup.errAttest');
       setStepErrors(newErrors);
       return Object.keys(newErrors).length === 0;
     }
@@ -171,15 +173,15 @@ const CreateAccountStep = () => {
     // would surface an error for a field the member can't see or fix.
     const type = detectContactType(data.identifier);
     if (!type || !(type === 'email' ? validateEmail(data.email) : /^[6-9]\d{9}$/.test(phoneDigits(data.identifier)))) {
-      newErrors.identifier = IDENTIFIER_ERROR;
+      newErrors.identifier = identifierError();
     }
     const isVerified = type === 'email' ? !!data.emailVerification : type === 'phone' ? !!data.phoneVerification : false;
     if (isVerified) {
-      if (!data.password) newErrors.password = 'Password is required';
-      else if (!validatePassword(data.password)) newErrors.password = 'Min 8 chars (uppercase, lowercase, number, symbol)';
-      if (!data.account_agree) newErrors.account_agree = 'Please agree to the Terms & Privacy Policy to continue';
+      if (!data.password) newErrors.password = t('validation.passwordRequired');
+      else if (!validatePassword(data.password)) newErrors.password = t('validation.passwordShortRule');
+      if (!data.account_agree) newErrors.account_agree = t('validation.agreeTerms');
     } else if (!newErrors.identifier) {
-      newErrors.verify = `Verify your ${type === 'phone' ? 'mobile number' : 'email'} to continue`;
+      newErrors.verify = type === 'phone' ? t('signup.verifyPhoneToContinue') : t('signup.verifyEmailToContinue');
     }
 
     setStepErrors(newErrors);
@@ -210,7 +212,7 @@ const CreateAccountStep = () => {
                 // member tabs off a freshly-typed, not-yet-submitted contact field.
                 // Skip entirely on an untouched, still-empty field.
                 if (formData.identifier?.trim() && (!idType || !idValid())) {
-                  setStepErrors({ ...errors, identifier: IDENTIFIER_ERROR });
+                  setStepErrors({ ...errors, identifier: identifierError() });
                 }
               }}
               error={errors.identifier}
@@ -219,7 +221,7 @@ const CreateAccountStep = () => {
             />
             {accountExists && (
               <Link to="/login" className="inline-block text-sm font-semibold text-primary-600 underline">
-                Log in instead &rarr;
+                {t('signup.loginInstead')}
               </Link>
             )}
 
@@ -230,30 +232,30 @@ const CreateAccountStep = () => {
                 <div className="flex items-start gap-3">
                   <div className="p-2.5 rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-900/30 flex-shrink-0"><FiShield className="w-5 h-5" /></div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Verify to create your account</p>
-                    <p className="text-xs text-neutral-500 mt-0.5 mb-3">We’ll send a one-time code to confirm it’s really you. Your account is created only after this.</p>
+                    <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{t('signup.verifyTitle')}</p>
+                    <p className="text-xs text-neutral-500 mt-0.5 mb-3">{t('signup.verifyBody')}</p>
                     {/* Shared .btn-primary (index.css) carries the funnel's one primary-CTA
                         look plus real press feedback (:active scale(0.97) @120ms) — the ad-hoc
                         bg-primary-600/hover classes this replaced had neither. */}
                     <button type="button" onClick={sendOtp} disabled={otpSending} className="btn-primary text-sm">
-                      {otpSending ? 'Sending…' : 'Send OTP'}
+                      {otpSending ? t('auth.sending') : t('signup.sendOtp')}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Enter the {codeLen}-digit code</p>
-                  <p className="text-xs text-neutral-500 -mt-1.5">Sent to <span className="font-medium text-neutral-700 dark:text-neutral-300">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</span></p>
+                  <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{t('signup.enterCode', { count: codeLen })}</p>
+                  <p className="text-xs text-neutral-500 -mt-1.5"><Trans i18nKey="signup.sentTo" values={{ target: idType === 'phone' ? `+91 ${idTarget()}` : formData.email }} components={{ target: <span className="font-medium text-neutral-700 dark:text-neutral-300" /> }} /></p>
                   <OtpBoxes length={codeLen} value={otpCode} onChange={setOtpCode} onComplete={verifyOtp} error={!!errors.otp} disabled={otpVerifying} autoFocus />
                   {/* Verification fires on the last digit — no button to hunt for. */}
                   <div className="flex items-center gap-3 min-h-[20px]">
                     {otpVerifying ? (
                       <span className="flex items-center gap-2 text-xs font-medium text-primary-600">
                         <span className="w-3.5 h-3.5 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-                        Verifying…
+                        {t('signup.verifying')}
                       </span>
                     ) : (
-                      <span className="text-xs text-neutral-500">{cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={sendOtp} className="underline text-primary-600">Resend code</button>}</span>
+                      <span className="text-xs text-neutral-500">{cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : <button type="button" onClick={sendOtp} className="underline text-primary-600">{t('auth.resendCode')}</button>}</span>
                     )}
                   </div>
                   {errors.otp && <p className="text-sm text-destructive dark:text-red-300 bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 dark:border-red-500 p-2 rounded">{errors.otp}</p>}
@@ -267,7 +269,7 @@ const CreateAccountStep = () => {
               <>
                 <div className="relative" aria-hidden="true">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-200 dark:border-neutral-700" /></div>
-                  <div className="relative flex justify-center text-sm"><span className="px-3 bg-white dark:bg-surface-dark-3 text-neutral-500 dark:text-neutral-400">or</span></div>
+                  <div className="relative flex justify-center text-sm"><span className="px-3 bg-white dark:bg-surface-dark-3 text-neutral-500 dark:text-neutral-400">{t('signup.or')}</span></div>
                 </div>
                 <GoogleSignIn
                   text="signup_with"
@@ -287,13 +289,13 @@ const CreateAccountStep = () => {
               <motion.div initial="initial" animate="animate" variants={fade} className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0"><FiCheckCircle className="w-5 h-5" /></div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">{idType === 'phone' ? 'Mobile number' : 'Email'} verified</p>
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">{idType === 'phone' ? t('signup.phoneVerified') : t('signup.emailVerified')}</p>
                   <p className="text-xs text-neutral-500 truncate">{idType === 'phone' ? `+91 ${idTarget()}` : formData.email}</p>
                 </div>
                 {/* py-3.5/-my-3.5 pads the tap target to the doctrine's 44px floor
                     without growing the visible mark (§3.5). */}
                 <button type="button" onClick={() => { updateFormData(idType === 'email' ? 'emailVerification' : 'phoneVerification', false); setOtpSent(false); setOtpCode(''); }} className="flex items-center gap-1 py-3.5 -my-3.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 flex-shrink-0">
-                  <FiEdit2 className="w-3.5 h-3.5" /> Change
+                  <FiEdit2 className="w-3.5 h-3.5" /> {t('auth.change')}
                 </button>
               </motion.div>
             </div>
@@ -301,7 +303,7 @@ const CreateAccountStep = () => {
             {/* Password */}
             <div className="space-y-1.5">
               <label htmlFor="signup-password" className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                Password <span className="text-red-500">*</span>
+                {t('auth.password')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -309,20 +311,20 @@ const CreateAccountStep = () => {
                   name="password"
                   autoComplete="new-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder={t('signup.createPasswordPlaceholder')}
                   value={formData.password}
                   onChange={(e) => updateFormData('password', e.target.value)}
                   onBlur={() => {
                     setFieldTouched('password');
                     if (formData.password && !validatePassword(formData.password)) {
-                      setStepErrors({ ...errors, password: 'Min 8 chars (uppercase, lowercase, number, symbol)' });
+                      setStepErrors({ ...errors, password: t('validation.passwordShortRule') });
                     }
                   }}
                   aria-invalid={errors.password ? true : undefined}
                   aria-describedby={errors.password ? 'signup-password-error' : (formData.password ? undefined : 'signup-password-hint')}
                   className="w-full px-4 py-3 pr-11 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
                 />
-                <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
+                <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
                   {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
@@ -330,7 +332,7 @@ const CreateAccountStep = () => {
               {formData.password ? (
                 <PasswordRequirements password={formData.password} />
               ) : !errors.password && (
-                <p id="signup-password-hint" className="text-xs text-neutral-400">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>
+                <p id="signup-password-hint" className="text-xs text-neutral-400">{t('validation.passwordHintLong')}</p>
               )}
             </div>
 
@@ -362,11 +364,11 @@ const CreateAccountStep = () => {
   return (
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise} className="space-y-3">
-        <label className="block text-sm font-semibold text-neutral-900">Is this profile for you or someone else?</label>
+        <label className="block text-sm font-semibold text-neutral-900">{t('signup.whoFor')}</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { value: 'self', label: 'For Me', icon: FiUser, description: 'I am creating my own profile' },
-            { value: 'other', label: 'For Someone Else', icon: FiUsers, description: 'I am creating a profile for another person' },
+            { value: 'self', label: t('signup.forMe'), icon: FiUser, description: t('signup.forMeDesc') },
+            { value: 'other', label: t('signup.forOther'), icon: FiUsers, description: t('signup.forOtherDesc') },
           ].map((option) => {
             const Icon = option.icon;
             const isSelected = formData.creatingFor === option.value;
@@ -374,6 +376,7 @@ const CreateAccountStep = () => {
               <button
                 key={option.value}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => updateFormData('creatingFor', option.value)}
                 className={`p-4 text-left rounded-lg border-2 transition-colors duration-[160ms] active:scale-[0.98] flex items-start gap-3 ${isSelected ? 'border-primary-600 bg-primary-50' : 'border-neutral-200 bg-white hover:border-primary-300'}`}
               >
@@ -393,19 +396,19 @@ const CreateAccountStep = () => {
       {formData.creatingFor !== 'self' && (
         <motion.div initial="initial" animate="animate" variants={fadeRise} className="space-y-4">
           <div className="pb-2 border-b border-neutral-200">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">Your details: profile creator</p>
-            <p className="text-xs text-neutral-500">This is your information as the person setting up this account.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">{t('signup.creatorHeading')}</p>
+            <p className="text-xs text-neutral-500">{t('signup.creatorBody')}</p>
           </div>
-          <FormField label="Your Full Name" name="yourName" autoComplete="name" placeholder="Enter your own name" value={formData.yourName || ''} onChange={(v) => updateFormData('yourName', v)} onBlur={() => { setFieldTouched('yourName'); validateStep(); }} error={errors.yourName} required />
-          <FormField label="Your Phone Number" type="tel" name="yourPhone" autoComplete="tel" inputMode="numeric" placeholder="Your 10-digit phone number" value={formData.yourPhone || ''} onChange={(v) => updateFormData('yourPhone', v)} onBlur={() => { setFieldTouched('yourPhone'); validateStep(); }} error={errors.yourPhone} required />
+          <FormField label={t('signup.yourName')} name="yourName" autoComplete="name" placeholder={t('signup.yourNamePlaceholder')} value={formData.yourName || ''} onChange={(v) => updateFormData('yourName', v)} onBlur={() => { setFieldTouched('yourName'); validateStep(); }} error={errors.yourName} required />
+          <FormField label={t('signup.yourPhone')} type="tel" name="yourPhone" autoComplete="tel" inputMode="numeric" placeholder={t('signup.yourPhonePlaceholder')} value={formData.yourPhone || ''} onChange={(v) => updateFormData('yourPhone', v)} onBlur={() => { setFieldTouched('yourPhone'); validateStep(); }} error={errors.yourPhone} required />
           {/* Guardian's own email — when given, we link them as a read-only
               guardian of this profile so they can keep an eye on it later. */}
-          <FormField label="Your Email" type="email" name="yourEmail" autoComplete="email" inputMode="email" placeholder="your.email@example.com" value={formData.yourEmail || ''} onChange={(v) => updateFormData('yourEmail', v)} onBlur={() => { setFieldTouched('yourEmail'); validateStep(); }} error={errors.yourEmail} hint="We'll give you read-only guardian access to this profile." optional />
+          <FormField label={t('signup.yourEmail')} type="email" name="yourEmail" autoComplete="email" inputMode="email" placeholder="your.email@example.com" value={formData.yourEmail || ''} onChange={(v) => updateFormData('yourEmail', v)} onBlur={() => { setFieldTouched('yourEmail'); validateStep(); }} error={errors.yourEmail} hint={t('signup.yourEmailHint')} optional />
           <div className="space-y-2">
-            <label htmlFor="onboarding-relationship" className="block text-sm font-medium text-neutral-900">Your Relationship to the Person Whose Profile This Is *</label>
+            <label htmlFor="onboarding-relationship" className="block text-sm font-medium text-neutral-900">{t('signup.relationshipLabel')}</label>
             <select id="onboarding-relationship" name="relationshipToProfile" value={formData.relationshipToProfile || ''} onChange={(e) => { updateFormData('relationshipToProfile', e.target.value); setTimeout(validateStep, 0); }} onBlur={() => setFieldTouched('relationshipToProfile')}
               className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors duration-[160ms]">
-              <option value="">Select your relationship to them...</option>
+              <option value="">{t('signup.relationshipPlaceholder')}</option>
               {relationshipOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
             {errors.relationshipToProfile && <p className="text-sm text-red-600">{errors.relationshipToProfile}</p>}
@@ -416,25 +419,25 @@ const CreateAccountStep = () => {
       <motion.div initial="initial" animate="animate" variants={fadeRise} className="space-y-4">
         {formData.creatingFor !== 'self' ? (
           <div className="pb-2 border-b border-neutral-200">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">Profile owner's login details</p>
-            <p className="text-xs text-neutral-500">The email and password they'll use to sign in.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 mb-0.5">{t('signup.ownerLoginHeading')}</p>
+            <p className="text-xs text-neutral-500">{t('signup.ownerLoginBody')}</p>
           </div>
         ) : (
-          <h3 className="font-semibold text-neutral-900 text-sm">Account Information</h3>
+          <h3 className="font-semibold text-neutral-900 text-sm">{t('signup.accountInfo')}</h3>
         )}
-        <p className="text-xs text-neutral-500 -mb-1">A verified mobile number is required. An email is optional.</p>
-        <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Email" : 'Email'} type="email" name="email" autoComplete="email" inputMode="email" placeholder={formData.creatingFor !== 'self' ? 'Their email address' : 'email@example.com'} value={formData.email} onChange={(v) => updateFormData('email', v)} onBlur={() => { setFieldTouched('email'); validateStep(); }} error={errors.email} />
-        <FormField label={formData.creatingFor !== 'self' ? "Profile Owner's Phone" : 'Phone'} type="tel" name="phone" autoComplete="tel" inputMode="numeric" placeholder="10-digit mobile number" value={formData.phone || ''} onChange={(v) => updateFormData('phone', v)} onBlur={() => { setFieldTouched('phone'); validateStep(); }} error={errors.phone} />
+        <p className="text-xs text-neutral-500 -mb-1">{t('signup.mobileRequiredNote')}</p>
+        <FormField label={formData.creatingFor !== 'self' ? t('signup.ownerEmail') : t('auth.email')} type="email" name="email" autoComplete="email" inputMode="email" placeholder={formData.creatingFor !== 'self' ? t('signup.ownerEmailPlaceholder') : 'email@example.com'} value={formData.email} onChange={(v) => updateFormData('email', v)} onBlur={() => { setFieldTouched('email'); validateStep(); }} error={errors.email} />
+        <FormField label={formData.creatingFor !== 'self' ? t('signup.ownerPhone') : t('signup.phone')} type="tel" name="phone" autoComplete="tel" inputMode="numeric" placeholder={t('signup.phonePlaceholder')} value={formData.phone || ''} onChange={(v) => updateFormData('phone', v)} onBlur={() => { setFieldTouched('phone'); validateStep(); }} error={errors.phone} />
         <div className="space-y-2">
-          <label htmlFor="onboarding-password" className="block text-sm font-medium text-neutral-900">{formData.creatingFor !== 'self' ? "Profile Owner's Password *" : 'Password *'}</label>
+          <label htmlFor="onboarding-password" className="block text-sm font-medium text-neutral-900">{formData.creatingFor !== 'self' ? t('signup.ownerPassword') : t('signup.passwordStar')}</label>
           <div className="relative">
-            <input id="onboarding-password" name="password" autoComplete="new-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} onBlur={() => { setFieldTouched('password'); validateStep(); }}
+            <input id="onboarding-password" name="password" autoComplete="new-password" type={showPassword ? 'text' : 'password'} placeholder={t('signup.createPasswordPlaceholder')} value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} onBlur={() => { setFieldTouched('password'); validateStep(); }}
               aria-invalid={errors.password ? true : undefined} aria-describedby="guardian-password-hint"
               className="w-full px-4 py-2.5 pr-11 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">{showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}</button>
+            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">{showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}</button>
           </div>
           {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
-          {formData.password ? <PasswordRequirements password={formData.password} /> : !errors.password && <p id="guardian-password-hint" className="text-xs text-neutral-500 mt-1">At least 8 characters with uppercase, lowercase, a number, and a symbol.</p>}
+          {formData.password ? <PasswordRequirements password={formData.password} /> : !errors.password && <p id="guardian-password-hint" className="text-xs text-neutral-500 mt-1">{t('validation.passwordHintLong')}</p>}
         </div>
         <ReferralCodeField
           id="guardian-referral-code"
@@ -443,18 +446,18 @@ const CreateAccountStep = () => {
         />
         <div className="pt-2">
           <CheckBox checked={!!formData.account_agree} onChange={(checked) => updateFormData('account_agree', checked)} size="md"
-            label={<span className="text-sm text-neutral-600">This account is for finding a marriage partner, not for dating, and I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Terms &amp; Conditions</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700">Privacy Policy</a>.</span>} />
+            label={<span className="text-sm text-neutral-600"><Trans i18nKey="signup.termsAgree" components={{ terms: <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700" />, privacy: <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline hover:text-primary-700" /> }} /></span>} />
           {errors.account_agree && <p className="text-sm text-red-600 mt-1.5">{errors.account_agree}</p>}
         </div>
         {formData.creatingFor !== 'self' && (
           <div>
             <CheckBox checked={!!formData.account_attest} onChange={(checked) => updateFormData('account_attest', checked)} size="md"
-              label={<span className="text-sm text-neutral-600">The person this profile is for is of legal age to marry, knows about this profile, and agrees to it.</span>} />
+              label={<span className="text-sm text-neutral-600">{t('signup.attest')}</span>} />
             {errors.account_attest && <p className="text-sm text-red-600 mt-1.5">{errors.account_attest}</p>}
           </div>
         )}
         <CheckBox checked={!!formData.account_marketing} onChange={(checked) => updateFormData('account_marketing', checked)} size="md"
-          label={<span className="text-sm text-neutral-600">Email reminders and suggestions about matches (optional).</span>} />
+          label={<span className="text-sm text-neutral-600">{t('signup.guardianMarketingOptIn')}</span>} />
       </motion.div>
     </motion.div>
   );

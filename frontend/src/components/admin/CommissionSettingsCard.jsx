@@ -7,7 +7,7 @@ import apiClient from '../../api/apiClient';
  * One global lever; the same number the reps see broken down on their own
  * dashboards, so an edit here changes both sides at once.
  */
-export default function CommissionSettingsCard() {
+export default function CommissionSettingsCard({ onSaved }) {
   const [rate, setRate] = useState('');
   const [savedRate, setSavedRate] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,11 @@ export default function CommissionSettingsCard() {
   }, []);
 
   const handleSave = async () => {
+    const n = Number(rate);
+    if (rate === '' || !Number.isFinite(n) || n < 0 || n > 100) {
+      setError('Enter a rate between 0 and 100.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -38,8 +43,10 @@ export default function CommissionSettingsCard() {
       setRate(String(res.data.commission.rate));
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
+      // Totals on the page are worked out at the rate, so they are stale now.
+      onSaved?.();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save commission');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to save commission');
     } finally {
       setSaving(false);
     }

@@ -12,22 +12,13 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiFileText, FiDownload, FiRefreshCw, FiShare2, FiAlertCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import api from '../../api/axios';
 
 // Two genuinely different layouts (see backend/utils/biodata.js). The ids stay
 // classic/modern because shipped mobile builds send them.
-const TEMPLATES = [
-  {
-    id: 'classic',
-    label: 'Traditional',
-    desc: 'Framed page, everything centred, "Name : value" rows. The format families print and pass on.',
-  },
-  {
-    id: 'modern',
-    label: 'Modern',
-    desc: 'Photo in a coloured sidebar, details in two columns. Easy to read on a phone.',
-  },
-];
+// Label and description: `biodata.templates.<id>.label|desc`.
+const TEMPLATES = [{ id: 'classic' }, { id: 'modern' }];
 
 // Thumbnails drawn to match each PDF's actual layout, so the choice is visible
 // before generating. Colours stay off gold (premium signal, doctrine §3.1).
@@ -82,6 +73,7 @@ const ModernThumb = () => (
 const KEY_FIELDS = ['dateOfBirth', 'height', 'education', 'profession', 'religion', 'familyType'];
 
 const BiodataCard = ({ profile }) => {
+  const { t } = useTranslation();
   const [template, setTemplate] = useState('classic');
   const [state, setState] = useState('idle'); // idle | generating | ready | error
   const [pdfBlob, setPdfBlob] = useState(null);
@@ -114,7 +106,7 @@ const BiodataCard = ({ profile }) => {
     const file = new File([pdfBlob], `biodata-tricitymatch-${template === 'modern' ? 'modern' : 'traditional'}.pdf`, { type: 'application/pdf' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Marriage Biodata' });
+        await navigator.share({ files: [file], title: t('biodata.shareTitle') });
         return;
       } catch (e) {
         if (e.name === 'AbortError') return;
@@ -122,51 +114,51 @@ const BiodataCard = ({ profile }) => {
     }
     // Fallback: download + hand off to WhatsApp with a ready message.
     download();
-    const text = encodeURIComponent('Sharing my marriage biodata (PDF attached) — made with TricityMatch, tricitymatch.com');
+    const text = encodeURIComponent(t('biodata.waText'));
     window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener');
-    toast('PDF downloaded. Attach it in WhatsApp.', { icon: <FiFileText className="w-4 h-4 text-primary-500" /> });
+    toast(t('biodata.downloaded'), { icon: <FiFileText className="w-4 h-4 text-primary-500" /> });
   };
 
   return (
     <div className="bg-white dark:bg-surface-dark-3 rounded-3xl border border-neutral-100 dark:border-neutral-800 shadow-card p-5">
       <div className="flex items-center gap-2 mb-1">
         <FiFileText className="w-4 h-4 text-primary-500" aria-hidden="true" />
-        <h3 className="font-display text-base font-bold text-neutral-900 dark:text-neutral-100">Marriage Biodata</h3>
+        <h3 className="font-display text-base font-bold text-neutral-900 dark:text-neutral-100">{t('biodata.title')}</h3>
       </div>
       <p className="text-sm text-neutral-500 mb-4">
-        A polished PDF of your profile, ready to share with families on WhatsApp.
+        {t('biodata.intro')}
       </p>
 
       {missing >= 2 && (
         <div className="mb-4 flex items-start gap-2 px-3 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-sm">
           <FiAlertCircle className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
           <p className="text-neutral-600 dark:text-neutral-300">
-            Add family and career details for a complete biodata.{' '}
-            <Link to="/profile/edit" className="font-medium text-primary-600 hover:text-primary-800">Complete profile →</Link>
+            {t('biodata.missing')}{' '}
+            <Link to="/profile/edit" className="font-medium text-primary-600 hover:text-primary-800">{t('biodata.completeProfile')}</Link>
           </p>
         </div>
       )}
 
       {/* Template picker */}
-      <div className="grid grid-cols-2 gap-3 mb-4" role="radiogroup" aria-label="Biodata template">
-        {TEMPLATES.map((t) => (
+      <div className="grid grid-cols-2 gap-3 mb-4" role="radiogroup" aria-label={t('biodata.pickerAria')}>
+        {TEMPLATES.map((tpl) => (
           <button
-            key={t.id}
+            key={tpl.id}
             role="radio"
-            aria-checked={template === t.id}
-            onClick={() => { setTemplate(t.id); setState('idle'); setPdfBlob(null); }}
+            aria-checked={template === tpl.id}
+            onClick={() => { setTemplate(tpl.id); setState('idle'); setPdfBlob(null); }}
             className={`rounded-2xl border-2 p-3 text-left transition-colors duration-[160ms] ${
-              template === t.id
+              template === tpl.id
                 ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20'
                 : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'
             }`}
           >
             {/* Mini preview of the actual layout */}
             <div className="mb-2" aria-hidden="true">
-              {t.id === 'classic' ? <TraditionalThumb /> : <ModernThumb />}
+              {tpl.id === 'classic' ? <TraditionalThumb /> : <ModernThumb />}
             </div>
-            <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{t.label}</p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug mt-0.5">{t.desc}</p>
+            <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{t(`biodata.templates.${tpl.id}.label`)}</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug mt-0.5">{t(`biodata.templates.${tpl.id}.desc`)}</p>
           </button>
         ))}
       </div>
@@ -177,17 +169,17 @@ const BiodataCard = ({ profile }) => {
             onClick={share}
             className="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl bg-[#25D366] hover:bg-[#1fb958] text-white text-sm font-semibold transition-colors"
           >
-            <FiShare2 className="w-4 h-4" /> Share on WhatsApp
+            <FiShare2 className="w-4 h-4" /> {t('biodata.shareWhatsApp')}
           </button>
           <button
             onClick={download}
             className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-semibold hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
           >
-            <FiDownload className="w-4 h-4" /> Download
+            <FiDownload className="w-4 h-4" /> {t('biodata.download')}
           </button>
           <button
             onClick={generate}
-            aria-label="Regenerate biodata"
+            aria-label={t('biodata.regenerate')}
             className="inline-flex items-center justify-center min-h-[44px] px-3 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
           >
             <FiRefreshCw className="w-4 h-4" />
@@ -202,18 +194,18 @@ const BiodataCard = ({ profile }) => {
           {state === 'generating' ? (
             <>
               <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" aria-hidden="true" />
-              Preparing your biodata…
+              {t('biodata.preparing')}
             </>
           ) : (
             <>
               <FiFileText className="w-4 h-4" />
-              {state === 'error' ? 'Try again' : 'Create my biodata'}
+              {state === 'error' ? t('biodata.tryAgain') : t('biodata.create')}
             </>
           )}
         </button>
       )}
       {state === 'error' && (
-        <p className="mt-2 text-xs text-destructive text-center">Couldn&apos;t generate the PDF. Please try again.</p>
+        <p className="mt-2 text-xs text-destructive text-center">{t('biodata.error')}</p>
       )}
     </div>
   );

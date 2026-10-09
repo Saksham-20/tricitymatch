@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
@@ -11,10 +12,11 @@ const RELIGIONS = ['Hindu', 'Muslim', 'Sikh', 'Christian', 'Buddhist', 'Jain', '
 const MOTHER_TONGUES = ['Punjabi', 'Hindi', 'English', 'Marathi', 'Tamil', 'Telugu', 'Malayalam', 'Kannada', 'Other'];
 
 const CASTE_VALUES = new Set(CASTE_OPTIONS.map((o) => o.value));
-const CASTE_SELECT_OPTIONS = [...CASTE_OPTIONS, { value: CASTE_OTHER, label: 'Other (type your own)' }];
 
 const ReligionStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors } = useOnboarding();
+  const CASTE_SELECT_OPTIONS = [...CASTE_OPTIONS, { value: CASTE_OTHER, label: t('onboarding.religion.otherCaste') }];
 
   // A saved caste that isn't in the curated list (e.g. a legacy free-text value
   // like "Chadha") must resolve to "Other" with the value prefilled — otherwise
@@ -53,12 +55,12 @@ const ReligionStep = () => {
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise}>
         <Select
-          label="Religion"
+          label={t('onboarding.religion.religion')}
           options={RELIGIONS.map(r => ({ value: r, label: r }))}
           value={formData.religion}
           onChange={(value) => updateFormData('religion', value)}
           error={errors.religion}
-          placeholder="Select your religion"
+          placeholder={t('onboarding.religion.selectReligion')}
         />
       </motion.div>
 
@@ -66,13 +68,13 @@ const ReligionStep = () => {
           no gating. Search the list or type your own via "Other". */}
       <motion.div variants={fadeRise}>
         <Select
-          label="Caste / Community"
+          label={t('onboarding.religion.caste')}
           options={CASTE_SELECT_OPTIONS}
           value={casteSelectValue}
           onChange={handleCasteSelect}
           searchable
           optional
-          placeholder="Search or type your community"
+          placeholder={t('onboarding.religion.searchCaste')}
         />
         <AnimatePresence>
           {casteOther && (
@@ -83,8 +85,8 @@ const ReligionStep = () => {
               className="mt-3 overflow-hidden"
             >
               <FormField
-                label="Your community"
-                placeholder="Type your community"
+                label={t('onboarding.religion.yourCommunity')}
+                placeholder={t('onboarding.religion.typeCommunity')}
                 value={formData.caste}
                 onChange={(value) => updateFormData('caste', value)}
               />
@@ -104,14 +106,14 @@ const ReligionStep = () => {
             className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden"
           >
             <FormField
-              label="Sub-caste"
-              placeholder="Optional"
+              label={t('onboarding.religion.subCaste')}
+              placeholder={t('onboarding.optional')}
               value={formData.subCaste}
               onChange={(value) => updateFormData('subCaste', value)}
             />
             <FormField
-              label="Gotra"
-              placeholder="Optional"
+              label={t('onboarding.religion.gotra')}
+              placeholder={t('onboarding.optional')}
               value={formData.gotra}
               onChange={(value) => updateFormData('gotra', value)}
             />
@@ -120,8 +122,8 @@ const ReligionStep = () => {
                 <CheckBox
                   checked={!!formData.excludeSameGotra}
                   onChange={(checked) => updateFormData('excludeSameGotra', checked)}
-                  label="Do not show me members with my gotra"
-                  hint="They will not see you either. It applies to every search, daily matches and suggestions. Members who have not entered a gotra are still shown."
+                  label={t('onboarding.religion.excludeGotra')}
+                  hint={t('onboarding.religion.excludeGotraHint')}
                 />
               </div>
             )}
@@ -131,18 +133,18 @@ const ReligionStep = () => {
 
       <motion.div variants={fadeRise}>
         <Select
-          label="Mother Tongue"
+          label={t('onboarding.religion.motherTongue')}
           options={MOTHER_TONGUES.map(m => ({ value: m, label: m }))}
           value={formData.motherTongue}
           onChange={(value) => updateFormData('motherTongue', value)}
           searchable
-          placeholder="Search your mother tongue"
+          placeholder={t('onboarding.religion.searchMotherTongue')}
         />
       </motion.div>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
-        <p className="font-medium text-neutral-800 mb-1">Cultural compatibility</p>
-        <p>Your religious and cultural background helps us find compatible matches who share your values. Caste is optional.</p>
+        <p className="font-medium text-neutral-800 mb-1">{t('onboarding.religion.infoTitle')}</p>
+        <p>{t('onboarding.religion.infoBody')}</p>
       </motion.div>
     </motion.div>
   );

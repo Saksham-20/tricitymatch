@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FiBookmark, FiHeart, FiUsers, FiLock, FiSend } from 'react-icons/fi';
 import { sanitizeText } from '../utils/sanitize';
 import { getImageUrl } from '../utils/cloudinary';
@@ -7,6 +8,8 @@ import { API_BASE_URL } from '../utils/api';
 import { FaCrown } from 'react-icons/fa';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
+import { keptLikeMessage } from '../utils/matchCopy';
 import { ProfileCard } from '../components/cards';
 import { useMatchCelebration } from '../context/MatchCelebrationContext';
 import InviteLink from '../components/common/InviteLink';
@@ -14,57 +17,13 @@ import SectionHeader from '../components/common/SectionHeader';
 import { Skeleton, EmptyState, ErrorState } from '../components/ui';
 import RetryImage from '../components/ui/RetryImage';
 
-// Each tab maps to a match endpoint + the response key it returns.
+// Each tab maps to a match endpoint + the response key it returns. Its label
+// and empty-state copy live under `matches.tabs.<id>` and are read at render.
 const TABS = [
-  {
-    id: 'shortlist',
-    label: 'Saved',
-    icon: FiBookmark,
-    endpoint: '/match/shortlist',
-    respKey: 'shortlisted',
-    empty: {
-      title: 'Nothing saved yet',
-      line: 'Tap the bookmark on a profile to save it here for later.',
-      supply: 'New Tricity members join every week, so this list grows as the community does.',
-    },
-  },
-  {
-    id: 'mutual',
-    label: 'Mutual',
-    icon: FiUsers,
-    endpoint: '/match/mutual',
-    respKey: 'mutualMatches',
-    empty: {
-      title: 'No mutual matches yet',
-      line: 'When you and someone both express interest, they show up here.',
-      supply: 'A mutual match needs two people. The surest way to get one is to bring someone you already trust into the circle.',
-    },
-  },
-  {
-    id: 'sent',
-    label: 'Sent',
-    icon: FiSend,
-    endpoint: '/match/sent',
-    respKey: 'sent',
-    empty: {
-      title: 'You haven’t reached out yet',
-      line: 'Profiles you like show up here. Today’s matches are waiting.',
-      supply: 'Expressing interest is free, and a thoughtful like is how every mutual match starts.',
-    },
-  },
-  {
-    id: 'likes',
-    label: 'Likes You',
-    icon: FiHeart,
-    endpoint: '/match/likes',
-    respKey: 'likes',
-    premium: true,
-    empty: {
-      title: 'No interests received yet',
-      line: 'Members who like you will appear here.',
-      supply: 'A complete, photo-verified profile gets seen first, and the more Tricity families here, the more eyes on yours.',
-    },
-  },
+  { id: 'shortlist', icon: FiBookmark, endpoint: '/match/shortlist', respKey: 'shortlisted' },
+  { id: 'mutual', icon: FiUsers, endpoint: '/match/mutual', respKey: 'mutualMatches' },
+  { id: 'sent', icon: FiSend, endpoint: '/match/sent', respKey: 'sent' },
+  { id: 'likes', icon: FiHeart, endpoint: '/match/likes', respKey: 'likes', premium: true },
 ];
 
 // Two shapes, alternated in the grid below — ProfileCard now renders either a
@@ -98,6 +57,7 @@ const CardSkeleton = ({ compact = false }) => (
 );
 
 export default function Matches() {
+  const { t } = useTranslation();
   const { celebrate } = useMatchCelebration();
   // ?tab= lets other surfaces deep-link a specific list — notification taps in
   // particular. An unknown value falls back to Saved rather than rendering an
@@ -106,15 +66,16 @@ export default function Matches() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get('tab');
   const [active, setActive] = useState(
-    TABS.some((t) => t.id === requested) ? requested : 'shortlist'
+    TABS.some((x) => x.id === requested) ? requested : 'shortlist'
   );
   const [state, setState] = useState('loading'); // loading | ready | empty | error | premium
   const [profiles, setProfiles] = useState([]);
+  const [confirm, confirmDialog] = useConfirm();
 
-  const tab = TABS.find((t) => t.id === active);
+  const tab = TABS.find((x) => x.id === active);
 
   const load = useCallback(async (tabId) => {
-    const cfg = TABS.find((t) => t.id === tabId);
+    const cfg = TABS.find((x) => x.id === tabId);
     setState('loading');
     setProfiles([]);
     try {
@@ -124,6 +85,15 @@ export default function Matches() {
       // the card's primary action reads "Interest Sent" (a toggle to withdraw)
       // instead of offering to express interest in them a second time.
       if (tabId === 'sent') list = list.map((p) => ({ ...p, matchStatus: 'like' }));
+      // Likes You lists every like aimed at the member, including people they
+      // already liked back. Those are matches: show Message, not Express Interest.
+      if (tabId === 'likes') {
+        list = list.map((p) => ({
+          ...p,
+          matchStatus: p.myAction === 'like' || p.myAction === 'shortlist' ? p.myAction : null,
+          likedBack: p.myAction === 'like',
+        }));
+      }
       setProfiles(list);
       setState(list.length ? 'ready' : 'empty');
     } catch (err) {
@@ -144,7 +114,7 @@ export default function Matches() {
   // sync the tab wouldn't follow the link (the deep-link promise above).
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
-    if (TABS.some((t) => t.id === requestedTab) && requestedTab !== active) {
+    if (TABS.some((x) => x.id === requestedTab) && requestedTab !== active) {
       setActive(requestedTab);
     }
   }, [searchParams, active]);
@@ -154,10 +124,25 @@ export default function Matches() {
   // back, sent as 'undo'). Returns whether the server accepted it so the card
   // icon can revert on failure.
   const handleAction = async (userId, action, want = true) => {
+    const target = profiles.find((p) => (p.userId || p.id) === userId);
+      // Taking back a like on a mutual match ends the match and the chat for
+      // both members; one stray tap on "Interest Sent" used to do that silently.
+      if (!want && action === 'like' && (active === 'mutual' || target?.isMutual || target?.likedBack)) {
+        const ok = await confirm({
+          title: t('matches.endMatch.title', { name: target?.firstName || t('matches.endMatch.thisMember') }),
+          body: t('matches.endMatch.body'),
+          confirmLabel: t('matches.endMatch.confirm'),
+          cancelLabel: t('matches.endMatch.cancel'),
+        });
+        if (!ok) return false;
+      }
     try {
       const res = await api.post(`/match/${userId}`, { action: want ? action : 'undo' });
-      if (want && action === 'like') toast.success('Interest expressed!');
-      if (!want) toast.success(action === 'like' ? 'Interest withdrawn' : 'Removed from your shortlist');
+      // Saving someone you already sent an interest to keeps the interest.
+      if (res.data?.keptLike) { toast(keptLikeMessage(res.data)); return false; }
+      // A new match gets the celebration instead of a toast underneath it.
+      if (want && action === 'like' && !res.data?.newMatch) toast.success(t('matches.interestExpressed'));
+      if (!want) toast.success(action === 'like' ? t('matches.interestWithdrawn') : t('matches.removedFromShortlist'));
       if (res.data?.newMatch) celebrate(profiles.find((p) => (p.userId || p.id) === userId));
       // Taking a row back drops the card from the tab that lists exactly that row
       // (Saved = shortlist, Sent = like).
@@ -171,7 +156,7 @@ export default function Matches() {
       }
       return true;
     } catch {
-      toast.error('Could not perform that action');
+      toast.error(t('matches.actionError'));
       return false;
     }
   };
@@ -180,8 +165,9 @@ export default function Matches() {
     <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 pb-24 md:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <SectionHeader
-          title="My Matches"
-          subtitle="Everyone you’ve saved, matched with, or who’s shown interest."
+          as="h1"
+          title={t('matches.title')}
+          subtitle={t('matches.subtitle')}
         />
 
         {/* Tabs */}
@@ -194,22 +180,22 @@ export default function Matches() {
             You" tab is discoverable; disabled from sm up where the row is w-fit. */}
         <div
           role="tablist"
-          aria-label="Match lists"
+          aria-label={t('matches.tabsAria')}
           className="flex gap-1 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card p-1.5 mb-6 mt-5 w-full sm:w-fit overflow-x-auto scrollbar-hide [mask-image:linear-gradient(to_right,#000_90%,transparent)] sm:[mask-image:none]"
         >
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            const isActive = active === t.id;
+          {TABS.map((tb) => {
+            const Icon = tb.icon;
+            const isActive = active === tb.id;
             return (
               <button
-                key={t.id}
+                key={tb.id}
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => {
-                  setActive(t.id);
+                  setActive(tb.id);
                   // Keep the URL honest so a refresh or a shared link lands on
                   // the tab the member is actually looking at.
-                  setSearchParams(t.id === 'shortlist' ? {} : { tab: t.id }, { replace: true });
+                  setSearchParams(tb.id === 'shortlist' ? {} : { tab: tb.id }, { replace: true });
                 }}
                 className={`flex-1 sm:flex-none whitespace-nowrap flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-colors duration-[160ms] ${
                   isActive
@@ -220,8 +206,8 @@ export default function Matches() {
                 {/* Text-only on a phone: with icons the fourth tab ("Likes You",
                     the premium one) was pushed off-screen behind a fade. */}
                 <Icon className="hidden sm:block w-4 h-4" aria-hidden="true" />
-                {t.label}
-                {t.premium && <FaCrown className="w-3 h-3 text-gold-400" />}
+                {t(`matches.tabs.${tb.id}.label`)}
+                {tb.premium && <FaCrown className="w-3 h-3 text-gold-400" />}
               </button>
             );
           })}
@@ -237,10 +223,10 @@ export default function Matches() {
         {/* ── Error ───────────────────────────────────────────────── */}
         {state === 'error' && (
           <ErrorState
-            title="Couldn’t load this list"
-            description="Something went wrong. Give it another try."
+            title={t('matches.errorTitle')}
+            description={t('matches.errorBody')}
             onRetry={() => load(active)}
-            retryLabel="Retry"
+            retryLabel={t('common.retry')}
             className="py-20"
           />
         )}
@@ -251,15 +237,15 @@ export default function Matches() {
             <div className="w-14 h-14 rounded-2xl bg-gold-50 dark:bg-gold-900/20 border border-gold-200 dark:border-gold-800 flex items-center justify-center mb-4">
               <FiLock className="w-7 h-7 text-gold-500" />
             </div>
-            <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-1">See who likes you</h3>
+            <h3 className="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-1">{t('matches.premiumTitle')}</h3>
             <p className="text-sm text-neutral-500 max-w-sm mb-5">
-              Upgrade to Premium to reveal every member who’s already expressed interest in your profile.
+              {t('matches.premiumBody')}
             </p>
             <Link
               to="/subscription"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-neutral-900 rounded-xl text-sm font-bold hover:bg-gold-400 shadow-gold"
             >
-              <FaCrown className="w-4 h-4" /> Upgrade to Premium
+              <FaCrown className="w-4 h-4" /> {t('matches.upgradeToPremium')}
             </Link>
           </div>
         )}
@@ -273,13 +259,13 @@ export default function Matches() {
           <div>
             <EmptyState
               icon={tab?.icon}
-              title={tab?.empty.title}
-              description={tab?.empty.line}
-              actionLabel="Discover profiles"
+              title={tab ? t(`matches.tabs.${tab.id}.title`) : undefined}
+              description={tab ? t(`matches.tabs.${tab.id}.line`) : undefined}
+              actionLabel={t('matches.discoverProfiles')}
               onAction={() => navigate('/search')}
               className="py-20"
             />
-            <p className="text-sm text-neutral-500 max-w-sm mx-auto text-center -mt-4">{tab?.empty.supply}</p>
+            <p className="text-sm text-neutral-500 max-w-sm mx-auto text-center -mt-4">{tab ? t(`matches.tabs.${tab.id}.supply`) : null}</p>
             <div className="flex justify-center mt-4 pb-2">
               <InviteLink variant="inline" />
             </div>
@@ -315,7 +301,9 @@ export default function Matches() {
                       <div className="min-w-0">
                         {profile.likedItem && (
                           <p className="text-xs font-bold text-primary-600 dark:text-primary-300">
-                            {active === 'sent' ? 'You liked' : 'Liked'} {profile.likedItem.type === 'prompt' ? 'their answer' : 'a photo'}
+                            {active === 'sent'
+                              ? t(profile.likedItem.type === 'prompt' ? 'matches.likedAnswerYou' : 'matches.likedPhotoYou')
+                              : t(profile.likedItem.type === 'prompt' ? 'matches.likedAnswer' : 'matches.likedPhoto')}
                           </p>
                         )}
                         {profile.likedItem?.type === 'prompt' && profile.likedItem.promptText && (
@@ -332,7 +320,7 @@ export default function Matches() {
                       profile={profile}
                       userId={pid}
                       index={i}
-                      primaryCta={active === 'mutual' ? 'message' : 'interest'}
+                      primaryCta={active === 'mutual' || profile.likedBack ? 'message' : 'interest'}
                       onLike={(want) => handleAction(pid, 'like', want)}
                       onShortlist={(want) => handleAction(pid, 'shortlist', want)}
                     />
@@ -343,6 +331,7 @@ export default function Matches() {
           </div>
         )}
       </div>
+      {confirmDialog}
     </div>
   );
 }

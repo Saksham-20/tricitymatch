@@ -10,6 +10,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { FiBookmark, FiX, FiBell } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import api from '../../api/axios';
 
 // Search-page filter state → the saved shape the backend + alert job read.
@@ -28,6 +29,7 @@ const toSavedFilters = (filters) => {
 };
 
 const SavedSearches = ({ filters, onApplySaved }) => {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [state, setState] = useState('loading'); // loading | ready | error
   const [saving, setSaving] = useState(false);
@@ -58,9 +60,9 @@ const SavedSearches = ({ filters, onApplySaved }) => {
       setNaming(false);
       setName('');
       const n = Object.keys(res.data.savedSearch?.filters || {}).length;
-      toast.success(`Search saved with ${n} filter${n === 1 ? '' : 's'}. We’ll alert you about new matches.`);
+      toast.success(t('search.saved.savedToast', { count: n }));
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Could not save search');
+      toast.error(err.response?.data?.error?.message || t('search.saved.saveError'));
     } finally {
       setSaving(false);
     }
@@ -73,7 +75,7 @@ const SavedSearches = ({ filters, onApplySaved }) => {
       await api.delete(`/search/saved/${id}`);
     } catch {
       setItems(prev);
-      toast.error('Could not delete saved search');
+      toast.error(t('search.saved.deleteError'));
     }
   };
 
@@ -82,18 +84,18 @@ const SavedSearches = ({ filters, onApplySaved }) => {
   return (
     <div className="mb-4 pb-4 border-b border-neutral-100">
       <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-        <FiBookmark className="w-3.5 h-3.5 text-primary-400" /> Saved searches
+        <FiBookmark className="w-3.5 h-3.5 text-primary-400" /> {t('search.saved.heading')}
       </p>
 
       {state === 'error' && (
         <button onClick={load} className="text-xs text-neutral-400 hover:text-primary-500 underline">
-          Couldn&apos;t load. Retry
+          {t('search.saved.loadError')}
         </button>
       )}
 
       {state === 'ready' && items.length === 0 && !currentSavable && (
         <p className="text-xs text-neutral-400">
-          Set some filters, save the search, and we&apos;ll notify you when new profiles match.
+          {t('search.saved.hint')}
         </p>
       )}
 
@@ -104,7 +106,7 @@ const SavedSearches = ({ filters, onApplySaved }) => {
               <button onClick={() => onApplySaved(s.filters)} className="font-medium text-primary-700 hover:text-primary-800">
                 {s.name}
               </button>
-              <button onClick={() => remove(s.id)} aria-label={`Delete saved search ${s.name}`} className="p-0.5 rounded-full hover:bg-primary-100 text-primary-300 hover:text-primary-600">
+              <button onClick={() => remove(s.id)} aria-label={t('search.saved.deleteAria', { name: s.name })} className="w-7 h-7 -my-1 flex items-center justify-center rounded-full hover:bg-primary-100 text-primary-500 hover:text-primary-700">
                 <FiX className="w-3 h-3" />
               </button>
             </span>
@@ -119,18 +121,18 @@ const SavedSearches = ({ filters, onApplySaved }) => {
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, 60))}
               onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setNaming(false); }}
-              placeholder="Name this search"
-              aria-label="Saved search name"
+              placeholder={t('search.saved.namePlaceholder')}
+              aria-label={t('search.saved.nameAria')}
               autoFocus
               className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
             <button onClick={save} disabled={saving || !name.trim()} className="px-3 py-1.5 rounded-lg bg-primary-500 text-white text-xs font-semibold disabled:opacity-50">
-              {saving ? '…' : 'Save'}
+              {saving ? '…' : t('common.save')}
             </button>
           </div>
         ) : (
           <button onClick={() => setNaming(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-800">
-            <FiBell className="w-3.5 h-3.5" /> Save this search &amp; get alerts
+            <FiBell className="w-3.5 h-3.5" /> {t('search.saved.saveAndAlert')}
           </button>
         )
       )}

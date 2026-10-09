@@ -15,3 +15,8 @@ export const REPORT_REASONS = [
 
 // Reasons where someone may be in danger: we point at emergency help.
 export const URGENT_REASONS = ['threats'];
+
+// Labels shown to the member, translated at render time (the language can change
+// after this module loads). `value` is what goes to the API and never changes.
+export const reportReasonLabel = (t, reason) => t(`safetyTools.reasons.${reason.value}.label`);
+export const reportReasonHint = (t, reason) => (reason.hint ? t(`safetyTools.reasons.${reason.value}.hint`) : '');

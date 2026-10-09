@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Mirror of shared/src/constants/chat.ts REACTION_EMOJIS (server enforces).
 export const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🙏'];
@@ -16,6 +17,7 @@ export const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🙏'
 const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
 
 export const ReactionPicker = ({ onPick, onClose }) => {
+  const { t } = useTranslation();
   const ref = useRef(null);
 
   // Doctrine §6: popovers close on Escape and on a click/tap outside them.
@@ -38,7 +40,7 @@ export const ReactionPicker = ({ onPick, onClose }) => {
     <div
       ref={ref}
       role="menu"
-      aria-label="React to message"
+      aria-label={t('chat.bubble.react')}
       className="flex items-center gap-0.5 bg-white dark:bg-surface-dark-3 rounded-full shadow-lg px-1.5 py-1"
     >
       {REACTION_EMOJIS.map((e) => (
@@ -47,7 +49,7 @@ export const ReactionPicker = ({ onPick, onClose }) => {
           role="menuitem"
           onClick={() => { onPick(e); onClose(); }}
           className={`flex items-center justify-center w-11 h-11 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-lg leading-none transition-transform ${HOVER}:scale-110`}
-          aria-label={`React ${e}`}
+          aria-label={t('chat.reactions.reactWith', { emoji: e })}
         >
           {e}
         </button>
@@ -57,6 +59,7 @@ export const ReactionPicker = ({ onPick, onClose }) => {
 };
 
 export const ReactionPills = ({ reactions, myUserId, onToggle, canReact }) => {
+  const { t } = useTranslation();
   const entries = Object.entries(reactions || {}).filter(([, users]) => users?.length);
   if (!entries.length) return null;
   return (
@@ -73,7 +76,7 @@ export const ReactionPills = ({ reactions, myUserId, onToggle, canReact }) => {
                 ? 'bg-primary-50 border-primary-300 dark:bg-primary-900/30'
                 : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700'
             } ${canReact ? 'hover:border-primary-300' : 'cursor-default'}`}
-            aria-label={`${emoji} ${users.length}${mine ? ' (you reacted)' : ''}`}
+            aria-label={t(mine ? 'chat.reactions.pillMine' : 'chat.reactions.pill', { emoji, n: users.length })}
           >
             <span>{emoji}</span>
             {users.length > 1 && <span className="tabular-nums text-neutral-500">{users.length}</span>}

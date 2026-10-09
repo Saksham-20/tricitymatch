@@ -132,7 +132,7 @@ const buildDefaults = (now = new Date()) => {
     enabled: true,
     endsAt,
     headline: 'Launch offer',
-    subline: 'Founding-price plans while we grow the Tricity community.',
+    subline: 'Launch prices while we grow the Tricity community.',
     plans: JSON.parse(JSON.stringify(DEFAULT_PLAN_OFFERS)),
     bundles: JSON.parse(JSON.stringify(DEFAULT_BUNDLE_OFFERS)),
     founding: { ...DEFAULT_FOUNDING, endsAt },

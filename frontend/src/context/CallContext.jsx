@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useSocket } from './SocketContext';
 import { agora as agoraConfig } from '../config';
 import * as callApi from '../api/calls';
@@ -15,6 +16,7 @@ export const useCall = () => {
 
 // status: idle | calling (outgoing, waiting for accept) | ringing (incoming) | active
 export const CallProvider = ({ children }) => {
+  const { t } = useTranslation();
   const { socket } = useSocket();
   const [status, setStatus] = useState('idle');
   const [peer, setPeer] = useState(null);          // { id, name, photo }
@@ -59,7 +61,7 @@ export const CallProvider = ({ children }) => {
 
   const join = useCallback(async (channelName, token, callType) => {
     if (!agoraConfig.isConfigured) {
-      toast.error('Calling is not configured on this site.');
+      toast.error(t('calls.toast.notConfigured'));
       await teardown();
       return;
     }
@@ -81,10 +83,10 @@ export const CallProvider = ({ children }) => {
         }, 50);
       }
     } catch (err) {
-      toast.error('Could not access microphone/camera.');
+      toast.error(t('calls.toast.mediaError'));
       await teardown();
     }
-  }, [playRemote, teardown]);
+  }, [playRemote, teardown, t]);
 
   // ── Caller: start an outgoing call ───────────────────────────────
   const startCall = useCallback(async (callee, callType = 'voice') => {
@@ -97,10 +99,10 @@ export const CallProvider = ({ children }) => {
       session.current = { callId: res.callId, channelName: res.channelName, token: res.token };
       // Wait for call-accepted (socket) before joining the channel.
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Could not start call.');
+      toast.error(err.response?.data?.error?.message || t('calls.toast.startFailed'));
       reset();
     }
-  }, [status, reset]);
+  }, [status, reset, t]);
 
   // ── Callee: accept / decline ─────────────────────────────────────
   const acceptIncoming = useCallback(async () => {
@@ -111,10 +113,10 @@ export const CallProvider = ({ children }) => {
       session.current = { callId, channelName: res.channelName, token: res.token };
       await join(res.channelName, res.token, type);
     } catch (err) {
-      toast.error('Could not join call.');
+      toast.error(t('calls.toast.joinFailed'));
       await teardown();
     }
-  }, [join, type, teardown]);
+  }, [join, type, teardown, t]);
 
   const declineIncoming = useCallback(async () => {
     const { callId } = session.current;
@@ -163,7 +165,7 @@ export const CallProvider = ({ children }) => {
     };
 
     const onDeclined = () => {
-      toast(`${peer?.name || 'They'} declined the call`);
+      toast(peer?.name ? t('calls.toast.declined', { name: peer.name }) : t('calls.toast.declinedNoName'));
       teardown();
     };
 
@@ -182,7 +184,7 @@ export const CallProvider = ({ children }) => {
       socket.off('call-declined', onDeclined);
       socket.off('call-ended', onEnded);
     };
-  }, [socket, status, type, peer, join, teardown]);
+  }, [socket, status, type, peer, join, teardown, t]);
 
   const value = {
     status, peer, type, muted, camOff, remoteJoined,

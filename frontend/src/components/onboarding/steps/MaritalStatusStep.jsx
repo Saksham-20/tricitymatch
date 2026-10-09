@@ -1,8 +1,10 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import Select from '../../ui/Select';
 import FormField from '../../ui/FormField';
+import { translateOptions } from '../../../constants/profileOptions';
 import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
 const MARITAL_STATUSES = [
@@ -13,6 +15,7 @@ const MARITAL_STATUSES = [
 ];
 
 const MaritalStatusStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
@@ -20,7 +23,7 @@ const MaritalStatusStep = () => {
   const validateStep = () => {
     const newErrors = {};
     if (!formDataRef.current.maritalStatus) {
-      newErrors.maritalStatus = 'Please select your marital status';
+      newErrors.maritalStatus = t('onboarding.marital.required');
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -34,8 +37,8 @@ const MaritalStatusStep = () => {
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise}>
         <Select
-          label="Marital Status"
-          options={MARITAL_STATUSES}
+          label={t('onboarding.marital.label')}
+          options={translateOptions('maritalStatus', MARITAL_STATUSES, t)}
           value={formData.maritalStatus}
           onChange={(value) => { updateFormData('maritalStatus', value); setTimeout(validateStep, 0); }}
           error={errors.maritalStatus}
@@ -52,7 +55,7 @@ const MaritalStatusStep = () => {
             className="overflow-hidden"
           >
             <FormField
-              label="Number of Children"
+              label={t('onboarding.marital.children')}
               type="number"
               inputMode="numeric"
               placeholder="0"
@@ -67,8 +70,8 @@ const MaritalStatusStep = () => {
       </AnimatePresence>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
-        <p className="font-medium text-neutral-800 mb-1">All statuses welcome</p>
-        <p>TricityMatch is for everyone. Your marital status helps us find the right matches for you.</p>
+        <p className="font-medium text-neutral-800 mb-1">{t('onboarding.marital.infoTitle')}</p>
+        <p>{t('onboarding.marital.infoBody')}</p>
       </motion.div>
     </motion.div>
   );

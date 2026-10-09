@@ -40,6 +40,7 @@ const LINK_SCOPE = {
   '/admin/users': 'users',
   '/admin/funnel': 'users',
   '/admin/revenue': 'revenue',
+  '/admin/launch-offer': 'pricing',
 };
 
 export default function AdminDashboard() {
@@ -238,9 +239,11 @@ export default function AdminDashboard() {
                   : 'Closed: new signups no longer receive a founding grant.'}
               </p>
             </div>
-            <Link to="/admin/launch-offer" className="text-xs font-medium text-primary-700 hover:underline">
-              Edit in Pricing &amp; Offers
-            </Link>
+            {canOpen('/admin/launch-offer') && (
+              <Link to="/admin/launch-offer" className="text-xs font-medium text-primary-700 hover:underline">
+                Edit in Pricing &amp; Offers
+              </Link>
+            )}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
             <div>

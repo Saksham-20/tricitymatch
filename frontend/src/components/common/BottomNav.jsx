@@ -30,7 +30,11 @@ const BottomNav = ({ unreadCount: unreadCountProp = 0 }) => {
     };
     fetchCount();
     const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+    window.addEventListener('tm:chat-read', fetchCount);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('tm:chat-read', fetchCount);
+    };
   }, []);
   const unreadCount = unreadCountProp || fetchedCount;
 
@@ -38,7 +42,7 @@ const BottomNav = ({ unreadCount: unreadCountProp = 0 }) => {
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-60 pointer-events-none safe-area-bottom pb-2 px-4"
       role="navigation"
-      aria-label="Mobile navigation"
+      aria-label={t('chrome.bottomNav')}
     >
       <div
         className="pointer-events-auto max-w-md mx-auto rounded-full border border-primary-500/10 dark:border-white/10 bg-white/90 dark:bg-neutral-900/90"

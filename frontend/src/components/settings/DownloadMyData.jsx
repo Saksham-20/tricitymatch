@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation, Trans } from 'react-i18next';
 import { FiDownload } from 'react-icons/fi';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,7 @@ const messageOf = async (err, fallback) => {
 };
 
 const DownloadMyData = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -44,9 +46,9 @@ const DownloadMyData = () => {
       a.remove();
       URL.revokeObjectURL(url);
       setPassword('');
-      toast.success('Your data has been downloaded');
+      toast.success(t('settings.downloadData.downloaded'));
     } catch (err) {
-      toast.error(await messageOf(err, 'Could not prepare your data. Try again.'));
+      toast.error(await messageOf(err, t('settings.downloadData.failed')));
     } finally {
       setBusy(false);
     }
@@ -55,23 +57,23 @@ const DownloadMyData = () => {
   return (
     <div>
       <div className="mb-5">
-        <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Your data</h3>
+        <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{t('settings.downloadData.title')}</h3>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
-          Download a copy of your profile, matches, messages, payments and activity as one file.
+          {t('settings.downloadData.desc')}
         </p>
       </div>
       {googleOnly ? (
         <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-xl">
-          Your account signs in with Google. Write to <a className="underline" href={`mailto:${legal.privacyEmail}`}>{legal.privacyEmail}</a> and we will send you a copy.
+          <Trans i18nKey="settings.downloadData.google" values={{ email: legal.privacyEmail }} components={{ anchor: <a className="underline" href={`mailto:${legal.privacyEmail}`} /> }} />
         </p>
       ) : (
         <form onSubmit={download} className="max-w-xl space-y-3">
           <div>
-            <label htmlFor="export-password" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">Confirm your password</label>
+            <label htmlFor="export-password" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{t('settings.downloadData.confirmPassword')}</label>
             <input id="export-password" type="password" autoComplete="current-password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <button type="submit" disabled={busy || !password} className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60">
-            <FiDownload className="w-4 h-4" /> {busy ? 'Preparing…' : 'Download my data'}
+            <FiDownload className="w-4 h-4" /> {busy ? t('settings.downloadData.preparing') : t('settings.downloadData.download')}
           </button>
         </form>
       )}

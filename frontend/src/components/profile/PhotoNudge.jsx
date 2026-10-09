@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FiCamera, FiX, FiLock, FiShield } from 'react-icons/fi';
 
 /**
@@ -23,24 +24,14 @@ import { FiCamera, FiX, FiLock, FiShield } from 'react-icons/fi';
  * decoration — "who will see it" is the actual reason people hold a photo back.
  */
 
+// Copy lives in the `dashboard.nudge.<key>.*` strings, read at render.
 const PROMPTS = {
-  photo: {
-    icon: FiCamera,
-    title: 'Add a photo to your profile',
-    body: 'Families look for a photograph first. Without one your profile shows below everyone else in search, and most people will scroll past it.',
-    note: 'Blurred for anyone you have not matched with. You control this in Settings → Privacy.',
-    cta: { to: '/profile/edit?section=photos', label: 'Add my photo' },
-  },
-  verify: {
-    icon: FiShield,
-    title: 'Get your profile verified',
-    body: 'A live selfie, checked by our team against your photos. Verified profiles carry a badge, rank higher in search, and are the ones families take seriously.',
-    note: 'Takes about a minute. The selfie is never shown on your profile.',
-    cta: { to: '/verification', label: 'Verify my profile' },
-  },
+  photo: { icon: FiCamera, to: '/profile/edit?section=photos' },
+  verify: { icon: FiShield, to: '/verification' },
 };
 
 export default function PhotoNudge({ hasPhoto, isVerified = true, allow = ['photo', 'verify'] }) {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(() => {
     try {
       return sessionStorage.getItem('profileNudgeDismissed') === '1';
@@ -72,7 +63,7 @@ export default function PhotoNudge({ hasPhoto, isVerified = true, allow = ['phot
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Hide this reminder"
+        aria-label={t('dashboard.nudge.hide')}
         className="absolute top-3 right-3 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-white/70 dark:hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
       >
         <FiX className="w-4 h-4" />
@@ -84,20 +75,20 @@ export default function PhotoNudge({ hasPhoto, isVerified = true, allow = ['phot
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-display text-base font-bold text-neutral-900 dark:text-neutral-100">
-            {prompt.title}
+            {t(`dashboard.nudge.${key}.title`)}
           </h3>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-            {prompt.body}
+            {t(`dashboard.nudge.${key}.body`)}
           </p>
           <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-2 flex items-center gap-1.5">
             <FiLock className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
-            {prompt.note}
+            {t(`dashboard.nudge.${key}.note`)}
           </p>
           <Link
-            to={prompt.cta.to}
+            to={prompt.to}
             className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium transition-colors"
           >
-            <prompt.icon className="w-4 h-4" aria-hidden="true" /> {prompt.cta.label}
+            <prompt.icon className="w-4 h-4" aria-hidden="true" /> {t(`dashboard.nudge.${key}.cta`)}
           </Link>
         </div>
       </div>

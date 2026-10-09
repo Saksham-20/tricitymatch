@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import i18n from '../i18n';
 
 const AuthContext = createContext();
 const AUTH_HINT_KEY = 'tricitymatch-auth-hint';
@@ -97,8 +98,8 @@ const authFallback = {
   user: null,
   loading: false,
   isAuthenticated: false,
-  login: async () => ({ success: false, error: 'Auth context unavailable. Please refresh.' }),
-  signup: async () => ({ success: false, error: 'Auth context unavailable. Please refresh.' }),
+  login: async () => ({ success: false, error: i18n.t('errors.authUnavailable') }),
+  signup: async () => ({ success: false, error: i18n.t('errors.authUnavailable') }),
   logout: async () => {},
   logoutAll: async () => {},
   updateUser: () => {},
@@ -242,21 +243,21 @@ export const AuthProvider = ({ children }) => {
 
       setIsAuthenticated(true);
       setStoredAuthHint(true);
-      toast.success('Welcome back!');
+      toast.success(i18n.t('appShell.welcomeBack'));
       return { success: true, role: userData?.role };
     } catch (error) {
       // No response = network/timeout. The axios interceptor already shows a
       // global toast for this, so don't double-toast; just give the inline form
       // a friendly message instead of the raw "Network Error" string.
       if (!error.response) {
-        const message = "Can't reach the server. Check your connection and try again.";
+        const message = i18n.t('errors.cantReachServer');
         return { success: false, error: message, status: 0, locked: false };
       }
       // Backend error shape is { success:false, error:{ code, message } }.
       const message = error.response?.data?.error?.message
         || error.response?.data?.message
         || error.message
-        || 'Login failed';
+        || i18n.t('errors.loginFailed');
       const status = error.response?.status;
       // The password was right and the account has two-step verification on: this
       // is the normal first step, not a failure — the form asks for the code.
@@ -266,8 +267,11 @@ export const AuthProvider = ({ children }) => {
       // 429 = IP rate-limit; 401 with a "locked" message = account lockout.
       // Surface both to the caller so the UI can show a distinct lockout state.
       const locked = status === 429 || /locked|too many/i.test(message);
-      toast.error(message);
-      return { success: false, error: message, status, locked };
+      // The login form shows this inline; a toast as well said it twice.
+      const friendly = status === 401 && /invalid credentials/i.test(message)
+        ? i18n.t('errors.credentialsMismatch')
+        : message;
+      return { success: false, error: friendly, status, locked };
     }
   };
 
@@ -305,10 +309,10 @@ export const AuthProvider = ({ children }) => {
 
       setIsAuthenticated(true);
       setStoredAuthHint(true);
-      toast.success('Account created successfully!');
+      toast.success(i18n.t('appShell.accountCreated'));
       return { success: true };
     } catch (error) {
-      let message = error.response?.data?.error?.message || error.message || 'Signup failed';
+      let message = error.response?.data?.error?.message || error.message || i18n.t('errors.signupFailed');
       const details = error.response?.data?.error?.details;
 
       // Show field-level validation messages (e.g. "Last name is required")
@@ -332,7 +336,7 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setStoredAuthHint(false);
     clearUserScopedStorage();
-    toast.success('Logged out successfully');
+    toast.success(i18n.t('appShell.loggedOut'));
   };
 
   const logoutAll = async () => {
@@ -342,9 +346,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setStoredAuthHint(false);
       clearUserScopedStorage();
-      toast.success('Logged out from all devices');
+      toast.success(i18n.t('appShell.loggedOutAll'));
     } catch (error) {
-      toast.error('Failed to logout from all devices');
+      toast.error(i18n.t('errors.logoutAllFailed'));
     }
   };
 

@@ -5,7 +5,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { FiStar, FiClock, FiArrowLeft, FiSmartphone, FiCheckCircle } from 'react-icons/fi';
 import { razorpay } from '../config';
-import { loadRazorpayScript, ensurePaymentsAvailable, PAYMENTS_UNAVAILABLE_MSG } from '../utils/razorpayCheckout';
+import { loadRazorpayScript, ensurePaymentsAvailable, paymentsUnavailableMessage } from '../utils/razorpayCheckout';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 
 const DURATIONS = [10, 15, 30, 45];
@@ -61,7 +61,7 @@ export default function AstrologerDetail() {
         try {
           await loadRazorpayScript();
         } catch {
-          toast.error(PAYMENTS_UNAVAILABLE_MSG);
+          toast.error(paymentsUnavailableMessage());
           return;
         }
         const rzp = new window.Razorpay({

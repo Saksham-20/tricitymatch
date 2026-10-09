@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { FiShield, FiAlertCircle } from 'react-icons/fi';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +14,7 @@ const errorOf = (err, fallback) => err.response?.data?.error?.message || err.res
 const groupSecret = (secret) => (secret || '').replace(/(.{4})/g, '$1 ').trim();
 
 const TwoStepVerification = () => {
+  const { t } = useTranslation();
   const { user, setUser } = useAuth();
   const [status, setStatus] = useState(null); // { enabled, required, recoveryCodesRemaining }
   const [loadError, setLoadError] = useState(false);
@@ -48,7 +50,7 @@ const TwoStepVerification = () => {
       setPassword('');
       setStep('code');
     } catch (err) {
-      toast.error(errorOf(err, 'Could not start setup. Try again.'));
+      toast.error(errorOf(err, t('settings.twoStep.startFailed')));
     } finally {
       setBusy(false);
     }
@@ -66,7 +68,7 @@ const TwoStepVerification = () => {
       setUser?.((u) => (u ? { ...u, mfaEnabled: true } : u));
       load();
     } catch (err) {
-      toast.error(errorOf(err, 'That code is not right. Try again.'));
+      toast.error(errorOf(err, t('settings.twoStep.codeWrong')));
     } finally {
       setBusy(false);
     }
@@ -77,12 +79,12 @@ const TwoStepVerification = () => {
     setBusy(true);
     try {
       await api.post('/auth/mfa/disable', { password, code });
-      toast.success('Two-step verification is off');
+      toast.success(t('settings.twoStep.turnedOff'));
       setUser?.((u) => (u ? { ...u, mfaEnabled: false } : u));
       reset();
       load();
     } catch (err) {
-      toast.error(errorOf(err, 'Could not turn it off. Check your password and code.'));
+      toast.error(errorOf(err, t('settings.twoStep.disableFailed')));
     } finally {
       setBusy(false);
     }
@@ -94,17 +96,17 @@ const TwoStepVerification = () => {
   return (
     <div>
       <div className="mb-5">
-        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Two-step verification</h2>
+        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{t('settings.twoStep.title')}</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
-          Asks for a code from an authenticator app when you sign in, so a stolen password alone is not enough.
+          {t('settings.twoStep.desc')}
         </p>
       </div>
 
       <div className="max-w-xl space-y-4">
         {loadError && (
           <p className="flex items-center gap-2 text-sm text-destructive">
-            <FiAlertCircle className="w-4 h-4" /> Could not load your setting.{' '}
-            <button type="button" onClick={load} className="underline">Retry</button>
+            <FiAlertCircle className="w-4 h-4" /> {t('settings.twoStep.loadError')}{' '}
+            <button type="button" onClick={load} className="underline">{t('settings.twoStep.retry')}</button>
           </p>
         )}
 
@@ -113,36 +115,36 @@ const TwoStepVerification = () => {
             <p className="flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
               <FiShield className={`w-4 h-4 ${status.enabled ? 'text-success' : 'text-neutral-400'}`} />
               {status.enabled
-                ? `On${status.recoveryCodesRemaining ? ` · ${status.recoveryCodesRemaining} recovery codes left` : ''}`
-                : 'Off'}
+                ? (status.recoveryCodesRemaining ? t('settings.twoStep.onWithCodes', { n: status.recoveryCodesRemaining }) : t('settings.twoStep.on'))
+                : t('settings.twoStep.off')}
             </p>
             {!status.enabled && (
-              <button type="button" className="btn-secondary" onClick={() => setStep('password')}>Turn on</button>
+              <button type="button" className="btn-secondary" onClick={() => setStep('password')}>{t('settings.twoStep.turnOn')}</button>
             )}
             {status.enabled && !status.required && (
-              <button type="button" className="btn-secondary" onClick={() => setStep('disable')}>Turn off</button>
+              <button type="button" className="btn-secondary" onClick={() => setStep('disable')}>{t('settings.twoStep.turnOff')}</button>
             )}
             {status.enabled && status.required && (
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">Required for your role</span>
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">{t('settings.twoStep.required')}</span>
             )}
           </div>
         )}
 
         {status?.required && !status.enabled && step === 'idle' && (
           <p className="flex items-start gap-2 text-sm text-warning">
-            <FiAlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> Your role needs this turned on before you can use the admin or marketing areas.
+            <FiAlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {t('settings.twoStep.requiredWarning')}
           </p>
         )}
 
         {step === 'password' && (
           <form onSubmit={startSetup} className="space-y-3">
             <div>
-              <label htmlFor="mfa-password" className={labelClass}>Confirm your password</label>
+              <label htmlFor="mfa-password" className={labelClass}>{t('settings.twoStep.confirmPassword')}</label>
               <input id="mfa-password" type="password" autoComplete="current-password" className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={busy || !password} className="btn-primary disabled:opacity-60">Continue</button>
-              <button type="button" className="btn-secondary" onClick={reset}>Cancel</button>
+              <button type="submit" disabled={busy || !password} className="btn-primary disabled:opacity-60">{t('settings.twoStep.continue')}</button>
+              <button type="button" className="btn-secondary" onClick={reset}>{t('settings.common.cancel')}</button>
             </div>
           </form>
         )}
@@ -151,48 +153,48 @@ const TwoStepVerification = () => {
           <form onSubmit={enable} className="space-y-4">
             <div className="rounded-xl bg-neutral-100 dark:bg-neutral-800 p-4 space-y-2">
               <p className="text-sm text-neutral-700 dark:text-neutral-200">
-                In your authenticator app (Google Authenticator, Authy, 1Password…) add an account and enter this key:
+                {t('settings.twoStep.addKey')}
               </p>
               <p className="font-mono text-sm tracking-wider break-all select-all text-neutral-900 dark:text-neutral-100" data-testid="mfa-secret">{groupSecret(setup.secret)}</p>
-              <a href={setup.otpauthUri} className="text-sm underline text-primary-600 dark:text-primary-300">Open in an authenticator app on this device</a>
+              <a href={setup.otpauthUri} className="text-sm underline text-primary-600 dark:text-primary-300">{t('settings.twoStep.openInApp')}</a>
             </div>
             <div>
-              <label htmlFor="mfa-code" className={labelClass}>6-digit code from the app</label>
+              <label htmlFor="mfa-code" className={labelClass}>{t('settings.twoStep.codeLabel')}</label>
               <input id="mfa-code" inputMode="numeric" autoComplete="one-time-code" maxLength={7} className={inputClass} value={code} onChange={(e) => setCode(e.target.value)} required />
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={busy || code.replace(/\s/g, '').length < 6} className="btn-primary disabled:opacity-60">Turn on</button>
-              <button type="button" className="btn-secondary" onClick={reset}>Cancel</button>
+              <button type="submit" disabled={busy || code.replace(/\s/g, '').length < 6} className="btn-primary disabled:opacity-60">{t('settings.twoStep.turnOn')}</button>
+              <button type="button" className="btn-secondary" onClick={reset}>{t('settings.common.cancel')}</button>
             </div>
           </form>
         )}
 
         {step === 'codes' && (
           <div className="space-y-3">
-            <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Two-step verification is on.</p>
+            <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{t('settings.twoStep.isOn')}</p>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">
-              Save these recovery codes somewhere safe. Each works once if you lose your phone. They are shown only now.
+              {t('settings.twoStep.saveCodes')}
             </p>
             <ul className="grid grid-cols-2 gap-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-4 font-mono text-sm text-neutral-900 dark:text-neutral-100" data-testid="mfa-recovery-codes">
               {recoveryCodes.map((c) => <li key={c}>{c}</li>)}
             </ul>
-            <button type="button" className="btn-primary" onClick={() => { setRecoveryCodes([]); reset(); }}>I have saved them</button>
+            <button type="button" className="btn-primary" onClick={() => { setRecoveryCodes([]); reset(); }}>{t('settings.twoStep.savedThem')}</button>
           </div>
         )}
 
         {step === 'disable' && (
           <form onSubmit={disable} className="space-y-3">
             <div>
-              <label htmlFor="mfa-off-password" className={labelClass}>Password</label>
+              <label htmlFor="mfa-off-password" className={labelClass}>{t('settings.twoStep.password')}</label>
               <input id="mfa-off-password" type="password" autoComplete="current-password" className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <div>
-              <label htmlFor="mfa-off-code" className={labelClass}>Code from the app (or a recovery code)</label>
+              <label htmlFor="mfa-off-code" className={labelClass}>{t('settings.twoStep.offCodeLabel')}</label>
               <input id="mfa-off-code" autoComplete="one-time-code" className={inputClass} value={code} onChange={(e) => setCode(e.target.value)} required />
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={busy || !password || !code} className="btn-primary disabled:opacity-60">Turn off</button>
-              <button type="button" className="btn-secondary" onClick={reset}>Cancel</button>
+              <button type="submit" disabled={busy || !password || !code} className="btn-primary disabled:opacity-60">{t('settings.twoStep.turnOff')}</button>
+              <button type="button" className="btn-secondary" onClick={reset}>{t('settings.common.cancel')}</button>
             </div>
           </form>
         )}

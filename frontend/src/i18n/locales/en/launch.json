@@ -1,0 +1,13 @@
+{
+  "titleBefore": "Registrations open",
+  "titleBeforeDate": "{{date}}.",
+  "titleOpen": "Registrations",
+  "titleOpenEm": "are open.",
+  "subBefore": "The Tricity's own matrimonial community goes live this {{weekday}}.",
+  "subOpen": "The Tricity's own matrimonial community is live.",
+  "subStrong": "Live-selfie verified, human-reviewed, family-first.",
+  "ctaBefore": "Register now",
+  "ctaOpen": "Create your profile",
+  "chip": "Verified profiles only",
+  "note": "{{weekday}} · Chandigarh · Mohali · Panchkula"
+}

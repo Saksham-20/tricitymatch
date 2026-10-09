@@ -1,0 +1,75 @@
+{
+  "gender": { "male": "Male", "female": "Female", "other": "Other" },
+  "manglikStatus": {
+    "manglik": "Manglik",
+    "non_manglik": "Non-Manglik",
+    "anshik_manglik": "Anshik (partial) Manglik",
+    "not_sure": "Don't know"
+  },
+  "maritalStatus": {
+    "never_married": "Never Married",
+    "divorced": "Divorced",
+    "widowed": "Widowed",
+    "awaiting_divorce": "Awaiting Divorce"
+  },
+  "familyType": { "joint": "Joint Family", "nuclear": "Nuclear Family" },
+  "familyStatus": {
+    "middle_class": "Middle Class",
+    "upper_middle_class": "Upper Middle Class",
+    "affluent": "Affluent",
+    "rich": "Rich"
+  },
+  "familyValues": { "traditional": "Traditional", "moderate": "Moderate", "liberal": "Liberal" },
+  "livingArrangement": { "with_family": "With family", "alone": "On my own", "with_roommates": "With roommates" },
+  "relocate": { "yes": "Yes", "maybe": "Maybe, depends", "no": "No" },
+  "skinTone": { "fair": "Fair", "wheatish": "Wheatish", "dark": "Dark" },
+  "diet": { "vegetarian": "Vegetarian", "non-vegetarian": "Non-Vegetarian", "vegan": "Vegan", "jain": "Jain" },
+  "habit": { "never": "Never", "occasionally": "Occasionally", "regularly": "Regularly" },
+  "income": {
+    "300000": "₹0 - 3 Lac",
+    "500000": "₹3 - 5 Lac",
+    "1000000": "₹5 - 10 Lac",
+    "1500000": "₹10 - 15 Lac",
+    "2500000": "₹15 - 25 Lac",
+    "5000000": "₹25 - 50 Lac",
+    "10000000": "₹50 Lac+",
+    "0": "Prefer not to say"
+  },
+  "rashi": {
+    "Mesha": "Mesha (Aries)",
+    "Vrishabha": "Vrishabha (Taurus)",
+    "Mithuna": "Mithuna (Gemini)",
+    "Karka": "Karka (Cancer)",
+    "Simha": "Simha (Leo)",
+    "Kanya": "Kanya (Virgo)",
+    "Tula": "Tula (Libra)",
+    "Vrishchika": "Vrishchika (Scorpio)",
+    "Dhanu": "Dhanu (Sagittarius)",
+    "Makara": "Makara (Capricorn)",
+    "Kumbha": "Kumbha (Aquarius)",
+    "Meena": "Meena (Pisces)"
+  },
+  "socialVisibility": { "matches_only": "Matches only", "hidden": "Hidden" },
+  "enum": {
+    "vegetarian": "Vegetarian",
+    "non-vegetarian": "Non-vegetarian",
+    "eggetarian": "Eggetarian",
+    "vegan": "Vegan",
+    "jain": "Jain",
+    "never": "Never",
+    "occasionally": "Occasionally",
+    "regularly": "Regularly",
+    "fair": "Fair",
+    "wheatish": "Wheatish",
+    "dark": "Dark",
+    "traditional": "Traditional",
+    "moderate": "Moderate",
+    "liberal": "Liberal",
+    "with_family": "With Family",
+    "alone": "Alone",
+    "with_roommates": "With Roommates",
+    "yes": "Yes",
+    "maybe": "Maybe",
+    "no": "No"
+  }
+}

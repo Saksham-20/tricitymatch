@@ -1,6 +1,12 @@
 // Single source of truth for profile dropdown options AND their display labels.
 // Used by the onboarding/editor inputs AND every profile display surface so an
 // ENUM like `non_manglik` never renders raw to a user again.
+//
+// The exported lists keep their English labels (they are also read as data).
+// Translated labels are looked up at render time (`translateOptions`,
+// `friendlyLabel`, `formatEnum`) from the `profileOptions` i18n area, keyed by
+// the stored value, so the language can change without touching stored data.
+import i18n from '../i18n';
 
 // ─── Manglik / dosha ─────────────────────────────────────────────────────────
 export const MANGLIK_OPTIONS = [
@@ -122,18 +128,36 @@ const LABEL_MAPS = {
   familyStatus: toMap(FAMILY_STATUS_OPTIONS),
 };
 
+// Only plain enum-shaped values are looked up as translation keys; free text
+// (a typed city, "B.Com") never is, so a stray dot can't become a key path.
+const ENUM_KEY = /^[a-z0-9_-]+$/;
+
 // Fallback: title-case a raw snake_case value ("non_manglik" → "Non Manglik").
+// A known enum value (diet, habits, family values…) is shown translated.
 export const formatEnum = (value) => {
   if (value == null || value === '') return '';
-  return String(value)
+  const english = String(value)
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
+  if (!ENUM_KEY.test(String(value))) return english;
+  return i18n.t(`profileOptions.enum.${value}`, { defaultValue: english });
 };
 
 // friendlyLabel('manglikStatus', 'non_manglik') → 'Non-Manglik'
 export const friendlyLabel = (field, value) => {
   if (value == null || value === '') return '';
   const map = LABEL_MAPS[field];
-  return (map && map[value]) || formatEnum(value);
+  if (map && map[value]) {
+    return i18n.t(`profileOptions.${field}.${value}`, { defaultValue: map[value] });
+  }
+  return formatEnum(value);
 };
+
+/**
+ * Same option list with labels in the current language. `group` names the
+ * block in the profileOptions area (e.g. 'maritalStatus', 'income'); values
+ * stay exactly as stored. Labels with no translation keep their English text.
+ */
+export const translateOptions = (group, options, t = i18n.t.bind(i18n)) =>
+  options.map((o) => ({ ...o, label: t(`profileOptions.${group}.${o.value}`, { defaultValue: o.label }) }));

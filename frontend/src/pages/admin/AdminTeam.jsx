@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { FiPlus, FiShield, FiSearch, FiTrash2, FiSave, FiX } from 'react-icons/fi';
 import { getAdmins, createAdmin, updateUserRole, getUsers } from '../../api/adminApi';
 import { useAuth } from '../../context/AuthContext';
+import { formatDate } from '../../utils/formatDate';
 
 /**
  * Admins & Roles.
@@ -201,7 +202,7 @@ export default function AdminTeam() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {a.lastLogin ? new Date(a.lastLogin).toLocaleDateString('en-IN') : 'Never'}
+                      {a.lastLogin ? formatDate(a.lastLogin) : 'Never'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {isMe ? (
@@ -473,7 +474,7 @@ function AdminForm({ title, scopes, scopeKeys, grantableRoles, grantableScopes, 
         <input value={form.lastName} onChange={set('lastName')} aria-label="Last name" placeholder="Last name" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
         <input value={form.email} onChange={set('email')} aria-label="Email (required)" required aria-required="true" placeholder="Email *" type="email" className="col-span-2 px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
         <input value={form.phone} onChange={set('phone')} aria-label="Phone" placeholder="Phone" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
-        <input value={form.password} onChange={set('password')} aria-label="Temporary password (required)" required aria-required="true" placeholder="Temporary password *" type="text" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
+        <input value={form.password} onChange={set('password')} aria-label="Temporary password (required)" required aria-required="true" placeholder="Temporary password * (8+ characters, upper, lower, number, symbol)" type="text" className="px-3 py-2.5 border border-gray-200 rounded-xl text-base" />
       </div>
       <p className="text-xs text-gray-400 -mt-2 mb-4">
         Share the password with them directly. Nothing is emailed, and they can change it from Settings.

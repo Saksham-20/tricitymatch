@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Trans, useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import OtpBoxes from '../../ui/OtpBoxes';
@@ -17,6 +18,7 @@ const RESEND_COOLDOWN = 60;
  * just receives a code and enters it; an inline "Change" handles typos.
  */
 const VerificationStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const [emailCode, setEmailCode] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
@@ -51,9 +53,9 @@ const VerificationStep = () => {
     // A verified mobile number is compulsory (members call it after an unlock);
     // an email, when given, must be verified as well.
     if (!d.phoneVerification) {
-      newErrors.verify = 'Please add and verify a mobile number to continue';
+      newErrors.verify = t('onboarding.verify.needMobile');
     } else if (primary === 'email' && !d.emailVerification) {
-      newErrors.verify = 'Please verify your email to continue';
+      newErrors.verify = t('onboarding.verify.needEmail');
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -80,13 +82,13 @@ const VerificationStep = () => {
   const saveEdit = () => {
     if (editing === 'email') {
       const next = draft.trim().toLowerCase();
-      if (!next || !validateEmail(next)) { setDraftError('Enter a valid email address'); return; }
+      if (!next || !validateEmail(next)) { setDraftError(t('onboarding.verify.invalidEmail')); return; }
       updateFormData('email', next);
       updateFormData('emailVerification', false);
       setEmailSent(false); setEmailCode(''); setEmailCooldown(0);
     } else {
       const next = draft.replace(/\D/g, '');
-      if (!/^[6-9]\d{9}$/.test(next)) { setDraftError('Enter a valid 10-digit mobile number'); return; }
+      if (!/^[6-9]\d{9}$/.test(next)) { setDraftError(t('onboarding.verify.invalidMobile')); return; }
       updateFormData('phone', next);
       updateFormData('phoneVerification', false);
       setPhoneSent(false); setPhoneCode(''); setPhoneCooldown(0);
@@ -97,7 +99,7 @@ const VerificationStep = () => {
 
   const sendCode = async (method) => {
     const target = method === 'email' ? formData.email : String(formData.phone || '').replace(/\D/g, '');
-    if (!target) { setStepErrors({ [method]: `Add a ${method} first` }); return; }
+    if (!target) { setStepErrors({ [method]: t(method === 'email' ? 'onboarding.verify.addEmailFirst' : 'onboarding.verify.addPhoneFirst') }); return; }
     if (method === 'email' ? emailCooldown > 0 : phoneCooldown > 0) return;
     method === 'email' ? setEmailSending(true) : setPhoneSending(true);
     try {
@@ -106,7 +108,7 @@ const VerificationStep = () => {
       else { setPhoneSent(true); setPhoneCooldown(RESEND_COOLDOWN); }
       setStepErrors({});
     } catch (err) {
-      setStepErrors({ [method]: err.response?.data?.error?.message || 'Failed to send code. Try again.' });
+      setStepErrors({ [method]: err.response?.data?.error?.message || t('onboarding.verify.sendFailed') });
     } finally {
       method === 'email' ? setEmailSending(false) : setPhoneSending(false);
     }
@@ -124,7 +126,7 @@ const VerificationStep = () => {
       setStepErrors({});
     } catch (err) {
       method === 'email' ? setEmailCode('') : setPhoneCode('');
-      setStepErrors({ [method]: err.response?.data?.error?.message || 'Invalid code. Try again.' });
+      setStepErrors({ [method]: err.response?.data?.error?.message || t('onboarding.verify.invalidCode') });
     } finally {
       setVerifying(null);
     }
@@ -139,19 +141,19 @@ const VerificationStep = () => {
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
-              {title}{optional && <span className="ml-1.5 text-[11px] font-normal text-neutral-400">Optional</span>}
+              {title}{optional && <span className="ml-1.5 text-[11px] font-normal text-neutral-400">{t('onboarding.optional')}</span>}
             </p>
-            <p className="text-sm text-neutral-500 truncate">{target || `Add a ${method}`}</p>
+            <p className="text-sm text-neutral-500 truncate">{target || t(method === 'email' ? 'onboarding.verify.addEmail' : 'onboarding.verify.addPhone')}</p>
           </div>
         </div>
         {verified ? (
           <motion.span initial="initial" animate="animate" variants={popIn} className="flex items-center gap-1 text-xs font-semibold text-green-600 flex-shrink-0">
-            <FiCheckCircle className="w-4 h-4" /> Verified
+            <FiCheckCircle className="w-4 h-4" /> {t('onboarding.verify.verified')}
           </motion.span>
         ) : (
           editing !== method && target && (
             <button type="button" onClick={() => startEdit(method)} className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0">
-              <FiEdit2 className="w-3.5 h-3.5" /> Change
+              <FiEdit2 className="w-3.5 h-3.5" /> {t('onboarding.verify.change')}
             </button>
           )
         )}
@@ -166,17 +168,17 @@ const VerificationStep = () => {
           className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3"
         >
           <FormField
-            label={method === 'email' ? 'Update email' : 'Update phone'}
+            label={method === 'email' ? t('onboarding.verify.updateEmail') : t('onboarding.verify.updatePhone')}
             type={method === 'email' ? 'email' : 'tel'}
             inputMode={method === 'email' ? 'email' : 'numeric'}
             value={draft}
             onChange={(v) => { setDraft(v); setDraftError(''); }}
             error={draftError}
-            placeholder={method === 'email' ? 'email@example.com' : '10-digit mobile number'}
+            placeholder={method === 'email' ? 'email@example.com' : t('onboarding.verify.mobilePlaceholder')}
           />
           <div className="flex gap-2">
-            <button type="button" onClick={saveEdit} className="px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save</button>
-            <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg">Cancel</button>
+            <button type="button" onClick={saveEdit} className="px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700">{t('common.save')}</button>
+            <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg">{t('common.cancel')}</button>
           </div>
         </motion.div>
       )}
@@ -196,11 +198,17 @@ const VerificationStep = () => {
               disabled={sending || !target}
               className="px-4 py-2.5 text-sm font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/30 rounded-lg transition-colors disabled:opacity-50"
             >
-              {sending ? 'Sending…' : `Send code${target ? ` to ${method === 'email' ? 'email' : 'phone'}` : ''}`}
+              {sending ? t('onboarding.verify.sending') : t(!target ? 'onboarding.verify.sendCode' : method === 'email' ? 'onboarding.verify.sendCodeToEmail' : 'onboarding.verify.sendCodeToPhone')}
             </button>
           ) : (
             <>
-              <p className="text-xs text-neutral-500">Enter the {codeLen}-digit code sent to <span className="font-medium text-neutral-700 dark:text-neutral-300">{target}</span></p>
+              <p className="text-xs text-neutral-500">
+                <Trans
+                  i18nKey="onboarding.verify.enterCode"
+                  values={{ count: codeLen, target }}
+                  components={{ b: <span className="font-medium text-neutral-700 dark:text-neutral-300" /> }}
+                />
+              </p>
               <OtpBoxes
                 length={codeLen}
                 value={code}
@@ -216,7 +224,7 @@ const VerificationStep = () => {
                 {verifying === method ? (
                   <span className="flex items-center gap-2 text-xs font-medium text-primary-600">
                     <span className="w-3.5 h-3.5 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-                    Verifying…
+                    {t('onboarding.verify.verifying')}
                   </span>
                 ) : (
                   <>
@@ -226,10 +234,10 @@ const VerificationStep = () => {
                       disabled={code.length !== codeLen}
                       className="px-4 py-2 text-sm font-semibold bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      Verify
+                      {t('onboarding.verify.verify')}
                     </button>
                     <span className="text-xs text-neutral-500">
-                      {cooldown > 0 ? `Resend in ${cooldown}s` : <button type="button" onClick={() => sendCode(method)} className="underline text-primary-600">Resend code</button>}
+                      {cooldown > 0 ? t('onboarding.verify.resendIn', { seconds: cooldown }) : <button type="button" onClick={() => sendCode(method)} className="underline text-primary-600">{t('onboarding.verify.resendCode')}</button>}
                     </span>
                   </>
                 )}
@@ -249,13 +257,13 @@ const VerificationStep = () => {
       )}
 
       {hasEmail && renderCard({
-        method: 'email', icon: FiMail, title: 'Email verification', target: formData.email,
+        method: 'email', icon: FiMail, title: t('onboarding.verify.emailTitle'), target: formData.email,
         verified: formData.emailVerification, optional: false, codeLen: 6,
         code: emailCode, setCode: setEmailCode, sent: emailSent, sending: emailSending, cooldown: emailCooldown,
       })}
 
       {renderCard({
-        method: 'phone', icon: FiPhone, title: 'Phone verification', target: hasPhone ? `+91 ${formData.phone}` : '',
+        method: 'phone', icon: FiPhone, title: t('onboarding.verify.phoneTitle'), target: hasPhone ? `+91 ${formData.phone}` : '',
         verified: formData.phoneVerification, optional: false, codeLen: 4,
         code: phoneCode, setCode: setPhoneCode, sent: phoneSent, sending: phoneSending, cooldown: phoneCooldown,
       })}
@@ -263,7 +271,7 @@ const VerificationStep = () => {
       {/* Add a phone when none was provided (email-first signup) */}
       {!hasPhone && editing !== 'phone' && (
         <button type="button" onClick={() => startEdit('phone')} className="text-sm font-medium text-primary-600 hover:text-primary-700 underline underline-offset-2 px-1">
-          + Add a phone number
+          {t('onboarding.verify.addPhoneNumber')}
         </button>
       )}
 
@@ -271,8 +279,8 @@ const VerificationStep = () => {
       <div className="flex items-start gap-3 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
         <FiShield className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
         <div className="text-xs text-neutral-600 dark:text-neutral-400 space-y-1">
-          <p className="font-semibold text-neutral-800 dark:text-neutral-200">Verification keeps the community real</p>
-          <p>It protects you from fake profiles and earns you a verified badge that matches trust more.</p>
+          <p className="font-semibold text-neutral-800 dark:text-neutral-200">{t('onboarding.verify.trustTitle')}</p>
+          <p>{t('onboarding.verify.trustBody')}</p>
         </div>
       </div>
     </div>

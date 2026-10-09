@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiHeart, FiBookmark, FiMessageCircle, FiCheck } from 'react-icons/fi';
 
 /**
@@ -24,6 +25,7 @@ const FloatingActionBar = ({
   isInterestSent = false,
   isShortlisted = false,
 }) => {
+  const { t } = useTranslation();
   const [interestSent, setInterestSent] = useState(isInterestSent);
   const [shortlisted, setShortlisted]   = useState(isShortlisted);
   const [showSuccess, setShowSuccess]   = useState(false);
@@ -67,7 +69,7 @@ const FloatingActionBar = ({
             className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2.5 bg-success text-white text-sm font-semibold rounded-full shadow-lg whitespace-nowrap"
           >
             <FiCheck className="w-4 h-4" />
-            Interest sent successfully
+            {t('matching.actionBar.interestSentSuccess')}
           </motion.div>
         )}
       </AnimatePresence>
@@ -91,7 +93,7 @@ const FloatingActionBar = ({
               ? 'bg-success-50 text-success border border-success-100 cursor-default'
               : 'bg-primary-500 text-white shadow-burgundy hover:bg-primary-600 active:bg-primary-700'
           }`}
-          aria-label={interestSent ? 'Interest already sent' : 'Send interest'}
+          aria-label={interestSent ? t('matching.actionBar.interestAlreadySentAria') : t('matching.actionBar.sendInterestAria')}
         >
           <motion.div
             animate={interestSent ? { scale: [1, 1.3, 1] } : {}}
@@ -101,7 +103,7 @@ const FloatingActionBar = ({
               ? <FiCheck className="w-4 h-4" />
               : <FiHeart className="w-4 h-4" />}
           </motion.div>
-          {interestSent ? 'Interest Sent' : 'Send Interest'}
+          {interestSent ? t('matching.actionBar.interestSent') : t('matching.actionBar.sendInterest')}
         </motion.button>
 
         {/* Shortlist */}
@@ -113,7 +115,7 @@ const FloatingActionBar = ({
               ? 'bg-neutral-800 text-white'
               : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-100'
           }`}
-          aria-label={shortlisted ? 'Remove from shortlist' : 'Add to shortlist'}
+          aria-label={shortlisted ? t('matching.actionBar.removeFromShortlist') : t('matching.actionBar.addToShortlist')}
         >
           <FiBookmark className={`w-5 h-5 ${shortlisted ? 'fill-current' : ''}`} />
         </motion.button>
@@ -123,7 +125,7 @@ const FloatingActionBar = ({
           whileTap={{ scale: 0.93 }}
           onClick={onMessage}
           className="w-12 h-12 rounded-xl bg-neutral-100 text-neutral-600 flex items-center justify-center hover:bg-primary-50 hover:text-primary-500 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-primary-900/30 dark:hover:text-primary-300 transition-colors duration-[160ms] flex-shrink-0"
-          aria-label="Send message"
+          aria-label={t('matching.actionBar.sendMessage')}
         >
           <FiMessageCircle className="w-5 h-5" />
         </motion.button>

@@ -104,7 +104,12 @@ api.interceptors.response.use(
       '/auth/forgot-password', '/auth/reset-password', '/auth/google',
       '/auth/send-otp', '/auth/verify-otp', '/auth/mfa/',
     ];
-    const skipRefresh = noRefreshPaths.some((p) => originalRequest.url?.includes(p));
+    // A 401 that is a wrong password or code on a signed-in re-check (change
+    // password, data export, delete account, 2-step) is an answer, not an
+    // expired session: refreshing and resending only counted the attempt twice.
+    const answerCodes = ['INVALID_PASSWORD', 'INVALID_MFA_CODE', 'MFA_REQUIRED'];
+    const skipRefresh = noRefreshPaths.some((p) => originalRequest.url?.includes(p))
+      || answerCodes.includes(error.response?.data?.error?.code);
 
     // Reject straight through so the calling component can render the error.
     if (error.response?.status === 401 && skipRefresh) {

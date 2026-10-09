@@ -4,6 +4,9 @@
  */
 
 import '@testing-library/jest-dom';
+// Real i18n with the bundled English strings, so components render the same
+// English text the tests assert on (not raw translation keys).
+import '../i18n';
 import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 

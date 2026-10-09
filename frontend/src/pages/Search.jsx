@@ -1,33 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
+import { keptLikeMessage } from '../utils/matchCopy';
 import {
   FiSearch, FiUsers, FiArrowRight,
   FiRefreshCw, FiHash, FiX,
 } from 'react-icons/fi';
 
-// Readable labels for active-filter chips
+// Readable labels for active-filter chips. Built with the live `t` so a
+// language switch re-labels the chips; values the panel knows are translated,
+// anything else (free-text city, stored caste/profession) shows as sent.
+const chipValue = (t, group, v, fallback = v) => t(`search.chipValue.${group}.${v}`, { defaultValue: fallback });
 const FILTER_LABELS = {
-  ageMin: (v) => `Age ≥ ${v}`,
-  ageMax: (v) => `Age ≤ ${v}`,
-  heightMin: (v) => `Height ≥ ${v}cm`,
-  heightMax: (v) => `Height ≤ ${v}cm`,
+  ageMin: (v, t) => t('search.chip.ageMin', { v }),
+  ageMax: (v, t) => t('search.chip.ageMax', { v }),
+  heightMin: (v, t) => t('search.chip.heightMin', { v }),
+  heightMax: (v, t) => t('search.chip.heightMax', { v }),
   city: (v) => v,
-  education: (v) => v,
+  education: (v, t) => chipValue(t, 'education', v),
   profession: (v) => v,
-  diet: (v) => `Diet: ${v}`,
-  smoking: (v) => `Smoking: ${v}`,
-  drinking: (v) => `Drinking: ${v}`,
-  religion: (v) => v,
+  diet: (v, t) => t('search.chip.diet', { v: chipValue(t, 'diet', v) }),
+  smoking: (v, t) => t('search.chip.smoking', { v: chipValue(t, 'habit', v) }),
+  drinking: (v, t) => t('search.chip.drinking', { v: chipValue(t, 'habit', v) }),
+  religion: (v, t) => t(`search.options.religion.${v}`, { defaultValue: v }),
   caste: (v) => v,
-  maritalStatus: (v) => v.replace(/_/g, ' '),
-  motherTongue: (v) => v,
-  incomeMin: (v) => `₹${(v / 100000)}L+ income`,
-  incomeMax: (v) => `≤ ₹${(v / 100000)}L income`,
-  manglikFilter: (v) => v.replace(/_/g, ' '),
-  verifiedOnly: () => 'Verified only',
+  maritalStatus: (v, t) => chipValue(t, 'maritalStatus', v, v.replace(/_/g, ' ')),
+  motherTongue: (v, t) => t(`search.options.motherTongue.${v}`, { defaultValue: v }),
+  incomeMin: (v, t) => t('search.chip.incomeMin', { v: (v / 100000) }),
+  incomeMax: (v, t) => t('search.chip.incomeMax', { v: (v / 100000) }),
+  manglikFilter: (v, t) => chipValue(t, 'manglikFilter', v, v.replace(/_/g, ' ')),
+  verifiedOnly: (v, t) => t('search.chip.verifiedOnly'),
 };
 // The whole filter set in one place: initial state, "clear all" and "apply a
 // saved search" all start from this, so none of them can leave a stale value.
@@ -84,6 +90,8 @@ const CardSkeleton = ({ compact = false }) => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 const Search = () => {
+  const { t } = useTranslation();
+  const [confirm, confirmDialog] = useConfirm();
   const { celebrate } = useMatchCelebration();
   const navigate = useNavigate();
   const [profiles, setProfiles]   = useState([]);
@@ -154,10 +162,10 @@ const Search = () => {
       if (found?.userId) {
         navigate(`/profile/${found.userId}`);
       } else {
-        toast.error('No profile found for that ID');
+        toast.error(t('search.noProfileForId'));
       }
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'No profile found for that ID');
+      toast.error(err.response?.data?.error?.message || t('search.noProfileForId'));
     } finally {
       setIdLoading(false);
     }
@@ -191,9 +199,9 @@ const Search = () => {
         const userId = p.userId || p.User?.id;
         let age = p.age;
         if (!age && p.dateOfBirth) {
-          const b = new Date(p.dateOfBirth), t = new Date();
-          const diff = t.getFullYear() - b.getFullYear();
-          age = (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) ? diff - 1 : diff;
+          const b = new Date(p.dateOfBirth), now = new Date();
+          const diff = now.getFullYear() - b.getFullYear();
+          age = (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) ? diff - 1 : diff;
         }
         return {
           ...p, userId, profileId: p.id, id: p.id, age,
@@ -253,7 +261,7 @@ const Search = () => {
   const handleApplyFilters = () => {
     setPage(1);
     searchProfiles({ overridePage: 1 });
-    toast.success('Filters applied');
+    toast.success(t('search.filtersApplied'));
   };
 
   const handleRemoveFilter = (key) => {
@@ -276,15 +284,30 @@ const Search = () => {
   // can revert when it did not.
   const handleMatchAction = async (userId, action, next = true) => {
     if (!userId) return false;
+    const target = profiles.find((p) => p.userId === userId);
+      // Taking back a like on a mutual match ends the match and the chat for
+      // both members; one stray tap on "Interest Sent" used to do that silently.
+      if (!next && action === 'like' && target?.isMutual) {
+        const ok = await confirm({
+          title: t('matches.endMatch.title', { name: target?.firstName || t('matches.endMatch.thisMember') }),
+          body: t('matches.endMatch.body'),
+          confirmLabel: t('matches.endMatch.confirm'),
+          cancelLabel: t('matches.endMatch.cancel'),
+        });
+        if (!ok) return false;
+      }
     try {
       const res = await api.post(`/match/${userId}`, { action: next ? action : 'undo' });
-      if (next) toast.success(action === 'like' ? 'Interest expressed!' : 'Profile shortlisted!');
-      else toast.success(action === 'like' ? 'Interest withdrawn' : 'Removed from your shortlist');
+      // Saving someone you already sent an interest to keeps the interest.
+      if (res.data?.keptLike) { toast(keptLikeMessage(res.data)); return false; }
+      // A new match gets the celebration instead of a toast underneath it.
+      if (next && !res.data?.newMatch) toast.success(action === 'like' ? t('matches.interestExpressed') : t('search.profileShortlisted'));
+      else toast.success(action === 'like' ? t('matches.interestWithdrawn') : t('matches.removedFromShortlist'));
       setProfiles(prev => prev.map(p => p.userId === userId ? { ...p, matchStatus: next ? action : null } : p));
       if (res.data?.newMatch) celebrate(profiles.find(p => p.userId === userId));
       return true;
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Action failed');
+      toast.error(err.response?.data?.message || t('search.actionFailed'));
       return false;
     }
   };
@@ -312,14 +335,14 @@ const Search = () => {
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-7 bg-primary-500 rounded-full" />
                 <h1 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100">
-                  Find Your Match
+                  {t('search.title')}
                 </h1>
               </div>
               <p className="text-neutral-500 text-sm ml-3">
-                Profiles from Tricity and beyond
+                {t('search.subtitle')}
                 {totalCount > 0 && (
                   <span className="ml-2 px-2.5 py-0.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 text-xs font-semibold rounded-full border border-primary-100 dark:border-primary-800">
-                    {totalCount}+ profiles
+                    {t('search.profilesBadge', { n: totalCount })}
                   </span>
                 )}
               </p>
@@ -330,13 +353,13 @@ const Search = () => {
               <select
                 value={sortBy}
                 onChange={handleSortChange}
-                aria-label="Sort profiles by"
+                aria-label={t('search.sortAria')}
                 className="input-field min-w-[160px]"
               >
-                <option value="compatibility">Best Match %</option>
-                <option value="age">By Age</option>
-                <option value="location">By Location</option>
-                <option value="recent">Most Recent</option>
+                <option value="compatibility">{t('search.sort.compatibility')}</option>
+                <option value="age">{t('search.sort.age')}</option>
+                <option value="location">{t('search.sort.location')}</option>
+                <option value="recent">{t('search.sort.recent')}</option>
               </select>
             </div>
           </div>
@@ -349,9 +372,9 @@ const Search = () => {
                 type="text"
                 value={idQuery}
                 onChange={(e) => setIdQuery(e.target.value)}
-                placeholder="Have a profile ID? e.g. TCS-A1B2C3D4"
+                placeholder={t('search.idPlaceholder')}
                 className="input-field w-full pl-9 uppercase placeholder:normal-case placeholder:text-neutral-400"
-                aria-label="Search by profile ID"
+                aria-label={t('search.idAria')}
               />
             </div>
             <button
@@ -359,7 +382,7 @@ const Search = () => {
               disabled={idLoading || !idQuery.trim()}
               className="btn-primary px-4 text-sm whitespace-nowrap disabled:opacity-50"
             >
-              {idLoading ? 'Finding…' : 'Go'}
+              {idLoading ? t('search.finding') : t('search.go')}
             </button>
           </form>
         </motion.div>
@@ -385,8 +408,8 @@ const Search = () => {
               <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-700 dark:text-neutral-300">
                 <p>
                   {mustHavesOff
-                    ? 'Showing everyone, including people outside your must-haves.'
-                    : `Showing people who meet your must-haves (${mustHaveKeys.join(', ')}).`}
+                    ? t('search.mustHavesOff')
+                    : t('search.mustHavesOn', { list: mustHaveKeys.join(', ') })}
                 </p>
                 <button
                   type="button"
@@ -398,7 +421,7 @@ const Search = () => {
                   }}
                   className="text-xs font-medium text-primary-600 dark:text-primary-300 hover:underline whitespace-nowrap min-h-[2.75rem]"
                 >
-                  {mustHavesOff ? 'Apply my must-haves' : 'Show everyone'}
+                  {mustHavesOff ? t('search.applyMustHaves') : t('search.showEveryone')}
                 </button>
               </div>
             )}
@@ -407,14 +430,14 @@ const Search = () => {
             <div className="flex items-center justify-between mb-5 py-3 px-4 bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card">
               <p className="text-sm text-neutral-600">
                 {loading && profiles.length === 0 ? (
-                  <span className="text-neutral-400">Loading profiles…</span>
+                  <span className="text-neutral-400">{t('search.loadingProfiles')}</span>
                 ) : (
                   <>
                     <span className="font-semibold text-neutral-900">{Math.max(totalCount, profiles.length)}</span>
-                    {' '}{Math.max(totalCount, profiles.length) === 1 ? 'profile' : 'profiles'} found
+                    {' '}{t('search.foundSuffix', { count: Math.max(totalCount, profiles.length) })}
                     {activeFilterCount > 0 && (
                       <span className="ml-2 text-primary-500 dark:text-primary-300 font-medium">
-                        · {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active
+                        {t('search.filtersActive', { count: activeFilterCount })}
                       </span>
                     )}
                   </>
@@ -425,7 +448,7 @@ const Search = () => {
                   onClick={handleClearFilters}
                   className="text-xs text-neutral-400 hover:text-destructive transition-colors font-medium"
                 >
-                  Clear all
+                  {t('search.clearAll')}
                 </button>
               )}
             </div>
@@ -438,9 +461,9 @@ const Search = () => {
                     key={key}
                     onClick={() => handleRemoveFilter(key)}
                     className="inline-flex items-center gap-1.5 min-h-[44px] pl-3 pr-2 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-medium rounded-full border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
-                    aria-label={`Remove ${FILTER_LABELS[key]?.(value) ?? key}`}
+                    aria-label={t('search.chip.remove', { label: FILTER_LABELS[key]?.(value, t) ?? key })}
                   >
-                    {(FILTER_LABELS[key]?.(value)) ?? `${key}: ${value}`}
+                    {(FILTER_LABELS[key]?.(value, t)) ?? `${key}: ${value}`}
                     <FiX className="w-3.5 h-3.5" />
                   </button>
                 ))}
@@ -468,10 +491,10 @@ const Search = () => {
                 className="bg-white dark:bg-surface-dark-3 rounded-3xl shadow-card"
               >
                 <ErrorState
-                  title="Check your filters"
-                  description="One of your filters has a value we can't search on, for example an age under 18 or over 99. Adjust it and apply again, or clear the filters."
+                  title={t('search.filterProblemTitle')}
+                  description={t('search.filterProblemBody')}
                   onRetry={handleClearFilters}
-                  retryLabel="Clear filters"
+                  retryLabel={t('search.clearFilters')}
                   className="py-16"
                 />
               </motion.div>
@@ -485,10 +508,10 @@ const Search = () => {
                 className="bg-white dark:bg-surface-dark-3 rounded-3xl shadow-card"
               >
                 <ErrorState
-                  title="Something went wrong"
-                  description="We couldn't load profiles right now. Your filters are fine. Please try again."
+                  title={t('search.errorTitle')}
+                  description={t('search.errorBody')}
                   onRetry={() => { setPage(1); searchProfiles({ overridePage: 1 }); }}
-                  retryLabel="Try again"
+                  retryLabel={t('search.tryAgain')}
                   className="py-16"
                 />
               </motion.div>
@@ -508,11 +531,11 @@ const Search = () => {
               >
                 <EmptyState
                   icon={FiUsers}
-                  title={activeFilterCount > 0 ? 'No profiles match these filters' : 'The circle is still small'}
+                  title={activeFilterCount > 0 ? t('search.emptyFilteredTitle') : t('search.emptySmallTitle')}
                   description={activeFilterCount > 0
-                    ? 'Widen a filter or two: with a community this focused, a narrow search can rule out everyone.'
-                    : 'New Tricity families join every week. The fastest way to find someone worth meeting is to bring someone you already trust.'}
-                  actionLabel={activeFilterCount > 0 ? 'Clear filters' : undefined}
+                    ? t('search.emptyFilteredBody')
+                    : t('search.emptySmallBody')}
+                  actionLabel={activeFilterCount > 0 ? t('search.clearFilters') : undefined}
                   onAction={activeFilterCount > 0 ? handleClearFilters : undefined}
                   className="py-16"
                 />
@@ -523,7 +546,7 @@ const Search = () => {
                     className="btn-secondary dark:text-primary-300 inline-flex items-center gap-2 text-sm"
                   >
                     <FiRefreshCw className="w-4 h-4" />
-                    Refresh
+                    {t('search.refresh')}
                   </button>
                 </div>
               </motion.div>
@@ -569,7 +592,7 @@ const Search = () => {
                       onClick={() => setPage(p => p + 1)}
                       className="btn-secondary dark:text-primary-300 inline-flex items-center gap-2"
                     >
-                      Load More Profiles
+                      {t('search.loadMore')}
                       <FiArrowRight className="w-4 h-4" />
                     </motion.button>
                   </motion.div>
@@ -578,7 +601,7 @@ const Search = () => {
                 {/* All loaded */}
                 {!hasMore && profiles.length > 6 && (
                   <p className="text-center text-neutral-400 text-sm mt-10 py-4 border-t border-neutral-100">
-                    You've seen all {profiles.length} profiles
+                    {t('search.seenAll', { n: profiles.length })}
                   </p>
                 )}
               </>
@@ -586,6 +609,7 @@ const Search = () => {
           </motion.div>
         </div>
       </div>
+      {confirmDialog}
     </motion.div>
   );
 };

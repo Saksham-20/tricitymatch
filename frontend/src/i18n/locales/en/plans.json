@@ -1,0 +1,167 @@
+{
+  "names": {
+    "free": "Free",
+    "basic_premium": "Basic",
+    "premium_plus": "Premium",
+    "elite": "Elite",
+    "vip": "VIP",
+    "nri": "NRI Connect",
+    "founding_premium": "Founding Member"
+  },
+  "duration": {
+    "year_one": "{{count}} year",
+    "year_other": "{{count}} years",
+    "month_one": "{{count}} month",
+    "month_other": "{{count}} months",
+    "day_one": "{{count}} day",
+    "day_other": "{{count}} days",
+    "unlimited": "Unlimited"
+  },
+  "features": {
+    "everythingIn": "Everything in {{name}}",
+    "createProfile": "Create profile",
+    "browseMatches": "Browse matches",
+    "sendInterest": "Send interest",
+    "basicFilters": "Basic search filters",
+    "viewContact": "View contact details",
+    "unlimitedMessages": "Unlimited messages",
+    "whoViewed": "See who viewed profile",
+    "advancedFilters": "Advanced search filters",
+    "unlocks_one": "{{count}} contact unlock",
+    "unlocks_other": "{{count}} contact unlocks",
+    "unlimitedUnlocks": "Unlimited contact unlocks",
+    "validity90Days": "90-day validity",
+    "validity6Months": "6-month validity",
+    "validityFullYear": "Full-year validity",
+    "fullAccess": "{{duration}} of full access",
+    "profileBoost": "Profile boost",
+    "spotlight": "Spotlight listing",
+    "prioritySupport": "Priority customer support",
+    "priorityRanking": "Priority ranking in search",
+    "bestValue": "Best value per month",
+    "verifiedBadge": "Verified badge",
+    "relationshipAdvisor": "Dedicated relationship advisor",
+    "priorityNriSupport": "Priority NRI support",
+    "timezoneMatching": "Timezone-aware matching",
+    "localCurrency": "Prices in your local currency",
+    "chatMutuals": "Chat with your mutual matches"
+  },
+  "getPlan": "Get {{name}}",
+  "freeForever": "Free forever",
+  "header": {
+    "goPremium": "Go Premium",
+    "choosePlan": "Choose Your Plan",
+    "subtitle": "Unlock premium features and find your perfect match faster."
+  },
+  "compare": {
+    "heading": "Compare plans",
+    "feature": "Feature",
+    "included": "Included",
+    "notIncluded": "Not included",
+    "unlimited": "Unlimited",
+    "rows": {
+      "contactUnlocks": "Contact unlocks",
+      "chat": "Chat with matches",
+      "likes": "See who likes you",
+      "rich": "Reactions, voice notes & quote replies",
+      "advancedFilters": "Advanced filters",
+      "calls": "Voice & video calls",
+      "profileBoost": "Profile boost",
+      "relationshipManager": "Relationship manager"
+    }
+  },
+  "stories": {
+    "heading": "Matches that became marriages",
+    "fallbackCouple": "A TricityMatch couple"
+  },
+  "faq": {
+    "heading": "Common questions",
+    "q1": "Can I upgrade later?",
+    "a1": "Yes. You can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.",
+    "q2": "Is my payment secure?",
+    "a2": "All payments run through Razorpay over SSL. We never see or store your card details.",
+    "q3": "What are contact unlocks?",
+    "a3": "Each unlock reveals a member’s phone number so your families can talk directly.",
+    "a3Cap": "Each unlock reveals a member’s phone number so your families can talk directly. Unlimited-tier plans are capped at {{cap}} unlocks a day, to keep the directory safe from bulk scraping.",
+    "q4": "Do unused days carry over?",
+    "a4": "Upgrading starts a full fresh term on the new plan; remaining days on the old plan are not added on top.",
+    "q5": "Can my parents manage this account?",
+    "a5": "Yes. The Guardian feature lets a family member view matches and shortlists for you."
+  },
+  "viewPlans": "View plans",
+  "card": {
+    "active": "Active",
+    "mostPopular": "Most Popular",
+    "launchOff": "Launch price · {{pct}}% off",
+    "flatOff": "Flat {{pct}}% off",
+    "perMonth": "≈ ₹{{amount}}/month",
+    "perDay": "· ₹{{amount}}/day",
+    "unlimitedUnlocks": "∞ Unlimited contact unlocks",
+    "unlocksCount": "{{n}} contact unlocks",
+    "upToPerDay": "· up to {{cap}}/day",
+    "processing": "Processing…",
+    "currentPlan": "Current Plan",
+    "currentPlanLower": "Current plan",
+    "included": "Included",
+    "upgrade": "Upgrade",
+    "includedInPlan": "Included in your plan"
+  },
+  "overlap": {
+    "forever": "Forever, no card needed",
+    "everythingPlus": "Everything in Free, plus"
+  },
+  "nri": {
+    "description": "Full VIP access built for members abroad: timezone-aware matching, priority support, and prices shown in your own currency.",
+    "indicative": "(indicative)",
+    "billedInInr": "Billed in INR"
+  },
+  "bundles": {
+    "title": "Need more contact unlocks?",
+    "description": "Top up your current plan anytime. Unlocks add to your active plan and stay valid until it expires.",
+    "unlocks": "unlocks",
+    "perUnlock": "₹{{amount}} per unlock",
+    "buy": "Buy"
+  },
+  "banner": {
+    "launchOffer": "Launch offer",
+    "endsToday": "ends today",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "pricesReturn": "Prices return to normal on {{date}}"
+  },
+  "toast": {
+    "loadFailed": "Failed to load subscription data",
+    "paymentSuccessful": "Payment successful",
+    "confirming": "We received your payment and are confirming it. Your plan will appear shortly. If it does not, contact support with your payment receipt.",
+    "paymentFailed": "Payment failed. Please try again.",
+    "createOrderFailed": "Failed to create order",
+    "purchaseFailed": "Failed to start purchase"
+  },
+  "checkout": {
+    "planDescription": "{{name}} Subscription",
+    "bundleDescription": "Contact unlock top-up"
+  },
+  "error": {
+    "title": "Couldn't load this",
+    "description": "The connection dropped before this finished loading. Your data is safe — try again.",
+    "retry": "Try again"
+  },
+  "empty": {
+    "title": "Pricing isn't available right now",
+    "description": "We couldn't load our membership plans. Please try again in a moment.",
+    "refresh": "Refresh"
+  },
+  "paymentsSoon": "Online payments are opening soon. To upgrade today, write to <anchor>support@tricitymatch.com</anchor>.",
+  "activeSub": {
+    "text": "You have an active <b>{{name}}</b> subscription",
+    "validUntil": "· valid until {{date}}",
+    "unlocksRemaining": "· {{left}} of {{total}} unlocks remaining",
+    "unlimitedCap": "· unlimited unlocks, up to {{cap}}/day"
+  },
+  "closing": {
+    "heading": "Your family is waiting to hear good news",
+    "subtitle": "Join the Tricity members already talking to their matches.",
+    "choosePlan": "Choose a plan"
+  },
+  "footer": "Secure payments via Razorpay · One-time payment, no auto-renewal · Full refund within 7 days, see our <anchor>Refund Policy</anchor>"
+}

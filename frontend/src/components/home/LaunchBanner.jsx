@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FiArrowRight, FiCheckCircle } from 'react-icons/fi';
-import { LAUNCH_DATE, launchPhase, launchDateLabel } from '../../utils/launchDate';
+import { LAUNCH_DATE, launchPhase, launchDateParts } from '../../utils/launchDate';
 
 /**
  * Home launch feature: "Registrations open 11 October", with the date set in a
@@ -32,14 +33,20 @@ export const launchBannerState = (now = new Date()) => {
   return launchPhase(now).phase === 'before' ? 'before' : 'open';
 };
 
-const weekday = new Date(`${LAUNCH_DATE}T00:00:00Z`).toLocaleDateString('en-IN', { weekday: 'long', timeZone: 'UTC' });
 const year = LAUNCH_DATE.slice(0, 4);
-const [dayNum, monthName] = launchDateLabel().split(' ');
+
+// Date words follow the member's language; digits stay Western (en/hi/pa-IN
+// all format the day as "11").
+const DATE_LOCALES = { en: 'en-IN', hi: 'hi-IN', pa: 'pa-IN' };
 
 export default function LaunchBanner({ now }) {
+  const { t, i18n } = useTranslation();
   const state = launchBannerState(now);
   if (state === 'hidden') return null;
   const before = state === 'before';
+  const locale = DATE_LOCALES[(i18n.resolvedLanguage || i18n.language || 'en').slice(0, 2)] || 'en-IN';
+  const { day: dayNum, month: monthName, weekday } = launchDateParts(locale);
+  const dateLabel = `${dayNum} ${monthName}`; // "11 October", day first in every language
 
   return (
     <section className="launch-feature" aria-labelledby="launch-feature-title">
@@ -87,20 +94,20 @@ export default function LaunchBanner({ now }) {
       <div className="lf-inner">
         <div className="lf-copy">
           <h2 id="launch-feature-title" className="lf-title">
-            {before ? <>Registrations open<em>{launchDateLabel()}.</em></> : <>Registrations<em>are open.</em></>}
+            {before
+              ? <>{t('launch.titleBefore')}<em>{t('launch.titleBeforeDate', { date: dateLabel })}</em></>
+              : <>{t('launch.titleOpen')}<em>{t('launch.titleOpenEm')}</em></>}
           </h2>
           <p className="lf-sub">
-            {before
-              ? <>The Tricity&apos;s own matrimonial community goes live this {weekday}. </>
-              : <>The Tricity&apos;s own matrimonial community is live. </>}
-            <strong>Live-selfie verified, human-reviewed, family-first.</strong>
+            {before ? t('launch.subBefore', { weekday }) : t('launch.subOpen')}{' '}
+            <strong>{t('launch.subStrong')}</strong>
           </p>
           <div className="lf-actions">
             <Link to="/onboarding" className="lf-cta">
-              {before ? 'Register now' : 'Create your profile'}
+              {before ? t('launch.ctaBefore') : t('launch.ctaOpen')}
               <FiArrowRight aria-hidden="true" />
             </Link>
-            <span className="lf-chip"><FiCheckCircle aria-hidden="true" />Verified profiles only</span>
+            <span className="lf-chip"><FiCheckCircle aria-hidden="true" />{t('launch.chip')}</span>
           </div>
         </div>
 
@@ -110,7 +117,7 @@ export default function LaunchBanner({ now }) {
             <span className="lf-day">{dayNum}</span>
             <span className="lf-month">{monthName} {year}</span>
             <span className="lf-rule" />
-            <span className="lf-note">{weekday} · Chandigarh · Mohali · Panchkula</span>
+            <span className="lf-note">{t('launch.note', { weekday })}</span>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiX, FiHeart } from 'react-icons/fi';
 import { sanitizeText } from '../../utils/sanitize';
 import { sheet, backdrop } from '../../utils/animations';
@@ -14,6 +15,7 @@ import { sheet, backdrop } from '../../utils/animations';
 const MAX_NOTE = 280;
 
 const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
+  const { t } = useTranslation();
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -49,7 +51,7 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
           onClick={onClose}
           role="dialog"
           aria-modal="true"
-          aria-label={`Like ${name} with a note`}
+          aria-label={t('likeNote.dialogAria', { name })}
         >
           <motion.div
             {...sheet}
@@ -58,9 +60,9 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                Like {name?.split(' ')[0]}&apos;s {target.type === 'photo' ? 'photo' : 'answer'}
+                {t(target.type === 'photo' ? 'likeNote.titlePhoto' : 'likeNote.titleAnswer', { name: name?.split(' ')[0] })}
               </h3>
-              <button onClick={onClose} aria-label="Close" className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400">
+              <button onClick={onClose} aria-label={t('likeNote.close')} className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400">
                 <FiX className="w-5 h-5" />
               </button>
             </div>
@@ -80,8 +82,8 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
               value={note}
               onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE))}
               rows={3}
-              placeholder="Add a note (optional): say what caught your eye…"
-              aria-label="Note to send with your like"
+              placeholder={t('likeNote.placeholder')}
+              aria-label={t('likeNote.noteAria')}
               className="w-full px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-surface-dark-2 text-neutral-800 dark:text-neutral-100 placeholder-neutral-400 text-base focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
             />
             <div className="flex items-center justify-between mt-3">
@@ -92,7 +94,7 @@ const LikeNoteModal = ({ open, target, name, photoSrc, onClose, onSend }) => {
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold text-sm transition-colors duration-[160ms] disabled:opacity-60"
               >
                 <FiHeart className="w-4 h-4" />
-                {sending ? 'Sending…' : 'Send like'}
+                {sending ? t('likeNote.sending') : t('likeNote.send')}
               </button>
             </div>
           </motion.div>

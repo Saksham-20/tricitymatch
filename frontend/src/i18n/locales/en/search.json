@@ -1,0 +1,199 @@
+{
+  "chip": {
+    "ageMin": "Age ≥ {{v}}",
+    "ageMax": "Age ≤ {{v}}",
+    "heightMin": "Height ≥ {{v}}cm",
+    "heightMax": "Height ≤ {{v}}cm",
+    "diet": "Diet: {{v}}",
+    "smoking": "Smoking: {{v}}",
+    "drinking": "Drinking: {{v}}",
+    "incomeMin": "₹{{v}}L+ income",
+    "incomeMax": "≤ ₹{{v}}L income",
+    "verifiedOnly": "Verified only",
+    "remove": "Remove {{label}}"
+  },
+  "chipValue": {
+    "diet": {
+      "vegetarian": "vegetarian",
+      "non-vegetarian": "non-vegetarian",
+      "vegan": "vegan",
+      "jain": "jain"
+    },
+    "habit": {
+      "never": "never",
+      "occasionally": "occasionally",
+      "regularly": "regularly"
+    },
+    "maritalStatus": {
+      "never_married": "never married",
+      "divorced": "divorced",
+      "widowed": "widowed",
+      "awaiting_divorce": "awaiting divorce"
+    },
+    "manglikFilter": {
+      "manglik_only": "manglik only",
+      "non_manglik_only": "non manglik only",
+      "exclude_incompatible": "exclude incompatible"
+    },
+    "education": {
+      "High School": "High School",
+      "Graduate": "Graduate",
+      "Post Graduate": "Post Graduate",
+      "Doctorate": "Doctorate",
+      "Professional": "Professional"
+    }
+  },
+  "noProfileForId": "No profile found for that ID",
+  "profileShortlisted": "Profile shortlisted!",
+  "actionFailed": "Action failed",
+  "filtersApplied": "Filters applied",
+  "title": "Find Your Match",
+  "subtitle": "Profiles from Tricity and beyond",
+  "profilesBadge": "{{n}}+ profiles",
+  "sortAria": "Sort profiles by",
+  "sort": {
+    "compatibility": "Best Match %",
+    "age": "By Age",
+    "location": "By Location",
+    "recent": "Most Recent"
+  },
+  "idPlaceholder": "Have a profile ID? e.g. TCS-A1B2C3D4",
+  "idAria": "Search by profile ID",
+  "finding": "Finding…",
+  "go": "Go",
+  "mustHavesOff": "Showing everyone, including people outside your must-haves.",
+  "mustHavesOn": "Showing people who meet your must-haves ({{list}}).",
+  "applyMustHaves": "Apply my must-haves",
+  "showEveryone": "Show everyone",
+  "loadingProfiles": "Loading profiles…",
+  "foundSuffix_one": "profile found",
+  "foundSuffix_other": "profiles found",
+  "filtersActive_one": "· {{count}} filter active",
+  "filtersActive_other": "· {{count}} filters active",
+  "clearAll": "Clear all",
+  "filterProblemTitle": "Check your filters",
+  "filterProblemBody": "One of your filters has a value we can't search on, for example an age under 18 or over 99. Adjust it and apply again, or clear the filters.",
+  "clearFilters": "Clear filters",
+  "errorTitle": "Something went wrong",
+  "errorBody": "We couldn't load profiles right now. Your filters are fine. Please try again.",
+  "tryAgain": "Try again",
+  "emptyFilteredTitle": "No profiles match these filters",
+  "emptySmallTitle": "The circle is still small",
+  "emptyFilteredBody": "Widen a filter or two: with a community this focused, a narrow search can rule out everyone.",
+  "emptySmallBody": "New Tricity families join every week. The fastest way to find someone worth meeting is to bring someone you already trust.",
+  "refresh": "Refresh",
+  "loadMore": "Load More Profiles",
+  "seenAll": "You've seen all {{n}} profiles",
+  "panel": {
+    "verifiedOnly": "Verified profiles only",
+    "ageRange": "Age Range",
+    "minAge": "Min Age",
+    "maxAge": "Max Age",
+    "to": "to",
+    "minAgeAria": "Minimum age",
+    "maxAgeAria": "Maximum age",
+    "location": "Location",
+    "city": "City",
+    "cityPlaceholder": "e.g. Chandigarh, Mohali",
+    "cityAria": "City or location",
+    "background": "Background",
+    "maritalStatus": "Marital Status",
+    "any": "Any",
+    "religion": "Religion",
+    "caste": "Caste / Community",
+    "motherTongue": "Mother Tongue",
+    "manglik": "Manglik Preference",
+    "educationCareer": "Education & Career",
+    "educationLevel": "Education Level",
+    "anyEducation": "Any education",
+    "profession": "Profession",
+    "anyProfession": "Any profession",
+    "minIncome": "Min Annual Income (₹)",
+    "maxIncome": "Max Annual Income (₹)",
+    "noMinimum": "No minimum",
+    "noMaximum": "No maximum",
+    "lakhPlus": "₹{{n}} Lakh+",
+    "lakhOrLess": "₹{{n}} Lakh or less",
+    "lifestyle": "Lifestyle",
+    "diet": "Diet",
+    "smoking": "Smoking",
+    "drinking": "Drinking",
+    "filters": "Filters",
+    "clearAll": "Clear all",
+    "clearAllCaps": "Clear All",
+    "applyFilters": "Apply Filters",
+    "openFilters": "Open search filters",
+    "searchFilters": "Search Filters",
+    "closeFilters": "Close filters",
+    "nActive": "{{n}} active",
+    "clearAllFilters": "Clear All Filters"
+  },
+  "options": {
+    "maritalStatus": {
+      "never_married": "Never Married",
+      "divorced": "Divorced",
+      "widowed": "Widowed",
+      "awaiting_divorce": "Awaiting Divorce"
+    },
+    "religion": {
+      "Hindu": "Hindu",
+      "Muslim": "Muslim",
+      "Sikh": "Sikh",
+      "Christian": "Christian",
+      "Jain": "Jain",
+      "Buddhist": "Buddhist",
+      "Parsi": "Parsi",
+      "Jewish": "Jewish",
+      "Other": "Other"
+    },
+    "motherTongue": {
+      "Punjabi": "Punjabi",
+      "Hindi": "Hindi",
+      "English": "English",
+      "Haryanvi": "Haryanvi",
+      "Urdu": "Urdu",
+      "Bengali": "Bengali",
+      "Tamil": "Tamil",
+      "Telugu": "Telugu",
+      "Marathi": "Marathi",
+      "Gujarati": "Gujarati",
+      "Other": "Other"
+    },
+    "manglik": {
+      "manglik_only": "Manglik only",
+      "non_manglik_only": "Non-Manglik only",
+      "exclude_incompatible": "Exclude incompatible"
+    },
+    "education": {
+      "High School": "High School",
+      "Graduate": "Graduate",
+      "Post Graduate": "Post Graduate",
+      "Doctorate": "Doctorate",
+      "Professional": "Professional Degree"
+    },
+    "diet": {
+      "vegetarian": "Vegetarian",
+      "non-vegetarian": "Non-Vegetarian",
+      "vegan": "Vegan",
+      "jain": "Jain"
+    },
+    "habit": {
+      "never": "Never",
+      "occasionally": "Occasionally",
+      "regularly": "Regularly"
+    }
+  },
+  "saved": {
+    "heading": "Saved searches",
+    "loadError": "Couldn't load. Retry",
+    "hint": "Set some filters, save the search, and we'll notify you when new profiles match.",
+    "namePlaceholder": "Name this search",
+    "nameAria": "Saved search name",
+    "saveAndAlert": "Save this search & get alerts",
+    "deleteAria": "Delete saved search {{name}}",
+    "savedToast_one": "Search saved with {{count}} filter. We’ll alert you about new matches.",
+    "savedToast_other": "Search saved with {{count}} filters. We’ll alert you about new matches.",
+    "saveError": "Could not save search",
+    "deleteError": "Could not delete saved search"
+  }
+}

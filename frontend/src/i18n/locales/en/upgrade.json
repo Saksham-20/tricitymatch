@@ -1,0 +1,16 @@
+{
+  "title": "Upgrade to Premium",
+  "close": "Close",
+  "thisFeature": "this feature",
+  "unlockFeature": "Unlock \"{{feature}}\" and get access to premium features",
+  "loadingPlans": "Loading plans",
+  "errorTitle": "Couldn't load plans",
+  "errorBody": "We couldn't reach the pricing service. Check your connection and try again.",
+  "updating": "Plans are being updated right now.",
+  "checkPlans": "Check current plans",
+  "unlimitedCap": "Unlimited unlocks · up to {{cap}}/day",
+  "unlimited": "Unlimited unlocks",
+  "unlocks_one": "{{count}} unlocks",
+  "unlocks_other": "{{count}} unlocks",
+  "viewAll": "View All Plans"
+}

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { FiArrowRight, FiChevronDown, FiShield, FiUsers } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
-import useFoundingWindow from '../hooks/useFoundingWindow';
-import { CITIES } from '../data/cityMatrimony';
-import { COMMUNITIES } from '../data/communityMatrimony';
+import { CITIES, getCityCopy } from '../data/cityMatrimony';
+import { COMMUNITIES, getCommunityCopy } from '../data/communityMatrimony';
 
 /**
  * Community × city landing pages — /matrimony/:city/:community.
@@ -18,21 +18,24 @@ import { COMMUNITIES } from '../data/communityMatrimony';
  * 404-ing, so a mistyped or retired slug still lands somewhere useful.
  *
  * Same honesty bar as everything else public: no member counts, no activity
- * claims, and the founding line is server-gated so it cannot promise a window
- * that has closed.
+ * claims and no free-membership offer (the founding offer is off by choice).
  */
 export default function CommunityMatrimony() {
+  const { t } = useTranslation();
   const { city: citySlug, community: communitySlug } = useParams();
-  const founding = useFoundingWindow();
   const [openFaq, setOpenFaq] = useState(0);
 
-  const city = CITIES[String(citySlug || '').toLowerCase()];
-  const community = COMMUNITIES[String(communitySlug || '').toLowerCase()];
-  if (!city) return <Navigate to="/" replace />;
-  if (!community) return <Navigate to={`/matrimony/${city.slug}`} replace />;
+  const cityMeta = CITIES[String(citySlug || '').toLowerCase()];
+  const communityMeta = COMMUNITIES[String(communitySlug || '').toLowerCase()];
+  if (!cityMeta) return <Navigate to="/" replace />;
+  if (!communityMeta) return <Navigate to={`/matrimony/${cityMeta.slug}`} replace />;
+
+  const city = { ...cityMeta, ...getCityCopy(cityMeta.slug, t) };
+  const community = { ...communityMeta, ...getCommunityCopy(communityMeta.slug, t) };
 
   const path = `/matrimony/${city.slug}/${community.slug}`;
-  const title = `${community.seoName} Matrimony in ${city.name}`;
+  // <Seo> stays in English for search engines, so it reads the English names.
+  const title = `${community.seoName} Matrimony in ${cityMeta.name}`;
 
   // The community FAQ first (it is why they searched), then two from the city
   // page so the page answers the ordinary questions too.
@@ -42,15 +45,15 @@ export default function CommunityMatrimony() {
     <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title={title}
-        description={`${community.seoName} matrimonial matches in ${city.name}, with live-selfie verification, gotra and horoscope matching, and families close enough to meet this week.`}
+        description={`${community.seoName} matrimonial matches in ${cityMeta.name}, with live-selfie verification, gotra and horoscope matching, and families close enough to meet this week.`}
         path={path}
       />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
-        <nav aria-label="Breadcrumb" className="text-sm text-neutral-500 dark:text-neutral-400">
+        <nav aria-label={t('cityPages.community.breadcrumb')} className="text-sm text-neutral-500 dark:text-neutral-400">
           <Link to={`/matrimony/${city.slug}`} className="text-neutral-600 dark:text-neutral-300 hover:text-primary-700 dark:hover:text-primary-300">
-            Matrimony in {city.name}
+            {t('cityPages.matrimonyIn', { city: city.name })}
           </Link>
           <span className="mx-2" aria-hidden="true">/</span>
           <span>{community.name}</span>
@@ -60,8 +63,8 @@ export default function CommunityMatrimony() {
             above this heading is dropped — the breadcrumb and heading already
             name the city and community. */}
         <h1 className="font-display text-4xl sm:text-5xl leading-[1.08] tracking-tight mt-4">
-          {community.name} matrimony<br />
-          <em className="italic text-primary-700 dark:text-primary-300">in {city.name}.</em>
+          {t('cityPages.community.line1', { community: community.name })}<br />
+          <em className="italic text-primary-700 dark:text-primary-300">{t('cityPages.community.line2', { city: city.name })}</em>
         </h1>
         <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-neutral-700 dark:text-neutral-300">
           {community.lede}
@@ -71,10 +74,10 @@ export default function CommunityMatrimony() {
             to="/onboarding"
             className="btn-primary inline-flex items-center gap-2 min-h-[48px] text-sm"
           >
-            Create your profile <FiArrowRight aria-hidden="true" />
+            {t('cityPages.cta')} <FiArrowRight aria-hidden="true" />
           </Link>
           <span className="text-sm text-neutral-600 dark:text-neutral-400">
-            Free to join · Verified with a live selfie
+            {t('cityPages.tagline')}
           </span>
         </div>
       </section>
@@ -84,7 +87,7 @@ export default function CommunityMatrimony() {
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24 grid gap-10 lg:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
-              How {community.name} families here tend to match
+              {t('cityPages.community.matchHeading', { community: community.name })}
             </h2>
             <p className="mt-4 text-sm sm:text-base leading-relaxed text-neutral-600 dark:text-neutral-400">
               {community.body}
@@ -111,42 +114,34 @@ export default function CommunityMatrimony() {
           to={`/matrimony/${city.slug}`}
           className="inline-flex items-center gap-2 mt-6 text-sm font-medium text-primary-700 dark:text-primary-300 hover:underline"
         >
-          Everything about matrimony in {city.name} <FiArrowRight className="w-4 h-4" aria-hidden="true" />
+          {t('cityPages.community.everything', { city: city.name })} <FiArrowRight className="w-4 h-4" aria-hidden="true" />
         </Link>
       </section>
 
-      {/* ── Verification + founding ──────────────────────────────────────── */}
+      {/* ── Verification ──────────────────────────────────────── */}
       <section className="bg-[#2D1A22] dark:bg-surface-dark-2 text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
           <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
-            Every badge here was earned with a live selfie
-            {!founding.loading && (
-              <>
-                :{' '}
-                <em className={`italic ${founding.open ? 'text-gold-400' : 'text-[#FDF8F2]'}`}>
-                  {founding.open ? 'and founding members join free.' : 'checked by a person, not a score.'}
-                </em>
-              </>
-            )}
+            <Trans
+              i18nKey="cityPages.community.verifyHeading"
+              components={{ em: <em className="italic text-[#FDF8F2]" /> }}
+            />
           </h2>
           <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-[#FDF8F2]/75">
-            The camera opens in the browser and the photo is taken there and then: there is no upload
-            option anywhere in the flow, because an uploaded file can be borrowed or edited. A reviewer
-            on our team compares it against the profile photos by hand.
-            {!founding.loading && founding.open && ' Join while the founding period is open and your membership is free until it ends.'}
+            {t('cityPages.community.verifyBody')}
           </p>
           <Link
             to="/onboarding"
             className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FDF8F2]"
           >
-            <FiShield className="w-4 h-4" aria-hidden="true" /> Create your profile
+            <FiShield className="w-4 h-4" aria-hidden="true" /> {t('cityPages.cta')}
           </Link>
         </div>
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-5 sm:px-8 py-16 md:py-24">
-        <h2 className="font-display text-2xl sm:text-3xl tracking-tight">Questions families ask</h2>
+        <h2 className="font-display text-2xl sm:text-3xl tracking-tight">{t('cityPages.community.faqHeading')}</h2>
         <div className="mt-8 divide-y divide-neutral-200 dark:divide-neutral-800 border-y border-neutral-200 dark:border-neutral-800">
           {faqs.map((faq, i) => (
             <div key={faq.q}>
@@ -177,7 +172,7 @@ export default function CommunityMatrimony() {
             to="/onboarding"
             className="btn-primary inline-flex items-center gap-2 min-h-[48px] text-sm"
           >
-            Create your profile <FiArrowRight aria-hidden="true" />
+            {t('cityPages.cta')} <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
       </section>

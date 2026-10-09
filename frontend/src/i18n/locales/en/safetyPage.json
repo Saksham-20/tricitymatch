@@ -1,0 +1,32 @@
+{
+  "backHome": "← Back to home",
+  "heroTitle": "Meet with ",
+  "heroTitleEm": "confidence.",
+  "heroBody": "We build the verification and privacy tools so you can focus on finding the right person. Here's how we keep the platform — and you — safe.",
+  "pillars": {
+    "verification": {
+      "t": "Profile verification",
+      "body": "The verified badge is earned, not assumed: a member captures a live selfie in-app, and our safety team matches it to their profile pictures by hand. Verified profiles carry the badge and can be filtered for — always prefer them when connecting."
+    },
+    "messaging": {
+      "t": "Safe messaging",
+      "p1": "Never share financial information in chats",
+      "p2": "Don't send money to anyone you haven't met in person",
+      "p3": "Be cautious of anyone rushing you off-platform",
+      "p4": "Report suspicious behaviour with the Report button"
+    },
+    "meeting": {
+      "t": "Meeting safely",
+      "p1": "Meet first in a public place, with family or friends",
+      "p2": "Tell a trusted person your plans before meeting",
+      "p3": "Don't share your home address until you're comfortable"
+    },
+    "reporting": {
+      "t": "Reporting & blocking",
+      "body": "Use Report and Block on any profile. Our safety team reviews every report, and urgent ones — threats, underage members, scams — go to the front of the queue. Blocked members cannot view your profile or contact you."
+    }
+  },
+  "emergencyTitle": "In immediate danger? Call 112.",
+  "emergencyBody": "For platform safety concerns, email <mail>support@tricitymatch.com</mail>. Our team responds within 24 hours.",
+  "contactUs": "Contact us"
+}

@@ -19,8 +19,10 @@ const SignupRedirect = () => {
   const qs = forwarded.toString();
   return <Navigate to={qs ? `/onboarding?${qs}` : '/onboarding'} replace />;
 };
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster, ToastBar } from 'react-hot-toast';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import i18n from './i18n';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // D7: astrologer marketplace ships dark — the server flag (echoed on
@@ -45,6 +47,8 @@ import AdminLayout, { AdminIndexRedirect, AdminScopeRoute, AdminNoAccess, AdminN
 import Navbar from './components/common/Navbar';
 import BottomNav from './components/common/BottomNav';
 import useRouteTitle from './components/common/RouteTitle';
+import useDarkMode from './hooks/useDarkMode';
+import useElderMode from './hooks/useElderMode';
 
 // ==================== LAZY LOADED PAGES ====================
 // Code splitting - each page is loaded only when needed
@@ -149,11 +153,30 @@ const PageTransition = ({ children }) => {
 
 // ==================== SUSPENSE FALLBACK ====================
 
-const SuspenseFallback = () => (
-  <div className="min-h-[60vh]">
-    <LoadingSpinner fullScreen message="Loading page..." />
-  </div>
-);
+const SuspenseFallback = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-[60vh]">
+      <LoadingSpinner fullScreen message={t('appShell.loadingPage')} />
+    </div>
+  );
+};
+
+// Member-facing 404. The <Seo> title/description stay English for search engines.
+const NotFoundPage = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 text-center">
+      <Seo title="Page Not Found" description="The page you're looking for doesn't exist or has been moved." noindex />
+      <div className="font-display text-8xl font-bold text-primary-200">404</div>
+      <h1 className="font-display text-2xl font-semibold text-neutral-800">{t('appShell.notFound.title')}</h1>
+      <p className="text-neutral-500 max-w-sm">{t('appShell.notFound.body')}</p>
+      <Link to="/" className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
+        {t('appShell.notFound.goHome')}
+      </Link>
+    </div>
+  );
+};
 
 // ==================== ANIMATED ROUTES ====================
 
@@ -537,17 +560,7 @@ const AnimatedRoutes = () => {
           </Route>
 
           {/* 404 */}
-          <Route path="*" element={
-            <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 text-center">
-              <Seo title="Page Not Found" description="The page you're looking for doesn't exist or has been moved." noindex />
-              <div className="font-display text-8xl font-bold text-primary-200">404</div>
-              <h1 className="font-display text-2xl font-semibold text-neutral-800">Page not found</h1>
-              <p className="text-neutral-500 max-w-sm">The page you're looking for doesn't exist or has been moved.</p>
-              <Link to="/" className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
-                Go Home
-              </Link>
-            </div>
-          } />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </AnimatePresence>
@@ -559,9 +572,13 @@ const AnimatedRoutes = () => {
 // mounted: sixteen admin and marketing pages call toast.success / toast.error
 // and none of it was ever visible there (a refund, a ban, a failed save — all
 // silent). Both branches render this same component.
+// Toasts start below the 64px navbar (the bell and account menu stay
+// reachable) and any toast closes on click: in the top-right corner one sat
+// over the profile editor's Save button for its full four seconds.
 const AppToaster = () => (
   <Toaster
     position="top-right"
+    containerStyle={{ top: 72 }}
     toastOptions={{
       duration: 4000,
       style: {
@@ -586,7 +603,23 @@ const AppToaster = () => (
         },
       },
     }}
-  />
+  >
+    {(t) => (
+      <ToastBar toast={t}>
+        {({ icon, message }) => (
+          <button
+            type="button"
+            onClick={() => toast.dismiss(t.id)}
+            title={i18n.t('appShell.dismissToast')}
+            className="flex items-center gap-2 text-left cursor-pointer"
+          >
+            {icon}
+            {message}
+          </button>
+        )}
+      </ToastBar>
+    )}
+  </Toaster>
 );
 
 // ==================== APP CONTENT ====================
@@ -595,6 +628,10 @@ const AppContent = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   useRouteTitle();
+  // Apply the saved theme on every route: funnel pages (login, onboarding,
+  // reset) render no Navbar, which used to be the only place this ran.
+  useDarkMode();
+  useElderMode();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isMarketingRoute = location.pathname.startsWith('/marketing');
   // Funnel routes ship their own full-screen layout — their own Logo(s), their

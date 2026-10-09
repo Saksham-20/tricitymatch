@@ -52,11 +52,11 @@ export default function Guardian() {
       try {
         await api.post(`/guardian/resolve-invite/${encodeURIComponent(inviteToken)}`);
         if (!cancelled) {
-          toast.success('You are now a guardian');
+          toast.success(t('guardian.nowGuardian'));
           setTab('candidates');
         }
       } catch (err) {
-        if (!cancelled) toast.error(apiErrorMessage(err, 'This invite is invalid or has expired'));
+        if (!cancelled) toast.error(apiErrorMessage(err, t('guardian.inviteInvalid')));
       } finally {
         if (!cancelled) {
           setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete('invite'); return next; }, { replace: true });
@@ -72,11 +72,11 @@ export default function Guardian() {
   const answerInvite = async (linkId, decision) => {
     try {
       await api.post(`/guardian/${linkId}/${decision}`);
-      toast.success(decision === 'accept' ? 'You are now a guardian' : 'Invite declined');
+      toast.success(decision === 'accept' ? t('guardian.nowGuardian') : t('guardian.inviteDeclined'));
       if (decision === 'accept') setTab('candidates');
       load();
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'That invite is no longer open'));
+      toast.error(apiErrorMessage(err, t('guardian.inviteClosed')));
       load();
     }
   };
@@ -87,11 +87,11 @@ export default function Guardian() {
     setInviting(true);
     try {
       const res = await api.post('/guardian/invite', { email });
-      toast.success(res.data.message || 'Invite sent');
+      toast.success(res.data.message || t('guardian.inviteSent'));
       setEmail('');
       load();
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Invite failed'));
+      toast.error(apiErrorMessage(err, t('guardian.inviteFailed')));
     } finally {
       setInviting(false);
     }
@@ -100,10 +100,10 @@ export default function Guardian() {
   const revoke = async (linkId) => {
     try {
       await api.delete(`/guardian/${linkId}`);
-      toast.success('Access revoked');
+      toast.success(t('guardian.accessRevoked'));
       setGuardians((prev) => prev.filter((g) => g.linkId !== linkId));
     } catch {
-      toast.error('Could not revoke');
+      toast.error(t('guardian.revokeFailed'));
     } finally {
       setConfirmRevoke(null);
     }
@@ -132,22 +132,22 @@ export default function Guardian() {
       <p className="text-neutral-500 dark:text-neutral-400 mb-6">{t('guardian.subtitle')}</p>
 
       {invitesForMe.length > 0 && (
-        <section aria-label="Guardian invites waiting for you" className="mb-6 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 py-4">
-          <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100 mb-1">Invites waiting for you</h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-3">As a guardian you can see their shortlist and mutual matches. You cannot message anyone or edit their profile.</p>
+        <section aria-label={t('guardian.invitesForYouLabel')} className="mb-6 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 py-4">
+          <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100 mb-1">{t('guardian.invitesForYou')}</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-3">{t('guardian.invitesForYouHint')}</p>
           <ul className="space-y-2">
             {invitesForMe.map((inv) => (
               <li key={inv.linkId} className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-2.5">
                 <div>
-                  <p className="text-neutral-800 dark:text-neutral-100 font-medium">{inv.candidateName || 'A TricityMatch member'}</p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Open until {new Date(inv.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                  <p className="text-neutral-800 dark:text-neutral-100 font-medium">{inv.candidateName || t('guardian.aMember')}</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('guardian.openUntil', { date: new Date(inv.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) })}</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => answerInvite(inv.linkId, 'accept')} className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors duration-[160ms]">
-                    <FiCheck className="w-4 h-4" /> Accept
+                    <FiCheck className="w-4 h-4" /> {t('guardian.accept')}
                   </button>
                   <button onClick={() => answerInvite(inv.linkId, 'decline')} className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[160ms]">
-                    <FiX className="w-4 h-4" /> Decline
+                    <FiX className="w-4 h-4" /> {t('guardian.decline')}
                   </button>
                 </div>
               </li>
@@ -193,8 +193,9 @@ export default function Guardian() {
             rowSkeleton
           ) : loadError ? (
             <ErrorState
-              title="Couldn't load your guardians"
-              description="The connection dropped before this finished loading. Try again."
+              title={t('guardian.loadGuardiansError')}
+              description={t('guardian.loadErrorDescription')}
+              retryLabel={t('guardian.tryAgain')}
               onRetry={load}
             />
           ) : guardians.length === 0 ? (
@@ -212,15 +213,17 @@ export default function Guardian() {
                     <p className="text-neutral-800 dark:text-neutral-100 font-medium">{g.email}</p>
                     <span className={`text-sm ${g.status === 'active' ? 'text-success' : 'text-warning'}`}>
                       {g.status === 'active'
-                        ? 'Active'
-                        : `Waiting for their reply${g.expiresAt ? ` · until ${new Date(g.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}`}
+                        ? t('guardian.active')
+                        : g.expiresAt
+                          ? t('guardian.waitingUntil', { date: new Date(g.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) })
+                          : t('guardian.waiting')}
                     </span>
                   </div>
                   {confirmRevoke === g.linkId ? (
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-neutral-500 dark:text-neutral-400">Revoke access?</span>
-                      <button onClick={() => revoke(g.linkId)} className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1 rounded-md bg-destructive text-white font-medium hover:bg-destructive/90 transition-colors duration-[160ms]">Yes</button>
-                      <button onClick={() => setConfirmRevoke(null)} className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]">No</button>
+                      <span className="text-neutral-500 dark:text-neutral-400">{t('guardian.revokeConfirm')}</span>
+                      <button onClick={() => revoke(g.linkId)} className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1 rounded-md bg-destructive text-white font-medium hover:bg-destructive/90 transition-colors duration-[160ms]">{t('guardian.yes')}</button>
+                      <button onClick={() => setConfirmRevoke(null)} className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-[160ms]">{t('guardian.no')}</button>
                     </div>
                   ) : (
                     <button onClick={() => setConfirmRevoke(g.linkId)} className="inline-flex items-center gap-1.5 min-h-[44px] px-2 text-destructive hover:opacity-80 text-sm">
@@ -241,8 +244,9 @@ export default function Guardian() {
           rowSkeleton
         ) : loadError ? (
           <ErrorState
-            title="Couldn't load your candidates"
-            description="The connection dropped before this finished loading. Try again."
+            title={t('guardian.loadCandidatesError')}
+            description={t('guardian.loadErrorDescription')}
+            retryLabel={t('guardian.tryAgain')}
             onRetry={load}
           />
         ) : candidates.length === 0 ? (
@@ -294,7 +298,7 @@ function CandidateCard({ candidate }) {
       }
     } catch {
       setError(true);
-      toast.error('Could not load');
+      toast.error(t('guardian.couldNotLoad'));
     } finally {
       setLoading(false);
     }
@@ -346,7 +350,7 @@ function CandidateCard({ candidate }) {
             </>
           ) : error ? (
             <li className="flex flex-wrap items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 text-sm text-destructive"><FiX className="w-4 h-4" /> Could not load</span>
+              <span className="inline-flex items-center gap-1.5 text-sm text-destructive"><FiX className="w-4 h-4" /> {t('guardian.couldNotLoad')}</span>
               <button onClick={() => fetchList(open)} className="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline">
                 {t('common.retry')}
               </button>
@@ -368,6 +372,7 @@ function CandidateCard({ candidate }) {
  * else; it asks for the password again and mails the owner a one-time link.
  */
 function HandOverCard() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [ownerEmail, setOwnerEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -382,7 +387,7 @@ function HandOverCard() {
       setSent(true);
       setPassword('');
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Could not send the hand-over link'));
+      toast.error(apiErrorMessage(err, t('guardian.handoverFailed')));
     } finally {
       setBusy(false);
     }
@@ -392,27 +397,27 @@ function HandOverCard() {
 
   return (
     <section className="mt-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 px-4 py-4">
-      <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100">Set this profile up for someone else?</h2>
-      <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">When they are ready, hand it over. They get an email link, choose their own password, and the profile becomes theirs. You are signed out of it.</p>
+      <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100">{t('guardian.handoverTitle')}</h2>
+      <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">{t('guardian.handoverDescription')}</p>
       {!open ? (
         <button onClick={() => setOpen(true)} className="mt-3 inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[160ms]">
-          Hand over this profile
+          {t('guardian.handoverButton')}
         </button>
       ) : sent ? (
-        <p role="status" className="mt-3 text-sm text-neutral-700 dark:text-neutral-200">We sent {ownerEmail} a link. It works once and expires in 7 days.</p>
+        <p role="status" className="mt-3 text-sm text-neutral-700 dark:text-neutral-200">{t('guardian.handoverSent', { email: ownerEmail })}</p>
       ) : (
         <form onSubmit={submit} className="mt-3 space-y-3">
           <div>
-            <label htmlFor="handover-email" className="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">Their email address</label>
+            <label htmlFor="handover-email" className="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">{t('guardian.handoverEmail')}</label>
             <input id="handover-email" type="email" required value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} className={field} autoComplete="off" />
           </div>
           <div>
-            <label htmlFor="handover-password" className="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">Your password, to confirm</label>
+            <label htmlFor="handover-password" className="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">{t('guardian.handoverPassword')}</label>
             <input id="handover-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={field} autoComplete="current-password" />
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={busy} className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-60 transition-colors duration-[160ms]">Send link</button>
-            <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-sm text-neutral-600 dark:text-neutral-300">Cancel</button>
+            <button type="submit" disabled={busy} className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-60 transition-colors duration-[160ms]">{t('guardian.sendLink')}</button>
+            <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-sm text-neutral-600 dark:text-neutral-300">{t('common.cancel')}</button>
           </div>
         </form>
       )}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiCheck, FiCopy, FiGift, FiShare2, FiX } from 'react-icons/fi';
 import api from '../../api/axios';
 import { copyToClipboard } from '../common/InviteLink';
@@ -20,6 +21,7 @@ const inr = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
  * programme is off: it is an add-on to checkout, not part of its critical path.
  */
 export default function ReferralPanel({ planType, applied, onChange }) {
+  const { t } = useTranslation();
   const [info, setInfo] = useState(null);
   const [input, setInput] = useState('');
   const [checking, setChecking] = useState(false);
@@ -44,15 +46,15 @@ export default function ReferralPanel({ planType, applied, onChange }) {
         setInput('');
       } else {
         onChange(null);
-        setError(data.message || 'That code could not be applied.');
+        setError(data.message || t('referral.couldNotApply'));
       }
     } catch (err) {
       onChange(null);
-      setError(err.response?.data?.error?.message || 'Could not check that code. Please try again.');
+      setError(err.response?.data?.error?.message || t('referral.checkFailed'));
     } finally {
       setChecking(false);
     }
-  }, [planType, onChange]);
+  }, [planType, onChange, t]);
 
   useEffect(() => {
     let live = true;
@@ -77,7 +79,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
   if (!info?.enabled) return null;
 
   const canApply = info.eligible && Boolean(planType);
-  const shareText = `Join me on TricityMatch — a verified, Tricity-only matrimonial community. Use my code ${info.code} to get ${inr(info.discountPaise / 100)} off your first plan: ${info.shareUrl}`;
+  const shareText = t('referral.shareText', { code: info.code, amount: inr(info.discountPaise / 100), url: info.shareUrl });
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   const handleCopy = async () => {
@@ -91,14 +93,14 @@ export default function ReferralPanel({ planType, applied, onChange }) {
 
   return (
     <section
-      aria-label="Referral code"
+      aria-label={t('referral.sectionLabel')}
       className="mb-8 grid gap-4 md:grid-cols-2 bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-5"
     >
       {canApply && (
         <div>
-          <h2 className="font-display text-lg text-neutral-900 dark:text-neutral-100 leading-tight">Have a referral code?</h2>
+          <h2 className="font-display text-lg text-neutral-900 dark:text-neutral-100 leading-tight">{t('referral.haveCode')}</h2>
           <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">
-            Take {inr(info.discountPaise / 100)} off your first plan.
+            {t('referral.takeOff', { amount: inr(info.discountPaise / 100) })}
           </p>
 
           {applied ? (
@@ -108,17 +110,17 @@ export default function ReferralPanel({ planType, applied, onChange }) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                  {applied.code} · {inr(applied.discount)} off
+                  {t('referral.appliedOff', { code: applied.code, amount: inr(applied.discount) })}
                 </p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  You pay {inr(applied.finalPrice)} instead of {inr(applied.price)}
-                  {applied.referrerName ? ` · from ${applied.referrerName}` : ''}
+                  {t('referral.youPay', { final: inr(applied.finalPrice), price: inr(applied.price) })}
+                  {applied.referrerName ? ` ${t('referral.fromName', { name: applied.referrerName })}` : ''}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onChange(null)}
-                aria-label="Remove referral code"
+                aria-label={t('referral.remove')}
                 className="inline-flex items-center justify-center w-11 h-11 rounded-xl text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
               >
                 <FiX className="w-4 h-4" />
@@ -134,12 +136,12 @@ export default function ReferralPanel({ planType, applied, onChange }) {
                   type="text"
                   autoComplete="off"
                   autoCapitalize="characters"
-                  aria-label="Referral code"
+                  aria-label={t('referral.sectionLabel')}
                   aria-invalid={Boolean(error)}
                   aria-describedby={error ? 'referral-error' : undefined}
                   value={input}
                   onChange={(e) => { setInput(e.target.value.toUpperCase()); setError(''); }}
-                  placeholder="Enter code"
+                  placeholder={t('referral.enterCode')}
                   maxLength={32}
                   className="flex-1 min-w-0 min-h-[44px] px-3 rounded-xl border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-surface-dark-3 text-base uppercase tracking-wider text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
@@ -148,7 +150,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
                   disabled={checking || !input.trim()}
                   className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors disabled:opacity-60"
                 >
-                  {checking ? 'Checking…' : 'Apply'}
+                  {checking ? t('referral.checking') : t('referral.apply')}
                 </button>
               </div>
               {error && (
@@ -160,12 +162,11 @@ export default function ReferralPanel({ planType, applied, onChange }) {
       )}
 
       <div className={canApply ? 'md:border-l md:border-neutral-200 md:dark:border-neutral-700 md:pl-5' : 'md:col-span-2'}>
-        <h2 className="font-display text-lg text-neutral-900 dark:text-neutral-100 leading-tight">Refer a friend</h2>
+        <h2 className="font-display text-lg text-neutral-900 dark:text-neutral-100 leading-tight">{t('referral.referFriend')}</h2>
         <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">
-          They get {inr(info.discountPaise / 100)} off their first plan
           {info.referrerUnlocks > 0
-            ? `; you get ${info.referrerUnlocks} contact unlock${info.referrerUnlocks === 1 ? '' : 's'} when they join as a member.`
-            : '.'}
+            ? t('referral.theyGetYouGet', { amount: inr(info.discountPaise / 100), count: info.referrerUnlocks })
+            : t('referral.theyGet', { amount: inr(info.discountPaise / 100) })}
         </p>
         {info.code && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -179,7 +180,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
               className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-white dark:hover:bg-neutral-800 transition-colors"
             >
               {copied ? <FiCheck className="w-4 h-4" /> : <FiCopy className="w-4 h-4" />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? t('referral.copied') : t('referral.copy')}
             </button>
             {canShare ? (
               <button
@@ -187,7 +188,7 @@ export default function ReferralPanel({ planType, applied, onChange }) {
                 onClick={handleShare}
                 className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
               >
-                <FiShare2 className="w-4 h-4" /> Share
+                <FiShare2 className="w-4 h-4" /> {t('referral.share')}
               </button>
             ) : (
               <a
@@ -196,15 +197,15 @@ export default function ReferralPanel({ planType, applied, onChange }) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl bg-primary-700 hover:bg-primary-800 text-white text-sm font-medium transition-colors"
               >
-                <FiShare2 className="w-4 h-4" /> Share on WhatsApp
+                <FiShare2 className="w-4 h-4" /> {t('referral.shareWhatsApp')}
               </a>
             )}
           </div>
         )}
         {(info.stats?.signedUp > 0 || info.stats?.paid > 0) && (
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-3">
-            {info.stats.signedUp} joined with your link · {info.stats.paid} became member{info.stats.paid === 1 ? '' : 's'}
-            {info.stats.unlocksEarned > 0 ? ` · ${info.stats.unlocksEarned} unlock${info.stats.unlocksEarned === 1 ? '' : 's'} earned` : ''}
+            {t('referral.statsJoined', { n: info.stats.signedUp })} · {t('referral.statsPaid', { count: info.stats.paid })}
+            {info.stats.unlocksEarned > 0 ? ` · ${t('referral.statsUnlocks', { count: info.stats.unlocksEarned })}` : ''}
           </p>
         )}
       </div>

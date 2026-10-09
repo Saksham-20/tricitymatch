@@ -9,12 +9,12 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { FiLoader } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
-export const STAGES = [
-  'Scanning Tricity profiles…',
-  'Matching 36 gunas…',
-  'Checking family preferences…',
-];
+// Translation keys (ui.staged.*); the text is looked up at render so a
+// language change applies. English: "Scanning Tricity profiles…",
+// "Matching 36 gunas…", "Checking family preferences…".
+export const STAGES = ['scanning', 'gunas', 'family'];
 const STAGE_MS = 500;
 
 const prefersReducedMotion = () =>
@@ -58,6 +58,7 @@ export function useStagedReveal({ key, loading, error = false, maxHoldMs = 0 }) 
 }
 
 export default function StagedLoader({ onSkip, className = '' }) {
+  const { t } = useTranslation();
   const reduced = prefersReducedMotion();
   const [stageIndex, setStageIndex] = useState(0);
 
@@ -77,7 +78,7 @@ export default function StagedLoader({ onSkip, className = '' }) {
     >
       <FiLoader className="w-6 h-6 text-primary-600 animate-spin" aria-hidden="true" />
       <p className="text-sm text-neutral-600 dark:text-neutral-300" aria-live="polite">
-        {reduced ? 'Finding matches…' : STAGES[stageIndex]}
+        {reduced ? t('ui.staged.finding') : t(`ui.staged.${STAGES[stageIndex]}`)}
       </p>
       {onSkip && (
         <button
@@ -85,7 +86,7 @@ export default function StagedLoader({ onSkip, className = '' }) {
           onClick={onSkip}
           className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 underline min-h-[44px] px-3"
         >
-          Skip
+          {t('ui.staged.skip')}
         </button>
       )}
     </div>

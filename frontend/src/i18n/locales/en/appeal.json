@@ -1,0 +1,12 @@
+{
+  "back": "← Help Centre",
+  "title": "Appeal a suspension",
+  "done": "If a suspended account uses that email, your appeal has been received. A person will read it and reply by email.",
+  "intro": "If you think your account was suspended by mistake, tell us what happened. Use the email address of the account.",
+  "emailLabel": "Account email",
+  "statementLabel": "What happened?",
+  "minLength": "Please write at least 20 characters.",
+  "sending": "Sending…",
+  "send": "Send appeal",
+  "error": "Could not send your appeal. Try again."
+}

@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import RetryImage from '../../components/ui/RetryImage';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield, FiEye, FiEyeOff, FiUsers } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
+import { formatDate, formatDateTime } from '../../utils/formatDate';
 
 const Section = ({ title, children }) => (
   <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -73,7 +74,7 @@ function ModerationHistory({ userId }) {
                 {HISTORY_LABEL[e.kind] || e.kind}
                 <span className="font-normal text-gray-500"> · {e.summary?.replace(/_/g, ' ')}</span>
               </p>
-              <span className="text-xs text-gray-400 flex-shrink-0">{new Date(e.at).toLocaleString('en-IN')}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0">{formatDateTime(e.at)}</span>
             </div>
             {(e.byName || e.note) && (
               <p className="text-xs text-gray-500 mt-0.5">
@@ -412,7 +413,7 @@ export default function AdminUserDetail() {
             )}
             {subscription && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
-                <FaCrown className="w-3 h-3" /> {subscription.planType}
+                <FaCrown className="w-3 h-3" /> {planLabel(subscription.planType)}
               </span>
             )}
             {user.invisible && (
@@ -585,13 +586,13 @@ export default function AdminUserDetail() {
           <InfoRow label="Phone"         value={user.phone} />
           <InfoRow label="Role"          value={user.role} />
           <InfoRow label="Status"        value={user.status} />
-          <InfoRow label="Joined"        value={user.createdAt ? new Date(user.createdAt).toLocaleString('en-IN') : null} />
-          <InfoRow label="Last Login"    value={user.lastLogin ? new Date(user.lastLogin).toLocaleString('en-IN') : null} />
+          <InfoRow label="Joined"        value={user.createdAt ? formatDateTime(user.createdAt) : null} />
+          <InfoRow label="Last Login"    value={user.lastLogin ? formatDateTime(user.lastLogin) : null} />
           {/* DPDP consent record. NULL = account predates the record (mig 000062) — not a refusal. */}
           <InfoRow
             label="Terms Accepted"
             value={user.termsAcceptedAt
-              ? `${new Date(user.termsAcceptedAt).toLocaleString('en-IN')}${user.termsVersion ? ` (v${user.termsVersion})` : ''}`
+              ? `${formatDateTime(user.termsAcceptedAt)}${user.termsVersion ? ` (v${user.termsVersion})` : ''}`
               : 'Before consent records began'}
           />
         </Section>
@@ -653,11 +654,14 @@ export default function AdminUserDetail() {
         <Section title="Subscription">
           {subscription ? (
             <>
-              <InfoRow label="Plan"       value={subscription.planType} />
+              <InfoRow label="Plan"       value={planLabel(subscription.planType)} />
               <InfoRow label="Status"     value={subscription.status} />
-              <InfoRow label="Start Date" value={subscription.startDate ? new Date(subscription.startDate).toLocaleDateString('en-IN') : null} />
-              <InfoRow label="End Date"   value={subscription.endDate ? new Date(subscription.endDate).toLocaleDateString('en-IN') : null} />
-              <InfoRow label="Amount"     value={subscription.amount != null ? `₹${Number(subscription.amount).toLocaleString('en-IN')}` : null} />
+              <InfoRow label="Start Date" value={subscription.startDate ? formatDate(subscription.startDate) : null} />
+              <InfoRow label="End Date"   value={subscription.endDate ? formatDate(subscription.endDate) : null} />
+              {/* A staff grant stores the plan's list price but no payment reference. */}
+              <InfoRow label="Amount"     value={subscription.amount == null ? null
+                : subscription.razorpayPaymentId ? `₹${Number(subscription.amount).toLocaleString('en-IN')}`
+                : 'Granted by staff (not paid)'} />
             </>
           ) : (
             <p className="text-sm text-gray-400">No active subscription (Free plan)</p>
@@ -669,15 +673,16 @@ export default function AdminUserDetail() {
                 {subscriptionHistory.map((h) => {
                   const paid = Boolean(h.razorpayPaymentId) && Number(h.amount) > 0;
                   const refunded = Number(h.refundedAmount) || 0;
+                  // An order id with no payment is a checkout the member closed; a staff grant has neither.
                   // A Google Play purchase stores its token in razorpayPaymentId;
                   // those are refunded from the Play Console, not here.
                   const refundable = paid && h.razorpaySignature !== 'GOOGLE_PLAY' && !h.refundedAt && refunded < Number(h.amount);
                   return (
                     <div key={h.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-gray-500">
-                      <span className="capitalize">{String(h.planType).replace(/_/g, ' ')}</span>
+                      <span>{planLabel(h.planType)}</span>
                       <span>{h.status}</span>
-                      <span>{paid ? `₹${Number(h.amount).toLocaleString('en-IN')}` : (Number(h.amount) > 0 ? 'granted' : '—')}</span>
-                      <span>{h.endDate ? new Date(h.endDate).toLocaleDateString('en-IN') : '—'}</span>
+                      <span>{paid ? `₹${Number(h.amount).toLocaleString('en-IN')}` : h.razorpayOrderId ? 'not paid' : (Number(h.amount) > 0 ? 'granted' : '—')}</span>
+                      <span>{h.endDate ? formatDate(h.endDate) : '—'}</span>
                       {(h.refundedAt || refunded > 0) && <span className="text-red-700 font-medium">{h.refundedAt ? 'Refunded in full' : `Refunded ₹${refunded.toLocaleString('en-IN')}`}</span>}
                       {refundable && can('subscriptions') && (
                         <button
@@ -708,7 +713,7 @@ export default function AdminUserDetail() {
                     )}
                     <div>
                       <p className="text-sm font-medium text-gray-800">Photo verification</p>
-                      <p className="text-xs text-gray-400">{new Date(v.createdAt).toLocaleDateString('en-IN')}</p>
+                      <p className="text-xs text-gray-400">{formatDate(v.createdAt)}</p>
                       {v.adminNotes && <p className="text-xs text-gray-500 mt-1">{v.adminNotes}</p>}
                     </div>
                   </div>
@@ -754,7 +759,7 @@ export default function AdminUserDetail() {
                 <div>
                   <p className="text-sm font-medium text-gray-800 capitalize">{r.reason?.replace(/_/g, ' ')}</p>
                   <p className="text-xs text-gray-500">{r.description}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleDateString('en-IN')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{formatDate(r.createdAt)}</p>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
                   r.status === 'resolved' ? 'bg-green-100 text-green-700' :
@@ -830,6 +835,7 @@ export default function AdminUserDetail() {
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               rows={3}
+              aria-label="Reason"
               placeholder="Reason (e.g. mis-grant, refunded elsewhere, member request)"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
             />
@@ -922,8 +928,8 @@ export default function AdminUserDetail() {
       {/* Flag / Remove a photo */}
       {photoAction && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">
+          <div role="dialog" aria-modal="true" aria-labelledby="photo-action-title" className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 id="photo-action-title" className="text-lg font-bold text-gray-900 mb-1">
               {photoAction.type === 'remove' ? 'Remove this photo' : 'Flag this photo for review'}
             </h3>
             <p className="text-sm text-gray-500 mb-3">
@@ -937,6 +943,7 @@ export default function AdminUserDetail() {
               onChange={(e) => setPhotoReason(e.target.value)}
               rows={3}
               autoFocus
+              aria-label="Reason"
               placeholder="Reason (recorded in the audit log, e.g. nudity, not the member, offensive)"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
             />
@@ -1013,6 +1020,7 @@ export default function AdminUserDetail() {
               onChange={(e) => setStatusReason(e.target.value)}
               rows={3}
               autoFocus
+              aria-label={statusTarget === 'banned' ? 'Reason' : 'Note'}
               placeholder={statusTarget === 'banned' ? 'Reason (shown to the member and recorded, e.g. inappropriate photos)' : 'Note (optional, recorded in the audit log)'}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
             />

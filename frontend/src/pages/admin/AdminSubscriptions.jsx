@@ -6,6 +6,7 @@ import { FiSearch, FiEdit2, FiDownload, FiAlertCircle } from 'react-icons/fi';
 import { adminGetInvoice } from '../../api/adminApi';
 import usePlanOptions from '../../hooks/usePlanOptions';
 import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
+import { formatDate } from '../../utils/formatDate';
 
 // Plan keys MUST match the backend enum (constants/plans.js ALL_PLANS): the old
 // ['free','basic','premium','gold'] values did not exist server-side, so every
@@ -13,7 +14,7 @@ import PlanOverrideNotice, { overrideProblem } from '../../components/admin/Plan
 const PLAN_LABELS = {
   free:          'Free',
   basic_premium: 'Basic Premium',
-  premium_plus:  'Premium Plus',
+  premium_plus:  'Premium',
   elite:         'Elite',
   vip:           'VIP',
   nri:           'NRI Connect',
@@ -192,7 +193,7 @@ export default function AdminSubscriptions() {
                   return (
                   <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-800">{name || '—'}</p>
+                      <p className="font-medium text-gray-800">{u.status === 'deleted' ? 'Deleted account' : (name || '—')}</p>
                       <p className="text-xs text-gray-400">{u.email}</p>
                     </td>
                     <td className="px-4 py-3">
@@ -200,13 +201,13 @@ export default function AdminSubscriptions() {
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 capitalize">{sub?.status || '—'}</td>
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {sub?.startDate ? new Date(sub.startDate).toLocaleDateString('en-IN') : '—'}
+                      {sub?.startDate ? formatDate(sub.startDate) : '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {sub?.endDate ? new Date(sub.endDate).toLocaleDateString('en-IN') : '—'}
+                      {sub?.endDate ? formatDate(sub.endDate) : '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 tabular-nums">
-                      {sub?.amount != null ? `₹${Number(sub.amount).toLocaleString('en-IN')}` : '—'}
+                      {sub?.amount == null ? '—' : sub.razorpayPaymentId || Number(sub.amount) === 0 ? `₹${Number(sub.amount).toLocaleString('en-IN')}` : 'Granted'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">

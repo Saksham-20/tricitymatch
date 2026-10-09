@@ -5,16 +5,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { getBlockedMembers, unblockMember } from '../../api/safety';
 import { Skeleton, ErrorState } from '../ui';
 
-const nameOf = (block) => {
+const nameOf = (block, t) => {
   const p = block.BlockedUser?.Profile;
   const full = [p?.firstName, p?.lastName].filter(Boolean).join(' ');
-  return full || 'Member';
+  return full || t('safetyTools.member');
 };
 
 const BlockedMembers = () => {
+  const { t } = useTranslation();
   const [state, setState] = useState('loading'); // loading | error | ready
   const [blocks, setBlocks] = useState([]);
   const [busyId, setBusyId] = useState(null);
@@ -36,9 +38,9 @@ const BlockedMembers = () => {
     try {
       await unblockMember(block.blockedUserId);
       setBlocks((prev) => prev.filter((b) => b.blockedUserId !== block.blockedUserId));
-      toast.success(`${nameOf(block)} is unblocked`);
+      toast.success(t('safetyTools.unblocked', { name: nameOf(block, t) }));
     } catch {
-      toast.error("Couldn't unblock. Please try again.");
+      toast.error(t('safetyTools.unblockFailed'));
     } finally {
       setBusyId(null);
     }
@@ -56,8 +58,8 @@ const BlockedMembers = () => {
     return (
       <ErrorState
         className="max-w-xl"
-        title="Couldn't load blocked members"
-        description="Your blocks are still in place. Try again."
+        title={t('safetyTools.loadErrorTitle')}
+        description={t('safetyTools.loadErrorDesc')}
         onRetry={load}
       />
     );
@@ -66,7 +68,7 @@ const BlockedMembers = () => {
   if (blocks.length === 0) {
     return (
       <p className="max-w-xl text-sm text-neutral-500 dark:text-neutral-400">
-        You haven&apos;t blocked anyone. Use the More menu on a profile or chat to block or report a member.
+        {t('safetyTools.noneBlocked')}
       </p>
     );
   }
@@ -76,7 +78,7 @@ const BlockedMembers = () => {
       {blocks.map((block) => (
         <li key={block.id || block.blockedUserId} className="flex items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{nameOf(block)}</p>
+            <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{nameOf(block, t)}</p>
             {block.BlockedUser?.Profile?.city && (
               <p className="truncate text-xs text-neutral-500 dark:text-neutral-400">{block.BlockedUser.Profile.city}</p>
             )}
@@ -87,7 +89,7 @@ const BlockedMembers = () => {
             disabled={busyId === block.blockedUserId}
             className="min-h-[44px] flex-shrink-0 rounded-xl border border-neutral-200 px-4 text-sm font-semibold text-neutral-700 transition-colors duration-[160ms] hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
           >
-            {busyId === block.blockedUserId ? 'Unblocking…' : 'Unblock'}
+            {busyId === block.blockedUserId ? t('safetyTools.unblocking') : t('safetyTools.unblock')}
           </button>
         </li>
       ))}

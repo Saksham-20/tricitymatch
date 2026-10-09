@@ -89,7 +89,7 @@ describeDb('contact sharing level', (t) => {
     // and the profile payload no longer carries the number
     const { getProfile } = require('../../../controllers/profileController');
     const seen = await call(getProfile, { user: { id: v.id, role: 'user' }, params: { userId: o.id } });
-    expect(seen.body.contactShare).toEqual({ level: 'hidden', allowed: false });
+    expect(seen.body.contactShare).toEqual({ level: 'hidden', allowed: false, available: false });
     expect(seen.body.profile.User?.phone).toBeUndefined();
   });
 
@@ -107,5 +107,17 @@ describeDb('contact sharing level', (t) => {
     const res = await unlockAs(v, o);
     expect(res.statusCode).toBe(409);
     expect(await used(v)).toBe(0);
+    // and the profile page says so before the button is offered
+    const { getProfile } = require('../../../controllers/profileController');
+    const seen = await call(getProfile, { user: { id: v.id, role: 'user' }, params: { userId: o.id } });
+    expect(seen.body.contactShare).toMatchObject({ allowed: true, available: false });
+  });
+
+  t('an owner with a verified number reads as available', async () => {
+    const o = await owner(null); const v = await member(); await sub(v.id);
+    const { getProfile } = require('../../../controllers/profileController');
+    const seen = await call(getProfile, { user: { id: v.id, role: 'user' }, params: { userId: o.id } });
+    expect(seen.body.contactShare).toMatchObject({ allowed: true, available: true });
+    expect(seen.body.profile.User?.phone).toBeUndefined();
   });
 });

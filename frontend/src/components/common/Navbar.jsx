@@ -8,6 +8,7 @@ import Logo from './Logo';
 import NotificationBell from '../notifications/NotificationBell';
 import { NOTIFICATIONS_CHANGED } from '../notifications/notificationMeta';
 import api from '../../api/axios';
+import i18n from '../../i18n';
 import useDarkMode from '../../hooks/useDarkMode';
 import useElderMode from '../../hooks/useElderMode';
 import {
@@ -55,7 +56,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-[160ms]"
-        aria-label="Profile menu"
+        aria-label={t('navbar.profileMenu')}
       >
         <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 text-xs font-display font-semibold flex-shrink-0 ring-1 ring-primary-500/10">
           {initials}
@@ -209,7 +210,7 @@ const Navbar = () => {
         animate={{ y: 0 }}
         transition={{ duration: 0.45, ease: 'easeOut' }}
         role="navigation"
-        aria-label="Main navigation"
+        aria-label={t('navbar.mainNavigation')}
         className={`fixed top-0 left-0 right-0 z-60 transition-[box-shadow,border-color] duration-300 bg-white dark:bg-surface-dark-2 dark:border-[#252b3b] ${
           isScrolled
             ? 'shadow-sm border-b border-neutral-100 dark:shadow-none dark:border-b'
@@ -243,7 +244,9 @@ const Navbar = () => {
                 ))}
               </div>
             ) : (
-              <div className="hidden md:flex items-center gap-4">
+              // ml-auto: the right-actions slot is empty for visitors on
+              // desktop, so justify-between would park these mid-bar.
+              <div className="hidden md:flex items-center gap-4 ml-auto">
                 <Link
                   to="/login"
                   className="text-sm font-semibold text-neutral-600 hover:text-primary-500 transition-colors px-3 py-2.5 rounded-xl hover:bg-primary-50 min-h-[44px] inline-flex items-center"
@@ -285,7 +288,9 @@ const Navbar = () => {
                 whileTap={{ scale: 0.93 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-expanded={isMobileMenuOpen}
-                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                // Read off the shared instance (the hook still re-renders on a
+                // language change), as the drawer tests stub the hook.
+                aria-label={i18n.t(isMobileMenuOpen ? 'navbar.closeMenu' : 'navbar.openMenu')}
                 className="relative md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 transition-colors"
               >
                 {isMobileMenuOpen
@@ -317,7 +322,7 @@ const Navbar = () => {
               className="fixed top-0 right-0 h-full w-72 bg-white dark:bg-surface-dark-2 shadow-2xl dark:shadow-[0_0_60px_rgba(0,0,0,0.7)] z-70 md:hidden flex flex-col"
               role="dialog"
               aria-modal="true"
-              aria-label="Navigation menu"
+              aria-label={t('navbar.navigationMenu')}
             >
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 dark:border-[#252b3b]">

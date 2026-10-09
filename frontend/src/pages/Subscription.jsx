@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { track, STAGES } from '../utils/analytics';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import { useTranslation, Trans } from 'react-i18next';
+import i18n from '../i18n';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiCheck, FiX, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiStar, FiInfo } from 'react-icons/fi';
+import { FiCheck, FiX, FiArrowRight, FiZap, FiShield, FiClock, FiGlobe, FiPlusCircle, FiInfo } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
-import { razorpay } from '../config';
+import { razorpay, agora } from '../config';
 import { loadRazorpayScript, ensurePaymentsAvailable } from '../utils/razorpayCheckout';
 import { useAuth } from '../context/AuthContext';
 import { detectCurrency, formatLocalPrice } from '../utils/currency';
-import { planFeatures } from '../utils/planFeatures';
+import { planFeatures, planFeatureItems, planDisplayName as planName, localDuration } from '../utils/planFeatures';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import ReferralPanel from '../components/subscription/ReferralPanel';
 import { fadeRise, fade, staggerIndex } from '../utils/animations';
+import { formatDate } from '../utils/formatDate';
 
 // Gate `whileHover` behind a real pointer (doctrine §8): a touch tap on a
 // hover-capable-looking card should not fire a hover animation that then
@@ -77,18 +80,20 @@ const TIER_RANK = { free: 0, founding_premium: 0, basic_premium: 1, premium_plus
 // mis-labels every column the moment a tier is withdrawn — and it also forced
 // the table to render a column for a plan the server refuses to sell.
 const COMPARE_ROWS = [
-  { label: 'Contact unlocks', unlocks: true },
-  { label: 'Chat with matches', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
-  { label: 'See who likes you', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
-  { label: 'Reactions, voice notes & quote replies', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
-  { label: 'Advanced filters', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
-  { label: 'Voice & video calls', by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
+  { id: 'contactUnlocks', unlocks: true },
+  { id: 'chat', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  { id: 'likes', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  { id: 'rich', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  { id: 'advancedFilters', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  // Shown only when calls are switched on (VITE_AGORA_APP_ID). Without it the
+  // call buttons are hidden everywhere, so the table sold a feature nobody could use.
+  { id: 'calls', needsCalls: true, by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
   // Premium DOES carry profile boost — backend PLANS.premium_plus lists
   // `profile_boost`, and searchController's premiumBoost() gives it +10 in the
   // ranking. This row said otherwise, so the table contradicted the card sitting
   // directly above it (which reads "Profile boost" from the same server data).
-  { label: 'Profile boost', by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
-  { label: 'Relationship manager', by: { free: false, basic_premium: false, premium_plus: false, elite: false, vip: true } },
+  { id: 'profileBoost', by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
+  { id: 'relationshipManager', by: { free: false, basic_premium: false, premium_plus: false, elite: false, vip: true } },
 ];
 const COMPARE_LABELS = {
   free: 'Free',
@@ -100,13 +105,17 @@ const COMPARE_LABELS = {
   vip: 'VIP',
 };
 
-const CompareCell = ({ v }) => (
-  typeof v === 'boolean'
-    ? (v ? <FiCheck className="w-4 h-4 text-success mx-auto" aria-label="Included" /> : <span className="text-neutral-300 dark:text-neutral-600" aria-label="Not included">—</span>)
-    : <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{v}</span>
-);
+const CompareCell = ({ v }) => {
+  const { t } = useTranslation();
+  return (
+    typeof v === 'boolean'
+      ? (v ? <FiCheck className="w-4 h-4 text-success mx-auto" aria-label={t('plans.compare.included')} /> : <span className="text-neutral-500 dark:text-neutral-400" aria-label={t('plans.compare.notIncluded')}>—</span>)
+      : <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{v}</span>
+  );
+};
 
 const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
+  const { t } = useTranslation();
   // Columns are exactly the tiers rendered as cards above, so the table can
   // never offer a comparison for something that isn't on sale.
   const cols = planKeys.filter((k) => COMPARE_LABELS[k]);
@@ -115,11 +124,12 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
   const unlockCell = (key) => {
     if (key === 'free') return '0';
     const v = plans?.[key]?.contactUnlocks;
-    if (v === -1) return 'Unlimited';
+    if (v === -1) return t('plans.compare.unlimited');
     if (typeof v === 'number') return String(v);
     return '—';
   };
   const rows = COMPARE_ROWS
+    .filter((row) => !row.needsCalls || agora.isConfigured)
     .map((row) => ({
       ...row,
       values: cols.map((key) => (row.unlocks ? unlockCell(key) : Boolean(row.by?.[key]))),
@@ -133,7 +143,7 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
 
   return (
     <section className="mt-14" aria-labelledby="compare-heading">
-      <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Compare plans</h2>
+      <h2 id="compare-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">{t('plans.compare.heading')}</h2>
       {/* Table ≥ sm. Border only (doctrine §3.4: elevation declared once) —
           matches the accordion variant below it, which already carried just
           a border. */}
@@ -141,16 +151,16 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
         <table className="w-full text-center">
           <thead>
             <tr className="border-b border-neutral-100 dark:border-neutral-800">
-              <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Feature</th>
+              <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">{t('plans.compare.feature')}</th>
               {cols.map((key) => (
-                <th key={key} className="py-3 px-3 text-xs font-bold text-neutral-700 dark:text-neutral-200">{COMPARE_LABELS[key]}</th>
+                <th key={key} className="py-3 px-3 text-xs font-bold text-neutral-700 dark:text-neutral-200">{t(`plans.names.${key}`, COMPARE_LABELS[key])}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.label} className="border-b border-neutral-50 dark:border-neutral-800/60 last:border-0">
-                <td className="py-3 px-4 text-left text-sm text-neutral-600 dark:text-neutral-300">{row.label}</td>
+              <tr key={row.id} className="border-b border-neutral-50 dark:border-neutral-800/60 last:border-0">
+                <td className="py-3 px-4 text-left text-sm text-neutral-600 dark:text-neutral-300">{t(`plans.compare.rows.${row.id}`)}</td>
                 {row.values.map((v, i) => <td key={i} className="py-3 px-3"><CompareCell v={v} /></td>)}
               </tr>
             ))}
@@ -166,14 +176,14 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
               className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-neutral-800 dark:text-neutral-100"
               aria-expanded={openCol === ci}
             >
-              {COMPARE_LABELS[key]}
+              {t(`plans.names.${key}`, COMPARE_LABELS[key])}
               <span className="text-neutral-400 dark:text-neutral-500">{openCol === ci ? '−' : '+'}</span>
             </button>
             {openCol === ci && (
               <ul className="px-4 pb-3 space-y-1.5">
                 {rows.map((row) => (
-                  <li key={row.label} className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-600 dark:text-neutral-300">{row.label}</span>
+                  <li key={row.id} className="flex items-center justify-between text-sm">
+                    <span className="text-neutral-600 dark:text-neutral-300">{t(`plans.compare.rows.${row.id}`)}</span>
                     <CompareCell v={row.values[ci]} />
                   </li>
                 ))}
@@ -187,6 +197,7 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
 };
 
 const SuccessStrip = () => {
+  const { t } = useTranslation();
   const [stories, setStories] = useState(null);
   useEffect(() => {
     api.get('/success-stories')
@@ -196,12 +207,14 @@ const SuccessStrip = () => {
   if (!stories || stories.length === 0) return null;
   return (
     <section className="mt-14" aria-labelledby="stories-heading">
-      <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Matches that became marriages</h2>
+      <h2 id="stories-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">{t('plans.stories.heading')}</h2>
       <div className="grid sm:grid-cols-3 gap-4">
         {stories.map((st) => (
           <figure key={st.id} className="rounded-2xl bg-white dark:bg-surface-dark-3 shadow-card p-5">
-            <blockquote className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-4">“{st.story || st.content || ''}”</blockquote>
-            <figcaption className="mt-3 text-sm font-semibold text-primary-700 dark:text-primary-400">{st.coupleNames || st.title || 'A TricityMatch couple'}</figcaption>
+            {st.quote && (
+              <blockquote className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed line-clamp-4">“{st.quote}”</blockquote>
+            )}
+            <figcaption className="mt-3 text-sm font-semibold text-primary-700 dark:text-primary-400">{st.coupleNames || st.title || t('plans.stories.fallbackCouple')}</figcaption>
           </figure>
         ))}
       </div>
@@ -212,20 +225,21 @@ const SuccessStrip = () => {
 // `unlockDailyCap` is threaded in from the live plans response (never
 // hardcoded) — the anti-harvest ceiling is a config value and a frozen
 // number here would silently drift from what the server actually enforces.
-const FAQS = (unlockDailyCap) => [
-  { q: 'Can I upgrade later?', a: 'Yes. You can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.' },
-  { q: 'Is my payment secure?', a: 'All payments run through Razorpay over SSL. We never see or store your card details.' },
-  { q: 'What are contact unlocks?', a: unlockDailyCap ? `Each unlock reveals a member\u2019s phone number so your families can talk directly. Unlimited-tier plans are capped at ${unlockDailyCap} unlocks a day, to keep the directory safe from bulk scraping.` : 'Each unlock reveals a member\u2019s phone number so your families can talk directly.' },
-  { q: 'Do unused days carry over?', a: 'Upgrading starts a full fresh term on the new plan; remaining days on the old plan are not added on top.' },
-  { q: 'Can my parents manage this account?', a: 'Yes. The Guardian feature lets a family member view matches and shortlists for you.' },
+const FAQS = (t, unlockDailyCap) => [
+  { q: t('plans.faq.q1'), a: t('plans.faq.a1') },
+  { q: t('plans.faq.q2'), a: t('plans.faq.a2') },
+  { q: t('plans.faq.q3'), a: unlockDailyCap ? t('plans.faq.a3Cap', { cap: unlockDailyCap }) : t('plans.faq.a3') },
+  { q: t('plans.faq.q4'), a: t('plans.faq.a4') },
+  { q: t('plans.faq.q5'), a: t('plans.faq.a5') },
 ];
 
 const FaqSection = ({ unlockDailyCap }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(0);
-  const faqs = FAQS(unlockDailyCap);
+  const faqs = FAQS(t, unlockDailyCap);
   return (
     <section className="mt-14 max-w-2xl mx-auto" aria-labelledby="faq-heading">
-      <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">Common questions</h2>
+      <h2 id="faq-heading" className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 text-center mb-6">{t('plans.faq.heading')}</h2>
       <div className="space-y-2">
         {faqs.map((f, i) => (
           <div key={f.q} className="rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-surface-dark-3 overflow-hidden">
@@ -247,6 +261,7 @@ const FaqSection = ({ unlockDailyCap }) => {
 
 // DS11: sticky compact CTA bar on mobile after the first fold (free members).
 const StickyCtaBar = ({ show }) => {
+  const { t } = useTranslation();
   const [pastFold, setPastFold] = useState(false);
   // Doctrine §8: no raw `addEventListener('scroll')`. framer-motion's
   // `useScroll` (already the pattern in Navbar.jsx) tracks scrollY without a
@@ -260,7 +275,7 @@ const StickyCtaBar = ({ show }) => {
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-burgundy-lg"
       >
-        <FaCrown className="w-4 h-4 text-gold-300" /> View plans
+        <FaCrown className="w-4 h-4 text-gold-300" /> {t('plans.viewPlans')}
       </button>
     </div>
   );
@@ -283,9 +298,15 @@ const getPlanCtaState = (planKey, currentPlanType, isCurrent, isProcessing) => {
 
 // ─── Single plan card ─────────────────────────
 const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanType, isProcessing, freeChatForMutuals, onSubscribe, entranceDelay = 0 }) => {
+  const { t } = useTranslation();
   const cfg = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
   const Icon = cfg.icon;
-  const features = planFeatures(planKey, freeChatForMutuals, plan, prevName);
+  // The unlock count already sits under the price (with the daily cap), so the
+  // bullet saying the same thing again is dropped there.
+  const unlockLineShown = (plan.price || cfg.price || 0) > 0 && plan.contactUnlocks != null;
+  const features = planFeatureItems(planKey, freeChatForMutuals, plan, prevName)
+    .filter((f) => !(unlockLineShown && f.id === 'unlocks'))
+    .map((f) => f.text);
   const free = planKey === 'free';
   const gold = cfg.accent === 'gold';
   const displayPrice = plan.price || cfg.price || 0;
@@ -295,7 +316,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
 
   const { isUpgrade, isIncluded, disabled } = getPlanCtaState(planKey, currentPlanType, isCurrent, isProcessing);
 
-  const badge = plan.badge || (isPopular ? 'Most Popular' : null);
+  const badge = plan.badge || (isPopular ? t('plans.card.mostPopular') : null);
 
   return (
     <motion.div
@@ -347,10 +368,10 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
               <Icon className="w-4 h-4" />
             </div>
           )}
-          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{plan.name || cfg.label}</h3>
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{planName(planKey, plan.name || cfg.label)}</h3>
           {isCurrent && (
             <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-xs font-bold rounded-full uppercase tracking-wide">
-              Active
+              {t('plans.card.active')}
             </span>
           )}
         </div>
@@ -362,10 +383,10 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
             : planKey === 'premium_plus' || planKey === 'basic_premium' ? 'text-primary-500 dark:text-primary-400'
             : 'text-neutral-700 dark:text-neutral-200'
           }`}>
-            {displayPrice > 0 ? `₹${displayPrice.toLocaleString('en-IN')}` : 'Free'}
+            {displayPrice > 0 ? `₹${displayPrice.toLocaleString('en-IN')}` : t('plans.names.free')}
           </span>
           {displayPrice > 0 && (
-            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{plan.duration || cfg.duration}</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{localDuration(plan.duration || cfg.duration)}</span>
           )}
         </div>
         {displayPrice > 0 && (mrp || perMonth) && (
@@ -375,25 +396,25 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
             )}
             {discountPct > 0 && (
               <span className="text-xs font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
-                {plan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
+                {plan.isLaunchPrice ? t('plans.card.launchOff', { pct: discountPct }) : t('plans.card.flatOff', { pct: discountPct })}
               </span>
             )}
             {perMonth && (
-              <span className="text-xs text-neutral-600 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>
+              <span className="text-xs text-neutral-600 dark:text-neutral-500">{t('plans.card.perMonth', { amount: perMonth.toLocaleString('en-IN') })}</span>
             )}
             {plan.durationDays > 0 && displayPrice > 0 && (
-              <span className="text-xs text-neutral-600 dark:text-neutral-500">· ₹{Math.max(1, Math.round(displayPrice / plan.durationDays))}/day</span>
+              <span className="text-xs text-neutral-600 dark:text-neutral-500">{t('plans.card.perDay', { amount: Math.max(1, Math.round(displayPrice / plan.durationDays)) })}</span>
             )}
           </div>
         )}
         {displayPrice > 0 && plan.contactUnlocks != null && (
           <p className="text-xs text-primary-500 dark:text-primary-400 font-medium mt-1">
-            {plan.contactUnlocks === -1 ? '∞ Unlimited' : plan.contactUnlocks} contact unlocks
+            {plan.contactUnlocks === -1 ? t('plans.card.unlimitedUnlocks') : t('plans.card.unlocksCount', { n: plan.contactUnlocks })}
             {/* Fact, not a restriction: "unlimited" is capped in practice at a
                 rolling-24h ceiling (anti-harvest). Stated plainly beside the
                 benefit it qualifies, not buried in a FAQ. */}
             {plan.contactUnlocks === -1 && plan.unlockDailyCap != null && (
-              <span className="text-neutral-400 dark:text-neutral-500 font-normal"> · up to {plan.unlockDailyCap}/day</span>
+              <span className="text-neutral-400 dark:text-neutral-500 font-normal">{' '}{t('plans.card.upToPerDay', { cap: plan.unlockDailyCap })}</span>
             )}
           </p>
         )}
@@ -433,16 +454,16 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
           } ${isProcessing ? 'opacity-70' : ''}`}
         >
           {isProcessing
-            ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Processing…</>
+            ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> {t('plans.card.processing')}</>
             : isCurrent
-            ? <><FiCheck className="w-4 h-4" /> Current Plan</>
+            ? <><FiCheck className="w-4 h-4" /> {t('plans.card.currentPlan')}</>
             : free
-            ? 'Free forever'
+            ? t('plans.freeForever')
             : isIncluded
-            ? <><FiCheck className="w-4 h-4" /> Included</>
+            ? <><FiCheck className="w-4 h-4" /> {t('plans.card.included')}</>
             : isUpgrade
-            ? <>Upgrade <FiArrowRight className="w-4 h-4" /></>
-            : <>{cfg.cta} <FiArrowRight className="w-4 h-4" /></>}
+            ? <>{t('plans.card.upgrade')} <FiArrowRight className="w-4 h-4" /></>
+            : <>{t('plans.getPlan', { name: planName(planKey, cfg.label) })} <FiArrowRight className="w-4 h-4" /></>}
         </button>
       </div>
     </motion.div>
@@ -456,6 +477,7 @@ const PlanCard = ({ planKey, plan, prevName, isPopular, isCurrent, currentPlanTy
 // whatever it lacks, Paid is raised and physically overlaps it. Only makes
 // sense for exactly two cards; the caller falls back to the grid otherwise.
 const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPaid, isProcessing, freeChatForMutuals, onSubscribe }) => {
+  const { t } = useTranslation();
   const [, freePlan] = freeEntry;
   const [paidKey, paidPlan] = paidEntry;
   const paidCfg = PLAN_CONFIG[paidKey] || PLAN_CONFIG.free;
@@ -466,11 +488,12 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
   // hand-typed list. "Everything in Free" is expanded into Free's own rows
   // rather than shown as a placeholder, since there is no tier between them.
   const freeFeatures = planFeatures('free', freeChatForMutuals, freePlan, null);
-  const paidFeaturesRaw = planFeatures(paidKey, freeChatForMutuals, paidPlan, 'Free');
+  const paidFeaturesRaw = planFeatureItems(paidKey, freeChatForMutuals, paidPlan, planName('free'));
   const rows = [
     ...freeFeatures.map((label) => ({ label, free: true })),
     ...paidFeaturesRaw
-      .filter((label) => !/^Everything in/i.test(label))
+      .filter((item) => item.id !== 'everythingIn')
+      .map((item) => item.text)
       .filter((label) => !freeFeatures.includes(label))
       .map((label) => ({ label, free: false })),
   ];
@@ -501,15 +524,15 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
           class here would just be dead weight under that `!important` rule. */}
       <div className="relative z-0 flex flex-col rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 p-6 sm:w-72 sm:flex-shrink-0 sm:p-7 sm:pt-8 sm:mr-[-1.75rem]">
         <div className="flex items-center gap-2.5">
-          <h3 className="text-base font-bold text-neutral-600 dark:text-neutral-400">{freePlan.name || PLAN_CONFIG.free.label}</h3>
+          <h3 className="text-base font-bold text-neutral-600 dark:text-neutral-400">{planName('free', freePlan.name || PLAN_CONFIG.free.label)}</h3>
           {isCurrentFree && (
             <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-xs font-bold rounded-full uppercase tracking-wide">
-              Active
+              {t('plans.card.active')}
             </span>
           )}
         </div>
-        <p className="mt-2 text-3xl font-bold text-neutral-500 dark:text-neutral-500">Free</p>
-        <p className="text-sm text-neutral-600 dark:text-neutral-500 mb-5">Forever, no card needed</p>
+        <p className="mt-2 text-3xl font-bold text-neutral-500 dark:text-neutral-500">{t('plans.names.free')}</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-500 mb-5">{t('plans.overlap.forever')}</p>
         <ul className="space-y-3.5 mb-6 flex-1">
           {rows.map((row) => (
             <li key={row.label} className="flex items-start gap-3">
@@ -519,8 +542,8 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
                   (mirroring CompareCell) so an excluded feature is not heard as
                   included. */}
               {row.free
-                ? <FiCheck className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-label="Included" />
-                : <FiX className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" aria-label="Not included" />}
+                ? <FiCheck className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-label={t('plans.compare.included')} />
+                : <FiX className="w-4 h-4 mt-0.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" aria-label={t('plans.compare.notIncluded')} />}
               <span className={`text-sm leading-relaxed ${row.free ? 'text-neutral-600 dark:text-neutral-400' : 'line-through text-neutral-400 dark:text-neutral-500'}`}>{row.label}</span>
             </li>
           ))}
@@ -529,7 +552,7 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
           disabled
           className="w-full py-3 text-sm font-semibold rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-default flex items-center justify-center gap-2"
         >
-          {isCurrentFree ? <><FiCheck className="w-4 h-4" /> Current plan</> : 'Free forever'}
+          {isCurrentFree ? <><FiCheck className="w-4 h-4" /> {t('plans.card.currentPlanLower')}</> : t('plans.freeForever')}
         </button>
       </div>
 
@@ -544,17 +567,17 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
               <PaidIcon className="w-4 h-4" />
             </div>
           )}
-          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{paidPlan.name || paidCfg.label}</h3>
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{planName(paidKey, paidPlan.name || paidCfg.label)}</h3>
           {isCurrentPaid && (
             <span className="ml-auto px-2 py-0.5 bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 text-success text-xs font-bold rounded-full uppercase tracking-wide">
-              Active
+              {t('plans.card.active')}
             </span>
           )}
         </div>
 
         <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
           <span className={`text-4xl font-bold ${accentText}`}>₹{displayPrice.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-neutral-500 dark:text-neutral-400">/{paidPlan.duration || paidCfg.duration}</span>
+          <span className="text-sm text-neutral-500 dark:text-neutral-400">/{localDuration(paidPlan.duration || paidCfg.duration)}</span>
         </div>
         {(mrp || perMonth) && (
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -563,13 +586,13 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
             )}
             {discountPct > 0 && (
               <span className="text-xs font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
-                {paidPlan.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
+                {paidPlan.isLaunchPrice ? t('plans.card.launchOff', { pct: discountPct }) : t('plans.card.flatOff', { pct: discountPct })}
               </span>
             )}
-            {perMonth && <span className="text-xs text-neutral-600 dark:text-neutral-500">≈ ₹{perMonth.toLocaleString('en-IN')}/month</span>}
+            {perMonth && <span className="text-xs text-neutral-600 dark:text-neutral-500">{t('plans.card.perMonth', { amount: perMonth.toLocaleString('en-IN') })}</span>}
           </div>
         )}
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Everything in Free, plus</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">{t('plans.overlap.everythingPlus')}</p>
 
         <ul className="space-y-3.5 mb-6 flex-1">
           {rows.map((row) => (
@@ -593,14 +616,14 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
           } ${isProcessing ? 'opacity-70' : ''}`}
         >
           {isProcessing
-            ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Processing…</>
+            ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> {t('plans.card.processing')}</>
             : isCurrentPaid
-            ? <><FiCheck className="w-4 h-4" /> Current plan</>
+            ? <><FiCheck className="w-4 h-4" /> {t('plans.card.currentPlanLower')}</>
             : isIncluded
-            ? <><FiCheck className="w-4 h-4" /> Included</>
+            ? <><FiCheck className="w-4 h-4" /> {t('plans.card.included')}</>
             : isUpgrade
-            ? <>Upgrade <FiArrowRight className="w-4 h-4" /></>
-            : <>{paidCfg.cta} <FiArrowRight className="w-4 h-4" /></>}
+            ? <>{t('plans.card.upgrade')} <FiArrowRight className="w-4 h-4" /></>
+            : <>{t('plans.getPlan', { name: planName(paidKey, paidCfg.label) })} <FiArrowRight className="w-4 h-4" /></>}
         </button>
       </div>
     </motion.div>
@@ -609,6 +632,7 @@ const OverlapPricingPair = ({ freeEntry, paidEntry, currentPlanType, isCurrentPa
 
 // ─── NRI Connect block (own styled band, shown to everyone) ────────────
 const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, isProcessing, onSubscribe }) => {
+  const { t } = useTranslation();
   const cfg = PLAN_CONFIG.nri;
   const price = plan?.price || cfg.price;
   const mrp = plan?.mrp || null;
@@ -630,10 +654,9 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
     >
       <div className="flex flex-col lg:flex-row lg:items-center gap-6 p-6 lg:p-8">
         <div className="flex-1">
-          <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">NRI Connect</h3>
+          <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">{t('plans.names.nri')}</h3>
           <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mb-3">
-            Full VIP access built for members abroad: timezone-aware matching, priority support,
-            and prices shown in your own currency.
+            {t('plans.nri.description')}
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
             {planFeatures('nri', false, plan, topLadderName).map((f, i) => (
@@ -647,22 +670,22 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
         <div className="lg:w-64 flex-shrink-0 text-center lg:text-right">
           <div className="flex items-baseline justify-center lg:justify-end gap-1">
             <span className="text-4xl font-bold text-gold-600 dark:text-gold-400">₹{price.toLocaleString('en-IN')}</span>
-            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{plan?.duration || cfg.duration || '6 months'}</span>
+            <span className="text-sm text-neutral-500 dark:text-neutral-400">/{localDuration(plan?.duration || cfg.duration || '6 months')}</span>
           </div>
           {(mrp && mrp > price) && (
             <div className="flex items-center justify-center lg:justify-end gap-2 mt-1">
               <span className="text-sm text-neutral-500 dark:text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
               {discountPct > 0 && (
                 <span className="text-xs font-bold text-success bg-success-50 dark:bg-success/15 border border-success-100 dark:border-success/30 px-1.5 py-0.5 rounded">
-                  {plan?.isLaunchPrice ? `Launch price · ${discountPct}% off` : `Flat ${discountPct}% off`}
+                  {plan?.isLaunchPrice ? t('plans.card.launchOff', { pct: discountPct }) : t('plans.card.flatOff', { pct: discountPct })}
                 </span>
               )}
             </div>
           )}
           {local && (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">≈ {local} <span className="text-neutral-400 dark:text-neutral-500">(indicative)</span></p>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">≈ {local} <span className="text-neutral-400 dark:text-neutral-500">{t('plans.nri.indicative')}</span></p>
           )}
-          <p className="text-xs text-neutral-600 dark:text-neutral-500 mt-1">Billed in INR</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-500 mt-1">{t('plans.nri.billedInInr')}</p>
           <button
             onClick={() => !disabled && onSubscribe('nri')}
             disabled={disabled}
@@ -676,12 +699,12 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
             }`}
           >
             {isProcessing
-              ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Processing…</>
+              ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> {t('plans.card.processing')}</>
               : isCurrent
-              ? <><FiCheck className="w-4 h-4" /> Current Plan</>
+              ? <><FiCheck className="w-4 h-4" /> {t('plans.card.currentPlan')}</>
               : isUnlimited
-              ? 'Included in your plan'
-              : <>Get NRI Connect <FiArrowRight className="w-4 h-4" /></>}
+              ? t('plans.card.includedInPlan')
+              : <>{t('plans.getPlan', { name: t('plans.names.nri') })} <FiArrowRight className="w-4 h-4" /></>}
           </button>
         </div>
       </div>
@@ -690,17 +713,19 @@ const NriBlock = ({ plan, topLadderName, currency, isCurrent, currentPlanType, i
 };
 
 // ─── Contact-unlock top-up block (active finite-plan members only) ──────
-const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
+const BundleBlock = ({ bundles, processingBundle, onBuy }) => {
+  const { t } = useTranslation();
+  return (
   <motion.div
     {...fadeRise}
     className="mt-8 rounded-2xl border border-primary-200 dark:border-primary-800/40 bg-primary-50/50 dark:bg-primary-900/10 p-6 lg:p-8"
   >
     <div className="flex items-center gap-2.5 mb-1.5">
       <FiPlusCircle className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-      <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">Need more contact unlocks?</h3>
+      <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{t('plans.bundles.title')}</h3>
     </div>
     <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-5 max-w-xl">
-      Top up your current plan anytime. Unlocks add to your active plan and stay valid until it expires.
+      {t('plans.bundles.description')}
     </p>
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {bundles.map((b) => {
@@ -708,14 +733,14 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
         const busy = processingBundle === b.bundleId;
         return (
           <div key={b.bundleId} className="flex flex-col bg-white dark:bg-surface-dark-3 rounded-xl p-5 shadow-card">
-            <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{b.unlocks} <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">unlocks</span></p>
+            <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{b.unlocks} <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{t('plans.bundles.unlocks')}</span></p>
             <div className="flex items-baseline gap-2 mt-1">
               <p className="text-lg font-semibold text-primary-600 dark:text-primary-400">₹{b.price.toLocaleString('en-IN')}</p>
               {b.mrp > b.price && (
                 <span className="text-xs text-neutral-400 dark:text-neutral-500 line-through">₹{b.mrp.toLocaleString('en-IN')}</span>
               )}
             </div>
-            <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-4">₹{perUnlock} per unlock</p>
+            <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-4">{t('plans.bundles.perUnlock', { amount: perUnlock })}</p>
             <button
               onClick={() => !busy && onBuy(b.bundleId)}
               disabled={busy}
@@ -727,21 +752,23 @@ const BundleBlock = ({ bundles, processingBundle, onBuy }) => (
               className="mt-auto w-full py-3 text-sm font-semibold rounded-lg bg-primary-500 text-white hover:bg-primary-600 shadow-burgundy transition-[background-color,box-shadow,transform] duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {busy
-                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing…</>
-                : <>Buy <FiArrowRight className="w-4 h-4" /></>}
+                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('plans.card.processing')}</>
+                : <>{t('plans.bundles.buy')} <FiArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
         );
       })}
     </div>
   </motion.div>
-);
+  );
+};
 
 // ─── Launch-offer banner ───────────────────────────────────────────────
 // Renders only while the server says an offer is live. `endsAt` is shown as a
 // plain day count, not a ticking timer: a countdown that keeps running after
 // the offer lapses is worse than no countdown, and the server is the clock.
 const LaunchBanner = ({ offer }) => {
+  const { t } = useTranslation();
   if (!offer?.active) return null;
 
   const daysLeft = offer.endsAt
@@ -758,10 +785,10 @@ const LaunchBanner = ({ offer }) => {
       </div>
       <div className="flex-1">
         <p className="text-sm font-bold text-gold-800 dark:text-gold-300">
-          {offer.headline || 'Launch offer'}
+          {offer.headline || t('plans.banner.launchOffer')}
           {daysLeft !== null && (
             <span className="ml-2 font-semibold text-gold-700 dark:text-gold-400">
-              · {daysLeft === 0 ? 'ends today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+              · {daysLeft === 0 ? t('plans.banner.endsToday') : t('plans.banner.daysLeft', { count: daysLeft })}
             </span>
           )}
         </p>
@@ -769,73 +796,8 @@ const LaunchBanner = ({ offer }) => {
       </div>
       {offer.endsAt && (
         <p className="text-xs text-gold-700/70 dark:text-gold-400/70 sm:text-right">
-          Prices return to normal on {new Date(offer.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          {t('plans.banner.pricesReturn', { date: new Date(offer.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) })}
         </p>
-      )}
-    </motion.div>
-  );
-};
-
-// ─── Founding-member band ──────────────────────────────────────────────
-// Two honest states, never a third. A member who HOLDS the grant is told what
-// they hold and when it lapses; a member who can still take a place is offered
-// it. Anyone else — already paying, already claimed and expired, window closed
-// — sees nothing, because the alternative is advertising an entitlement the
-// server would refuse. `canClaimFounding` is decided server-side for exactly
-// that reason (see backend withDerivedUserFields).
-const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
-  const holdsGrant = currentSub?.planType === 'founding_premium' && currentSub?.status === 'active';
-  const canClaim = Boolean(user?.features?.canClaimFounding);
-
-  if (!holdsGrant && !canClaim) return null;
-
-  const unlocks = founding?.contactUnlocks ?? null;
-  const days = founding?.grantDays ?? null;
-
-  return (
-    <motion.div
-      {...fadeRise}
-      className="mb-8 rounded-2xl border border-gold-200 dark:border-gold-800/40 bg-gold-50 dark:bg-gold-900/10 px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-4"
-    >
-      <div className="w-10 h-10 rounded-full bg-gold flex items-center justify-center flex-shrink-0">
-        <FiStar className="w-5 h-5 text-white" />
-      </div>
-
-      {holdsGrant ? (
-        <div className="flex-1">
-          <p className="text-sm font-bold text-gold-800 dark:text-gold-300">You are a founding member</p>
-          <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">
-            Premium is on us
-            {currentSub?.endDate && ` until ${new Date(currentSub.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-            . Pick a plan below whenever you want to carry on past that.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-gold-800 dark:text-gold-300">
-              Founding offer{days ? `: ${days} days of premium, free` : ': premium, free'}
-            </p>
-            <p className="text-sm text-gold-700/80 dark:text-gold-400/80 mt-0.5">
-              You joined early enough to claim a place.
-              {unlocks !== null && ` Includes ${unlocks} contact unlock${unlocks === 1 ? '' : 's'}.`}
-              {' '}No card, no auto-renewal.
-            </p>
-          </div>
-          <button
-            onClick={onClaim}
-            disabled={claiming}
-            aria-busy={claiming || undefined}
-            // No arbitrary `min-h` px floor (same elder-mode fix as
-            // BundleBlock's Buy button): `py-3` clears 48px under html.elder
-            // on its own.
-            className="px-6 py-3 text-sm font-semibold rounded-xl bg-gold text-primary-900 hover:bg-gold-600 shadow-sm transition-colors duration-[160ms] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed flex-shrink-0"
-          >
-            {claiming
-              ? <><span className="w-4 h-4 border-2 border-primary-900/30 border-t-primary-900 rounded-full animate-spin" /> Claiming…</>
-              : <>{days ? `Claim ${days} days free` : 'Claim my free premium'} <FiArrowRight className="w-4 h-4" /></>}
-          </button>
-        </>
       )}
     </motion.div>
   );
@@ -843,7 +805,9 @@ const FoundingBand = ({ user, founding, currentSub, onClaim, claiming }) => {
 
 // ─────────────────────────────────────────────
 const Subscription = () => {
+  const { t } = useTranslation();
   const { user, checkAuth } = useAuth();
+  const navigate = useNavigate();
   // Server-owned flag (see backend withDerivedUserFields). Absent ⇒ false, so
   // an older/failed /auth/me payload shows the paid-chat copy — the
   // conservative direction: it under-promises rather than advertising a free
@@ -862,10 +826,6 @@ const Subscription = () => {
   // load shows regular pricing with no discount claim rather than promising an
   // offer that checkout would not honour.
   const [launchOffer, setLaunchOffer] = useState({ active: false });
-  // Founding-window state (grant length + unlock count). Server-owned and
-  // fail-closed for the same reason as launchOffer.
-  const [founding, setFounding] = useState({ open: false });
-  const [claimingFounding, setClaimingFounding] = useState(false);
   // Accepted referral code ({ code, discount, finalPrice, … }) — priced by the
   // server, sent with create-order, which re-validates it.
   const [referral, setReferral] = useState(null);
@@ -901,17 +861,16 @@ const Subscription = () => {
         setBundles(Object.values(liveBundles));
       }
       setLaunchOffer(plansRes.data.launchOffer || { active: false });
-      setFounding(plansRes.data.founding || { open: false });
       setCurrentSub(subRes.data.subscription);
     } catch {
       setLoadError(true);
-      toast.error('Failed to load subscription data');
+      toast.error(t('plans.toast.loadFailed'));
     } finally {
       setLoading(false);
     }
   };
 
-  const openCheckout = ({ order, description, onVerify, onSettle, onCancel }) =>
+  const openCheckout = ({ order, description, onVerify, onSettle, onCancel, onPaid }) =>
     new Promise((resolve) => {
       // A failed attempt is a payment problem, not a change of mind: the order
       // stays open on the server (the member can retry it in this same popup)
@@ -930,14 +889,22 @@ const Subscription = () => {
         handler: async (response) => {
           try {
             await onVerify(response);
-            toast.success('Payment successful');
-            await loadData();
+            if (onPaid) {
+              // A plan purchase lands on the receipt page (it re-checks the
+              // server before saying anything). It used to stay here with a
+              // 4-second toast as the only sign a ₹999 payment went through.
+              await checkAuth().catch(() => {});
+              onPaid();
+            } else {
+              toast.success(t('plans.toast.paymentSuccessful'));
+              await loadData();
+            }
           } catch {
             // Razorpay only calls this handler after the payment went through, so
             // a failed verify is a hiccup on OUR side (or the webhook beat us to
             // activating it), not a failed payment. Say so, and refresh: the plan
             // is often already active.
-            toast.error('We received your payment and are confirming it. Your plan will appear shortly. If it does not, contact support with your payment receipt.', { duration: 8000 });
+            toast.error(t('plans.toast.confirming'), { duration: 8000 });
             try { await loadData(); } catch { /* the page shows its own error state */ }
           } finally {
             onSettle();
@@ -960,7 +927,7 @@ const Subscription = () => {
       });
       rzp.on('payment.failed', () => {
         paymentFailed = true;
-        toast.error('Payment failed. Please try again.');
+        toast.error(t('plans.toast.paymentFailed'));
         onSettle();
         resolve();
       });
@@ -984,13 +951,14 @@ const Subscription = () => {
       await loadRazorpayScript();
       await openCheckout({
         order: res.data.order,
-        description: `${planDisplayName(planType)} Subscription`,
+        description: t('plans.checkout.planDescription', { name: planDisplayName(planType) }),
         onVerify: (response) => api.post('/subscription/verify-payment', {
           razorpayOrderId:   response.razorpay_order_id,
           razorpayPaymentId: response.razorpay_payment_id,
           razorpaySignature: response.razorpay_signature,
         }),
         onSettle: () => setProcessingPlan(null),
+        onPaid: () => navigate('/payment/success'),
         // Closed the popup without paying: close the order so it does not sit
         // in `pending`. Fire-and-forget — the server also sweeps stale orders.
         onCancel: () => {
@@ -1002,7 +970,7 @@ const Subscription = () => {
         error.response?.data?.error?.message ||
         error.response?.data?.message ||
         error.message ||
-        'Failed to create order'
+        t('plans.toast.createOrderFailed')
       );
       // A code the server just refused must not stay "applied" on screen.
       if (referral && error.response?.status === 400) setReferral(null);
@@ -1020,7 +988,7 @@ const Subscription = () => {
       await loadRazorpayScript();
       await openCheckout({
         order: res.data.order,
-        description: 'Contact unlock top-up',
+        description: t('plans.checkout.bundleDescription'),
         onVerify: (response) => api.post('/subscription/unlock-bundle/verify-payment', {
           razorpayOrderId:   response.razorpay_order_id,
           razorpayPaymentId: response.razorpay_payment_id,
@@ -1033,46 +1001,18 @@ const Subscription = () => {
         error.response?.data?.error?.message ||
         error.response?.data?.message ||
         error.message ||
-        'Failed to start purchase'
+        t('plans.toast.purchaseFailed')
       );
       setProcessingBundle(null);
     }
   };
 
-  const handleClaimFounding = async () => {
-    if (claimingFounding) return;
-    setClaimingFounding(true);
-    try {
-      const res = await api.post('/subscription/claim-founding');
-      toast.success(res.data?.message || 'Founding membership activated');
-      // Both have to move: the subscription drives this page, and
-      // `canClaimFounding` on the user is what hides the button everywhere else.
-      await Promise.all([loadData(), checkAuth()]);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.error?.message ||
-        error.response?.data?.message ||
-        'Could not claim the founding offer'
-      );
-    } finally {
-      setClaimingFounding(false);
-    }
-  };
-
-  // Friendly plan name display
-  const planDisplayName = (type) => {
-    const names = {
-      basic_premium: 'Basic',
-      premium_plus: 'Premium',
-      elite: 'Elite',
-      vip: 'VIP',
-      nri: 'NRI Connect',
-      // Granted, never sold — but it IS what an active founding member holds,
-      // and the banner rendered the raw enum ("founding_premium") without it.
-      founding_premium: 'Founding Member',
-    };
-    return names[type] || type;
-  };
+  // Friendly plan name display. founding_premium is granted, never sold — but
+  // it IS what an active founding member holds, and the banner rendered the
+  // raw enum ("founding_premium") without it.
+  const planDisplayName = (type) => (
+    type && type !== 'free' && i18n.exists(`plans.names.${type}`) ? t(`plans.names.${type}`) : type
+  );
 
   if (loading) {
     // Matches the OverlapPricingPair shape (Free behind, Premium raised and
@@ -1108,7 +1048,12 @@ const Subscription = () => {
   if (loadError) {
     return (
       <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 flex items-center justify-center px-4">
-        <ErrorState onRetry={loadData} />
+        <ErrorState
+          title={t('plans.error.title')}
+          description={t('plans.error.description')}
+          retryLabel={t('plans.error.retry')}
+          onRetry={loadData}
+        />
       </div>
     );
   }
@@ -1125,9 +1070,9 @@ const Subscription = () => {
       <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1 flex items-center justify-center px-4">
         <EmptyState
           icon={FiInfo}
-          title="Pricing isn't available right now"
-          description="We couldn't load our membership plans. Please try again in a moment."
-          actionLabel="Refresh"
+          title={t('plans.empty.title')}
+          description={t('plans.empty.description')}
+          actionLabel={t('plans.empty.refresh')}
           onAction={loadData}
         />
       </div>
@@ -1181,22 +1126,15 @@ const Subscription = () => {
             carries the meaning on its own. */}
         <motion.div {...fadeRise} className="text-center mb-12">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
-            {singlePlan ? 'Go Premium' : 'Choose Your Plan'}
+            {singlePlan ? t('plans.header.goPremium') : t('plans.header.choosePlan')}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-lg max-w-lg mx-auto">
-            Unlock premium features and find your perfect match faster.
+            {t('plans.header.subtitle')}
           </p>
         </motion.div>
 
         {/* Launch offer (server-gated) */}
         <LaunchBanner offer={launchOffer} />
-        <FoundingBand
-          user={user}
-          founding={founding}
-          currentSub={currentSub}
-          onClaim={handleClaimFounding}
-          claiming={claimingFounding}
-        />
 
         {/* Referral code: apply one at checkout, or share your own */}
         {razorpay.isConfigured && (
@@ -1217,8 +1155,10 @@ const Subscription = () => {
               <FiClock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
             </div>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">
-              Online payments are opening soon. To upgrade today, write to{' '}
-              <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 dark:text-primary-400 underline underline-offset-2">support@tricitymatch.com</a>.
+              <Trans
+                i18nKey="plans.paymentsSoon"
+                components={{ anchor: <a href="mailto:support@tricitymatch.com" className="font-semibold text-primary-600 dark:text-primary-400 underline underline-offset-2" /> }}
+              />
             </p>
           </motion.div>
         )}
@@ -1233,15 +1173,22 @@ const Subscription = () => {
               <FiCheck className="w-4 h-4 text-white" />
             </div>
             <p className="text-sm text-primary-700 dark:text-primary-300 font-medium">
-              You have an active <strong>{planDisplayName(currentSub.planType)}</strong> subscription
+              <Trans
+                i18nKey="plans.activeSub.text"
+                values={{ name: planDisplayName(currentSub.planType) }}
+                components={{ b: <strong /> }}
+              />
               {currentSub.endDate && (
                 <span className="font-normal text-primary-700/70 dark:text-primary-300/70">
-                  {' '}· valid until {new Date(currentSub.endDate).toLocaleDateString()}
+                  {' '}{t('plans.activeSub.validUntil', { date: formatDate(currentSub.endDate) })}
                 </span>
               )}
               {currentSub.contactUnlocksAllowed != null && (
                 <span className="font-normal text-success/80">
-                  {' '}· {`${Math.max(0, (currentSub.contactUnlocksAllowed || 0) - (currentSub.contactUnlocksUsed || 0))} of ${currentSub.contactUnlocksAllowed}`} unlocks remaining
+                  {' '}{t('plans.activeSub.unlocksRemaining', {
+                    left: Math.max(0, (currentSub.contactUnlocksAllowed || 0) - (currentSub.contactUnlocksUsed || 0)),
+                    total: currentSub.contactUnlocksAllowed,
+                  })}
                 </span>
               )}
               {/* Unlimited plans have no `contactUnlocksAllowed` count to show —
@@ -1249,7 +1196,7 @@ const Subscription = () => {
                   24h ceiling), and that fact belongs right here, not omitted. */}
               {currentSub.contactUnlocksAllowed == null && plans[currentSub.planType]?.unlockDailyCap != null && (
                 <span className="font-normal text-primary-700/70 dark:text-primary-300/70">
-                  {' '}· unlimited unlocks, up to {plans[currentSub.planType].unlockDailyCap}/day
+                  {' '}{t('plans.activeSub.unlimitedCap', { cap: plans[currentSub.planType].unlockDailyCap })}
                 </span>
               )}
             </p>
@@ -1284,7 +1231,7 @@ const Subscription = () => {
                 plan={plan}
                 // The tier actually rendered below this one — not the one below
                 // it in the enum, which may have been withdrawn.
-                prevName={idx > 0 ? (gridPlans[idx - 1][1].name || PLAN_CONFIG[gridPlans[idx - 1][0]]?.label) : null}
+                prevName={idx > 0 ? planName(gridPlans[idx - 1][0], gridPlans[idx - 1][1].name || PLAN_CONFIG[gridPlans[idx - 1][0]]?.label) : null}
                 isPopular={Boolean(plan.popular)}
                 isCurrent={currentSub?.planType === key && currentSub?.status === 'active'}
                 currentPlanType={currentPlanType}
@@ -1308,7 +1255,7 @@ const Subscription = () => {
           plan={plans.nri}
           // NRI sits beside the ladder, not on top of it, so it chains off the
           // highest tier the member can actually see.
-          topLadderName={gridPlans.length > 1 ? gridPlans[gridPlans.length - 1][1].name : null}
+          topLadderName={gridPlans.length > 1 ? planName(gridPlans[gridPlans.length - 1][0], gridPlans[gridPlans.length - 1][1].name) : null}
           currency={currency}
           isCurrent={currentSub?.planType === 'nri' && currentSub?.status === 'active'}
           currentPlanType={currentPlanType}
@@ -1323,13 +1270,13 @@ const Subscription = () => {
         <FaqSection unlockDailyCap={Object.values(plans).find((p) => p.contactUnlocks === -1)?.unlockDailyCap ?? null} />
 
         <section className="mt-14 text-center">
-          <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Your family is waiting to hear good news</h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Join the Tricity members already talking to their matches.</p>
+          <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t('plans.closing.heading')}</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">{t('plans.closing.subtitle')}</p>
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-xl font-semibold hover:shadow-burgundy transition-[box-shadow,transform] duration-200"
           >
-            <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? 'Go Premium' : 'Choose a plan'}
+            <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? t('plans.header.goPremium') : t('plans.closing.choosePlan')}
           </button>
         </section>
 
@@ -1337,8 +1284,10 @@ const Subscription = () => {
 
         {/* Footer note */}
         <motion.p {...fade} className="text-center text-xs text-neutral-400 mt-10">
-          Secure payments via Razorpay · One-time payment, no auto-renewal · Full refund within 7 days, see our{' '}
-          <Link to="/refund-policy" className="underline underline-offset-2 hover:text-neutral-600 dark:hover:text-neutral-300">Refund Policy</Link>
+          <Trans
+            i18nKey="plans.footer"
+            components={{ anchor: <Link to="/refund-policy" className="underline underline-offset-2 hover:text-neutral-600 dark:hover:text-neutral-300" /> }}
+          />
         </motion.p>
       </div>
     </div>

@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "unsupported": "Your browser does not support live camera capture. Open TricityMatch on a phone or use a device with a camera.",
+    "denied": "Camera access was blocked. Allow camera permission in your browser, then try again.",
+    "noCamera": "No camera found on this device. Open TricityMatch on a phone to verify.",
+    "timedOut": "We never got access to your camera. Look for the camera permission prompt in your browser and choose Allow, then try again, or open TricityMatch on your phone.",
+    "startFailed": "Could not start the camera. Make sure no other app is using it, then try again.",
+    "stillStarting": "The camera is still starting. Wait a moment until you can see yourself, then capture."
+  },
+  "capturedAlt": "Captured selfie",
+  "retake": "Retake photo",
+  "tryAgain": "Try again",
+  "starting": "Starting camera…",
+  "capture": "Capture selfie",
+  "hint": "Center your face in the circle, good light, look at the camera.",
+  "start": "Start live camera",
+  "startHint": "We capture your selfie live. No uploads, so nobody can fake it."
+}

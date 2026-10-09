@@ -7,11 +7,14 @@
 
 import { Link } from 'react-router-dom';
 import { FiLock } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
 const PaywalledComposer = ({ name, avatarUrl, reason }) => {
+  const { t } = useTranslation();
   const headline = reason === 'expired'
-    ? 'Your 48-hour reply window ended'
-    : "You've used your 5 free replies";
+    ? t('chat.paywall.windowExpired')
+    : t('chat.paywall.repliesUsed');
+  const firstName = name?.split(' ')[0];
 
   return (
     <div className="rounded-2xl border border-gold-200 dark:border-gold-700/40 bg-white dark:bg-surface-dark-3 px-4 py-4">
@@ -29,7 +32,7 @@ const PaywalledComposer = ({ name, avatarUrl, reason }) => {
             {headline}
           </p>
           <p className="text-xs text-neutral-500 mt-0.5">
-            {name} can still write to you. Upgrade to keep the conversation going.
+            {t('chat.paywall.canStillWrite', { name })}
           </p>
         </div>
         {/* Gold CTA fill needs dark text, not white (doctrine §3.1 contrast
@@ -42,7 +45,7 @@ const PaywalledComposer = ({ name, avatarUrl, reason }) => {
           to="/subscription"
           className="flex-shrink-0 w-full sm:w-auto inline-flex items-center justify-center min-h-[2.75rem] px-5 rounded-xl bg-gold-500 hover:bg-gold-600 text-primary-900 text-sm font-semibold transition-colors"
         >
-          Keep talking with {name?.split(' ')[0] || 'them'}
+          {firstName ? t('chat.paywall.keepTalking', { name: firstName }) : t('chat.paywall.keepTalkingThem')}
         </Link>
       </div>
     </div>

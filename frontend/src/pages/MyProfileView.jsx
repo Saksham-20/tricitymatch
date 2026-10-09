@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { ProfileStrengthPanel } from '../components/profile/ProfileCompletionMeter';
 import {
   FiEdit2, FiInstagram, FiLinkedin, FiFacebook, FiTwitter,
   FiMusic, FiCheck, FiMapPin, FiBook, FiBriefcase, FiUser,
   FiGlobe, FiShield, FiHome, FiSun, FiHeart, FiInfo,
   FiCamera, FiChevronRight, FiEye, FiGrid,
-  FiHash, FiCopy, FiAlertCircle, FiYoutube, FiLink,
+  FiHash, FiCopy, FiAlertCircle, FiYoutube, FiLink, FiClock,
 } from 'react-icons/fi';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { API_BASE_URL } from '../utils/api';
@@ -18,11 +19,11 @@ import { toProfileCode } from '../utils/profileCode';
 import VideoIntroManager from '../components/profile/VideoIntroManager';
 import BiodataCard from '../components/profile/BiodataCard';
 import PhotoManager from '../components/profile/PhotoManager';
-import FoundingBadge from '../components/common/FoundingBadge';
 import { useAuth } from '../context/AuthContext';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
 import RetryImage from '../components/ui/RetryImage';
+import { promptLabel } from '../constants/profilePrompts';
 
 // ─── Card wrapper ────────────────────────────────────────────────────────────
 // Elevation declared once — shadow only, no border (doctrine §3.4: a border
@@ -98,11 +99,11 @@ const SOCIAL_PLATFORMS = [
 
 // Links can be a legacy string or the new { url, visibility } shape.
 const socialUrl = (entry) => (typeof entry === 'string' ? entry : entry?.url) || null;
-const socialVisibilityLabel = (entry) => {
+const socialVisibilityLabel = (entry, t) => {
   const v = typeof entry === 'object' && entry ? entry.visibility : 'matches_only';
-  if (v === 'everyone') return 'Public';
-  if (v === 'hidden') return 'Hidden';
-  return 'Matches only';
+  if (v === 'everyone') return t('myProfile.visibility.public');
+  if (v === 'hidden') return t('myProfile.visibility.hidden');
+  return t('myProfile.visibility.matchesOnly');
 };
 
 // The negative margins keep the visual position identical while padding grows
@@ -112,7 +113,9 @@ const socialVisibilityLabel = (entry) => {
 // base scale. `py-3.5` clears 44px at base (→ ~51px under elder) without
 // growing the visible mark, per doctrine §3.5 ("pad the target, don't grow
 // the mark").
-const EditBtn = ({ to, small }) => (
+const EditBtn = ({ to, small }) => {
+  const { t } = useTranslation();
+  return (
   <Link
     to={to || '/profile/edit'}
     className={`inline-flex items-center gap-1.5 font-semibold text-primary-500 hover:text-primary-700 active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer px-2 -mx-2 ${
@@ -120,12 +123,14 @@ const EditBtn = ({ to, small }) => (
     }`}
   >
     <FiEdit2 className="w-3 h-3" />
-    Edit
+    {t('myProfile.edit')}
   </Link>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 const MyProfileView = () => {
+  const { t } = useTranslation();
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -135,8 +140,16 @@ const MyProfileView = () => {
   // a different action (retry vs. go build one).
   const [loadError, setLoadError] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, index: 0 });
+  // /profile/me carries isVerified but not a pending submission; the status
+  // endpoint has both. Best effort: on failure the page just shows unverified.
+  const [verificationStatus, setVerificationStatus] = useState(null);
 
-  useEffect(() => { loadProfile(); }, []);
+  useEffect(() => {
+    loadProfile();
+    api.get('/verification/status')
+      .then((res) => setVerificationStatus(res.data?.verification?.status || null))
+      .catch(() => {});
+  }, []);
 
   const loadProfile = async () => {
     try {
@@ -146,7 +159,7 @@ const MyProfileView = () => {
       setProfile(res.data.profile);
     } catch {
       setLoadError(true);
-      toast.error('Failed to load profile');
+      toast.error(t('myProfile.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -195,8 +208,8 @@ const MyProfileView = () => {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-neutral-50 px-4">
         <ErrorState
-          title="Couldn't load your profile"
-          description="Something went wrong on our side or your connection dropped."
+          title={t('myProfile.loadErrorTitle')}
+          description={t('myProfile.loadErrorDesc')}
           onRetry={loadProfile}
           className="max-w-md"
         />
@@ -210,14 +223,14 @@ const MyProfileView = () => {
         <div className="max-w-md w-full">
           <EmptyState
             icon={FiUser}
-            title="Set up your profile"
-            description="Add your details and photos so potential matches can find you."
-            actionLabel="Build your profile"
+            title={t('myProfile.setupTitle')}
+            description={t('myProfile.setupDesc')}
+            actionLabel={t('myProfile.buildProfile')}
             onAction={() => navigate('/profile/edit')}
           />
           <div className="text-center -mt-4">
             <Link to="/dashboard" className="text-sm text-neutral-400 hover:text-primary-500 active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer inline-block">
-              Back to dashboard
+              {t('myProfile.backToDashboard')}
             </Link>
           </div>
         </div>
@@ -233,15 +246,20 @@ const MyProfileView = () => {
     ? [profile.profilePhoto, ...(profile.photos || []).filter(p => p !== profile.profilePhoto)]
     : (profile.photos || []);
   const completionPct = Number(profile.completionPercentage) || 0;
-  const isVerified = profile.User?.Verification?.status === 'approved';
+  // profile.User.Verification is never in the /profile/me payload, so the old
+  // check read "Unverified" for every member, approved ones included.
+  const isVerified = profile.isVerified === true || verificationStatus === 'approved';
+  // A selfie waiting for review: not "Unverified", and no "Verify Now" button
+  // (a second submission is refused while one is pending).
+  const isVerifyPending = !isVerified && verificationStatus === 'pending';
   const profileCode = toProfileCode(profile.userId || profile.User?.id);
   const copyProfileCode = async () => {
     if (!profileCode) return;
     try {
       await navigator.clipboard.writeText(profileCode);
-      toast.success('Profile ID copied');
+      toast.success(t('myProfile.profileIdCopied'));
     } catch {
-      toast.error('Could not copy');
+      toast.error(t('myProfile.copyFailed'));
     }
   };
   const activeSocials = SOCIAL_PLATFORMS.filter(p => socialUrl(profile.socialMediaLinks?.[p.key]));
@@ -275,16 +293,16 @@ const MyProfileView = () => {
       <div className="sticky top-0 z-30 bg-white/95 dark:bg-surface-dark-3/95 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link to="/dashboard" className="text-sm font-semibold text-neutral-500 hover:text-primary-500 active:scale-[0.97] transition-colors duration-[160ms] flex items-center gap-1.5 cursor-pointer py-2 px-2 -my-2 -mx-2">
-            ← Dashboard
+            {t('myProfile.dashboardLink')}
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-xs text-neutral-400 hidden sm:block">
               <FiEye className="inline w-3 h-3 mr-1" />
-              This is how matches see you
+              {t('myProfile.howMatchesSee')}
             </span>
             <Link to="/profile/edit" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:bg-primary-600 active:scale-[0.97] transition-colors duration-[160ms] shadow-sm cursor-pointer">
               <FiEdit2 className="w-3.5 h-3.5" />
-              Edit Profile
+              {t('myProfile.editProfile')}
             </Link>
           </div>
         </div>
@@ -314,7 +332,7 @@ const MyProfileView = () => {
                     className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-xl text-xs font-bold text-neutral-700 hover:bg-white active:scale-[0.97] shadow-sm transition-colors duration-[160ms] cursor-pointer"
                   >
                     <FiCamera className="w-3.5 h-3.5 text-primary-500" />
-                    Add Photos
+                    {t('myProfile.addPhotos')}
                   </Link>
                 </div>
               ) : (
@@ -349,18 +367,14 @@ const MyProfileView = () => {
                       {isVerified && (
                         <div className="flex items-center gap-1 px-2.5 py-1 bg-success-50 border border-success-100 rounded-full">
                           <FiShield className="w-3 h-3 text-success" />
-                          <span className="text-[11px] font-bold text-success">Verified</span>
+                          <span className="text-[11px] font-bold text-success">{t('myProfile.verified')}</span>
                         </div>
                       )}
-                      {/* Reads off the account (Users.isFoundingMember), not the
-                          subscription row — the row is superseded on upgrade and
-                          expires with the cohort; the badge is meant to outlive both. */}
-                      <FoundingBadge user={authUser} size="xs" />
                       {profileCode && (
                         <button
                           type="button"
                           onClick={copyProfileCode}
-                          title="Copy your profile ID to share"
+                          title={t('myProfile.copyIdTitle')}
                           className="group flex items-center gap-1 px-2.5 py-1 bg-neutral-50 border border-neutral-200 rounded-full hover:bg-neutral-100 active:scale-[0.97] transition-colors duration-[160ms]"
                         >
                           <FiHash className="w-3 h-3 text-neutral-400" />
@@ -381,9 +395,13 @@ const MyProfileView = () => {
 
                 {/* Quick stats */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
-                  <StatBadge label="Profile" value={`${completionPct}%`} color="rose" />
-                  <StatBadge label={allPhotos.length === 1 ? 'Photo' : 'Photos'} value={allPhotos.length} color="neutral" />
-                  <StatBadge label={isVerified ? 'Verified' : 'Unverified'} value={isVerified ? <FiCheck className="w-5 h-5" /> : <FiAlertCircle className="w-5 h-5" />} color={isVerified ? 'emerald' : 'rose'} />
+                  <StatBadge label={t('myProfile.statProfile')} value={`${completionPct}%`} color="rose" />
+                  <StatBadge label={allPhotos.length === 1 ? t('myProfile.statPhoto') : t('myProfile.statPhotos')} value={allPhotos.length} color="neutral" />
+                  <StatBadge
+                    label={isVerified ? t('myProfile.verified') : isVerifyPending ? t('myProfile.inReview') : t('myProfile.unverified')}
+                    value={isVerified ? <FiCheck className="w-5 h-5" /> : isVerifyPending ? <FiClock className="w-5 h-5" /> : <FiAlertCircle className="w-5 h-5" />}
+                    color={isVerified ? 'emerald' : isVerifyPending ? 'neutral' : 'rose'}
+                  />
                 </div>
 
                 {/* Bio */}
@@ -394,7 +412,7 @@ const MyProfileView = () => {
                 ) : (
                   <div className="border-t border-neutral-50 pt-4">
                     <Link to="/profile/edit?section=about" className="text-sm text-neutral-400 hover:text-primary-500 active:scale-[0.98] transition-colors duration-[160ms] cursor-pointer inline-block">
-                      + Add a bio to help matches get to know you
+                      {t('myProfile.addBio')}
                     </Link>
                   </div>
                 )}
@@ -419,8 +437,7 @@ const MyProfileView = () => {
 
             {/* Profile prompts */}
             {profilePrompts.length > 0 ? (
-              /* Prompts have no dedicated editor yet — display-only (no dead Edit link). */
-              <Card title="Get to Know Me" icon={FiUser}>
+              <Card title={t('myProfile.getToKnowMe')} icon={FiUser} action={<EditBtn small to="/profile/edit?section=about" />}>
                 <div className="space-y-3">
                   {profilePrompts.map(({ q, a }, i) => (
                     // `bg-primary-50` (not the /60-opacity variant, which the
@@ -429,27 +446,27 @@ const MyProfileView = () => {
                     // light mode and 1.23:1 in dark — both under the 4.5:1
                     // floor for this 11px bold label) — same fix, one change.
                     <div key={i} className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800">
-                      <p className="text-[11px] font-bold text-primary-700 dark:text-primary-300 uppercase tracking-wide mb-1.5">{sanitizeText(q)}</p>
+                      <p className="text-[11px] font-bold text-primary-700 dark:text-primary-300 uppercase tracking-wide mb-1.5">{sanitizeText(promptLabel(q))}</p>
                       <p className="text-sm text-neutral-700 dark:text-neutral-200 leading-relaxed">{sanitizeText(a)}</p>
                     </div>
                   ))}
                 </div>
               </Card>
             ) : (
-              <div className="bg-white rounded-2xl border border-dashed border-neutral-200 p-5 flex items-center justify-between">
+              <div className="bg-white dark:bg-surface-dark-3 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700 p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-700">Add profile prompts</p>
-                  <p className="text-xs text-neutral-400 mt-0.5">Answer fun questions to stand out</p>
+                  <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">{t('myProfile.addPromptsTitle')}</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{t('myProfile.addPromptsDesc')}</p>
                 </div>
-                <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer">
-                  <FiEdit2 className="w-3 h-3" /> Add
+                <Link to="/profile/edit?section=about" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer">
+                  <FiEdit2 className="w-3 h-3" /> {t('myProfile.add')}
                 </Link>
               </div>
             )}
 
             {/* Interests */}
             {profile.interestTags?.length > 0 ? (
-              <Card title="Interests & Hobbies" icon={FiGrid} action={<EditBtn small to="/profile/edit?section=about" />}>
+              <Card title={t('myProfile.interests')} icon={FiGrid} action={<EditBtn small to="/profile/edit?section=about" />}>
                 <div className="flex flex-wrap gap-2">
                   {profile.interestTags.map((tag, i) => (
                     <span key={i} className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold cursor-default">
@@ -461,18 +478,18 @@ const MyProfileView = () => {
             ) : (
               <div className="bg-white rounded-2xl border border-dashed border-neutral-200 p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-700">Add interests</p>
-                  <p className="text-xs text-neutral-400 mt-0.5">Help matches find common ground</p>
+                  <p className="text-sm font-semibold text-neutral-700">{t('myProfile.addInterests')}</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">{t('myProfile.addInterestsDesc')}</p>
                 </div>
-                <Link to="/profile/edit" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer">
-                  <FiEdit2 className="w-3 h-3" /> Add
+                <Link to="/profile/edit?section=about" className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-bold hover:bg-primary-600 active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer">
+                  <FiEdit2 className="w-3 h-3" /> {t('myProfile.add')}
                 </Link>
               </div>
             )}
 
             {/* Spotify */}
             {profile.spotifyPlaylist && sanitizeUrl(profile.spotifyPlaylist) && (
-              <Card title="Music Taste" icon={FiMusic} action={<EditBtn small to="/profile/edit?section=social" />}>
+              <Card title={t('myProfile.musicTaste')} icon={FiMusic} action={<EditBtn small to="/profile/edit?section=social" />}>
                 <a
                   href={sanitizeUrl(profile.spotifyPlaylist)}
                   target="_blank"
@@ -483,8 +500,8 @@ const MyProfileView = () => {
                     <FiMusic className="w-4 h-4 text-[#1DB954]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-neutral-700 group-hover:text-[#1DB954] transition-colors truncate">My Spotify Playlist</p>
-                    <p className="text-xs text-neutral-400">Open in Spotify</p>
+                    <p className="text-sm font-semibold text-neutral-700 group-hover:text-[#1DB954] transition-colors truncate">{t('myProfile.mySpotify')}</p>
+                    <p className="text-xs text-neutral-400">{t('myProfile.openInSpotify')}</p>
                   </div>
                   <FiChevronRight className="w-4 h-4 text-neutral-300" />
                 </a>
@@ -493,7 +510,7 @@ const MyProfileView = () => {
 
             {/* Social Media */}
             {activeSocials.length > 0 && (
-              <Card title="Social Media" icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=social" />}>
+              <Card title={t('myProfile.socialMedia')} icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=social" />}>
                 <div className="grid grid-cols-2 gap-2.5">
                   {activeSocials.map(({ key, label, icon: Icon, color }) => {
                     const entry = profile.socialMediaLinks[key];
@@ -509,8 +526,8 @@ const MyProfileView = () => {
                       >
                         <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
                         <div className="min-w-0">
-                          <span className="block text-sm font-semibold text-neutral-700 truncate">{label}</span>
-                          <span className="block text-[10px] text-neutral-400">{socialVisibilityLabel(entry)}</span>
+                          <span className="block text-sm font-semibold text-neutral-700 truncate">{key === 'website' ? t('myProfile.website') : label}</span>
+                          <span className="block text-[10px] text-neutral-400">{socialVisibilityLabel(entry, t)}</span>
                         </div>
                         <FiChevronRight className="w-3 h-3 text-neutral-300 ml-auto flex-shrink-0" />
                       </a>
@@ -526,79 +543,79 @@ const MyProfileView = () => {
           <div className="space-y-5">
 
             {/* Core details */}
-            <Card title="Details" icon={FiUser} action={<EditBtn small to="/profile/edit?section=religion" />}>
+            <Card title={t('myProfile.details')} icon={FiUser} action={<EditBtn small to="/profile/edit?section=religion" />}>
               <div>
-                {age != null && <DetailRow label="Age" value={`${age} years`} />}
-                {location && <DetailRow label="Location" value={location} />}
-                {profile.height && <DetailRow label="Height" value={formatHeight(profile.height)} />}
-                {profile.weight && <DetailRow label="Weight" value={`${profile.weight} kg`} />}
-                {profile.education && <DetailRow label="Education" value={profile.education} />}
-                {profile.degree && <DetailRow label="Degree" value={profile.degree} />}
-                {profile.institution && <DetailRow label="College" value={profile.institution} />}
-                {profile.profession && <DetailRow label="Profession" value={profile.profession} />}
-                {profile.industry && <DetailRow label="Industry" value={profile.industry} />}
-                {profile.income && <DetailRow label="Income" value={formatIncome(profile.income)} />}
-                {profile.religion && <DetailRow label="Religion" value={profile.religion} />}
-                {profile.caste && <DetailRow label="Caste" value={profile.caste} />}
-                {profile.subCaste && <DetailRow label="Sub Caste" value={profile.subCaste} />}
-                {profile.gotra && <DetailRow label="Gotra" value={profile.gotra} />}
-                {profile.motherTongue && <DetailRow label="Mother Tongue" value={profile.motherTongue} />}
-                {profile.maritalStatus && <DetailRow label="Marital Status" value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
+                {age != null && <DetailRow label={t('profileView.fields.age')} value={t('myProfile.ageYears', { age })} />}
+                {location && <DetailRow label={t('profileView.fields.location')} value={location} />}
+                {profile.height && <DetailRow label={t('profileView.fields.height')} value={formatHeight(profile.height)} />}
+                {profile.weight && <DetailRow label={t('profileView.fields.weight')} value={`${profile.weight} kg`} />}
+                {profile.education && <DetailRow label={t('profileView.fields.education')} value={profile.education} />}
+                {profile.degree && <DetailRow label={t('profileView.fields.degree')} value={profile.degree} />}
+                {profile.institution && <DetailRow label={t('profileView.fields.college')} value={profile.institution} />}
+                {profile.profession && <DetailRow label={t('profileView.fields.profession')} value={profile.profession} />}
+                {profile.industry && <DetailRow label={t('profileView.fields.industry')} value={profile.industry} />}
+                {profile.income && <DetailRow label={t('profileView.fields.income')} value={formatIncome(profile.income)} />}
+                {profile.religion && <DetailRow label={t('profileView.fields.religion')} value={profile.religion} />}
+                {profile.caste && <DetailRow label={t('profileView.fields.caste')} value={profile.caste} />}
+                {profile.subCaste && <DetailRow label={t('profileView.fields.subCaste')} value={profile.subCaste} />}
+                {profile.gotra && <DetailRow label={t('profileView.fields.gotra')} value={profile.gotra} />}
+                {profile.motherTongue && <DetailRow label={t('profileView.fields.motherTongue')} value={profile.motherTongue} />}
+                {profile.maritalStatus && <DetailRow label={t('profileView.fields.maritalStatus')} value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
                 {/* Diet/Smoking/Drinking/Skin tone live in the dedicated Lifestyle
                     card below — not repeated here. */}
-                {profile.personalityType && <DetailRow label="Personality" value={profile.personalityType} isLast />}
+                {profile.personalityType && <DetailRow label={t('profileView.fields.personality')} value={profile.personalityType} isLast />}
               </div>
             </Card>
 
             {/* Lifestyle pills */}
             {(profile.diet || profile.smoking || profile.drinking || profile.skinTone) && (
-              <Card title="Lifestyle" icon={FiInfo} action={<EditBtn small to="/profile/edit?section=lifestyle" />}>
+              <Card title={t('myProfile.lifestyle')} icon={FiInfo} action={<EditBtn small to="/profile/edit?section=lifestyle" />}>
                 <div className="grid grid-cols-2 gap-2">
-                  {profile.diet && <Pill label="Diet" value={formatEnum(profile.diet)} />}
-                  {profile.smoking && <Pill label="Smoking" value={formatEnum(profile.smoking)} highlight={profile.smoking !== 'never'} />}
-                  {profile.drinking && <Pill label="Drinking" value={formatEnum(profile.drinking)} highlight={profile.drinking !== 'never'} />}
-                  {profile.skinTone && <Pill label="Skin Tone" value={formatEnum(profile.skinTone)} />}
+                  {profile.diet && <Pill label={t('profileView.fields.diet')} value={formatEnum(profile.diet)} />}
+                  {profile.smoking && <Pill label={t('profileView.fields.smoking')} value={formatEnum(profile.smoking)} highlight={profile.smoking !== 'never'} />}
+                  {profile.drinking && <Pill label={t('profileView.fields.drinking')} value={formatEnum(profile.drinking)} highlight={profile.drinking !== 'never'} />}
+                  {profile.skinTone && <Pill label={t('profileView.fields.skinTone')} value={formatEnum(profile.skinTone)} />}
                 </div>
               </Card>
             )}
 
             {/* Horoscope */}
             {(profile.manglikStatus || profile.zodiacSign || profile.rashi || profile.nakshatra) && (
-              <Card title="Horoscope & Kundli" icon={FiSun} action={<EditBtn small to="/profile/edit?section=horoscope" />}>
+              <Card title={t('myProfile.horoscope')} icon={FiSun} action={<EditBtn small to="/profile/edit?section=horoscope" />}>
                 <div>
-                  {profile.zodiacSign && <DetailRow label="Zodiac Sign" value={profile.zodiacSign} />}
-                  {profile.rashi && <DetailRow label="Rashi" value={profile.rashi} />}
-                  {profile.nakshatra && <DetailRow label="Nakshatra" value={profile.nakshatra} />}
-                  {profile.manglikStatus && <DetailRow label="Manglik" value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
-                  {profile.placeOfBirth && <DetailRow label="Place of Birth" value={profile.placeOfBirth} />}
-                  {profile.birthTime && <DetailRow label="Birth Time" value={profile.birthTime} isLast />}
+                  {profile.zodiacSign && <DetailRow label={t('profileView.fields.zodiacSign')} value={profile.zodiacSign} />}
+                  {profile.rashi && <DetailRow label={t('profileView.fields.rashi')} value={profile.rashi} />}
+                  {profile.nakshatra && <DetailRow label={t('profileView.fields.nakshatra')} value={profile.nakshatra} />}
+                  {profile.manglikStatus && <DetailRow label={t('profileView.fields.manglik')} value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
+                  {profile.placeOfBirth && <DetailRow label={t('profileView.fields.placeOfBirth')} value={profile.placeOfBirth} />}
+                  {profile.birthTime && <DetailRow label={t('profileView.fields.birthTime')} value={profile.birthTime} isLast />}
                 </div>
               </Card>
             )}
 
             {/* Family */}
             {(profile.familyType || profile.familyStatus || profile.fatherOccupation || profile.motherOccupation || profile.numberOfSiblings > 0 || profile.brothers != null || profile.sisters != null || profile.familyValues || profile.livingArrangement) && (
-              <Card title="Family Background" icon={FiHome} action={<EditBtn small to="/profile/edit?section=family" />}>
+              <Card title={t('myProfile.familyBackground')} icon={FiHome} action={<EditBtn small to="/profile/edit?section=family" />}>
                 <div className="grid grid-cols-2 gap-2 mb-3">
-                  {profile.familyType && <Pill label="Family Type" value={friendlyLabel('familyType', profile.familyType)} />}
-                  {profile.familyStatus && <Pill label="Family Status" value={friendlyLabel('familyStatus', profile.familyStatus)} />}
-                  {profile.numberOfSiblings > 0 && <Pill label="Siblings" value={profile.numberOfSiblings} />}
-                  {profile.brothers != null && <Pill label="Brothers" value={profile.brothers} />}
-                  {profile.sisters != null && <Pill label="Sisters" value={profile.sisters} />}
-                  {profile.familyValues && <Pill label="Family Values" value={formatEnum(profile.familyValues)} />}
-                  {profile.livingArrangement && <Pill label="Lives" value={formatEnum(profile.livingArrangement)} />}
-                  {profile.numberOfChildren > 0 && <Pill label="Children" value={profile.numberOfChildren} />}
+                  {profile.familyType && <Pill label={t('profileView.fields.familyType')} value={friendlyLabel('familyType', profile.familyType)} />}
+                  {profile.familyStatus && <Pill label={t('profileView.fields.familyStatus')} value={friendlyLabel('familyStatus', profile.familyStatus)} />}
+                  {profile.numberOfSiblings > 0 && <Pill label={t('profileView.fields.siblings')} value={profile.numberOfSiblings} />}
+                  {profile.brothers != null && <Pill label={t('profileView.fields.brothers')} value={profile.brothers} />}
+                  {profile.sisters != null && <Pill label={t('profileView.fields.sisters')} value={profile.sisters} />}
+                  {profile.familyValues && <Pill label={t('profileView.fields.familyValues')} value={formatEnum(profile.familyValues)} />}
+                  {profile.livingArrangement && <Pill label={t('profileView.fields.lives')} value={formatEnum(profile.livingArrangement)} />}
+                  {profile.numberOfChildren > 0 && <Pill label={t('profileView.fields.children')} value={profile.numberOfChildren} />}
                 </div>
                 <div>
-                  {profile.fatherOccupation && <DetailRow label="Father's Job" value={profile.fatherOccupation} />}
-                  {profile.motherOccupation && <DetailRow label="Mother's Job" value={profile.motherOccupation} isLast />}
+                  {profile.fatherOccupation && <DetailRow label={t('myProfile.fathersJob')} value={profile.fatherOccupation} />}
+                  {profile.motherOccupation && <DetailRow label={t('myProfile.mothersJob')} value={profile.motherOccupation} isLast />}
                 </div>
               </Card>
             )}
 
             {/* Languages */}
             {profile.languages?.length > 0 && (
-              <Card title="Languages" icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=about" />}>
+              <Card title={t('myProfile.languages')} icon={FiGlobe} action={<EditBtn small to="/profile/edit?section=about" />}>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.languages.map((lang, i) => (
                     <span key={i} className="px-2.5 py-1.5 bg-neutral-100 rounded-xl text-xs font-bold text-neutral-600">{lang}</span>
@@ -609,20 +626,20 @@ const MyProfileView = () => {
 
             {/* Partner preferences */}
             {(profile.preferredAgeMin || profile.preferredAgeMax || profile.preferredEducation || profile.preferredProfession || profile.preferredCity?.length) && (
-              <Card title="Looking For" icon={FiHeart} action={<EditBtn small to="/profile/edit?section=preferences" />}>
+              <Card title={t('myProfile.lookingFor')} icon={FiHeart} action={<EditBtn small to="/profile/edit?section=preferences" />}>
                 <div>
                   {(profile.preferredAgeMin || profile.preferredAgeMax) && (
-                    <DetailRow label="Age Range" value={`${profile.preferredAgeMin || 'Any'} – ${profile.preferredAgeMax || 'Any'} yrs`} />
+                    <DetailRow label={t('profileView.fields.ageRange')} value={t('myProfile.ageRangeYrs', { min: profile.preferredAgeMin || t('myProfile.any'), max: profile.preferredAgeMax || t('myProfile.any') })} />
                   )}
                   {(profile.preferredHeightMin || profile.preferredHeightMax) && (
-                    <DetailRow label="Height Range" value={`${profile.preferredHeightMin || 'Any'} – ${profile.preferredHeightMax || 'Any'} cm`} />
+                    <DetailRow label={t('profileView.fields.heightRange')} value={t('myProfile.heightRangeCm', { min: profile.preferredHeightMin || t('myProfile.any'), max: profile.preferredHeightMax || t('myProfile.any') })} />
                   )}
-                  {profile.preferredEducation && <DetailRow label="Education" value={profile.preferredEducation} />}
-                  {profile.preferredProfession && <DetailRow label="Profession" value={profile.preferredProfession} />}
+                  {profile.preferredEducation && <DetailRow label={t('profileView.fields.education')} value={profile.preferredEducation} />}
+                  {profile.preferredProfession && <DetailRow label={t('profileView.fields.profession')} value={profile.preferredProfession} />}
                 </div>
                 {profile.preferredCity?.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-neutral-50">
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">Cities</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">{t('myProfile.cities')}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {profile.preferredCity.map((c, i) => (
                         <span key={i} className="px-2.5 py-1 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-xs font-semibold">{c}</span>
@@ -637,23 +654,31 @@ const MyProfileView = () => {
             {/* Verification is free for every tier — gold is reserved for
                 premium marks (doctrine §3.1), so this nudge uses the same
                 primary treatment as every other non-premium CTA. */}
-            {!isVerified && (
+            {isVerifyPending && (
+              <div className="bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-4 flex items-start gap-3">
+                <FiClock className="w-4 h-4 mt-0.5 text-neutral-600 dark:text-neutral-300 flex-shrink-0" />
+                <p className="text-xs text-neutral-700 dark:text-neutral-200 leading-relaxed">
+                  {t('myProfile.selfieInReview')}
+                </p>
+              </div>
+            )}
+            {!isVerified && !isVerifyPending && (
               <div className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800 rounded-2xl p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <FiShield className="w-4 h-4 text-primary-700 dark:text-primary-300" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-primary-700 dark:text-primary-300 mb-1">Get Verified</p>
+                    <p className="text-sm font-bold text-primary-700 dark:text-primary-300 mb-1">{t('myProfile.getVerified')}</p>
                     <p className="text-xs text-primary-700/80 dark:text-primary-300/80 leading-relaxed mb-3">
-                      Verified profiles get 3x more responses. Take a quick selfie to get the verified badge.
+                      {t('myProfile.getVerifiedDesc')}
                     </p>
                     {/* py-1.5 measured ~32px tall (elder mode) — well under the
                         44/48px floors. py-3.5 matches the brand button family's
                         own vertical rhythm (`.btn-primary`/`.btn-secondary`
                         use the same value) and clears both. */}
                     <Link to="/verification" className="inline-flex items-center gap-1.5 px-3 py-3.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 active:scale-[0.97] transition-colors duration-[160ms] cursor-pointer">
-                      <FiShield className="w-3 h-3" /> Verify Now
+                      <FiShield className="w-3 h-3" /> {t('myProfile.verifyNow')}
                     </Link>
                   </div>
                 </div>

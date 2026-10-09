@@ -1,35 +1,32 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { FiArrowRight, FiCheck, FiShield, FiMapPin, FiHeart, FiLock, FiUsers } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
-import useFoundingWindow from '../hooks/useFoundingWindow';
 
 /* The `Eyebrow` chip that used to sit above every heading on this page is
    removed (doctrine ruling 2 — zero eyebrows, the heading carries itself). */
 
-const STATS = [
-  { value: 'Live selfie', label: 'Verification, never uploads' },
-  { value: 'Tricity only', label: 'Chandigarh · Mohali · Panchkula' },
-  { value: 'Family-first', label: 'Guardians participate gracefully' },
-];
+// Copy lives in locales/<lng>/about.json; these lists only hold the keys.
+const STATS = ['selfie', 'tricity', 'family'];
 
-// Only while the server says the founding window is open (useFoundingWindow
-// fails closed); otherwise the slot states something that is always true.
-const FOUNDING_STAT = { value: 'Founding', label: 'Members join free' };
-const ALWAYS_STAT = { value: 'Human-reviewed', label: 'Every selfie and every report' };
+const ALWAYS_STAT = 'reviewed';
 
 const VALUES = [
-  { icon: FiShield, n: '01', t: 'Verified profiles', d: 'The verified badge is earned with a live selfie matched by human review — never a file upload.' },
-  { icon: FiLock, n: '02', t: 'Privacy-first', d: 'Your data is yours. Browse incognito, control who sees you, numbers never shared.' },
-  { icon: FiUsers, n: '03', t: 'Family-oriented', d: 'Matching that respects family background, values, and the people who matter in the decision.' },
-  { icon: FiMapPin, n: '04', t: 'Hyperlocal focus', d: 'Built only for Chandigarh, Mohali and Panchkula. Partners within driving distance.' },
-  { icon: FiHeart, n: '05', t: 'Transparent pricing', d: 'Clear plans, no hidden fees, no surprise renewals. Free to start.' },
-  { icon: FiCheck, n: '06', t: 'Human-reviewed', d: 'A person — not an algorithm — reviews every verification selfie and every report.' },
+  { icon: FiShield, n: '01', key: 'verified' },
+  { icon: FiLock, n: '02', key: 'privacy' },
+  { icon: FiUsers, n: '03', key: 'family' },
+  { icon: FiMapPin, n: '04', key: 'local' },
+  { icon: FiHeart, n: '05', key: 'pricing' },
+  { icon: FiCheck, n: '06', key: 'human' },
 ];
 
 export default function About() {
-  const founding = useFoundingWindow();
-  const stats = [...STATS, founding.open ? FOUNDING_STAT : ALWAYS_STAT];
+  const { t } = useTranslation();
+  const stats = [...STATS, ALWAYS_STAT].map((k) => ({
+    value: t(`about.stats.${k}.value`),
+    label: t(`about.stats.${k}.label`),
+  }));
   return (
     <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
@@ -41,14 +38,13 @@ export default function About() {
       {/* Hero */}
       <section className="px-4 pt-24 pb-16 md:pt-32 md:pb-20">
         <div className="max-w-5xl mx-auto">
-          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-flex items-center min-h-[44px] py-2 px-2 -mx-2 -mt-2 mb-8">← Back to home</Link>
+          <Link to="/" className="text-sm text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 inline-flex items-center min-h-[44px] py-2 px-2 -mx-2 -mt-2 mb-8">{t('about.backHome')}</Link>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-[1.05] text-neutral-900 dark:text-neutral-100 max-w-3xl">
-            Matrimony built for families,
-            <span className="text-primary-700 italic"> not algorithms.</span>
+            {t('about.heroTitle')}
+            <span className="text-primary-700 italic">{t('about.heroTitleEm')}</span>
           </h1>
           <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
-            TricityMatch is a hyperlocal matrimonial platform built specifically for families in
-            Chandigarh, Mohali and Panchkula — where finding a life partner is meaningful, safe and community-first.
+            {t('about.heroBody')}
           </p>
         </div>
       </section>
@@ -70,19 +66,12 @@ export default function About() {
         <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_1.4fr] gap-10 md:gap-16">
           <div>
             <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight">
-              A serious local community, <span className="italic text-primary-700">not 50 million strangers.</span>
+              {t('about.missionTitle')}<span className="italic text-primary-700">{t('about.missionTitleEm')}</span>
             </h2>
           </div>
           <div className="space-y-5 text-neutral-700 dark:text-neutral-300 text-base leading-relaxed pt-1">
-            <p>
-              Unlike generic matrimonial platforms, TricityMatch focuses on the Tricity region — bringing together
-              people who share local roots, cultural values and community ties.
-            </p>
-            <p>
-              Our intelligent matching considers compatibility, family background, education and lifestyle to suggest
-              the connections that actually lead somewhere. Verified badges are earned with a live selfie matched by
-              human review, and every family is within driving distance.
-            </p>
+            <p>{t('about.missionP1')}</p>
+            <p>{t('about.missionP2')}</p>
           </div>
         </div>
       </section>
@@ -90,9 +79,9 @@ export default function About() {
       {/* Values grid */}
       <section className="px-4 pb-16 md:pb-24">
         <div className="max-w-5xl mx-auto">
-          <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight mb-10">Six principles that shape every decision.</h2>
+          <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight mb-10">{t('about.valuesTitle')}</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-neutral-200 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-            {VALUES.map(({ icon: Icon, n, t, d }) => (
+            {VALUES.map(({ icon: Icon, n, key }) => (
               <div key={n} className="bg-[#FFFAF6] dark:bg-surface-dark-3 p-7 flex flex-col">
                 <div className="flex items-center justify-between mb-5">
                   <span className="w-10 h-10 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center">
@@ -100,8 +89,8 @@ export default function About() {
                   </span>
                   <span className="text-xs tracking-[0.16em] text-neutral-400 dark:text-neutral-500 tabular-nums">{n}</span>
                 </div>
-                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t}</h3>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{d}</p>
+                <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t(`about.values.${key}.t`)}</h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{t(`about.values.${key}.d`)}</p>
               </div>
             ))}
           </div>
@@ -111,17 +100,19 @@ export default function About() {
       {/* CTA */}
       <section className="px-4 pb-24">
         <div className="max-w-5xl mx-auto rounded-2xl bg-primary-600 text-[#FDF8F2] px-8 py-14 md:py-16 text-center">
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">Your forever starts with one step.</h2>
+          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">{t('about.ctaTitle')}</h2>
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
-            Have questions or feedback? Reach us at{' '}
-            <a href="mailto:support@tricitymatch.com" className="underline decoration-[#FDF8F2]/60 underline-offset-4 hover:text-white">support@tricitymatch.com</a>
+            <Trans
+              i18nKey="about.ctaBody"
+              components={{ mail: <a href="mailto:support@tricitymatch.com" className="underline decoration-[#FDF8F2]/60 underline-offset-4 hover:text-white" /> }}
+            />
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FDF8F2] text-primary-900 font-semibold px-7 py-3.5 rounded-xl hover:bg-white transition-colors">
-              Create free profile <FiArrowRight />
+              {t('about.ctaPrimary')} <FiArrowRight />
             </Link>
             <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-[#FDF8F2]/40 text-[#FDF8F2] font-semibold px-7 py-3.5 rounded-xl hover:bg-[#FDF8F2]/10 transition-colors">
-              Contact us
+              {t('about.ctaContact')}
             </Link>
           </div>
         </div>

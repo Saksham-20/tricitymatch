@@ -1,0 +1,14 @@
+{
+  "title": "Do you fit what {{name}} is looking for?",
+  "them": "them",
+  "addYours": "add yours to compare",
+  "any": "Any",
+  "yearsRange": "{{min}} – {{max}} years",
+  "labels": {
+    "age": "Age",
+    "height": "Height",
+    "education": "Education",
+    "profession": "Profession",
+    "city": "City"
+  }
+}

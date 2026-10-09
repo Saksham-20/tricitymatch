@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation, Trans } from 'react-i18next';
 import api from '../api/axios';
 import { FiLock, FiEye, FiEyeOff, FiCheck, FiArrowLeft, FiShield, FiHeart } from 'react-icons/fi';
 import { fadeInUp, staggerContainer, fade, popIn } from '../utils/animations';
@@ -12,7 +13,9 @@ import Seo from '../components/common/Seo';
 // Pinned to a literal hex, not the neutral-900 scale class — bg-neutral-900
 // inverts to a near-white under html.dark (see Login.jsx's identical note),
 // which would strand the white headline text with nothing behind it.
-const EditorialPanel = ({ headline, sub }) => (
+const EditorialPanel = ({ headline, sub }) => {
+  const { t } = useTranslation();
+  return (
   <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--editorial-rail)] dark:bg-surface-dark-2">
     <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-neutral-900 to-neutral-900" />
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full border border-white/5 pointer-events-none" />
@@ -22,7 +25,7 @@ const EditorialPanel = ({ headline, sub }) => (
     <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
       <div>
         <Logo variant="white" size="lg" linkTo="/" />
-        <p className="text-xs text-white/60 mt-1 uppercase tracking-widest">Chandigarh · Mohali · Panchkula</p>
+        <p className="text-xs text-white/60 mt-1 uppercase tracking-widest">{t('navbar.region')}</p>
       </div>
 
       <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
@@ -31,13 +34,14 @@ const EditorialPanel = ({ headline, sub }) => (
       </motion.div>
 
       <div className="flex items-center gap-5 text-xs text-white/60">
-        <div className="flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5" /><span>SSL Secured</span></div>
+        <div className="flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5" /><span>{t('auth.sslSecured')}</span></div>
         <span className="w-px h-3 bg-white/20" />
-        <div className="flex items-center gap-1.5"><FiHeart className="w-3.5 h-3.5" /><span>100% Privacy</span></div>
+        <div className="flex items-center gap-1.5"><FiHeart className="w-3.5 h-3.5" /><span>{t('auth.privacy100')}</span></div>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -50,14 +54,15 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const { t } = useTranslation();
 
   if (!token) {
     return (
       <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
         <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
         <EditorialPanel
-          headline={"Invalid link."}
-          sub="This password reset link is invalid or has expired. Request a new one below."
+          headline={t('passwordReset.invalidLinkHeadline')}
+          sub={t('passwordReset.invalidLinkSub')}
         />
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-md">
@@ -66,11 +71,11 @@ const ResetPassword = () => {
               <div className="w-16 h-16 rounded-full bg-destructive/10 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-5">
                 <FiLock className="w-8 h-8 text-destructive dark:text-red-400" />
               </div>
-              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">Invalid reset link</h2>
+              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">{t('passwordReset.invalidResetLink')}</h2>
               <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
-                This link is invalid or has expired. Reset links are valid for 1 hour.
+                {t('passwordReset.invalidResetBody')}
               </p>
-              <Link to="/forgot-password" className="btn-primary inline-flex">Request a new link</Link>
+              <Link to="/forgot-password" className="btn-primary inline-flex">{t('passwordReset.requestNewLink')}</Link>
             </motion.div>
           </div>
         </div>
@@ -87,10 +92,10 @@ const ResetPassword = () => {
 
   const validate = (data = formData) => {
     const newErrors = {};
-    if (!data.password) newErrors.password = 'Enter a new password';
-    else if (!validatePassword(data.password)) newErrors.password = 'Use 8+ characters with uppercase, lowercase, a number, and a symbol';
-    if (!data.confirmPassword) newErrors.confirmPassword = 'Confirm your new password';
-    else if (data.password !== data.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    if (!data.password) newErrors.password = t('passwordReset.enterNewPassword');
+    else if (!validatePassword(data.password)) newErrors.password = t('validation.passwordRule');
+    if (!data.confirmPassword) newErrors.confirmPassword = t('passwordReset.confirmNewPassword');
+    else if (data.password !== data.confirmPassword) newErrors.confirmPassword = t('validation.passwordsNoMatch');
     return newErrors;
   };
 
@@ -109,7 +114,7 @@ const ResetPassword = () => {
       await api.post('/auth/reset-password', { token, password: formData.password });
       setSuccess(true);
     } catch (error) {
-      setApiError(error.response?.data?.error?.message || error.response?.data?.message || 'Could not reset your password. Try again.');
+      setApiError(error.response?.data?.error?.message || error.response?.data?.message || t('passwordReset.resetFailed'));
     } finally {
       setLoading(false);
     }
@@ -120,8 +125,8 @@ const ResetPassword = () => {
       <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
         <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
         <EditorialPanel
-          headline={"You're all set."}
-          sub="Your password has been updated. Sign in with your new credentials."
+          headline={t('passwordReset.allSetHeadline')}
+          sub={t('passwordReset.allSetSub')}
         />
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-md">
@@ -131,10 +136,10 @@ const ResetPassword = () => {
                 className="w-16 h-16 rounded-full bg-success-light dark:bg-success/15 flex items-center justify-center mx-auto mb-5">
                 <FiCheck className="w-8 h-8 text-success dark:text-green-400" />
               </motion.div>
-              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">Password reset</h2>
-              <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6">Your password has been reset. You can now sign in.</p>
+              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">{t('passwordReset.passwordResetDone')}</h2>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6">{t('passwordReset.passwordResetBody')}</p>
               <button onClick={() => navigate('/login')} className="btn-primary inline-flex items-center gap-2">
-                Go to login
+                {t('passwordReset.goToLogin')}
               </button>
             </motion.div>
           </div>
@@ -147,8 +152,8 @@ const ResetPassword = () => {
     <div className="min-h-[100dvh] flex bg-[#FDF8F2] dark:bg-surface-dark-1">
       <Seo title="Reset Password" description="Set a new password for your TricityMatch account." path="/reset-password" />
       <EditorialPanel
-        headline={"Create your new password."}
-        sub="Choose a strong password to protect your TricityMatch account."
+        headline={t('passwordReset.createNewHeadline')}
+        sub={t('passwordReset.createNewSub')}
       />
 
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
@@ -158,8 +163,8 @@ const ResetPassword = () => {
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8">
-            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">Reset password</h1>
-            <p className="text-neutral-500 dark:text-neutral-400">Enter and confirm your new password</p>
+            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">{t('passwordReset.resetPassword')}</h1>
+            <p className="text-neutral-500 dark:text-neutral-400">{t('passwordReset.resetSubtitle')}</p>
           </motion.div>
 
           <motion.form variants={fadeInUp} onSubmit={handleSubmit} noValidate className="card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5">
@@ -170,8 +175,8 @@ const ResetPassword = () => {
             )}
 
             {[
-              { id: 'password',        label: 'New password',      placeholder: 'At least 8 characters', hint: '8+ characters with uppercase, lowercase, a number, and a symbol.' },
-              { id: 'confirmPassword', label: 'Confirm password',  placeholder: 'Repeat new password', hint: '' },
+              { id: 'password',        label: t('auth.newPassword'),     placeholder: t('passwordReset.atLeast8Placeholder'), hint: t('validation.passwordHint') },
+              { id: 'confirmPassword', label: t('auth.confirmPassword'), placeholder: t('passwordReset.repeatNewPassword'), hint: '' },
             ].map(({ id, label, placeholder, hint }) => (
               <div key={id}>
                 <label htmlFor={id} className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">{label}</label>
@@ -197,7 +202,7 @@ const ResetPassword = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                   >
                     {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                   </button>
@@ -219,13 +224,13 @@ const ResetPassword = () => {
               className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {loading ? (
-                <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Resetting…</>
-              ) : 'Reset password'}
+                <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('passwordReset.resetting')}</>
+              ) : t('passwordReset.resetPassword')}
             </button>
 
             <div className="text-center">
               <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 font-medium inline-flex items-center gap-1 transition-colors">
-                <FiArrowLeft className="w-4 h-4" /> Back to login
+                <FiArrowLeft className="w-4 h-4" /> {t('auth.backToLogin')}
               </Link>
             </div>
           </motion.form>

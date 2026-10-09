@@ -21,13 +21,11 @@ import api from '../../api/axios';
 import InviteLink from '../../components/common/InviteLink';
 import CityMatrimony from '../../pages/CityMatrimony';
 import { resolveInvite } from '../../api/invite';
-import { __resetFoundingCache } from '../../hooks/useFoundingWindow';
 
 const INVITE = { token: 'a3f48dce50486e62ac23200feb3ab48e', url: 'https://tricitymatch.com/signup?invite=a3f48dce50486e62ac23200feb3ab48e' };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  __resetFoundingCache();
 });
 
 describe('InviteLink (send)', () => {
@@ -110,15 +108,20 @@ describe('City landing pages', () => {
   it('never claims a free membership period while the founding window is closed', async () => {
     api.get.mockResolvedValue({ data: { founding: { open: false } } });
     renderCity('chandigarh');
-    await waitFor(() => expect(api.get).toHaveBeenCalled());
+    await screen.findByText(/creating a profile is free/i);
     expect(screen.queryByText(/membership is free until/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/while the founding period is open/i)).not.toBeInTheDocument();
+    // Was the closed-window wording itself: a free founding place nobody is given.
+    expect(screen.queryByText(/founding members join free/i)).not.toBeInTheDocument();
   });
 
-  it('makes the membership claim once the server confirms the window is open', async () => {
-    api.get.mockResolvedValue({ data: { founding: { open: true, endsAt: '2026-12-31', contactUnlocks: 5 } } });
+  it('never mentions a founding offer, even if the server still reports one open', async () => {
+    // The offer is off by choice and was removed from the site (2026-10-08).
+    api.get.mockResolvedValue({ data: { founding: { open: true, endsAt: '2026-12-31', contactUnlocks: 5, grantDays: 30 } } });
     renderCity('chandigarh');
-    await waitFor(() => expect(screen.getByText(/membership is free until the period ends/i)).toBeInTheDocument());
+    await screen.findByText(/creating a profile is free/i);
+    expect(screen.queryByText(/founding/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/days free/i)).not.toBeInTheDocument();
   });
 
   it('redirects an unknown city slug home instead of rendering a blank shell', () => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiHeart, FiMessageCircle, FiX, FiArrowRight } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
@@ -24,6 +25,7 @@ const MatchPopup = ({
   onChat, 
   onContinue 
 }) => {
+  const { t } = useTranslation();
   const [confetti, setConfetti] = useState([]);
 
   // A brief, deliberate celebration — a mutual match is the emotional peak of
@@ -117,7 +119,7 @@ const MatchPopup = ({
             <button
               onClick={onClose}
               className="absolute top-4 right-4 p-2 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-full transition-colors z-10"
-              aria-label="Close"
+              aria-label={t('matching.close')}
             >
               <FiX className="w-5 h-5 text-neutral-500 dark:text-neutral-300" />
             </button>
@@ -167,7 +169,7 @@ const MatchPopup = ({
                 transition={{ delay: 0.3 }}
                 className="text-3xl font-bold font-display text-center mb-2 text-primary-700 dark:text-primary-200"
               >
-                It's a Match!
+                {t('matching.itsAMatch')}
               </motion.h2>
               
               <motion.p
@@ -176,7 +178,7 @@ const MatchPopup = ({
                 transition={{ delay: 0.4 }}
                 className="text-neutral-600 dark:text-neutral-300 text-center mb-8"
               >
-                You and {matchedUser?.firstName || 'someone special'} have liked each other
+                {t('matching.likedEachOther', { name: matchedUser?.firstName || t('matching.someoneSpecial') })}
               </motion.p>
 
               {/* Profile Photos */}
@@ -195,7 +197,7 @@ const MatchPopup = ({
                     <>
                       <RetryImage
                         src={getImageUrl(currentUser.profilePhoto || currentUser.profile_photo, API_BASE_URL, 'profile')}
-                        alt="Your profile"
+                        alt={t('matching.yourProfile')}
                         className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-surface-dark-2 shadow-lg"
                         onError={(e) => {
                           e.target.style.display = 'none';
@@ -232,7 +234,7 @@ const MatchPopup = ({
                     <>
                       <RetryImage
                         src={getImageUrl(matchedUser.profilePhoto || matchedUser.profile_photo, API_BASE_URL, 'profile')}
-                        alt={`${matchedUser?.firstName || 'Match'}'s profile`}
+                        alt={t('matching.theirProfile', { name: matchedUser?.firstName || t('matching.matchFallback') })}
                         className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-surface-dark-2 shadow-lg"
                         onError={(e) => {
                           e.target.style.display = 'none';
@@ -264,7 +266,7 @@ const MatchPopup = ({
                   className="w-full btn-primary flex items-center justify-center gap-2"
                 >
                   <FiMessageCircle className="w-5 h-5" />
-                  Send a Message
+                  {t('matching.sendMessage')}
                 </motion.button>
 
                 <motion.button
@@ -272,7 +274,7 @@ const MatchPopup = ({
                   onClick={onContinue}
                   className="w-full btn-secondary dark:!text-primary-200 dark:!border-primary-400 flex items-center justify-center gap-2"
                 >
-                  Keep Browsing
+                  {t('matching.keepBrowsing')}
                   <FiArrowRight className="w-5 h-5" />
                 </motion.button>
               </motion.div>

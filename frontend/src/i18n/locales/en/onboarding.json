@@ -1,0 +1,307 @@
+{
+  "optional": "Optional",
+  "steps": {
+    "createAccount": {
+      "title": "Create Account",
+      "description": "Use your email or mobile — set a password, verify, and you’re in."
+    },
+    "basicInfo": {
+      "title": "Basic Information",
+      "description": "Just your name, gender and birthday — the rest can wait."
+    },
+    "location": {
+      "title": "Location",
+      "description": "Where are you based?"
+    },
+    "religion": {
+      "title": "Religion & Community",
+      "description": "Your religious background — all optional"
+    },
+    "horoscope": {
+      "title": "Horoscope & Kundli",
+      "description": "Only if it matters to you"
+    },
+    "marital": {
+      "title": "Marital Status",
+      "description": "Tell us about your relationship status"
+    },
+    "education": {
+      "title": "Education & Career",
+      "description": "Your professional background — all optional"
+    },
+    "family": {
+      "title": "Family Background",
+      "description": "Tell us about your family — all optional"
+    },
+    "lifestyle": {
+      "title": "Lifestyle",
+      "description": "Your lifestyle preferences — all optional"
+    },
+    "about": {
+      "title": "About Yourself",
+      "description": "Tell us more about yourself — all optional"
+    },
+    "social": {
+      "title": "Social Connections",
+      "description": "Add your social links — all optional"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "What are you looking for? — all optional"
+    },
+    "photos": {
+      "title": "Photos",
+      "description": "Upload your profile photo"
+    },
+    "verification": {
+      "title": "Verification",
+      "description": "Verify your contact information"
+    }
+  },
+  "page": {
+    "cities": "Chandigarh · Mohali · Panchkula",
+    "twoStepsLine1": "Two steps.",
+    "twoStepsLine2": "About two minutes.",
+    "restLater": "The rest of your profile can be filled in anytime after.",
+    "foreverStartsHere": "Your forever starts here",
+    "sslSecured": "SSL Secured",
+    "privacy": "100% Privacy",
+    "invitedBy": "<b>{{name}}</b> invited you to TricityMatch",
+    "invitedByHint": "Create your profile to see who they think you should meet.",
+    "stepOf": "Step {{current}} of {{total}}",
+    "exitOnboarding": "Exit onboarding",
+    "back": "Back",
+    "processing": "Processing...",
+    "createMyProfile": "Create my profile",
+    "complete": "Complete",
+    "next": "Next",
+    "retry": "Retry",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "forSomeoneElse": "Setting up a profile for your son, daughter or sibling?",
+    "createForThem": "Create it for them",
+    "ownProfileInstead": "Creating your own profile instead?",
+    "switchToPersonal": "Switch to a personal profile",
+    "saveAndExit": "Save & Exit",
+    "justJoined": "Just joined",
+    "previewBody": "This is how other members will see you. Add a photo and a few details to appear in far more searches.",
+    "completeMyProfile": "Complete my profile",
+    "exploreDashboard": "Explore my dashboard first",
+    "createBiodata": "Create your biodata: share it on WhatsApp",
+    "quitTitle": "Save your progress?",
+    "quitBody": "Your draft is saved. You can continue anytime you're ready.",
+    "continue": "Continue",
+    "exitAndSave": "Exit and save",
+    "verificationExpired": "Your verification expired. Please verify your email or mobile number again.",
+    "createAccountFailed": "Could not create your account. Please try again.",
+    "guardianSaveFailed": "Your account was created, but we could not save all the profile details. Tap Retry: nothing you entered is lost."
+  },
+  "basic": {
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
+    "minTwoChars": "At least 2 characters",
+    "genderRequired": "Gender is required",
+    "verifyMobile": "Verify your mobile number to continue",
+    "dobRequired": "Date of birth is required",
+    "weightRange": "Weight must be between 30–300 kg",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "realNameHint": "Your real name, as families will see it. Real names build trust.",
+    "gender": "Gender",
+    "identityLocked": "Gender and date of birth cannot be changed after sign-up. If one is wrong, <anchor>contact support</anchor>.",
+    "dateOfBirth": "Date of Birth",
+    "dobHint": "Used for age and horoscope matching. Your exact birthday is never shown publicly.",
+    "height": "Height",
+    "searchHeight": "Search height",
+    "weight": "Weight (kg)",
+    "heightNote": "Optional, but profiles with height filled appear in more filtered searches."
+  },
+  "location": {
+    "cityRequired": "Please select your city",
+    "countryRequired": "Please tell us which country you live in",
+    "otherCity": "Other (type your city)",
+    "otherCountry": "Other (type your country)",
+    "city": "City",
+    "searchCity": "Search your city",
+    "yourCity": "Your city",
+    "typeCity": "Type your city",
+    "nriCheckbox": "I'm an NRI / currently living outside India",
+    "nriHint": "Helps us match you with families open to an NRI alliance and show prices in your currency.",
+    "countryLabel": "Country you live in",
+    "searchCountry": "Search your country",
+    "yourCountry": "Your country",
+    "typeCountry": "Type your country",
+    "residencyStatus": "Residency status",
+    "residencyPlaceholder": "e.g. Permanent Resident",
+    "familyBase": "Where is your family based in India?",
+    "familyBasePlaceholder": "e.g. Ludhiana, Punjab",
+    "relocate": "Open to relocating after marriage",
+    "selectAnswer": "Select an answer",
+    "nationality": "Nationality",
+    "nationalityPlaceholder": "e.g. Indian",
+    "infoTitle": "Location-based matching",
+    "infoBody": "We'll show you matches from your city and nearby areas."
+  },
+  "religion": {
+    "otherCaste": "Other (type your own)",
+    "religion": "Religion",
+    "selectReligion": "Select your religion",
+    "caste": "Caste / Community",
+    "searchCaste": "Search or type your community",
+    "yourCommunity": "Your community",
+    "typeCommunity": "Type your community",
+    "subCaste": "Sub-caste",
+    "gotra": "Gotra",
+    "excludeGotra": "Do not show me members with my gotra",
+    "excludeGotraHint": "They will not see you either. It applies to every search, daily matches and suggestions. Members who have not entered a gotra are still shown.",
+    "motherTongue": "Mother Tongue",
+    "searchMotherTongue": "Search your mother tongue",
+    "infoTitle": "Cultural compatibility",
+    "infoBody": "Your religious and cultural background helps us find compatible matches who share your values. Caste is optional."
+  },
+  "horoscope": {
+    "skipTitle": "Not your thing? Skip ahead.",
+    "skipBody": "Kundli isn't everyone's tradition. Skipping won't affect your profile or matches.",
+    "manglik": "Manglik / Mangal Dosha",
+    "selectManglik": "Select Manglik status",
+    "nakshatra": "Nakshatra (Birth star)",
+    "selectNakshatra": "Select Nakshatra",
+    "rashi": "Rashi (Moon sign)",
+    "selectRashi": "Select Rashi",
+    "zodiac": "Zodiac (Sun sign)",
+    "selectZodiac": "Select Zodiac sign",
+    "placeOfBirth": "Place of Birth",
+    "placeOfBirthPlaceholder": "City / town",
+    "timeOfBirth": "Time of Birth",
+    "timeOfBirthHint": "As close as you know, used for Kundli matching.",
+    "infoTitle": "If you do follow it",
+    "infoBody": "These power Ashtakoot / Manglik matching. Fill what you know; add the rest later."
+  },
+  "marital": {
+    "required": "Please select your marital status",
+    "label": "Marital Status",
+    "children": "Number of Children",
+    "infoTitle": "All statuses welcome",
+    "infoBody": "TricityMatch is for everyone. Your marital status helps us find the right matches for you."
+  },
+  "education": {
+    "highest": "Highest Education",
+    "selectLevel": "Select your education level",
+    "degree": "Degree / Course",
+    "degreePlaceholder": "e.g., B.Tech, MBA, MBBS",
+    "profession": "Profession",
+    "searchProfession": "Search your profession",
+    "college": "College / University",
+    "industry": "Industry",
+    "industryPlaceholder": "e.g. Healthcare, Banking",
+    "income": "Annual Income",
+    "selectIncome": "Select income range",
+    "infoTitle": "Education & career",
+    "infoBody": "Your education and career help us find someone with similar professional background and goals."
+  },
+  "family": {
+    "type": "Family Type",
+    "selectType": "Select family type",
+    "status": "Family Status",
+    "selectStatus": "Select family status",
+    "fatherOccupation": "Father's Occupation",
+    "motherOccupation": "Mother's Occupation",
+    "siblings": "Number of Siblings",
+    "values": "Family values",
+    "selectValues": "Select family values",
+    "living": "Where do you live",
+    "selectLiving": "Select living arrangement",
+    "infoTitle": "Family background",
+    "infoBody": "Your family values help us find someone with similar family expectations and beliefs."
+  },
+  "lifestyle": {
+    "skinTone": "Skin Tone",
+    "selectSkinTone": "Select skin tone",
+    "diet": "Diet",
+    "selectDiet": "Select diet preference",
+    "smoking": "Smoking",
+    "selectSmoking": "Select smoking habit",
+    "drinking": "Drinking",
+    "selectDrinking": "Select drinking habit",
+    "infoTitle": "Lifestyle compatibility",
+    "infoBody": "These details help us find someone with a compatible lifestyle and habits."
+  },
+  "about": {
+    "label": "About Yourself",
+    "placeholder": "Tell us about yourself, your values, and what makes you unique... (max 500 characters)",
+    "minChars": "· minimum 20 characters",
+    "noContactHint": "Please leave out phone numbers, emails, links and social handles. Members reach you through TricityMatch, and your number goes only in Settings.",
+    "interests": "Your Interests",
+    "removeInterest": "Remove {{interest}}",
+    "languages": "Languages You Speak",
+    "infoTitle": "A complete profile stands out",
+    "infoBody": "A great bio and interests help matches get to know you and find common ground."
+  },
+  "social": {
+    "intro": "Add your social profiles to look more real and approachable. Optional, you choose who sees each one. These are shown as links only, we never post or read anything.",
+    "spotify": "Spotify playlist",
+    "website": "Website",
+    "handleOrLink": "@handle or profile link",
+    "handle": "@handle",
+    "channelLink": "Channel link",
+    "footer": "Links are shown only to members you have matched with. Set a link to<b> Hidden</b> to keep it just for you. Add profile links only, never a phone number."
+  },
+  "preferences": {
+    "ageRangeError": "Minimum age cannot be greater than maximum age",
+    "ageMin": "Preferred Age (Min)",
+    "ageMax": "Preferred Age (Max)",
+    "mustAge": "Must-have: only show me people in this age range",
+    "education": "Preferred Education",
+    "anyEducation": "Any education level",
+    "mustEducation": "Must-have: this level or higher",
+    "cities": "Preferred Cities",
+    "citiesHint": "Tap all the cities you're open to.",
+    "mustCity": "Must-have: only show me people in these cities",
+    "infoTitle": "Smarter match recommendations",
+    "infoBody": "Preferences guide who we suggest first. Anything you mark as a must-have is a rule: people who do not meet it will not appear in your search (you can switch this off from the search page)."
+  },
+  "photos": {
+    "required": "Please upload a profile photo",
+    "notImage": "Please choose an image file (PNG or JPG)",
+    "tooBig": "File size must be less than 5MB",
+    "label": "Profile Photo",
+    "dropHere": "Drag a photo here, or click to browse",
+    "formats": "PNG, JPG up to 5MB",
+    "previewAlt": "Profile preview",
+    "remove": "Remove photo",
+    "change": "Change photo",
+    "moreLaterTitle": "Add more photos later",
+    "moreLaterBody": "You can add more photos to your gallery after completing the profile. Multiple photos increase your chances of finding a great match."
+  },
+  "verify": {
+    "needMobile": "Please add and verify a mobile number to continue",
+    "needEmail": "Please verify your email to continue",
+    "invalidEmail": "Enter a valid email address",
+    "invalidMobile": "Enter a valid 10-digit mobile number",
+    "addEmailFirst": "Add a email first",
+    "addPhoneFirst": "Add a phone first",
+    "sendFailed": "Failed to send code. Try again.",
+    "invalidCode": "Invalid code. Try again.",
+    "addEmail": "Add a email",
+    "addPhone": "Add a phone",
+    "verified": "Verified",
+    "change": "Change",
+    "updateEmail": "Update email",
+    "updatePhone": "Update phone",
+    "mobilePlaceholder": "10-digit mobile number",
+    "sending": "Sending…",
+    "sendCode": "Send code",
+    "sendCodeToEmail": "Send code to email",
+    "sendCodeToPhone": "Send code to phone",
+    "enterCode": "Enter the {{count}}-digit code sent to <b>{{target}}</b>",
+    "verifying": "Verifying…",
+    "verify": "Verify",
+    "resendIn": "Resend in {{seconds}}s",
+    "resendCode": "Resend code",
+    "emailTitle": "Email verification",
+    "phoneTitle": "Phone verification",
+    "addPhoneNumber": "+ Add a phone number",
+    "trustTitle": "Verification keeps the community real",
+    "trustBody": "A confirmed number keeps out fake accounts and is the one members call once they unlock your contact. The verified badge comes later, from a live selfie."
+  }
+}

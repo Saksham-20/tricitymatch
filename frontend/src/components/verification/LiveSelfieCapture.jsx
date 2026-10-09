@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FiCamera, FiRefreshCw, FiVideo, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 import { fade } from '../../utils/animations';
 import api from '../../api/axios';
@@ -27,12 +28,27 @@ import api from '../../api/axios';
 export const captureHeaders = (file) => (file?.captureToken ? { 'X-Capture-Token': file.captureToken } : {});
 
 export default function LiveSelfieCapture({ file, onChange }) {
+  const { t } = useTranslation();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const sessionRef = useRef(null);
   const [phase, setPhase] = useState('idle'); // idle | starting | live | captured | error
+  // An error is held as a key under `selfie.errors` and translated at render,
+  // so it follows a language switch.
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // The <video> mounts only after the idle panel's exit animation, and
+  // getUserMedia often resolves before that (instantly once permission was
+  // granted before). Attaching only right after getUserMedia then found no
+  // element: black preview, and Capture did nothing. Attach on mount too.
+  const attachVideo = useCallback((el) => {
+    videoRef.current = el;
+    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+      el.srcObject = streamRef.current;
+      el.play().catch(() => {});
+    }
+  }, []);
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -45,7 +61,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
     setError('');
     setPhase('starting');
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Your browser does not support live camera capture. Open TricityMatch on a phone or use a device with a camera.');
+      setError('unsupported');
       setPhase('error');
       return;
     }
@@ -86,12 +102,12 @@ export default function LiveSelfieCapture({ file, onChange }) {
       const timedOut = err?.name === 'TimeoutError';
       setError(
         denied
-          ? 'Camera access was blocked. Allow camera permission in your browser, then try again.'
+          ? 'denied'
           : none
-          ? 'No camera found on this device. Open TricityMatch on a phone to verify.'
+          ? 'noCamera'
           : timedOut
-          ? 'We never got access to your camera. Look for the camera permission prompt in your browser and choose Allow, then try again, or open TricityMatch on your phone.'
-          : 'Could not start the camera. Make sure no other app is using it, then try again.'
+          ? 'timedOut'
+          : 'startFailed'
       );
       setPhase('error');
     }
@@ -110,7 +126,11 @@ export default function LiveSelfieCapture({ file, onChange }) {
 
   const capture = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !video.videoWidth) return;
+    if (!video || !video.videoWidth) {
+      setError('stillStarting');
+      return;
+    }
+    setError('');
     // Center-crop to a square so the framing matches the round preview.
     const side = Math.min(video.videoWidth, video.videoHeight);
     const sx = (video.videoWidth - side) / 2;
@@ -151,7 +171,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
         <div className="relative">
           <img
             src={previewUrl}
-            alt="Captured selfie"
+            alt={t('selfie.capturedAlt')}
             className="w-40 h-40 rounded-2xl object-cover border-2 border-success-100"
           />
           <span className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-success text-white flex items-center justify-center shadow">
@@ -163,7 +183,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
           onClick={retake}
           className="flex items-center gap-1.5 min-h-11 px-2 text-sm font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700"
         >
-          <FiRefreshCw className="w-4 h-4" /> Retake photo
+          <FiRefreshCw className="w-4 h-4" /> {t('selfie.retake')}
         </button>
       </motion.div>
     );
@@ -173,13 +193,13 @@ export default function LiveSelfieCapture({ file, onChange }) {
     content = (
       <motion.div key="error" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-3 px-4 py-8 rounded-2xl border-2 border-dashed border-destructive/30 bg-destructive-light dark:bg-destructive/10 text-center">
         <FiAlertCircle className="w-8 h-8 text-destructive" />
-        <p role="alert" className="text-sm font-medium text-neutral-700 dark:text-neutral-200 max-w-xs">{error}</p>
+        <p role="alert" className="text-sm font-medium text-neutral-700 dark:text-neutral-200 max-w-xs">{t(`selfie.errors.${error}`)}</p>
         <button
           type="button"
           onClick={startCamera}
           className="mt-1 min-h-11 px-5 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors duration-[160ms] active:scale-[0.98]"
         >
-          Try again
+          {t('selfie.tryAgain')}
         </button>
       </motion.div>
     );
@@ -190,7 +210,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
       <motion.div key="live" initial="initial" animate="animate" exit="exit" variants={fade} className="flex flex-col items-center gap-4">
         <div className="relative w-56 h-56 rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200">
           <video
-            ref={videoRef}
+            ref={attachVideo}
             autoPlay
             playsInline
             muted
@@ -199,7 +219,7 @@ export default function LiveSelfieCapture({ file, onChange }) {
           />
           {phase === 'starting' && (
             <div className="absolute inset-0 flex items-center justify-center bg-neutral-900/60 text-white text-sm">
-              Starting camera…
+              {t('selfie.starting')}
             </div>
           )}
           {/* face guide */}
@@ -211,9 +231,11 @@ export default function LiveSelfieCapture({ file, onChange }) {
           disabled={phase !== 'live'}
           className="flex items-center gap-2 px-6 py-2.5 min-h-11 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-60 shadow-sm transition-colors duration-[160ms] active:scale-[0.98]"
         >
-          <FiCamera className="w-4 h-4" /> Capture selfie
+          <FiCamera className="w-4 h-4" /> {t('selfie.capture')}
         </button>
-        <p className="text-xs text-neutral-600 dark:text-neutral-400">Center your face in the circle, good light, look at the camera.</p>
+        {error
+          ? <p role="alert" className="text-xs font-medium text-destructive text-center max-w-xs">{t(`selfie.errors.${error}`)}</p>
+          : <p className="text-xs text-neutral-600 dark:text-neutral-400">{t('selfie.hint')}</p>}
       </motion.div>
     );
 
@@ -231,8 +253,8 @@ export default function LiveSelfieCapture({ file, onChange }) {
         className="w-full flex flex-col items-center gap-2 px-4 py-8 min-h-11 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-primary-400 text-neutral-500 dark:text-neutral-300 transition-colors duration-[160ms] active:scale-[0.99]"
       >
         <FiVideo className="w-8 h-8 text-primary-400" />
-        <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">Start live camera</span>
-        <span className="text-xs text-neutral-600 dark:text-neutral-400">We capture your selfie live. No uploads, so nobody can fake it.</span>
+        <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">{t('selfie.start')}</span>
+        <span className="text-xs text-neutral-600 dark:text-neutral-400">{t('selfie.startHint')}</span>
       </motion.button>
     );
   }

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { track, STAGES } from '../utils/analytics';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useOnboarding, STEPS, OnboardingProvider } from '../context/OnboardingContext';
+import { Trans, useTranslation } from 'react-i18next';
+import { useOnboarding, STEPS, OnboardingProvider, stepTitle, stepDescription } from '../context/OnboardingContext';
 import { useAuth } from '../context/AuthContext';
 import { resolveInvite } from '../api/invite';
 import api from '../api/axios';
@@ -67,6 +68,7 @@ const ModernOnboarding = () => {
 };
 
 const ModernOnboardingContent = () => {
+  const { t } = useTranslation();
   const {
     currentStep,
     nextStep,
@@ -300,12 +302,12 @@ const ModernOnboardingContent = () => {
             ['emailVerification', 'phoneVerification'].forEach((k) => updateFormData(k, false));
             ['emailProof', 'phoneProof'].forEach((k) => updateFormData(k, ''));
             goToStep(0);
-            setSubmitError('Your verification expired. Please verify your email or mobile number again.');
+            setSubmitError(t('onboarding.page.verificationExpired'));
             return;
           }
           // Toast already fired in AuthContext; keep a persistent inline copy
           // next to the CTA so the failure can't be missed.
-          setSubmitError(result.error || 'Could not create your account. Please try again.');
+          setSubmitError(result.error || t('onboarding.page.createAccountFailed'));
           return;
         }
         setAccountCreated(true);
@@ -334,7 +336,7 @@ const ModernOnboardingContent = () => {
         console.error('guardian profile save failed', e.response?.data || e);
         setSubmitError(
           e.response?.data?.error?.message ||
-          'Your account was created, but we could not save all the profile details. Tap Retry: nothing you entered is lost.'
+          t('onboarding.page.guardianSaveFailed')
         );
         return; // keep draft + accountCreated flag; Retry re-runs this PUT only
       }
@@ -394,7 +396,7 @@ const ModernOnboardingContent = () => {
           <div className="mb-8">
             <Logo size="lg" linkTo="/" />
             <p className="text-[11px] text-neutral-400 mt-1.5 uppercase tracking-widest">
-              Chandigarh · Mohali · Panchkula
+              {t('onboarding.page.cities')}
             </p>
           </div>
 
@@ -403,10 +405,10 @@ const ModernOnboardingContent = () => {
                cue: headline, slim segmented bar, two quiet step rows. */
             <div className="flex-1">
               <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-snug mb-1.5">
-                Two steps.<br />About two minutes.
+                {t('onboarding.page.twoStepsLine1')}<br />{t('onboarding.page.twoStepsLine2')}
               </h2>
               <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-7">
-                The rest of your profile can be filled in anytime after.
+                {t('onboarding.page.restLater')}
               </p>
 
               {/* Slim segmented progress */}
@@ -441,9 +443,9 @@ const ModernOnboardingContent = () => {
                       </span>
                       <div>
                         <p className={`text-sm leading-tight ${active ? 'font-semibold text-neutral-900 dark:text-neutral-100' : done ? 'text-neutral-600 dark:text-neutral-300' : 'text-neutral-400'}`}>
-                          {step.title}
+                          {stepTitle(step, t)}
                         </p>
-                        <p className="text-xs text-neutral-400 mt-0.5">{step.description}</p>
+                        <p className="text-xs text-neutral-400 mt-0.5">{stepDescription(step, t)}</p>
                       </div>
                     </li>
                   );
@@ -470,7 +472,7 @@ const ModernOnboardingContent = () => {
                   </span>
                 </div>
                 <div>
-                  <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">Your forever starts here</h2>
+                  <h2 className="font-display text-xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">{t('onboarding.page.foreverStartsHere')}</h2>
                 </div>
               </div>
 
@@ -502,7 +504,7 @@ const ModernOnboardingContent = () => {
                             {done ? <FiCheckCircle className="w-4 h-4" /> : idx + 1}
                           </span>
                           <span className={`text-sm leading-tight ${active ? 'font-semibold text-neutral-900 dark:text-neutral-100' : done ? 'text-neutral-600 dark:text-neutral-300' : 'text-neutral-400'}`}>
-                            {step.title}
+                            {stepTitle(step, t)}
                           </span>
                         </button>
                       </li>
@@ -517,12 +519,12 @@ const ModernOnboardingContent = () => {
           <div className="flex items-center gap-5 text-xs text-neutral-400 mt-6 pt-6 border-t border-neutral-100 dark:border-neutral-800">
             <div className="flex items-center gap-1.5">
               <FiLock className="w-3.5 h-3.5" />
-              <span>SSL Secured</span>
+              <span>{t('onboarding.page.sslSecured')}</span>
             </div>
             <span className="w-px h-3 bg-neutral-200" />
             <div className="flex items-center gap-1.5">
               <FiTrendingUp className="w-3.5 h-3.5" />
-              <span>100% Privacy</span>
+              <span>{t('onboarding.page.privacy')}</span>
             </div>
           </div>
         </div>
@@ -552,9 +554,13 @@ const ModernOnboardingContent = () => {
                 {inviterName.charAt(0).toUpperCase()}
               </span>
               <p className="text-sm text-neutral-800 dark:text-neutral-200">
-                <span className="font-semibold">{inviterName}</span> invited you to TricityMatch
+                <Trans
+                  i18nKey="onboarding.page.invitedBy"
+                  values={{ name: inviterName }}
+                  components={{ b: <span className="font-semibold" /> }}
+                />
                 <span className="block text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-                  Create your profile to see who they think you should meet.
+                  {t('onboarding.page.invitedByHint')}
                 </span>
               </p>
             </motion.div>
@@ -564,18 +570,18 @@ const ModernOnboardingContent = () => {
           <motion.div className="lg:hidden mb-6">
             <div className="flex items-center justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-neutral-900">
-                {visibleSteps[currentStep].title}
+                {stepTitle(visibleSteps[currentStep], t)}
               </p>
               <div className="flex items-center gap-1.5">
                 <p className="text-xs text-neutral-500">
-                  Step {currentStep + 1} of {visibleSteps.length}
+                  {t('onboarding.page.stepOf', { current: currentStep + 1, total: visibleSteps.length })}
                 </p>
                 <button
                   type="button"
                   onClick={handleQuit}
                   className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] -mr-2 hover:bg-neutral-100 rounded-full transition-colors"
-                  title="Exit onboarding"
-                  aria-label="Exit onboarding"
+                  title={t('onboarding.page.exitOnboarding')}
+                  aria-label={t('onboarding.page.exitOnboarding')}
                 >
                   <FiX className="w-5 h-5 text-neutral-500" />
                 </button>
@@ -621,10 +627,10 @@ const ModernOnboardingContent = () => {
                       variants={fadeRise}
                       className="font-display text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3 focus:outline-none"
                     >
-                      {visibleSteps[currentStep].title}
+                      {stepTitle(visibleSteps[currentStep], t)}
                     </motion.h2>
                     <motion.p variants={fadeRise} className="text-neutral-600">
-                      {visibleSteps[currentStep].description}
+                      {stepDescription(visibleSteps[currentStep], t)}
                     </motion.p>
                   </div>
 
@@ -648,7 +654,7 @@ const ModernOnboardingContent = () => {
                   className="flex items-center gap-2"
                 >
                   <FiChevronLeft className="w-5 h-5" />
-                  Back
+                  {t('onboarding.page.back')}
                 </Button>
               )}
 
@@ -658,7 +664,7 @@ const ModernOnboardingContent = () => {
                 disabled={isLoading}
                 className="flex-1 flex items-center justify-center gap-2"
               >
-                {isLoading ? 'Processing...' : currentStep === visibleSteps.length - 1 ? (mode === 'signup' ? 'Create my profile' : 'Complete') : 'Next'}
+                {isLoading ? t('onboarding.page.processing') : currentStep === visibleSteps.length - 1 ? (mode === 'signup' ? t('onboarding.page.createMyProfile') : t('onboarding.page.complete')) : t('onboarding.page.next')}
                 {!isLoading && currentStep !== visibleSteps.length - 1 && <FiChevronRight className="w-5 h-5" />}
               </Button>
             </motion.div>
@@ -676,7 +682,7 @@ const ModernOnboardingContent = () => {
                 onClick={handleComplete}
                 className="text-sm font-semibold text-red-700 dark:text-red-300 underline underline-offset-2 flex-shrink-0"
               >
-                Retry
+                {t('onboarding.page.retry')}
               </button>
             </div>
           )}
@@ -686,9 +692,9 @@ const ModernOnboardingContent = () => {
             {currentStep === 0 ? (
               <div className="space-y-2">
                 <p>
-                  Already have an account?{' '}
+                  {t('onboarding.page.alreadyHaveAccount')}{' '}
                   <Link to="/login" className="font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200">
-                    Sign in
+                    {t('onboarding.page.signIn')}
                   </Link>
                 </p>
                 {/* Mode switch — the guardian ("for someone else") flow is otherwise
@@ -696,16 +702,16 @@ const ModernOnboardingContent = () => {
                     right mode. */}
                 {mode === 'signup' ? (
                   <p className="text-xs text-neutral-500">
-                    Setting up a profile for your son, daughter or sibling?{' '}
+                    {t('onboarding.page.forSomeoneElse')}{' '}
                     <a href="/onboarding?createFor=other" className="font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 underline underline-offset-2">
-                      Create it for them
+                      {t('onboarding.page.createForThem')}
                     </a>
                   </p>
                 ) : (
                   <p className="text-xs text-neutral-500">
-                    Creating your own profile instead?{' '}
+                    {t('onboarding.page.ownProfileInstead')}{' '}
                     <a href="/onboarding" className="font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 underline underline-offset-2">
-                      Switch to a personal profile
+                      {t('onboarding.page.switchToPersonal')}
                     </a>
                   </p>
                 )}
@@ -715,7 +721,7 @@ const ModernOnboardingContent = () => {
                 onClick={handleQuit}
                 className="text-primary-600 dark:text-primary-300 hover:text-primary-700 dark:hover:text-primary-200 font-medium underline"
               >
-                Save & Exit
+                {t('onboarding.page.saveAndExit')}
               </button>
             )}
           </motion.div>
@@ -757,29 +763,28 @@ const ModernOnboardingContent = () => {
                   {fullName}{age ? `, ${age}` : ''}
                 </h3>
                 <span className="inline-block mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 border border-primary-100 text-primary-700 dark:text-primary-300 text-xs font-semibold">
-                  Just joined
+                  {t('onboarding.page.justJoined')}
                 </span>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-4 leading-relaxed">
-                  This is how other members will see you. Add a photo and a few
-                  details to appear in far more searches.
+                  {t('onboarding.page.previewBody')}
                 </p>
                 <div className="mt-6 space-y-2.5">
                   <Button onClick={() => navigate('/profile/edit?section=photos')} className="w-full">
-                    Complete my profile
+                    {t('onboarding.page.completeMyProfile')}
                   </Button>
                   <button
                     type="button"
                     onClick={() => navigate('/dashboard')}
                     className="w-full py-2.5 text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors"
                   >
-                    Explore my dashboard first
+                    {t('onboarding.page.exploreDashboard')}
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate('/profile')}
                     className="w-full py-1.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:underline underline-offset-2 transition-colors"
                   >
-                    Create your biodata: share it on WhatsApp
+                    {t('onboarding.page.createBiodata')}
                   </button>
                 </div>
               </motion.div>
@@ -812,9 +817,9 @@ const ModernOnboardingContent = () => {
               onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-surface-dark-3 rounded-2xl p-6 max-w-sm shadow-2xl focus:outline-none"
             >
-              <h3 id="quit-dialog-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2">Save your progress?</h3>
+              <h3 id="quit-dialog-title" className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t('onboarding.page.quitTitle')}</h3>
               <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-                Your draft is saved. You can continue anytime you're ready.
+                {t('onboarding.page.quitBody')}
               </p>
               <div className="flex gap-3">
                 <Button
@@ -822,10 +827,10 @@ const ModernOnboardingContent = () => {
                   onClick={() => setShowQuitDialog(false)}
                   className="flex-1"
                 >
-                  Continue
+                  {t('onboarding.page.continue')}
                 </Button>
                 <Button onClick={confirmQuit} className="flex-1">
-                  Exit and save
+                  {t('onboarding.page.exitAndSave')}
                 </Button>
               </div>
             </motion.div>

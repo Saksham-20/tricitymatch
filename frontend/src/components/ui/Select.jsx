@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiChevronDown, FiSearch, FiX } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
 const Select = ({
   label,
   options = [],
   value,
   onChange,
-  placeholder = 'Select an option',
+  placeholder,
   error,
   required = false,
   optional = false,
@@ -16,6 +17,7 @@ const Select = ({
   id,
   name,
 }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -138,7 +140,7 @@ const Select = ({
         <label id={labelId} htmlFor={fieldId} className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
           {label}
           {required && <span className="text-destructive ml-1">*</span>}
-          {optional && !required && <span className="ml-1.5 text-xs font-normal text-neutral-400">(optional)</span>}
+          {optional && !required && <span className="ml-1.5 text-xs font-normal text-neutral-400">{t('ui.optional')}</span>}
         </label>
       )}
 
@@ -166,7 +168,7 @@ const Select = ({
         }`}
       >
         <span className={(selectedOption || value) ? 'text-neutral-900 dark:text-neutral-100 font-medium' : 'text-neutral-500 dark:text-neutral-400'}>
-          {selectedOption?.label || (value ? String(value) : placeholder)}
+          {selectedOption?.label || (value ? String(value) : (placeholder ?? t('ui.selectPlaceholder')))}
         </span>
 
         <div className="flex items-center gap-2">
@@ -174,7 +176,7 @@ const Select = ({
             <button
               type="button"
               onClick={handleClear}
-              aria-label={`Clear ${label || 'selection'}`}
+              aria-label={t('ui.clearLabel', { label: label || t('ui.selection') })}
               className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
             >
               <FiX size={18} />
@@ -199,8 +201,8 @@ const Select = ({
                 <input
                   ref={searchInputRef}
                   type="text"
-                  aria-label={`Search ${label || 'options'}`}
-                  placeholder="Search..."
+                  aria-label={t('ui.searchLabel', { label: label || t('ui.options') })}
+                  placeholder={t('ui.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -252,7 +254,7 @@ const Select = ({
               ))
             ) : (
               <div className="px-4 py-8 text-center text-neutral-500 dark:text-neutral-400">
-                No options found
+                {t('ui.noOptions')}
               </div>
             )}
           </div>

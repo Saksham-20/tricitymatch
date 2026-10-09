@@ -1,0 +1,137 @@
+{
+  "title": "Privacy Policy",
+  "lastUpdated": "Last updated: {{date}}",
+  "intro": {
+    "p1": "A matrimonial profile is one of the most personal things a person publishes about themselves — date and place of birth, caste, income, family, photographs. This policy says exactly what we collect, why, who else sees it, how long we keep it, and what you can make us do about it. It applies to tricitymatch.com and to the TricityMatch mobile applications.",
+    "p2": "{{entity}} is the <b>Data Fiduciary</b> for this information under the Digital Personal Data Protection Act, 2023 (\"DPDP Act\"); you are the <b>Data Principal</b>. We also handle your information in line with the Information Technology Act, 2000 and the rules made under it, including the Reasonable Security Practices (SPDI) Rules, 2011 to the extent they remain in force.",
+    "address": "Our address:"
+  },
+  "s1": {
+    "h": "1. What we collect",
+    "i1": "<b>Account details</b> — your email address and/or mobile number, a hashed password, and, if you use Google Sign-In, the basic profile Google returns.",
+    "i2": "<b>Profile information</b> — name, gender, date of birth, height, weight, marital status and number of children, city and state, NRI/residence status, religion, caste, sub-caste and gotra, mother tongue and languages, diet, smoking and drinking habits, education, profession and income range, family details (type, status, parents' occupations, siblings), photographs, voice and video introductions, bio, prompts, interests, personality answers, and your partner preferences.",
+    "i3": "<b>Horoscope details</b> — place of birth, time of birth, manglik status, rashi and nakshatra, where you choose to provide them, used for Ashtakoot and numerology matching.",
+    "i4": "<b>Verification selfie</b> — if you opt into photo verification, a live selfie captured through your device camera (section 9).",
+    "i5": "<b>Activity on the platform</b> — interests you send, shortlists, mutual matches, profiles you have viewed and who has viewed you, contact details you have unlocked, blocks and reports.",
+    "i6": "<b>Messages</b> — the text, voice notes and reactions you exchange with other members, and family-group messages.",
+    "i7": "<b>Calls</b> — if you use in-app voice or video calling, the fact, time and duration of the call. <b>We do not record calls</b> and the audio and video do not pass through our servers in a form we store.",
+    "i8": "<b>Payment records</b> — plan, amount, date, and the payment and order identifiers our payment provider returns. <b>We never receive or store your card, UPI or bank credentials.</b>",
+    "i9": "<b>Guardian and family information</b> — if you invite a guardian, or someone creates a profile for you, the name and contact details needed to link the two accounts.",
+    "i10": "<b>Technical data</b> — IP address, device and browser information, app version, and server logs, used for security, abuse prevention and to keep the Service running. If you enable push notifications we store the device push token.",
+    "i11": "<b>Counters</b> — a small set of anonymous product counters (for example \"an OTP was verified\", \"a profile was completed\") used to see where people get stuck. They carry no message content and no profile content.",
+    "p2": "<b>Sensitive categories.</b> Some of the above — religion, caste and community, horoscope details, your photographs and verification selfie, and financial information — are sensitive. We collect them because matrimonial matching in India cannot work without them, we collect them only with your consent, and every field beyond the minimum needed to register is optional."
+  },
+  "s2": {
+    "h": "2. Why we use it, and on what basis",
+    "intro": "We process your personal data on the basis of the consent you give when you register and when you add each optional detail, and for the \"legitimate uses\" the DPDP Act permits — for example responding to something you ask us for, and complying with a legal obligation. Specifically, we use it:",
+    "i1": "to create and display your profile to other members according to your privacy settings;",
+    "i2": "to find and rank matches for you, and to show your profile in others' searches and match suggestions;",
+    "i3": "to enable interests, messaging and calling between members;",
+    "i4": "to verify accounts, detect fraud and fake profiles, and act on reports and blocks;",
+    "i5": "to take payment, run memberships and unlocks, and issue invoices;",
+    "i6": "to send you service messages — one-time passcodes, security alerts, match and message notifications, and membership notices;",
+    "i7": "to answer your support requests and grievances;",
+    "i8": "to keep the Service secure and working, and to meet our obligations under Indian law.",
+    "p2": "We do not use your data for behavioural advertising, and we do not sell it to anyone."
+  },
+  "s3": {
+    "h": "3. Automated matching",
+    "p1": "Match suggestions, compatibility percentages, Ashtakoot guna scores and numerology readings are generated automatically from the details you and other members provide, and from your stated preferences. Search results are ordered by relevance, and a profile may be ranked higher because the member has an active boost, or lower because it has no photograph.",
+    "p2": "These are suggestions and nothing more. No decision with a legal or similarly significant effect on you is made automatically, and you are free to ignore every one of them. You can change what feeds them at any time by editing your profile and preferences."
+  },
+  "s4": {
+    "h": "4. Who can see your profile",
+    "intro": "Your profile is shown to other logged-in members of TricityMatch, and to a guardian linked to a member. It is not published on the open internet and is not indexed by search engines. In <settingslink>Settings → Privacy</settingslink> you can:",
+    "i1": "set your profile to <b>Everyone</b> or to <b>Matches only</b>;",
+    "i2": "turn off your online status and last-seen time;",
+    "i3": "blur your photographs until you match;",
+    "i4": "hide your phone number and email on your profile;",
+    "i5": "turn on incognito browsing, so you do not appear in others' \"who viewed me\".",
+    "p2": "<b>Your phone number and email are never shown to another member unless they unlock your contact details</b> using a paid allowance, or you share them yourself in chat. A member who unlocks your details is bound by our Terms to use them only for genuine matrimonial contact — but once shared, we cannot take information back out of somebody's phone. Please share carefully."
+  },
+  "s5": {
+    "h": "5. Who we share it with",
+    "intro": "We do not sell personal data and we do not share it for anyone else's marketing. We share it only with processors who work for us, under contract, and only for these purposes:",
+    "i1": "<b>Razorpay</b> — payments, refunds and invoices. Google Play processes some purchases made in the Android app.",
+    "i2": "<b>Cloudinary</b> — hosting your photographs, voice and video intros and voice messages.",
+    "i3": "<b>Our email provider</b> — one-time passcodes, security alerts, match and membership notices.",
+    "i4": "<b>Our SMS provider</b> — one-time passcodes to your mobile number.",
+    "i5": "<b>Firebase Cloud Messaging</b> — push notifications, if you enable them.",
+    "i6": "<b>Agora</b> — carrying in-app voice and video calls, if you use them.",
+    "i7": "<b>Our hosting and monitoring providers</b> — running the servers and database and alerting us to errors.",
+    "i8": "<b>Astrologers</b> you book a consultation with receive the horoscope details needed for that consultation.",
+    "i9": "<b>Legal and safety</b> — courts, police and government agencies where the law requires it, and where it is necessary to protect the rights, property or safety of our members or the public. We cooperate with investigating agencies as the IT Act and the rules made under it direct.",
+    "i10": "<b>A successor</b> — if the business is transferred, your data moves with it under this policy, and we will tell you."
+  },
+  "s6": {
+    "h": "6. Transfers outside India",
+    "p": "Our servers and database are operated by us; some of the processors listed above operate outside India — for example image hosting and email delivery. Where that happens, your data is transferred under contract and only for the purpose stated, as section 16 of the DPDP Act permits, and never to a country the Central Government has restricted."
+  },
+  "s7": {
+    "h": "7. Messages, notifications & your choices",
+    "i1": "<b>Service messages</b> — one-time passcodes, password resets, security alerts, payment receipts and membership expiry notices. These are part of the Service and cannot be switched off while you have an account.",
+    "i2": "<b>Match and activity notifications</b> — new matches, interests, messages, weekly digests and reminders. Push notifications can be turned off in <settingslink>Settings</settingslink> or in your device settings; to stop non-service email such as digests and reminders, write to <privacymail>{{privacyEmail}}</privacymail>.",
+    "i3": "<b>SMS</b> is used only for one-time passcodes, not for marketing."
+  },
+  "s8": {
+    "h": "8. Cookies & on-device storage",
+    "p": "We use httpOnly cookies strictly for authentication (a short-lived access token and a refresh token). We do <b>not</b> use advertising cookies, cross-site trackers, or third-party analytics that profile you. Limited browser and app storage is used to remember on-device preferences such as language, theme, and a draft you have not sent."
+  },
+  "s9": {
+    "h": "9. Your verification selfie",
+    "p": "Photo verification is optional. If you use it, we take a selfie through your device camera; the site and app offer no file-upload option, and our servers only accept a selfie that came from a camera session they started. That cannot prove a photograph was never staged, so a reviewer on our team compares it against your profile photographs and records the outcome and any note they leave. The selfie is <b>never shown to other members</b>, is not used for advertising or training, and is deleted when your account is deleted. You can decline verification and continue using the Service without a verified badge, and you can withdraw your consent by writing to us."
+  },
+  "s10": {
+    "h": "10. Profiles created by a guardian",
+    "p": "Where a parent or relative creates a profile for you, they must have your agreement and must show you this policy. Whether or not you created the profile, it describes you and the data in it is yours: you may write to us at <privacymail>{{privacyEmail}}</privacymail> to see it, correct it, take control of it, or have it deleted, and we will act on your instruction over the guardian's."
+  },
+  "s11": {
+    "h": "11. Success stories",
+    "p": "We publish success stories only from members who submit them and agree to publication, and only after review. Tell us and we will take yours down."
+  },
+  "s12": {
+    "h": "12. Security & what we do if something goes wrong",
+    "p1": "We encrypt traffic in transit (HTTPS), store passwords hashed, hold authentication in httpOnly cookies, rate-limit and lock out repeated login attempts, restrict administrative access by role, keep an audit trail of administrative actions, and validate the files you upload. No system is perfectly secure and we do not claim otherwise.",
+    "p2": "If a personal data breach affects you, we will tell you without delay, in plain language: what happened, what data was involved, what we have done, what you can do, and who to contact. We will report it to the <b>Indian Computer Emergency Response Team (CERT-In) within six hours</b> of becoming aware of it, as its 2022 Directions require, and to the <b>Data Protection Board of India</b> without delay, with a full account within <b>72 hours</b>, as the DPDP Rules require."
+  },
+  "s13": {
+    "h": "13. How long we keep things, and what deletion really does",
+    "intro": "We keep your data while your account is active. You can delete your account yourself at any time from <settingslink>Settings</settingslink> — see <deletelink>how to delete your account</deletelink>. Deletion is real, and this is exactly what it does:",
+    "i1": "<b>Erased</b> — your profile and every field in it, your photographs, voice and video intros, your verification selfie, your matches, shortlists, contact unlocks, profile views, notifications, call records, guardian links, blocks and sessions.",
+    "i2": "<b>Chat messages are deleted 24 months after they are sent</b>, along with voice notes, even if you stay a member. A conversation where either person has an open report is kept until the report is decided.",
+    "i3": "<b>Message text is destroyed</b>, and the empty row is left in place so the other person's conversation does not develop holes.",
+    "i4": "<b>Retained</b> — payment and membership records, because tax and accounting law requires them and because refunds have to be reconcilable; and moderation records where another member has reported you, because a report should not be erasable by the person reported.",
+    "i5": "When you delete your account, your profile, photographs, verification selfie and registration details (email, phone) are <b>erased 30 days after you ask</b>, in one action, unless you cancel first (your profile is hidden from the moment you ask; on the website you can choose to erase immediately instead). We keep payment and invoice records for as long as tax and accounting law requires, and a moderation record where you were reported.",
+    "i6": "Content we have removed on a complaint or an official order, and its associated records, are preserved for <b>180 days</b> for investigation, or longer if a court or agency requires it.",
+    "i7": "Server and security logs are kept for a rolling period as required by the CERT-In Directions, 2022, and then rotate out.",
+    "p2": "Where you withdraw consent for something optional, or an account has been inactive and its purpose is served, we erase the related data unless a law requires us to keep it."
+  },
+  "s14": {
+    "h": "14. Your rights, and how to use them",
+    "intro": "Under the DPDP Act you have the right to:",
+    "i1": "<b>Know</b> what personal data of yours we hold and process, and who we have shared it with;",
+    "i2": "<b>Correct, complete or update</b> it, and <b>erase</b> it where it is no longer needed;",
+    "i3": "<b>Withdraw your consent</b> at any time, as easily as you gave it — by editing or clearing a field, turning a setting off, unsubscribing, or writing to us. Withdrawing consent for something the Service needs (your date of birth, for example) means we can no longer keep your profile, so it is the same as deleting your account;",
+    "i4": "<b>Nominate</b> another person to exercise these rights for you if you die or become unable to act. Write to us with their name and contact details and we will record it;",
+    "i5": "<b>Have your grievance redressed</b> (section 15).",
+    "p2": "Most of this is immediate and in your own hands: edit your profile, change your privacy settings, or delete your account. For anything else, write to <privacymail>{{privacyEmail}}</privacymail> from your registered email address. <b>We respond to rights requests within 30 days.</b> We may need to confirm who you are first — we will not hand your data to somebody claiming to be you.",
+    "p3": "The Act also asks something of you: give us information that is true, do not impersonate anyone, and do not file a false or frivolous complaint."
+  },
+  "s15": {
+    "h": "15. Grievances, and who to go to next",
+    "dataLabel": "Data protection queries and complaints:",
+    "dataRest": ". <b>We acknowledge within 24 hours and resolve within 15 days</b>, and in no case later than 30 days.",
+    "officer": "Grievance Officer",
+    "officerRest": ". For complaints about content, conduct or this policy, under rule 3(2) of the IT Rules, 2021.",
+    "i3": "<b>Everything else:</b> <supportmail>{{supportEmail}}</supportmail> or the <helplink>Help Centre</helplink>.",
+    "i4": "<b>If we do not resolve it:</b> you may complain to the <b>Data Protection Board of India</b> about your personal data, or to the consumer commission having jurisdiction where you live, under the Consumer Protection Act, 2019."
+  },
+  "s16": {
+    "h": "16. Children",
+    "p": "TricityMatch is only for adults of legal marriageable age — 21 and above for men, 18 and above for women. We do not knowingly collect the personal data of a child, we do not process children's data at all, and we do not track or profile children or show them advertising. If you believe a minor has registered, write to <privacymail>{{privacyEmail}}</privacymail> and we will remove the account and the data."
+  },
+  "s17": {
+    "h": "17. Changes to this policy",
+    "p": "We may update this policy. The \"Last updated\" date above always shows when. For a material change we will notify you in the app or by email before it takes effect, and we will remind you of this policy at least once a year."
+  }
+}

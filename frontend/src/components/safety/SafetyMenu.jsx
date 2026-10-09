@@ -12,15 +12,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMoreVertical, FiFlag, FiSlash, FiX, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { reportMember, blockMember } from '../../api/safety';
-import { REPORT_REASONS, URGENT_REASONS } from './reportReasons';
+import { REPORT_REASONS, URGENT_REASONS, reportReasonLabel, reportReasonHint } from './reportReasons';
 import { backdrop, modal, popIn } from '../../utils/animations';
 
 const MAX_DETAILS = 1000;
 
-const failureMessage = (err, fallback) => {
-  if (err?.response?.status === 429) return 'Too many actions in a short time. Wait a minute and try again.';
-  if (!err?.response) return "Couldn't reach the server. Check your connection and try again.";
+const failureMessage = (t, err, fallback) => {
+  if (err?.response?.status === 429) return t('safetyTools.tooMany');
+  if (!err?.response) return t('safetyTools.noConnection');
   return err.response?.data?.error?.message || fallback;
 };
 
@@ -61,6 +62,7 @@ const cardClass =
 // ─── Report dialog ───────────────────────────────────────────────────────────
 
 const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -73,14 +75,14 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
   }, [open]);
 
   const submit = async () => {
-    if (!reason) { setError('Choose what happened.'); return; }
+    if (!reason) { setError(t('safetyTools.chooseReason')); return; }
     setSubmitting(true);
     setError('');
     try {
       await reportMember(userId, reason, details);
       setDone(true);
     } catch (err) {
-      setError(failureMessage(err, "Couldn't send your report. Please try again."));
+      setError(failureMessage(t, err, t('safetyTools.reportFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -106,14 +108,14 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
                   <FiCheck className="h-6 w-6 text-success dark:text-green-400" aria-hidden="true" />
                 </div>
                 <h2 id="report-title" className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                  Report received
+                  {t('safetyTools.reportReceived')}
                 </h2>
                 <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-                  Our team reviews every report. {name} is not told who reported them.
+                  {t('safetyTools.reportReceivedDesc', { name })}
                 </p>
                 {URGENT_REASONS.includes(reason) && (
                   <p className="mt-3 text-sm font-medium text-neutral-800 dark:text-neutral-100">
-                    If you are in immediate danger, call 112.
+                    {t('safetyTools.emergency')}
                   </p>
                 )}
                 <div className="mt-5 flex flex-col gap-2">
@@ -122,14 +124,14 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
                     onClick={onBlockInstead}
                     className="min-h-[44px] rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[160ms]"
                   >
-                    Also block {name}
+                    {t('safetyTools.alsoBlock', { name })}
                   </button>
                   <button
                     type="button"
                     onClick={onClose}
                     className="min-h-[44px] rounded-xl bg-primary-500 text-sm font-semibold text-white hover:bg-primary-600 transition-colors duration-[160ms]"
                   >
-                    Done
+                    {t('safetyTools.done')}
                   </button>
                 </div>
               </div>
@@ -137,23 +139,23 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
               <>
                 <div className="mb-1 flex items-start justify-between gap-3">
                   <h2 id="report-title" className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                    Report {name}
+                    {t('safetyTools.reportName', { name })}
                   </h2>
                   <button
                     type="button"
                     onClick={onClose}
-                    aria-label="Close"
+                    aria-label={t('safetyTools.close')}
                     className="-mr-2 -mt-1 flex h-11 w-11 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                   >
                     <FiX className="h-5 w-5" aria-hidden="true" />
                   </button>
                 </div>
                 <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
-                  What happened? {name} won&apos;t be told you reported them.
+                  {t('safetyTools.whatHappened', { name })}
                 </p>
 
                 <fieldset className="space-y-1.5" disabled={submitting}>
-                  <legend className="sr-only">Reason for the report</legend>
+                  <legend className="sr-only">{t('safetyTools.reasonLegend')}</legend>
                   {REPORT_REASONS.map((r) => (
                     <label
                       key={r.value}
@@ -172,15 +174,15 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
                         className="mt-1 h-4 w-4 accent-primary-500"
                       />
                       <span>
-                        <span className="block text-sm font-medium text-neutral-800 dark:text-neutral-100">{r.label}</span>
-                        {r.hint && <span className="block text-xs text-neutral-500 dark:text-neutral-400">{r.hint}</span>}
+                        <span className="block text-sm font-medium text-neutral-800 dark:text-neutral-100">{reportReasonLabel(t, r)}</span>
+                        {r.hint && <span className="block text-xs text-neutral-500 dark:text-neutral-400">{reportReasonHint(t, r)}</span>}
                       </span>
                     </label>
                   ))}
                 </fieldset>
 
                 <label htmlFor="report-details" className="mt-4 block text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                  Anything else we should know? <span className="font-normal text-neutral-400">(optional)</span>
+                  {t('safetyTools.anythingElse')} <span className="font-normal text-neutral-400">{t('safetyTools.optional')}</span>
                 </label>
                 <textarea
                   id="report-details"
@@ -206,7 +208,7 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
                     disabled={submitting}
                     className="min-h-[44px] flex-1 rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
                   >
-                    Cancel
+                    {t('safetyTools.cancel')}
                   </button>
                   <button
                     type="button"
@@ -214,7 +216,7 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
                     disabled={submitting}
                     className="min-h-[44px] flex-1 rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors duration-[160ms] hover:bg-primary-600 disabled:opacity-60"
                   >
-                    {submitting ? 'Sending…' : 'Send report'}
+                    {submitting ? t('safetyTools.sending') : t('safetyTools.sendReport')}
                   </button>
                 </div>
               </>
@@ -229,6 +231,7 @@ const ReportDialog = ({ open, userId, name, onClose, onBlockInstead }) => {
 // ─── Block dialog ────────────────────────────────────────────────────────────
 
 const BlockDialog = ({ open, userId, name, onClose, onBlocked }) => {
+  const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const dialogRef = useDialogA11y(open, onClose);
@@ -242,11 +245,11 @@ const BlockDialog = ({ open, userId, name, onClose, onBlocked }) => {
     setError('');
     try {
       await blockMember(userId);
-      toast.success(`${name} is blocked`);
+      toast.success(t('safetyTools.blocked', { name }));
       onBlocked?.();
       onClose();
     } catch (err) {
-      setError(failureMessage(err, "Couldn't block this member. Please try again."));
+      setError(failureMessage(t, err, t('safetyTools.blockFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -268,11 +271,10 @@ const BlockDialog = ({ open, userId, name, onClose, onBlocked }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="block-title" className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">
-              Block {name}?
+              {t('safetyTools.blockQuestion', { name })}
             </h2>
             <p id="block-desc" className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-              You will not see each other, and neither of you can message or call the other. Any match between you
-              ends. {name} is not told. You can unblock later from Settings.
+              {t('safetyTools.blockDesc', { name })}
             </p>
             {error && (
               <p role="alert" className="mt-3 flex items-start gap-2 text-sm text-destructive">
@@ -287,7 +289,7 @@ const BlockDialog = ({ open, userId, name, onClose, onBlocked }) => {
                 disabled={submitting}
                 className="min-h-[44px] flex-1 rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
               >
-                Cancel
+                {t('safetyTools.cancel')}
               </button>
               <button
                 type="button"
@@ -295,7 +297,7 @@ const BlockDialog = ({ open, userId, name, onClose, onBlocked }) => {
                 disabled={submitting}
                 className="min-h-[44px] flex-1 rounded-xl bg-primary-600 text-sm font-semibold text-white transition-colors duration-[160ms] hover:bg-primary-700 disabled:opacity-60"
               >
-                {submitting ? 'Blocking…' : 'Block'}
+                {submitting ? t('safetyTools.blocking') : t('safetyTools.block')}
               </button>
             </div>
           </motion.div>
@@ -307,7 +309,9 @@ const BlockDialog = ({ open, userId, name, onClose, onBlocked }) => {
 
 // ─── Menu ────────────────────────────────────────────────────────────────────
 
-const SafetyMenu = ({ userId, name = 'this member', onBlocked, className = '' }) => {
+const SafetyMenu = ({ userId, name: nameProp, onBlocked, className = '' }) => {
+  const { t } = useTranslation();
+  const name = nameProp ?? t('safetyTools.thisMember');
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
@@ -335,7 +339,7 @@ const SafetyMenu = ({ userId, name = 'this member', onBlocked, className = '' })
       <button
         type="button"
         onClick={() => setMenuOpen((v) => !v)}
-        aria-label={`More options for ${name}`}
+        aria-label={t('safetyTools.moreOptions', { name })}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         className="flex h-11 w-11 items-center justify-center rounded-full text-neutral-500 transition-colors duration-[160ms] hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 dark:text-neutral-400 dark:hover:bg-neutral-800"
@@ -348,7 +352,7 @@ const SafetyMenu = ({ userId, name = 'this member', onBlocked, className = '' })
           <motion.div
             {...popIn}
             role="menu"
-            aria-label={`Options for ${name}`}
+            aria-label={t('safetyTools.optionsFor', { name })}
             style={{ transformOrigin: 'top right' }}
             className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-2xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-surface-dark-3"
           >
@@ -358,7 +362,7 @@ const SafetyMenu = ({ userId, name = 'this member', onBlocked, className = '' })
               onClick={() => { setMenuOpen(false); setReportOpen(true); }}
               className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-sm text-neutral-700 transition-colors duration-[160ms] hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
             >
-              <FiFlag className="h-4 w-4" aria-hidden="true" /> Report {name}
+              <FiFlag className="h-4 w-4" aria-hidden="true" /> {t('safetyTools.reportName', { name })}
             </button>
             <button
               type="button"
@@ -366,7 +370,7 @@ const SafetyMenu = ({ userId, name = 'this member', onBlocked, className = '' })
               onClick={() => { setMenuOpen(false); setBlockOpen(true); }}
               className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-sm text-destructive transition-colors duration-[160ms] hover:bg-neutral-50 dark:hover:bg-neutral-800"
             >
-              <FiSlash className="h-4 w-4" aria-hidden="true" /> Block {name}
+              <FiSlash className="h-4 w-4" aria-hidden="true" /> {t('safetyTools.blockName', { name })}
             </button>
           </motion.div>
         )}

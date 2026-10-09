@@ -1,15 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiGlobe } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import Select from '../../ui/Select';
 import FormField from '../../ui/FormField';
 import CheckBox from '../../ui/CheckBox';
-import { CITY_OPTIONS, CITY_VALUES, CITY_OTHER } from '../../../constants/profileOptions';
+import { CITY_OPTIONS, CITY_VALUES, CITY_OTHER, translateOptions } from '../../../constants/profileOptions';
 import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
 const CITY_VALUE_SET = new Set(CITY_VALUES);
-const CITY_SELECT_OPTIONS = [...CITY_OPTIONS, { value: CITY_OTHER, label: 'Other (type your city)' }];
 
 // Common NRI destination countries; free-text "Other" catches the rest.
 const NRI_COUNTRIES = [
@@ -20,10 +20,7 @@ const NRI_COUNTRIES = [
 ];
 const COUNTRY_OTHER = '__other_country__';
 const COUNTRY_SET = new Set(NRI_COUNTRIES);
-const COUNTRY_OPTIONS = [
-  ...NRI_COUNTRIES.map((c) => ({ value: c, label: c })),
-  { value: COUNTRY_OTHER, label: 'Other (type your country)' },
-];
+const COUNTRY_VALUE_OPTIONS = NRI_COUNTRIES.map((c) => ({ value: c, label: c }));
 
 const RESIDENCE_STATUS = ['Citizen', 'Permanent Resident', 'Work Visa', 'Student Visa', 'Other']
   .map((s) => ({ value: s, label: s }));
@@ -35,7 +32,10 @@ const RELOCATE_OPTIONS = [
 ];
 
 const LocationStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
+  const CITY_SELECT_OPTIONS = [...CITY_OPTIONS, { value: CITY_OTHER, label: t('onboarding.location.otherCity') }];
+  const COUNTRY_OPTIONS = [...COUNTRY_VALUE_OPTIONS, { value: COUNTRY_OTHER, label: t('onboarding.location.otherCountry') }];
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
 
@@ -80,10 +80,10 @@ const LocationStep = () => {
   const validateStep = () => {
     const newErrors = {};
     if (!formDataRef.current.city) {
-      newErrors.city = 'Please select your city';
+      newErrors.city = t('onboarding.location.cityRequired');
     }
     if (formDataRef.current.isNri && !formDataRef.current.residenceCountry) {
-      newErrors.residenceCountry = 'Please tell us which country you live in';
+      newErrors.residenceCountry = t('onboarding.location.countryRequired');
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -97,14 +97,14 @@ const LocationStep = () => {
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise}>
         <Select
-          label="City"
+          label={t('onboarding.location.city')}
           options={CITY_SELECT_OPTIONS}
           value={citySelectValue}
           onChange={handleCitySelect}
           error={errors.city}
           searchable
           required
-          placeholder="Search your city"
+          placeholder={t('onboarding.location.searchCity')}
         />
         <AnimatePresence>
           {cityOther && (
@@ -115,8 +115,8 @@ const LocationStep = () => {
               className="mt-3 overflow-hidden"
             >
               <FormField
-                label="Your city"
-                placeholder="Type your city"
+                label={t('onboarding.location.yourCity')}
+                placeholder={t('onboarding.location.typeCity')}
                 value={CITY_VALUE_SET.has(formData.city) ? '' : formData.city}
                 onChange={(value) => updateFormData('city', value)}
               />
@@ -145,11 +145,11 @@ const LocationStep = () => {
               <CheckBox
                 checked={!!formData.isNri}
                 onChange={() => { updateFormData('isNri', !formData.isNri); setTimeout(validateStep, 0); }}
-                label="I'm an NRI / currently living outside India"
+                label={t('onboarding.location.nriCheckbox')}
               />
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              Helps us match you with families open to an NRI alliance and show prices in your currency.
+              {t('onboarding.location.nriHint')}
             </p>
           </div>
         </div>
@@ -165,14 +165,14 @@ const LocationStep = () => {
               <div className="space-y-4 pt-4 mt-4 border-t border-neutral-100">
                 <div>
                   <Select
-                    label="Country you live in"
+                    label={t('onboarding.location.countryLabel')}
                     options={COUNTRY_OPTIONS}
                     value={countrySelectValue}
                     onChange={handleCountrySelect}
                     error={errors.residenceCountry}
                     searchable
                     required
-                    placeholder="Search your country"
+                    placeholder={t('onboarding.location.searchCountry')}
                   />
                   <AnimatePresence>
                     {countryOther && (
@@ -183,8 +183,8 @@ const LocationStep = () => {
                         className="mt-3 overflow-hidden"
                       >
                         <FormField
-                          label="Your country"
-                          placeholder="Type your country"
+                          label={t('onboarding.location.yourCountry')}
+                          placeholder={t('onboarding.location.typeCountry')}
                           value={COUNTRY_SET.has(formData.residenceCountry) ? '' : formData.residenceCountry}
                           onChange={(value) => updateFormData('residenceCountry', value)}
                         />
@@ -194,17 +194,17 @@ const LocationStep = () => {
                 </div>
 
                 <Select
-                  label="Residency status"
+                  label={t('onboarding.location.residencyStatus')}
                   options={RESIDENCE_STATUS}
                   value={formData.residenceStatus}
                   onChange={(value) => updateFormData('residenceStatus', value)}
                   optional
-                  placeholder="e.g. Permanent Resident"
+                  placeholder={t('onboarding.location.residencyPlaceholder')}
                 />
 
                 <FormField
-                  label="Where is your family based in India?"
-                  placeholder="e.g. Ludhiana, Punjab"
+                  label={t('onboarding.location.familyBase')}
+                  placeholder={t('onboarding.location.familyBasePlaceholder')}
                   value={formData.familyLocation}
                   onChange={(value) => updateFormData('familyLocation', value)}
                   optional
@@ -217,19 +217,19 @@ const LocationStep = () => {
 
       <motion.div variants={fadeRise}>
         <Select
-          label="Open to relocating after marriage"
-          options={RELOCATE_OPTIONS}
+          label={t('onboarding.location.relocate')}
+          options={translateOptions('relocate', RELOCATE_OPTIONS, t)}
           value={formData.willingToRelocate}
           onChange={(value) => updateFormData('willingToRelocate', value)}
           optional
-          placeholder="Select an answer"
+          placeholder={t('onboarding.location.selectAnswer')}
         />
       </motion.div>
 
       <motion.div variants={fadeRise}>
         <FormField
-          label="Nationality"
-          placeholder="e.g. Indian"
+          label={t('onboarding.location.nationality')}
+          placeholder={t('onboarding.location.nationalityPlaceholder')}
           value={formData.nationality}
           onChange={(value) => updateFormData('nationality', value)}
           optional
@@ -237,8 +237,8 @@ const LocationStep = () => {
       </motion.div>
 
       <motion.div variants={fadeRise} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 text-sm text-neutral-600">
-        <p className="font-medium text-neutral-800 mb-1">Location-based matching</p>
-        <p>We'll show you matches from your city and nearby areas.</p>
+        <p className="font-medium text-neutral-800 mb-1">{t('onboarding.location.infoTitle')}</p>
+        <p>{t('onboarding.location.infoBody')}</p>
       </motion.div>
     </motion.div>
   );

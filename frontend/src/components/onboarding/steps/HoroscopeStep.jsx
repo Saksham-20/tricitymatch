@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import FormField from '../../ui/FormField';
 import Select from '../../ui/Select';
-import { MANGLIK_OPTIONS, NAKSHATRA_OPTIONS, ZODIAC_OPTIONS, RASHI_OPTIONS } from '../../../constants/profileOptions';
+import { MANGLIK_OPTIONS, NAKSHATRA_OPTIONS, ZODIAC_OPTIONS, RASHI_OPTIONS, translateOptions } from '../../../constants/profileOptions';
 import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animations';
 
 // The Kundli / horoscope form. Every field is optional — many members don't know
@@ -12,54 +13,55 @@ import { staggerContainer, fadeRise, DUR, EASE_OUT } from '../../../utils/animat
 // Nakshatra + birth place/time. (Nakshatra already fixes the Rashi/moon sign, and
 // the Western sun-sign was redundant — both inputs removed to cut depth.)
 const HoroscopeStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData } = useOnboarding();
 
   return (
     <motion.div className="space-y-5" initial="initial" animate="animate" variants={staggerContainer}>
       <motion.div variants={fadeRise} className="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg p-4 text-sm text-neutral-700 dark:text-neutral-200">
-        <p className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">Not your thing? Skip ahead.</p>
-        <p>Kundli isn't everyone's tradition. Skipping won't affect your profile or matches.</p>
+        <p className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">{t('onboarding.horoscope.skipTitle')}</p>
+        <p>{t('onboarding.horoscope.skipBody')}</p>
       </motion.div>
 
       <motion.div variants={fadeRise}>
         <Select
-          label="Manglik / Mangal Dosha"
-          options={MANGLIK_OPTIONS}
+          label={t('onboarding.horoscope.manglik')}
+          options={translateOptions('manglikStatus', MANGLIK_OPTIONS, t)}
           value={formData.manglikStatus}
           onChange={(value) => updateFormData('manglikStatus', value)}
-          placeholder="Select Manglik status"
+          placeholder={t('onboarding.horoscope.selectManglik')}
         />
       </motion.div>
 
       <motion.div variants={fadeRise}>
         <Select
-          label="Nakshatra (Birth star)"
+          label={t('onboarding.horoscope.nakshatra')}
           options={NAKSHATRA_OPTIONS}
           value={formData.nakshatra}
           onChange={(value) => updateFormData('nakshatra', value)}
           searchable
-          placeholder="Select Nakshatra"
+          placeholder={t('onboarding.horoscope.selectNakshatra')}
         />
       </motion.div>
 
       <motion.div variants={fadeRise} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select
-          label="Rashi (Moon sign)"
-          options={RASHI_OPTIONS}
+          label={t('onboarding.horoscope.rashi')}
+          options={translateOptions('rashi', RASHI_OPTIONS, t)}
           value={formData.rashi}
           onChange={(value) => updateFormData('rashi', value)}
           searchable
           optional
-          placeholder="Select Rashi"
+          placeholder={t('onboarding.horoscope.selectRashi')}
         />
         <Select
-          label="Zodiac (Sun sign)"
+          label={t('onboarding.horoscope.zodiac')}
           options={ZODIAC_OPTIONS}
           value={formData.zodiacSign}
           onChange={(value) => updateFormData('zodiacSign', value)}
           searchable
           optional
-          placeholder="Select Zodiac sign"
+          placeholder={t('onboarding.horoscope.selectZodiac')}
         />
       </motion.div>
 
@@ -74,27 +76,27 @@ const HoroscopeStep = () => {
             className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden"
           >
             <FormField
-              label="Place of Birth"
-              placeholder="City / town"
+              label={t('onboarding.horoscope.placeOfBirth')}
+              placeholder={t('onboarding.horoscope.placeOfBirthPlaceholder')}
               value={formData.placeOfBirth}
               onChange={(value) => updateFormData('placeOfBirth', value)}
             />
             <div>
               <FormField
-                label="Time of Birth"
+                label={t('onboarding.horoscope.timeOfBirth')}
                 type="time"
                 value={formData.birthTime}
                 onChange={(value) => updateFormData('birthTime', value)}
               />
-              <p className="text-xs text-neutral-400 mt-1.5">As close as you know, used for Kundli matching.</p>
+              <p className="text-xs text-neutral-400 mt-1.5">{t('onboarding.horoscope.timeOfBirthHint')}</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <motion.div variants={fadeRise} className="bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 text-sm text-neutral-600 dark:text-neutral-300">
-        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">If you do follow it</p>
-        <p>These power Ashtakoot / Manglik matching. Fill what you know; add the rest later.</p>
+        <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">{t('onboarding.horoscope.infoTitle')}</p>
+        <p>{t('onboarding.horoscope.infoBody')}</p>
       </motion.div>
     </motion.div>
   );

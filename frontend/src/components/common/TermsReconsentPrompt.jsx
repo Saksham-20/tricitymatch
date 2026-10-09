@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
@@ -14,6 +15,7 @@ export default function TermsReconsentPrompt() {
   const { user, isAuthenticated, logout } = useAuth();
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   if (!isAuthenticated || !user?.requiresReconsent) return null;
 
@@ -25,11 +27,11 @@ export default function TermsReconsentPrompt() {
     setBusy(true);
     try {
       await api.post('/auth/accept-terms', { termsVersion: user.currentTermsVersion, accepted: true });
-      toast.success('Thank you');
+      toast.success(t('welcome.thankYou'));
       // Everything the page tried to load while blocked came back 403; start clean.
       window.location.reload();
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Could not save your choice. Please try again.');
+      toast.error(err.response?.data?.error?.message || t('welcome.saveChoiceFailed'));
       setBusy(false);
     }
   };
@@ -38,12 +40,12 @@ export default function TermsReconsentPrompt() {
     <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="reconsent-title">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-900 p-6 shadow-xl">
         <h2 id="reconsent-title" className="font-display text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-          {assisted ? 'Welcome to TricityMatch' : 'We have updated our Terms'}
+          {assisted ? t('welcome.welcomeTitle') : t('welcome.updatedTitle')}
         </h2>
         <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
           {assisted
-            ? 'Our team set up this account for you. Before you start, please read the Terms and Privacy Policy and accept them.'
-            : 'Please read the updated Terms and Privacy Policy and accept them to keep using TricityMatch. Your profile and matches are unchanged.'}
+            ? t('welcome.assistedBody')
+            : t('welcome.updatedBody')}
         </p>
         <div className="mt-4">
           <CheckBox
@@ -52,9 +54,13 @@ export default function TermsReconsentPrompt() {
             size="md"
             label={
               <span className="text-sm text-neutral-600 dark:text-neutral-300">
-                I agree to the{assisted ? '' : ' updated'}{' '}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">Terms &amp; Conditions</a>{' '}and{' '}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">Privacy Policy</a>.
+                <Trans
+                  i18nKey={assisted ? 'welcome.agreeAssisted' : 'welcome.agreeUpdated'}
+                  components={{
+                    terms: <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline" />,
+                    privacy: <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline" />,
+                  }}
+                />
               </span>
             }
           />
@@ -65,10 +71,10 @@ export default function TermsReconsentPrompt() {
           onClick={accept}
           className="mt-5 w-full rounded-xl bg-primary-600 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          {busy ? 'Saving…' : 'Accept and continue'}
+          {busy ? t('auth.saving') : t('welcome.acceptContinue')}
         </button>
         <button type="button" onClick={() => logout()} className="mt-4 text-sm text-neutral-500 hover:underline">
-          Sign out
+          {t('auth.signOut')}
         </button>
       </div>
     </div>

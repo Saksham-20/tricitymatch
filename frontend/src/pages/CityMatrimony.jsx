@@ -1,64 +1,55 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { FiArrowRight, FiCamera, FiCheck, FiChevronDown, FiMapPin, FiShield, FiUserCheck } from 'react-icons/fi';
 import Seo from '../components/common/Seo';
-import useFoundingWindow from '../hooks/useFoundingWindow';
-import { CITIES, CITY_SLUGS } from '../data/cityMatrimony';
+import { CITIES, CITY_SLUGS, getCityCopy } from '../data/cityMatrimony';
 
 /**
  * City landing pages (Phase S, F3) — /matrimony/chandigarh|mohali|panchkula.
  *
- * ONE template, three content instances (src/data/cityMatrimony.js). The route
+ * ONE template, three content instances (src/data/cityMatrimony.js, with the
+ * visible copy in i18n/locales/<lng>/cityPages.json). The route
  * names were fixed before they went into the sitemap: an indexed URL that later
  * moves throws away everything it earned.
  *
  * Honesty bar is the landing page's: no member counts, no "browse N profiles",
- * no activity claims. The founding promise is server-gated the same way — the
- * stronger "free premium period" line appears only while the window is open.
+ * no activity claims, and no free-membership offer (the founding offer is off
+ * by choice).
  *
  * Theme: full light/dark parity via `dark:` variants; elder mode needs nothing
  * special (html.elder scales the root font and this page uses relative units).
  */
 
+// Copy for each step lives under cityPages.verify.<id> in the translation files.
 const VERIFY_STEPS = [
-  {
-    icon: FiCamera,
-    title: 'A live selfie, in the app',
-    body: 'The camera opens in the browser and the photo is captured there and then. The flow has no upload option, and our servers only accept a selfie that came from a camera session they started, since an uploaded file can be borrowed or lifted from someone else’s profile.',
-  },
-  {
-    icon: FiUserCheck,
-    title: 'Matched by a person',
-    body: 'A reviewer on our team compares that selfie against the profile photos side by side. No score, no automated pass. A human decides.',
-  },
-  {
-    icon: FiShield,
-    title: 'The badge, and what it means',
-    body: 'Approved profiles carry a verified badge and can be filtered for. It means one specific thing: this person’s photos match their face. We do not stretch it to mean anything else.',
-  },
+  { id: 'live', icon: FiCamera },
+  { id: 'human', icon: FiUserCheck },
+  { id: 'badge', icon: FiShield },
 ];
 
 export default function CityMatrimony() {
+  const { t } = useTranslation();
   const { city: slug } = useParams();
-  const founding = useFoundingWindow();
   const [openFaq, setOpenFaq] = useState(0);
 
-  const city = CITIES[String(slug || '').toLowerCase()];
-  if (!city) return <Navigate to="/" replace />;
+  const meta = CITIES[String(slug || '').toLowerCase()];
+  if (!meta) return <Navigate to="/" replace />;
+  const city = { ...meta, ...getCityCopy(meta.slug, t) };
 
   const path = `/matrimony/${city.slug}`;
 
   return (
     <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
-      <Seo title={city.seoTitle} description={city.seoDescription} path={path} />
+      <Seo title={meta.seoTitle} description={meta.seoDescription} path={path} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         {/* Doctrine ruling 2: zero eyebrows. The location tag that used to sit
             above this heading is dropped — the heading already names the city. */}
         <h1 className="font-display text-4xl sm:text-5xl leading-[1.08] tracking-tight">
-          Matrimony in {city.name},<br />
-          <em className="italic text-primary-700 dark:text-primary-300">built for {city.name}.</em>
+          {t('cityPages.hero.line1', { city: city.name })}<br />
+          <em className="italic text-primary-700 dark:text-primary-300">{t('cityPages.hero.line2', { city: city.name })}</em>
         </h1>
         <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-neutral-700 dark:text-neutral-300">
           {city.lede}
@@ -68,10 +59,10 @@ export default function CityMatrimony() {
             to="/onboarding"
             className="btn-primary inline-flex items-center gap-2 min-h-[48px] text-sm"
           >
-            Create your profile <FiArrowRight aria-hidden="true" />
+            {t('cityPages.cta')} <FiArrowRight aria-hidden="true" />
           </Link>
           <span className="text-sm text-neutral-600 dark:text-neutral-400">
-            Free to join · Verified with a live selfie
+            {t('cityPages.tagline')}
           </span>
         </div>
       </section>
@@ -86,47 +77,39 @@ export default function CityMatrimony() {
       <section className="bg-[#2D1A22] dark:bg-surface-dark-2 text-[#FDF8F2]">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-12">
           <h2 className="font-display text-2xl sm:text-3xl leading-snug max-w-3xl text-[#FDF8F2]">
-            We&apos;re building this one verified {city.name} family at a time
-            {!founding.loading && (
-              <>
-                :{' '}
-                <em className={`italic ${founding.open ? 'text-gold-400' : 'text-[#FDF8F2]'}`}>
-                  {founding.open ? 'founding members join free.' : 'and doing it in the open.'}
-                </em>
-              </>
-            )}
+            <Trans
+              i18nKey="cityPages.founding.heading"
+              values={{ city: city.name }}
+              components={{ em: <em className="italic text-[#FDF8F2]" /> }}
+            />
           </h2>
           <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-[#FDF8F2]/75">
-            No inflated numbers and no borrowed profiles. Everyone here chose to be here, every verified
-            badge was earned with a live selfie, and nobody is matched outside the Tricity.
-            {!founding.loading && (founding.open
-              ? ' Join while the founding period is open and your membership is free until the period ends.'
-              : ' Founding members join free and shape what this becomes.')}
+            {t('cityPages.founding.body')}
           </p>
           <Link
             to="/onboarding"
             className="inline-flex items-center gap-2 min-h-[48px] px-7 rounded-xl bg-[#FDF8F2] text-[#2D1A22] text-sm font-medium mt-7 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white active:scale-[0.97] transition-[background-color,transform] duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FDF8F2]"
           >
-            Create your profile <FiArrowRight aria-hidden="true" />
+            {t('cityPages.cta')} <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
       </section>
 
       {/* ── How verification works ───────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
-        <h2 className="font-display text-2xl sm:text-3xl tracking-tight">How verification works</h2>
+        <h2 className="font-display text-2xl sm:text-3xl tracking-tight">{t('cityPages.verify.heading')}</h2>
         <p className="mt-3 max-w-2xl text-sm sm:text-base text-neutral-600 dark:text-neutral-400">
-          The single thing most worth checking before a family invests time in a match.
+          {t('cityPages.verify.sub')}
         </p>
         <div className="grid gap-5 sm:grid-cols-3 mt-8">
-          {VERIFY_STEPS.map(({ icon: Icon, title, body }) => (
+          {VERIFY_STEPS.map(({ id, icon: Icon }) => (
             <div
-              key={title}
+              key={id}
               className="rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-6"
             >
               <Icon className="w-5 h-5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
-              <h3 className="font-semibold mt-3 text-base">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{body}</p>
+              <h3 className="font-semibold mt-3 text-base">{t(`cityPages.verify.${id}.title`)}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{t(`cityPages.verify.${id}.body`)}</p>
             </div>
           ))}
         </div>
@@ -155,7 +138,7 @@ export default function CityMatrimony() {
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
-          Questions {city.name} families ask
+          {t('cityPages.faqHeading', { city: city.name })}
         </h2>
         <div className="mt-8 divide-y divide-neutral-200 dark:divide-neutral-800 border-t border-b border-neutral-200 dark:border-neutral-800">
           {city.faqs.map((faq, i) => {
@@ -190,21 +173,20 @@ export default function CityMatrimony() {
       <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 md:py-24">
         <div className="rounded-2xl bg-white dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 p-8 sm:p-10 text-center">
           <h2 className="font-display text-2xl sm:text-3xl tracking-tight">
-            Start with a profile your family would stand behind
+            {t('cityPages.closing.heading')}
           </h2>
           <p className="mt-3 text-sm sm:text-base text-neutral-600 dark:text-neutral-400 max-w-xl mx-auto">
-            It takes about two minutes. You choose what is visible, who can message you, and whether
-            your family can see your matches.
+            {t('cityPages.closing.body')}
           </p>
           <Link
             to="/onboarding"
             className="btn-primary inline-flex items-center gap-2 min-h-[48px] mt-7 text-sm"
           >
-            Create your profile <FiArrowRight aria-hidden="true" />
+            {t('cityPages.cta')} <FiArrowRight aria-hidden="true" />
           </Link>
         </div>
 
-        <nav aria-label="Other Tricity cities" className="mt-8 flex flex-wrap justify-center gap-3">
+        <nav aria-label={t('cityPages.otherCities')} className="mt-8 flex flex-wrap justify-center gap-3">
           {CITY_SLUGS.filter((s) => s !== city.slug).map((s) => (
             <Link
               key={s}
@@ -212,7 +194,7 @@ export default function CityMatrimony() {
               className="inline-flex items-center gap-2 min-h-[48px] px-5 rounded-full border border-neutral-300 dark:border-neutral-700 text-sm hover:bg-white dark:hover:bg-surface-dark-3 transition-colors"
             >
               <FiMapPin className="w-3.5 h-3.5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
-              Matrimony in {CITIES[s].name}
+              {t('cityPages.matrimonyIn', { city: t(`cityPages.names.${s}`) })}
             </Link>
           ))}
         </nav>

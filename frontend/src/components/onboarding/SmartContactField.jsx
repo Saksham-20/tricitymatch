@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiMail, FiPhone } from 'react-icons/fi';
 
 /**
@@ -30,7 +31,9 @@ export const phoneDigits = (raw = '') => {
  * Reused on Login via `id`/`label`/`hint` overrides — pass `hint` (string, may be
  * empty) to suppress the signup OTP helper copy.
  */
-const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus, id = 'signup-identifier', label = 'Email or mobile number', hint }) => {
+const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus, id = 'signup-identifier', label, hint }) => {
+  const { t } = useTranslation();
+  const shownLabel = label ?? t('auth.emailOrPhone');
   const type = detectContactType(value);
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
@@ -39,16 +42,16 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
   const resolvedHint = hint !== undefined
     ? hint
     : type === 'phone'
-    ? 'We’ll text a one-time code to this number.'
+    ? t('signup.hintPhone')
     : type === 'email'
-    ? 'We’ll email a one-time code to this address.'
-    : 'Type an email or a 10-digit mobile, we detect which automatically.';
+    ? t('signup.hintEmail')
+    : t('signup.hintDefault');
   const describedBy = error ? errorId : resolvedHint ? hintId : undefined;
 
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        {label} <span className="text-red-500">*</span>
+        {shownLabel} <span className="text-red-500">*</span>
       </label>
       <div
         className={`flex items-center rounded-xl border-2 bg-white dark:bg-neutral-900 transition-colors duration-[160ms] focus-within:ring-2 focus-within:ring-primary-200 ${
@@ -72,7 +75,7 @@ const SmartContactField = ({ value, onChange, onBlur, error, disabled, autoFocus
           autoComplete="username"
           autoFocus={autoFocus}
           disabled={disabled}
-          placeholder="you@example.com or 98765 43210"
+          placeholder={t('signup.identifierPlaceholder')}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}

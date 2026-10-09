@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FiCheck, FiGift } from 'react-icons/fi';
 import api from '../../api/axios';
 
@@ -16,6 +17,7 @@ export default function ReferralCodeField({ value, onChange, id = 'signup-referr
   const [open, setOpen] = useState(Boolean(value));
   const [state, setState] = useState({ status: 'idle' }); // idle|checking|valid|invalid
   const seq = useRef(0);
+  const { t } = useTranslation();
 
   useEffect(() => { if (value) setOpen(true); }, [value]);
 
@@ -46,7 +48,7 @@ export default function ReferralCodeField({ value, onChange, id = 'signup-referr
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 min-h-[44px] text-sm text-primary-700 dark:text-primary-300 hover:text-primary-800 underline underline-offset-2"
       >
-        <FiGift className="w-4 h-4" aria-hidden="true" /> Have a referral code?
+        <FiGift className="w-4 h-4" aria-hidden="true" /> {t('signup.haveReferral')}
       </button>
     );
   }
@@ -54,7 +56,7 @@ export default function ReferralCodeField({ value, onChange, id = 'signup-referr
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-        Referral code <span className="font-normal text-neutral-500 dark:text-neutral-400">(optional)</span>
+        {t('signup.referralLabel')} <span className="font-normal text-neutral-500 dark:text-neutral-400">{t('signup.optional')}</span>
       </label>
       <input
         id={id}
@@ -62,7 +64,7 @@ export default function ReferralCodeField({ value, onChange, id = 'signup-referr
         name="referralCode"
         autoComplete="off"
         autoCapitalize="characters"
-        placeholder="Enter referral code"
+        placeholder={t('signup.referralPlaceholder')}
         maxLength={32}
         value={value || ''}
         onChange={(e) => onChange(e.target.value.toUpperCase().replace(/\s/g, ''))}
@@ -71,17 +73,22 @@ export default function ReferralCodeField({ value, onChange, id = 'signup-referr
         className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-surface-dark-3 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 uppercase tracking-wider text-base"
       />
       <p id={`${id}-status`} aria-live="polite" className="text-sm mt-1.5 min-h-[20px]">
-        {state.status === 'checking' && <span className="text-neutral-500 dark:text-neutral-400">Checking…</span>}
+        {state.status === 'checking' && <span className="text-neutral-500 dark:text-neutral-400">{t('signup.checking')}</span>}
         {state.status === 'valid' && (
           <span className="inline-flex items-center gap-1.5 text-success">
             <FiCheck className="w-4 h-4" aria-hidden="true" />
-            Code applied{state.referrerName ? ` from ${state.referrerName}` : ''}
-            {state.discountPaise > 0 ? `. ${inr(state.discountPaise)} off your first plan.` : '.'}
+            {state.discountPaise > 0
+              ? (state.referrerName
+                ? t('signup.codeAppliedFromDiscount', { name: state.referrerName, amount: inr(state.discountPaise) })
+                : t('signup.codeAppliedDiscount', { amount: inr(state.discountPaise) }))
+              : (state.referrerName
+                ? t('signup.codeAppliedFrom', { name: state.referrerName })
+                : t('signup.codeApplied'))}
           </span>
         )}
         {state.status === 'invalid' && (
           <span className="text-neutral-600 dark:text-neutral-300">
-            We couldn’t find that code. Check it, or continue without one.
+            {t('signup.codeNotFound')}
           </span>
         )}
       </p>

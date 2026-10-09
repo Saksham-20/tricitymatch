@@ -1,11 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useOnboarding } from '../../../context/OnboardingContext';
 import { FiUpload, FiX, FiImage } from 'react-icons/fi';
 import PhotoGuide from '../../profile/PhotoGuide';
 import { staggerContainer, fadeRise, popIn } from '../../../utils/animations';
 
 const PhotosStep = () => {
+  const { t } = useTranslation();
   const { formData, updateFormData, errors, setStepErrors, registerStepValidator } = useOnboarding();
   const fileInputRef = useRef(null);
   // Signup and guardian onboarding only: the profile editor uses PhotoManager,
@@ -20,7 +22,7 @@ const PhotosStep = () => {
   const validateStep = () => {
     const newErrors = {};
     if (!formDataRef.current.profilePhoto) {
-      newErrors.profilePhoto = 'Please upload a profile photo';
+      newErrors.profilePhoto = t('onboarding.photos.required');
     }
     setStepErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -36,11 +38,11 @@ const PhotosStep = () => {
     if (!file) return;
     // Drop bypasses the input's accept filter, so re-check the type here.
     if (!file.type.startsWith('image/')) {
-      setStepErrors({ profilePhoto: 'Please choose an image file (PNG or JPG)' });
+      setStepErrors({ profilePhoto: t('onboarding.photos.notImage') });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setStepErrors({ profilePhoto: 'File size must be less than 5MB' });
+      setStepErrors({ profilePhoto: t('onboarding.photos.tooBig') });
       return;
     }
     const reader = new FileReader();
@@ -73,7 +75,7 @@ const PhotosStep = () => {
       {/* Profile Photo Upload */}
       <motion.div variants={fadeRise}>
         <label className="block text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-3">
-          Profile Photo {<span className="text-destructive ml-1">*</span>}
+          {t('onboarding.photos.label')} {<span className="text-destructive ml-1">*</span>}
         </label>
 
         {!imagePreview ? (
@@ -95,8 +97,8 @@ const PhotosStep = () => {
               <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                 <FiUpload className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
-              <p className="font-medium text-neutral-900 dark:text-neutral-100">Drag a photo here, or click to browse</p>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">PNG, JPG up to 5MB</p>
+              <p className="font-medium text-neutral-900 dark:text-neutral-100">{t('onboarding.photos.dropHere')}</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('onboarding.photos.formats')}</p>
             </div>
           </button>
         ) : (
@@ -104,13 +106,13 @@ const PhotosStep = () => {
             <div className="relative w-full aspect-square max-w-xs mx-auto rounded-lg overflow-hidden">
               <img
                 src={imagePreview}
-                alt="Profile preview"
+                alt={t('onboarding.photos.previewAlt')}
                 className="w-full h-full object-cover"
               />
               <button
                 type="button"
                 onClick={removePhoto}
-                aria-label="Remove photo"
+                aria-label={t('onboarding.photos.remove')}
                 className="absolute top-2 right-2 min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors"
               >
                 <FiX size={20} />
@@ -121,7 +123,7 @@ const PhotosStep = () => {
               onClick={() => fileInputRef.current?.click()}
               className="mt-4 w-full min-h-[2.75rem] py-2 text-primary-600 font-medium hover:text-primary-700"
             >
-              Change photo
+              {t('onboarding.photos.change')}
             </button>
           </motion.div>
         )}
@@ -145,8 +147,8 @@ const PhotosStep = () => {
         <div className="flex gap-3">
           <FiImage className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-neutral-600 dark:text-neutral-300">
-            <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">Add more photos later</p>
-            <p>You can add more photos to your gallery after completing the profile. Multiple photos increase your chances of finding a great match.</p>
+            <p className="font-medium text-neutral-800 dark:text-neutral-100 mb-1">{t('onboarding.photos.moreLaterTitle')}</p>
+            <p>{t('onboarding.photos.moreLaterBody')}</p>
           </div>
         </div>
       </motion.div>

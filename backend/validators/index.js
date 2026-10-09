@@ -668,8 +668,8 @@ const updateUserStatusValidation = [
 
 // Accounts an admin creates on someone's behalf were validated by nothing: the
 // controllers only checked the fields were present, so "a" was an acceptable
-// password for a member AND for an admin. Members get the signup rule; staff
-// accounts (whose compromise is far worse) also need 12 characters.
+// password for a member AND for an admin. Every account, member or staff, gets
+// the one signup rule (utils/passwordPolicy: 8+ with mixed character types).
 const strongPassword = (minLength) => passwordField('password', { minLength });
 
 // An assisted signup is a real member: gender and date of birth are theirs to
@@ -686,7 +686,7 @@ const adminCreateUserValidation = [
 
 const adminCreateAdminValidation = [
   body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
-  strongPassword(12),
+  strongPassword(8),
 ];
 
 // Marketing staff see leads' contact details and commission figures, so they get
@@ -694,7 +694,7 @@ const adminCreateAdminValidation = [
 // same canonical email as every other account.
 const adminCreateMarketingUserValidation = [
   body('email').isEmail().withMessage('Please provide a valid email').customSanitizer(canonicalEmail),
-  strongPassword(12),
+  strongPassword(8),
   body('firstName').isString().trim().isLength({ min: 1, max: 50 }).withMessage('firstName is required'),
   body('lastName').isString().trim().isLength({ min: 1, max: 50 }).withMessage('lastName is required'),
   body('role').optional().isIn(['marketing', 'marketing_manager']).withMessage('role must be marketing or marketing_manager'),

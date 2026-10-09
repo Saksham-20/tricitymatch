@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation, Trans } from 'react-i18next';
 import api from '../api/axios';
 import { FiMail, FiArrowLeft, FiCheck, FiShield, FiHeart } from 'react-icons/fi';
 import { fadeInUp, staggerContainer, fade, popIn } from '../utils/animations';
@@ -14,10 +15,11 @@ const ForgotPassword = () => {
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { t } = useTranslation();
 
   const validate = () => {
-    if (!email.trim()) return 'Enter your email to get a reset link';
-    if (!validateEmail(email.trim())) return 'Enter a valid email address';
+    if (!email.trim()) return t('passwordReset.enterEmailForLink');
+    if (!validateEmail(email.trim())) return t('validation.enterValidEmail');
     return '';
   };
 
@@ -34,7 +36,7 @@ const ForgotPassword = () => {
       await api.post('/auth/forgot-password', { email });
       setSubmitted(true);
     } catch (error) {
-      setApiError(error.response?.data?.error?.message || error.response?.data?.message || 'Could not send the reset email. Try again.');
+      setApiError(error.response?.data?.error?.message || error.response?.data?.message || t('passwordReset.sendEmailFailed'));
     } finally {
       setLoading(false);
     }
@@ -59,16 +61,16 @@ const ForgotPassword = () => {
           <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
             <div>
               <Logo variant="white" size="lg" linkTo="/" />
-              <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">Chandigarh · Mohali · Panchkula</p>
+              <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">{t('navbar.region')}</p>
             </div>
             <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-              <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">Back in<br />minutes.</h2>
-              <p className="text-white/60 text-base leading-relaxed">Check your inbox. We've sent a secure link to reset your password.</p>
+              <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white"><Trans i18nKey="passwordReset.sentRailHeadline" components={{ br: <br /> }} /></h2>
+              <p className="text-white/60 text-base leading-relaxed">{t('passwordReset.sentRailBody')}</p>
             </motion.div>
             <div className="flex items-center gap-5 text-xs text-white/40">
-              <div className="flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5" /><span>SSL Secured</span></div>
+              <div className="flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5" /><span>{t('auth.sslSecured')}</span></div>
               <span className="w-px h-3 bg-white/20" />
-              <div className="flex items-center gap-1.5"><FiHeart className="w-3.5 h-3.5" /><span>100% Privacy</span></div>
+              <div className="flex items-center gap-1.5"><FiHeart className="w-3.5 h-3.5" /><span>{t('auth.privacy100')}</span></div>
             </div>
           </div>
         </div>
@@ -81,34 +83,34 @@ const ForgotPassword = () => {
                 className="w-16 h-16 rounded-full bg-success-light dark:bg-success/15 flex items-center justify-center mx-auto mb-5">
                 <FiCheck className="w-8 h-8 text-success dark:text-green-400" />
               </motion.div>
-              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">Check your email</h2>
+              <h2 className="font-display text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-3">{t('auth.checkEmail')}</h2>
               <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6 leading-relaxed">
-                If an account with <strong className="text-neutral-700 dark:text-neutral-300">{email}</strong> exists, we've sent a reset link. Check your inbox and spam folder.
+                <Trans i18nKey="passwordReset.sentBody" values={{ email }} components={{ b: <strong className="text-neutral-700 dark:text-neutral-300" /> }} />
               </p>
               {/* Most members signed up with their mobile number, and a reset link
                   is only ever mailed to an address that was verified. Without this
                   they waited for a mail that was never going to come. */}
               <div className="text-left rounded-2xl bg-neutral-100 dark:bg-neutral-800/60 p-4 mb-6 space-y-2">
-                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">No email after a few minutes?</p>
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{t('passwordReset.noEmailTitle')}</p>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                  If you signed up with your mobile number, your email isn&apos;t verified yet, so we can&apos;t send a link to it from here.{' '}
-                  <Link to="/forgot-password/phone" className="font-semibold text-primary-600 dark:text-primary-300 underline underline-offset-2 hover:text-primary-700">
-                    Reset with your mobile number and email
-                  </Link>
+                  <Trans
+                    i18nKey="passwordReset.mobileSignupNote"
+                    components={{ anchor: <Link to="/forgot-password/phone" className="font-semibold text-primary-600 dark:text-primary-300 underline underline-offset-2 hover:text-primary-700" /> }}
+                  />
                 </p>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                  Signed up with Google? There is no password to reset. Choose <strong className="text-neutral-700 dark:text-neutral-300">Sign in with Google</strong> on the login page.
+                  <Trans i18nKey="passwordReset.googleNote" components={{ b: <strong className="text-neutral-700 dark:text-neutral-300" /> }} />
                 </p>
               </div>
               <Link to="/login" className="btn-primary inline-flex items-center gap-2">
-                <FiArrowLeft className="w-4 h-4" /> Back to login
+                <FiArrowLeft className="w-4 h-4" /> {t('auth.backToLogin')}
               </Link>
               <button
                 type="button"
                 onClick={() => setSubmitted(false)}
                 className="block mx-auto mt-4 text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-300 font-medium transition-colors"
               >
-                Wrong email? Use a different one
+                {t('passwordReset.wrongEmail')}
               </button>
             </div>
           </motion.div>
@@ -135,21 +137,21 @@ const ForgotPassword = () => {
         <div className="relative z-10 flex flex-col justify-between w-full p-14 text-white">
           <div>
             <Logo variant="white" size="lg" linkTo="/" />
-            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">Chandigarh · Mohali · Panchkula</p>
+            <p className="text-xs text-white/40 mt-1 uppercase tracking-widest">{t('navbar.region')}</p>
           </div>
 
           <motion.div initial="initial" animate="animate" variants={fadeInUp} className="max-w-sm">
-            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white">Reset your<br />access.</h2>
+            <h2 className="font-display text-5xl font-bold leading-tight mb-5 text-white"><Trans i18nKey="passwordReset.railHeadline" components={{ br: <br /> }} /></h2>
             <p className="text-white/60 text-base leading-relaxed">
-              Enter your email and we'll send a secure link. You'll be back in under two minutes.
+              {t('passwordReset.railBody')}
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               {[
-                { n: '2 min', l: 'To Reset' },
-                { n: '100%', l: 'Secure' },
-                { n: '1 hr', l: 'Link Valid' },
-              ].map(({ n, l }) => (
-                <div key={l} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
+                { k: 'time', n: t('passwordReset.pill2min'), l: t('passwordReset.pillToReset') },
+                { k: 'secure', n: t('passwordReset.pill100'), l: t('passwordReset.pillSecure') },
+                { k: 'valid', n: t('passwordReset.pill1hr'), l: t('passwordReset.pillLinkValid') },
+              ].map(({ k, n, l }) => (
+                <div key={k} className="flex flex-col px-4 py-2.5 rounded-xl bg-white/6 border border-white/10">
                   <span className="text-lg font-bold text-white leading-none">{n}</span>
                   <span className="text-[11px] text-white/50 mt-0.5">{l}</span>
                 </div>
@@ -158,9 +160,9 @@ const ForgotPassword = () => {
           </motion.div>
 
           <div className="flex items-center gap-5 text-xs text-white/40">
-            <div className="flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5" /><span>SSL Secured</span></div>
+            <div className="flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5" /><span>{t('auth.sslSecured')}</span></div>
             <span className="w-px h-3 bg-white/20" />
-            <div className="flex items-center gap-1.5"><FiHeart className="w-3.5 h-3.5" /><span>100% Privacy</span></div>
+            <div className="flex items-center gap-1.5"><FiHeart className="w-3.5 h-3.5" /><span>{t('auth.privacy100')}</span></div>
           </div>
         </div>
       </div>
@@ -173,8 +175,8 @@ const ForgotPassword = () => {
           </motion.div>
 
           <motion.div variants={fadeInUp} className="text-center mb-8">
-            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">Forgot password?</h1>
-            <p className="text-neutral-500 dark:text-neutral-400">We'll email you a secure reset link</p>
+            <h1 className="text-3xl font-display font-bold text-neutral-800 dark:text-neutral-100 mb-2">{t('auth.forgotPassword')}</h1>
+            <p className="text-neutral-500 dark:text-neutral-400">{t('passwordReset.subtitle')}</p>
           </motion.div>
 
           <motion.form variants={fadeInUp} onSubmit={handleSubmit} noValidate className="card dark:bg-surface-dark-3 dark:border-neutral-800 space-y-5">
@@ -186,7 +188,7 @@ const ForgotPassword = () => {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-                Email address
+                {t('passwordReset.emailAddress')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -220,16 +222,16 @@ const ForgotPassword = () => {
               className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {loading ? (
-                <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending…</>
-              ) : 'Send reset link'}
+                <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('auth.sending')}</>
+              ) : t('passwordReset.sendResetLink')}
             </button>
 
             <div className="text-center space-y-2">
               <Link to="/forgot-password/phone" className="block text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-300 font-medium transition-colors">
-                Signed up with your mobile number? Reset here
+                {t('passwordReset.mobileSignupLink')}
               </Link>
               <Link to="/login" className="text-sm text-primary-500 dark:text-primary-300 hover:text-primary-600 dark:hover:text-primary-200 font-medium inline-flex items-center gap-1 transition-colors">
-                <FiArrowLeft className="w-4 h-4" /> Back to login
+                <FiArrowLeft className="w-4 h-4" /> {t('auth.backToLogin')}
               </Link>
             </div>
           </motion.form>

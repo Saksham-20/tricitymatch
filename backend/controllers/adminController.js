@@ -34,6 +34,7 @@ const { isSystemReview } = require('../utils/underageFlag');
 const { generateInvoicePDF } = require('../utils/invoice');
 const { hardDeleteUsers, MAX_BATCH } = require('../utils/hardDeleteUsers');
 const { marriageableAgeProblem } = require('../constants/marriageableAge');
+const { findContactInText } = require('../utils/contactInText');
 const { ASSISTED_SIGNUP_TERMS } = require('../constants/legal');
 const { invoiceBlocker } = require('../utils/invoiceEligibility');
 const { recordRefund } = require('../utils/paymentRefunds');
@@ -80,7 +81,9 @@ const attachActivePlans = async (users) => {
   const byUser = new Map();
   for (const sub of active) if (!byUser.has(sub.userId)) byUser.set(sub.userId, sub);
   for (const user of users) {
-    const sub = byUser.get(user.id) || null;
+    // An erased account keeps its Subscription rows as financial records, but
+    // it holds no plan: listing it as "Founding · Active" misreports the member.
+    const sub = user.status === 'deleted' ? null : (byUser.get(user.id) || null);
     user.dataValues.activeSubscription = sub;
     user.dataValues.activePlan = sub ? sub.planType : 'free';
   }
@@ -441,7 +444,7 @@ exports.changeMemberIdentity = asyncHandler(async (req, res) => {
   if (gender !== undefined && !['male', 'female', 'other'].includes(gender)) {
     throw createError.badRequest('Invalid gender');
   }
-  const problem = marriageableAgeProblem(nextGender, nextDob);
+  const problem = marriageableAgeProblem(nextGender, nextDob, new Date(), { who: 'The member' });
   if (problem) throw createError.badRequest(problem);
 
   if (gender !== undefined) profile.gender = gender;
@@ -676,7 +679,7 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     sequelize.query(
       // generate_series + LEFT JOIN so a day with no signups is a 0 point, not a
       // missing one (the chart used to join the gaps and overstate the trend).
-      `SELECT TO_CHAR(d.day, 'MM/DD') AS date, COUNT(u.id)::int AS count
+      `SELECT TO_CHAR(d.day, 'FMDD Mon') AS date, COUNT(u.id)::int AS count
        FROM generate_series((:thirtyDaysAgo)::date, CURRENT_DATE, interval '1 day') AS d(day)
        LEFT JOIN "Users" u ON u."createdAt"::date = d.day::date AND u.role = 'user'
        GROUP BY d.day
@@ -908,7 +911,7 @@ exports.createUser = asyncHandler(async (req, res) => {
     throw createError.badRequest('email, password, firstName, and lastName are required');
   }
   if (!['male', 'female'].includes(gender)) throw createError.badRequest('Choose the member\'s gender');
-  const ageProblem = dateOfBirth ? marriageableAgeProblem(gender, dateOfBirth) : 'Enter the member\'s date of birth';
+  const ageProblem = dateOfBirth ? marriageableAgeProblem(gender, dateOfBirth, new Date(), { who: 'The member' }) : 'Enter the member\'s date of birth';
   if (ageProblem) throw createError.badRequest(ageProblem);
 
   // Validate status to only allowed values (never allow 'banned' on creation)
@@ -2359,8 +2362,8 @@ exports.resetMarketingUserPassword = asyncHandler(async (req, res) => {
   if (!user || !['marketing', 'marketing_manager'].includes(user.role)) {
     throw createError.notFound('Marketing user not found');
   }
-  // Staff accounts hold the 12-character floor, same as when they were created.
-  const problem = passwordProblem(req.body?.password, { minLength: 12 });
+  // Same rule as every other password (utils/passwordPolicy).
+  const problem = passwordProblem(req.body?.password);
   if (problem) throw createError.badRequest(problem);
 
   user.password = req.body.password;
@@ -2757,6 +2760,14 @@ const sanitizeStoryInput = (body) => {
   return out;
 };
 
+// Published stories are public pages, so staff entries follow the same rule as
+// member submissions: no phone numbers, emails, links or handles in the text.
+const assertStoryHasNoContact = (data) => {
+  if (['coupleNames', 'quote', 'location', 'tag'].some((k) => typeof data[k] === 'string' && findContactInText(data[k]))) {
+    throw createError.badRequest('Take out phone numbers, email addresses, links and handles. Stories are published on the website for everyone to read.', 'CONTACT_IN_TEXT');
+  }
+};
+
 // @route   POST /api/v1/admin/success-stories
 // @desc    Create a success story (defaults to draft)
 // @access  Admin
@@ -2765,6 +2776,7 @@ exports.createSuccessStory = asyncHandler(async (req, res) => {
   if (!data.coupleNames || !data.quote) {
     throw createError.badRequest('coupleNames and quote are required');
   }
+  assertStoryHasNoContact(data);
   const story = await SuccessStory.create(data);
   logAudit('success_story_created', req.user.id, { storyId: story.id });
   res.status(201).json({ success: true, story });
@@ -2777,7 +2789,9 @@ exports.updateSuccessStory = asyncHandler(async (req, res) => {
   const story = await SuccessStory.findByPk(req.params.id);
   if (!story) throw createError.notFound('Story not found');
   const previous = story.status;
-  await story.update(sanitizeStoryInput(req.body));
+  const data = sanitizeStoryInput(req.body);
+  assertStoryHasNoContact(data);
+  await story.update(data);
   logAudit('success_story_updated', req.user.id, { storyId: story.id, previousStatus: previous, status: story.status });
   res.json({ success: true, story });
 });

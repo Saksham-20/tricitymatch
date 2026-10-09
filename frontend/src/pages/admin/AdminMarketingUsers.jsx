@@ -112,6 +112,7 @@ export default function AdminMarketingUsers() {
         email: res.data.user?.email || formData.email,
         password: formData.password,
         firstName: formData.firstName,
+        manager: formData.role === 'marketing_manager',
         welcomeEmailSent: Boolean(res.data.welcomeEmailSent),
       });
       setCopiedDetails(false);
@@ -147,7 +148,7 @@ export default function AdminMarketingUsers() {
   };
 
   const signInMessage = (c) => [
-    `Hi ${c.firstName}, your TricityMatch partner account is ready.`,
+    `Hi ${c.firstName}, your TricityMatch ${c.manager ? 'marketing manager' : 'partner'} account is ready.`,
     '',
     `Sign in: ${window.location.origin}/login`,
     `Email: ${c.email}`,
@@ -236,7 +237,7 @@ export default function AdminMarketingUsers() {
         </div>
       </div>
 
-      {canPayouts && <CommissionSettingsCard />}
+      {canPayouts && <CommissionSettingsCard onSaved={fetchUsers} />}
 
       {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
       {success && <div className="bg-green-100 text-green-700 p-4 rounded-lg mb-4">{success}</div>}
@@ -488,8 +489,8 @@ export default function AdminMarketingUsers() {
                   <input
                     id="mu-password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="12+ characters, upper, lower, number, symbol"
-                    minLength={12}
+                    placeholder="8+ characters, upper, lower, number, symbol"
+                    minLength={8}
                     autoComplete="new-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -551,8 +552,8 @@ export default function AdminMarketingUsers() {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full border px-3 py-2 rounded"
                 >
-                  <option value="marketing">Marketing</option>
-                  <option value="marketing_manager">Marketing Manager (also sees the whole team's numbers)</option>
+                  <option value="marketing">Partner</option>
+                  <option value="marketing_manager">Manager (also sees the whole team's numbers)</option>
                 </select>
               </div>
               <div className="flex gap-2">
@@ -581,7 +582,7 @@ export default function AdminMarketingUsers() {
             aria-labelledby="created-mu-title"
           >
             <div className="flex items-start justify-between gap-3 mb-2">
-              <h2 id="created-mu-title" className="text-xl font-bold">Partner account created</h2>
+              <h2 id="created-mu-title" className="text-xl font-bold">{created.manager ? 'Manager account created' : 'Partner account created'}</h2>
               <button
                 type="button"
                 onClick={() => setCreated(null)}
