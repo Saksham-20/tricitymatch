@@ -7,6 +7,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { resolvePrefs, validatePrefsUpdate } = require('../utils/notificationPrefs');
+const { unreadNotificationCount, pushUnreadCounts } = require('../utils/unreadCounts');
 
 // @route   GET /api/notifications
 // @desc    Get notifications for current user (paginated)
@@ -23,9 +24,7 @@ exports.getNotifications = asyncHandler(async (req, res) => {
     offset,
   });
 
-  const unreadCount = await Notification.count({
-    where: { userId: req.user.id, isRead: false },
-  });
+  const unreadCount = await unreadNotificationCount(req.user.id);
 
   res.json({
     success: true,
@@ -41,12 +40,12 @@ exports.getNotifications = asyncHandler(async (req, res) => {
 });
 
 // @route   GET /api/notifications/unread-count
-// @desc    Get unread notification count (lightweight)
+// @desc    Get unread notification count (lightweight). The web app gets this
+//          pushed over the socket (utils/unreadCounts) and polls only as a
+//          safety net; shipped mobile builds still poll it.
 // @access  Private
 exports.getUnreadCount = asyncHandler(async (req, res) => {
-  const count = await Notification.count({
-    where: { userId: req.user.id, isRead: false },
-  });
+  const count = await unreadNotificationCount(req.user.id);
   res.json({ success: true, count });
 });
 
@@ -62,6 +61,8 @@ exports.markRead = asyncHandler(async (req, res) => {
 
   notification.isRead = true;
   await notification.save();
+  // The member's other open tabs drop their badge too.
+  pushUnreadCounts(req.user.id, 'notifications');
 
   res.json({ success: true, notification });
 });
@@ -74,6 +75,7 @@ exports.markAllRead = asyncHandler(async (req, res) => {
     { isRead: true },
     { where: { userId: req.user.id, isRead: false } }
   );
+  pushUnreadCounts(req.user.id, 'notifications');
   res.json({ success: true, message: 'All notifications marked as read' });
 });
 
@@ -86,6 +88,7 @@ exports.deleteNotification = asyncHandler(async (req, res) => {
   });
 
   if (!deleted) throw createError.notFound('Notification not found');
+  pushUnreadCounts(req.user.id, 'notifications');
 
   res.json({ success: true, message: 'Notification deleted' });
 });

@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { FiHome, FiSearch, FiMessageCircle, FiUser } from 'react-icons/fi';
 import api from '../../api/axios';
+import { useSocket } from '../../context/SocketContext';
+
+// The server pushes the unread-message count on this socket event (backend
+// utils/unreadCounts); polling is only the fallback, hence the slow interval.
+const UNREAD_COUNTS_EVENT = 'unread:counts';
+const UNREAD_FALLBACK_POLL_MS = 3 * 60 * 1000;
 
 const NAV_ITEMS = [
   { path: '/dashboard',  labelKey: 'navbar.dashboard', icon: FiHome          },
@@ -21,21 +27,57 @@ const BottomNav = ({ unreadCount: unreadCountProp = 0 }) => {
   // notification count, so a like lit up "Messages" with a 1 and tapping it led
   // to an empty inbox. The interval is torn down when the member signs out and
   // the nav unmounts. An explicit prop still wins if a parent ever supplies one.
+  const { socket } = useSocket();
   const [fetchedCount, setFetchedCount] = useState(0);
+  // Bumped on every socket push, so a REST answer that was already in flight
+  // when the push landed (and may be older than it) is dropped.
+  const pushSeqRef = useRef(0);
+  const connectedOnceRef = useRef(false);
+
+  const fetchCount = useCallback(() => {
+    const seq = pushSeqRef.current;
+    api.get('/chat/unread-count')
+      .then((r) => { if (seq === pushSeqRef.current) setFetchedCount(r.data?.count || 0); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
-    const fetchCount = () => {
-      api.get('/chat/unread-count')
-        .then((r) => setFetchedCount(r.data?.count || 0))
-        .catch(() => {});
-    };
     fetchCount();
-    const interval = setInterval(fetchCount, 30000);
+    // The server pushes the count over the socket when it changes (below);
+    // this slow poll only heals a push that was missed.
+    const interval = setInterval(fetchCount, UNREAD_FALLBACK_POLL_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchCount(); };
     window.addEventListener('tm:chat-read', fetchCount);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       clearInterval(interval);
       window.removeEventListener('tm:chat-read', fetchCount);
+      document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [fetchCount]);
+
+  // Live count from the server (backend utils/unreadCounts).
+  useEffect(() => {
+    if (!socket) return undefined;
+    const onCounts = (payload) => {
+      if (typeof payload?.chat !== 'number') return;
+      pushSeqRef.current += 1;
+      setFetchedCount(payload.chat);
+    };
+    // A reconnect, or a replacement socket, may have missed pushes. The very
+    // first connect is already covered by the fetch on mount.
+    if (socket.connected) connectedOnceRef.current = true;
+    const onConnect = () => {
+      if (connectedOnceRef.current) fetchCount();
+      connectedOnceRef.current = true;
+    };
+    socket.on(UNREAD_COUNTS_EVENT, onCounts);
+    socket.on('connect', onConnect);
+    return () => {
+      socket.off(UNREAD_COUNTS_EVENT, onCounts);
+      socket.off('connect', onConnect);
+    };
+  }, [socket, fetchCount]);
   const unreadCount = unreadCountProp || fetchedCount;
 
   return (

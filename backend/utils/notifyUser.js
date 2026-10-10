@@ -17,6 +17,7 @@ const { getIO } = require('./socket');
 const { log } = require('../middlewares/logger');
 const { sendPushNotification } = require('./fcm');
 const { isEnabled } = require('./notificationPrefs');
+const { pushUnreadCounts } = require('./unreadCounts');
 
 const notify = async (userId, type, title, body, relatedId = null, opts = {}) => {
   try {
@@ -40,6 +41,8 @@ const notify = async (userId, type, title, body, relatedId = null, opts = {}) =>
         createdAt: notification.createdAt,
       });
     }
+    // Every open tab's bell badge follows, without polling.
+    pushUnreadCounts(userId, 'notifications');
 
     // Send FCM push notification (non-blocking, best-effort)
     setImmediate(async () => {

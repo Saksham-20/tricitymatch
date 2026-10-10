@@ -23,6 +23,7 @@ const { keepMessageIfReported } = require('../utils/evidencePreservation');
 const { getIO } = require('../utils/socket');
 const { incr: cacheIncr } = require('../utils/cache');
 const { isEnabled: notificationEnabled } = require('../utils/notificationPrefs');
+const { unreadMessageCount, pushUnreadCounts } = require('../utils/unreadCounts');
 
 // D2: the standard include for returning a message to clients — sender card
 // plus a minimal quote of the replied-to message (null once that message is
@@ -171,20 +172,8 @@ const verifyMutualMatch = async (userId1, userId2, transaction = null) => {
 // @access  Private. Not behind the chat gate: a member whose plan lapsed still
 //          deserves to know someone wrote to them.
 exports.getUnreadMessageCount = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
-  const blocked = [...(await blockedIdsFor(userId))];
-  const count = await Message.count({
-    where: {
-      receiverId: userId,
-      isRead: false,
-      // Same people the conversation list shows: active members only (a staff
-      // account or a banned member's thread is not listed, so it is not counted).
-      senderId: {
-        [Op.in]: sequelize.literal(ACTIVE_MEMBERS_SQL),
-        ...(blocked.length ? { [Op.notIn]: blocked } : {}),
-      },
-    },
-  });
+  // One definition, shared with the socket push (utils/unreadCounts).
+  const count = await unreadMessageCount(req.user.id);
   res.json({ success: true, count });
 });
 
@@ -398,7 +387,7 @@ exports.getMessages = asyncHandler(async (req, res) => {
 
   // Mark messages as read (batch update)
   const now = new Date();
-  await Message.update(
+  const markedRead = await Message.update(
     { isRead: true, readAt: now, deliveredAt: sequelize.literal('COALESCE("deliveredAt", NOW())') },
     {
       where: {
@@ -408,6 +397,7 @@ exports.getMessages = asyncHandler(async (req, res) => {
       }
     }
   );
+  if (markedRead && markedRead[0]) pushUnreadCounts(currentUserId, 'chat');
 
   res.json({
     success: true,
@@ -570,6 +560,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   emitToConversation(req, senderId, receiverId, [
     ['message:new', { message: messageWithSender }]
   ]);
+  pushUnreadCounts(receiverId, 'chat');
 
   // Email notification (non-blocking; no content preview).
   notifyReceiverByEmail(senderId, receiverId);
@@ -699,6 +690,7 @@ exports.deleteMessage = asyncHandler(async (req, res) => {
   emitToConversation(req, userId, receiverId, [
     ['message:deleted', { messageId: deletedMessageId }]
   ]);
+  if (!message.isRead) pushUnreadCounts(receiverId, 'chat');
 
   res.json({
     success: true,
@@ -768,6 +760,7 @@ exports.sendVoiceMessage = asyncHandler(async (req, res) => {
   emitToConversation(req, senderId, receiverId, [
     ['message:new', { message: messageWithSender }]
   ]);
+  pushUnreadCounts(receiverId, 'chat');
 
   // A voice note from a paid member to a free one opens the same reply window as
   // text (without it the free recipient could not even open the conversation to

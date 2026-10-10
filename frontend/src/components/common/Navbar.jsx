@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { popIn, backdrop, DUR, EASE_DRAWER } from '../../utils/animations';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import Logo from './Logo';
 import NotificationBell from '../notifications/NotificationBell';
 import { NOTIFICATIONS_CHANGED } from '../notifications/notificationMeta';
@@ -137,6 +138,11 @@ const ProfileDropdown = ({ user, onLogout }) => {
 };
 
 // ─── Navbar ──────────────────────────────────
+// The server pushes badge numbers on this socket event (backend
+// utils/unreadCounts); polling is only the fallback, hence the slow interval.
+const UNREAD_COUNTS_EVENT = 'unread:counts';
+const UNREAD_FALLBACK_POLL_MS = 3 * 60 * 1000;
+
 const Navbar = () => {
   const { t } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
@@ -150,22 +156,32 @@ const Navbar = () => {
   // re-applied from localStorage on every page load — not just on Settings,
   // where the hook used to be the only mount point (elder silently off elsewhere).
   useElderMode();
+  const { socket } = useSocket();
   const [unreadCount, setUnreadCount] = useState(0);
+  // Bumped on every socket push, so a REST answer that was already in flight
+  // when the push landed (and may be older than it) is dropped.
+  const pushSeqRef = useRef(0);
+  const connectedOnceRef = useRef(false);
+
+  const fetchCount = useCallback(() => {
+    const seq = pushSeqRef.current;
+    api.get('/notifications/unread-count')
+      .then(r => { if (seq === pushSeqRef.current) setUnreadCount(r.data?.count || 0); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
       // On logout the badge must drop back to 0 immediately — otherwise the
       // stale count lingers until a full reload.
       setUnreadCount(0);
-      return;
+      connectedOnceRef.current = false;
+      return undefined;
     }
-    const fetchCount = () => {
-      api.get('/notifications/unread-count')
-        .then(r => setUnreadCount(r.data?.count || 0))
-        .catch(() => {});
-    };
     fetchCount();
-    const interval = setInterval(fetchCount, 30000);
+    // The server pushes the count over the socket when it changes (below);
+    // this slow poll only heals a push that was missed.
+    const interval = setInterval(fetchCount, UNREAD_FALLBACK_POLL_MS);
     // Reading or clearing notifications anywhere updates the badge at once,
     // and coming back to the tab picks up what arrived meanwhile.
     const onVisible = () => { if (document.visibilityState === 'visible') fetchCount(); };
@@ -176,7 +192,30 @@ const Navbar = () => {
       window.removeEventListener(NOTIFICATIONS_CHANGED, fetchCount);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchCount]);
+
+  // Live count from the server (backend utils/unreadCounts).
+  useEffect(() => {
+    if (!isAuthenticated || !socket) return undefined;
+    const onCounts = (payload) => {
+      if (typeof payload?.notifications !== 'number') return;
+      pushSeqRef.current += 1;
+      setUnreadCount(payload.notifications);
+    };
+    // A reconnect, or a replacement socket, may have missed pushes. The very
+    // first connect is already covered by the fetch on sign-in.
+    if (socket.connected) connectedOnceRef.current = true;
+    const onConnect = () => {
+      if (connectedOnceRef.current) fetchCount();
+      connectedOnceRef.current = true;
+    };
+    socket.on(UNREAD_COUNTS_EVENT, onCounts);
+    socket.on('connect', onConnect);
+    return () => {
+      socket.off(UNREAD_COUNTS_EVENT, onCounts);
+      socket.off('connect', onConnect);
+    };
+  }, [isAuthenticated, socket, fetchCount]);
 
   // framer-motion's scroll tracker (doctrine §8: no raw scroll listeners)
   // instead of a hand-rolled window scroll handler.

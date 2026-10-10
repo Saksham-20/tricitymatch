@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 const mockAuth = { isAuthenticated: true, user: null, logout: vi.fn() };
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => mockAuth }));
+vi.mock('../../context/SocketContext', () => ({ useSocket: () => ({ socket: null }) }));
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(() => Promise.resolve({ data: { count: 0 } })) },
 }));
