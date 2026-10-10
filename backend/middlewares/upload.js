@@ -275,6 +275,21 @@ const videoIntroStorage = config.cloudinary.isConfigured()
         type: 'authenticated', // private media: see utils/privateMedia
         resource_type: 'video',
         allowed_formats: ['mp4', 'mov', 'webm'],
+        // Re-encode on upload and store only the result. Intros are served as a
+        // signed download of the stored file, so an untouched 25 MB phone video
+        // cost 25 MB of Cloudinary bandwidth on EVERY view. 720p H.264/AAC MP4,
+        // trimmed to 60 s (the UI asks for ~30 s): a 45 s 1080p test clip went
+        // from 19.5 MB to 1.2 MB, and MP4 plays everywhere (WebM did not on iOS).
+        transformation: [{
+          duration: 60,
+          width: 720,
+          height: 720,
+          crop: 'limit',
+          quality: 'auto',
+          video_codec: 'h264',
+          audio_codec: 'aac',
+        }],
+        format: 'mp4',
       },
     })
   : multer.diskStorage({

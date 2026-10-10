@@ -1,7 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const bcrypt = require('bcryptjs');
-const config = require('../config/env');
+const { hashPassword, verifyPassword } = require('../utils/passwordHash');
 
 const User = sequelize.define('User', {
   id: {
@@ -231,7 +230,7 @@ const User = sequelize.define('User', {
         throw new Error('An email address or phone number is required');
       }
       if (user.password) {
-        user.password = await bcrypt.hash(user.password, config.auth.bcryptRounds);
+        user.password = await hashPassword(user.password);
       }
     },
     beforeUpdate: async (user) => {
@@ -240,16 +239,16 @@ const User = sequelize.define('User', {
       }
       // A null password (Google-only account) is stored as null, never hashed.
       if (user.changed('password') && user.password) {
-        user.password = await bcrypt.hash(user.password, config.auth.bcryptRounds);
+        user.password = await hashPassword(user.password);
       }
     }
   }
 });
 
 User.prototype.comparePassword = async function(candidatePassword) {
-  // Google-only members have no hash; bcrypt.compare would throw a 500.
+  // Google-only members have no hash; comparing against null would throw a 500.
   if (!this.password || typeof candidatePassword !== 'string') return false;
-  return await bcrypt.compare(candidatePassword, this.password);
+  return await verifyPassword(candidatePassword, this.password);
 };
 
 // Override toJSON to exclude sensitive fields from API responses

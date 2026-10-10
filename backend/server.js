@@ -26,6 +26,8 @@ const {
   extractIp
 } = require('./middlewares/security');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
+const { createLoadShedder } = require('./middlewares/loadShed');
+const { implementationName } = require('./utils/passwordHash');
 const logger = require('./middlewares/logger');
 
 const { redactUrl } = require('./middlewares/logger');
@@ -117,6 +119,15 @@ app.use((req, res, next) => {
   }
   return strictCors(req, res, next);
 });
+
+// Overload guard (middlewares/loadShed.js). Off unless LOAD_SHED_LAG_MS is set;
+// sits after CORS so a browser can read the 503, before any body parsing so a
+// refused request costs next to nothing.
+if (config.server.loadShedLagMs > 0) {
+  const shedder = createLoadShedder({ thresholdMs: config.server.loadShedLagMs });
+  shedder.start();
+  app.use(shedder.middleware);
+}
 
 // Cookie parser with secret
 app.use(cookieParser(config.security.cookieSecret));
@@ -417,6 +428,11 @@ const startServer = async () => {
 ║  Monitoring:  /monitoring/health, /monitoring/metrics      ║
 ╚════════════════════════════════════════════════════════════╝
       `);
+      logger.log.info('Capacity settings', {
+        passwordHashing: implementationName(),
+        loadShedLagMs: config.server.loadShedLagMs || 'off',
+        dbPoolAcquireMs: config.database.pool.acquire,
+      });
     });
   } catch (error) {
     console.error('✗ Unable to start server:', error);

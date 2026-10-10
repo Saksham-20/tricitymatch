@@ -113,6 +113,9 @@ const config = {
     port: requiredNumber('PORT', 5001),
     frontendUrl: requiredString('FRONTEND_URL', 'http://localhost:3000'),
     apiVersion: 'v1',
+    // Mean event-loop delay (ms) that, held for two seconds, makes the API answer
+    // 503 instead of queueing. 0 = off. See middlewares/loadShed.js.
+    loadShedLagMs: optionalNumber('LOAD_SHED_LAG_MS', 0),
   },
 
   // Database
@@ -127,7 +130,10 @@ const config = {
     pool: {
       max: optionalNumber('DB_POOL_MAX', 30),
       min: optionalNumber('DB_POOL_MIN', 5),
-      acquire: optionalNumber('DB_POOL_ACQUIRE', 60000),
+      // How long a request waits for a free connection before failing. 60 s let an
+      // overload pile up silently behind a full pool; 10 s fails fast enough for
+      // the client to show an error and retry.
+      acquire: optionalNumber('DB_POOL_ACQUIRE', 10000),
       idle: optionalNumber('DB_POOL_IDLE', 5000),
       evictionRunIntervalMillis: optionalNumber('DB_POOL_EVICTION_INTERVAL', 10000),
     },
@@ -145,6 +151,10 @@ const config = {
     refreshTokenExpiry: optionalString('REFRESH_TOKEN_EXPIRY', '7d'),
     resetTokenExpiry: optionalString('RESET_TOKEN_EXPIRY', '1h'),
     bcryptRounds: optionalNumber('BCRYPT_ROUNDS', 12),
+    // Native bcrypt hashes on the libuv threadpool instead of the event loop and
+    // is 2-3x faster than bcryptjs. Off until it has been soaked on prod; when on
+    // and the addon cannot load, utils/passwordHash.js falls back to bcryptjs.
+    nativeBcrypt: optionalBoolean('BCRYPT_NATIVE', false),
     maxLoginAttempts: optionalNumber('MAX_LOGIN_ATTEMPTS', 5),
     lockoutDuration: optionalNumber('LOCKOUT_DURATION_MINUTES', 10),
   },

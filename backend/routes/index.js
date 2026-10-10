@@ -24,9 +24,10 @@ const { recordClientEvent } = require('../controllers/analyticsController');
 const { contactLimiter, analyticsLimiter } = require('../middlewares/security');
 const { contactValidation, successStoryValidation, appealValidation } = require('../validators');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
+const { publicCache } = require('../middlewares/publicCache');
 
 // Public success stories (no auth) — social proof for the marketing site
-router.get('/success-stories', getPublicSuccessStories);
+router.get('/success-stories', publicCache(60), getPublicSuccessStories);
 // Public success-story submission (no auth, rate-limited) — lands as a draft for admin review
 router.post('/success-stories', contactLimiter, successStoryValidation, handleValidationErrors, submitSuccessStory);
 

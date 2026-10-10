@@ -275,9 +275,9 @@ const findUserByEmail = async (email, options = {}) => {
 // Spend the same work on the miss branches against a throwaway hash.
 let dummyHash = null;
 const burnPasswordCheck = async (candidate) => {
-  const bcrypt = require('bcryptjs');
-  if (!dummyHash) dummyHash = await bcrypt.hash('timing-equaliser-not-a-password', config.auth.bcryptRounds);
-  await bcrypt.compare(typeof candidate === 'string' ? candidate : '', dummyHash);
+  const { hashPassword, verifyPassword } = require('../utils/passwordHash');
+  if (!dummyHash) dummyHash = await hashPassword('timing-equaliser-not-a-password');
+  await verifyPassword(typeof candidate === 'string' ? candidate : '', dummyHash);
 };
 
 /**

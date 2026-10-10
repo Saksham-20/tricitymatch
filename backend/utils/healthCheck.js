@@ -3,6 +3,7 @@
  * Comprehensive health monitoring for production readiness
  */
 
+const v8 = require('v8');
 const sequelize = require('../config/database');
 const config = require('../config/env');
 
@@ -97,9 +98,13 @@ const checkMemory = () => {
   const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);
   const heapTotalMB = Math.round(usage.heapTotal / 1024 / 1024);
   const rssMB = Math.round(usage.rss / 1024 / 1024);
-  const heapUsagePercent = Math.round((usage.heapUsed / usage.heapTotal) * 100);
+  // Against the heap LIMIT, not heapTotal: heapTotal is the heap V8 has grown to
+  // so far and sits just above heapUsed on a quiet process, which reported an
+  // idle 60 MB server as 94% "unhealthy".
+  const heapLimit = v8.getHeapStatistics().heap_size_limit;
+  const heapUsagePercent = Math.round((usage.heapUsed / heapLimit) * 100);
 
-  // Consider unhealthy if heap usage > 90%
+  // Consider unhealthy if heap usage > 90% of the limit
   const status = heapUsagePercent > 90 
     ? STATUS.UNHEALTHY 
     : heapUsagePercent > 75 
@@ -110,6 +115,7 @@ const checkMemory = () => {
     status,
     heapUsed: `${heapUsedMB}MB`,
     heapTotal: `${heapTotalMB}MB`,
+    heapLimit: `${Math.round(heapLimit / 1024 / 1024)}MB`,
     rss: `${rssMB}MB`,
     heapUsagePercent: `${heapUsagePercent}%`,
     external: `${Math.round(usage.external / 1024 / 1024)}MB`

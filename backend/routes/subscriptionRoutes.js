@@ -26,6 +26,7 @@ const {
 const { auth, requirePremium } = require('../middlewares/auth');
 const { handleValidationErrors, createError } = require('../middlewares/errorHandler');
 const { createRateLimiter } = require('../middlewares/security');
+const { publicCache } = require('../middlewares/publicCache');
 const { createOrderValidation, verifyPaymentValidation } = require('../validators');
 const { body: evBody } = require('express-validator');
 const { UNLOCK_BUNDLES } = require('../utils/razorpay');
@@ -54,7 +55,11 @@ const confirmLimiter = createRateLimiter({
 // ==================== PUBLIC ROUTES ====================
 
 // Get available plans (public)
-router.get('/plans', getPlans);
+// Public and the same for everyone, so it can be cached for a minute (browser +
+// Cloudflare cache rule). An Admin -> Pricing & Offers edit, or the offer ending,
+// therefore reaches visitors up to ~60 s late. Checkout prices are resolved on
+// the server at create-order time, so nobody is charged a stale price.
+router.get('/plans', publicCache(60), getPlans);
 
 // Webhook for Razorpay (public, but verified)
 router.post('/webhook', (req, res, next) => {

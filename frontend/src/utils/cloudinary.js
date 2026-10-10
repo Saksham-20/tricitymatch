@@ -63,28 +63,13 @@ export const getFullSizeUrl = (url) => {
 };
 
 /**
- * Get a gallery thumbnail URL (200x200) for gallery grids
- * @param {string} url - The original URL
- * @returns {string} - The transformed URL
+ * Gallery grids and small avatars reuse the 150px thumbnail. Every distinct
+ * size is another stored copy and another resize billed by Cloudinary, and the
+ * browser can only reuse a download when the URL matches; the 150px image is
+ * still sharp at 50px on a 3x screen.
  */
-export const getGalleryThumbnailUrl = (url) => {
-  if (!isCloudinaryUrl(url)) {
-    return url;
-  }
-  return getTransformedUrl(url, 'w_200,h_200,c_fill,g_face,f_auto,q_auto');
-};
-
-/**
- * Get avatar URL (50x50) for small circular avatars
- * @param {string} url - The original URL
- * @returns {string} - The transformed URL
- */
-export const getAvatarUrl = (url) => {
-  if (!isCloudinaryUrl(url)) {
-    return url;
-  }
-  return getTransformedUrl(url, 'w_50,h_50,c_thumb,g_face,f_auto,q_auto');
-};
+export const getGalleryThumbnailUrl = getThumbnailUrl;
+export const getAvatarUrl = getThumbnailUrl;
 
 /**
  * Get the proper image URL based on whether it's a Cloudinary URL or local URL
