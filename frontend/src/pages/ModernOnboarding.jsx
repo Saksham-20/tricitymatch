@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { resolveInvite } from '../api/invite';
 import api from '../api/axios';
 import { buildProfileFormData } from '../utils/profileSubmit';
+import { buildSignupPayload, hasSignupCredentials } from '../utils/signupPayload';
 import { calculateAge } from '../utils/validators';
 import Logo from '../components/common/Logo';
 import Progress from '../components/ui/Progress';
@@ -279,30 +280,30 @@ const ModernOnboardingContent = () => {
 
       // ── 1. Create the account (skipped on Retry once it already exists) ──
       if (!accountCreated) {
-        const signupData = { ...formData };
-        // The raw token, not the resolved name: the server re-validates it at
-        // signup time (the inviter may have been deleted since the page loaded),
-        // and sends it even when the kicker never rendered — a token that failed
-        // to RESOLVE (rate limit, transient 500) may still be perfectly valid.
-        if (inviteParam) signupData.invite = inviteParam;
-        // What the member actually ticked, stated in the request itself. The server
-        // rejects a signup that does not assert termsAccepted.
-        signupData.termsAccepted = !!formData.account_agree;
-        signupData.marketingConsent = !!formData.account_marketing;
-        signupData.subjectAttestation = !!formData.account_attest;
-        if (signupData.phone) signupData.phone = String(signupData.phone).replace(/[\s-]/g, '');
-        if (!signupData.email) delete signupData.email; // phone-only signup
+        // Send the member back to verify again: clear the stale "verified"
+        // flags (the page would otherwise hide the code panel, leaving no way to
+        // resend) and reopen the first step.
+        const restartVerification = () => {
+          ['emailVerification', 'phoneVerification'].forEach((k) => updateFormData(k, false));
+          ['emailProof', 'phoneProof'].forEach((k) => updateFormData(k, ''));
+          setStepDirection(-1);
+          goToStep(0);
+          setSubmitError(t('onboarding.page.verificationExpired'));
+        };
+        // The password and the verification proof are never kept in the saved
+        // draft. Without them the server answers "Password is required", which
+        // this page cannot fix on step 2, so ask for them again first.
+        if (mode === 'signup' && !hasSignupCredentials(formData)) {
+          restartVerification();
+          return;
+        }
+        const signupData = buildSignupPayload(formData, { mode, invite: inviteParam });
         const result = await signup(signupData);
         if (!result.success) {
           // The 30-minute proof of the verified contact lapsed while they filled
-          // in the rest. The page still showed the contact as verified and hid
-          // the code panel, leaving no way to resend: clear the stale flags and
-          // send them back to the first step to verify again.
-          if (mode === 'signup' && /verify your email or mobile/i.test(result.error || '')) {
-            ['emailVerification', 'phoneVerification'].forEach((k) => updateFormData(k, false));
-            ['emailProof', 'phoneProof'].forEach((k) => updateFormData(k, ''));
-            goToStep(0);
-            setSubmitError(t('onboarding.page.verificationExpired'));
+          // in the rest.
+          if (mode === 'signup' && /verify your email or mobile|password is required/i.test(result.error || '')) {
+            restartVerification();
             return;
           }
           // Toast already fired in AuthContext; keep a persistent inline copy
@@ -530,9 +531,11 @@ const ModernOnboardingContent = () => {
         </div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
-        <motion.div initial="initial" animate="animate" variants={pageFade} className="w-full max-w-2xl">
+      {/* Right Side - Form. min-w-0 on both flex items: without it they grow to
+          their content's min-content width (six OTP boxes, a long verified
+          email) and the whole page scrolls sideways on a phone. */}
+      <div className="flex-1 min-w-0 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative">
+        <motion.div initial="initial" animate="animate" variants={pageFade} className="w-full min-w-0 max-w-2xl">
           {/* No mobile logo / Sign-In tab block — the global Navbar already
               brands the page and links to login; the duplicated chrome cost
               ~150px before the form appeared on a phone. The exit ✕ lives
@@ -617,7 +620,7 @@ const ModernOnboardingContent = () => {
                     focusHeadingRef.current = false;
                   }
                 }}
-                className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-8 sm:p-10"
+                className="bg-white dark:bg-surface-dark-3 rounded-2xl shadow-card dark:shadow-none dark:border dark:border-neutral-800 p-5 sm:p-10"
               >
                 <motion.div initial="initial" animate="animate" variants={staggerContainer}>
                   <div className="mb-8">

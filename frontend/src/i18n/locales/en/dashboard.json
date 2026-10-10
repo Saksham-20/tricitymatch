@@ -109,7 +109,7 @@
     "photo": {
       "title": "Add a photo to your profile",
       "body": "Families look for a photograph first. Without one your profile shows below everyone else in search, and most people will scroll past it.",
-      "note": "Blurred for anyone you have not matched with. You control this in Settings → Privacy.",
+      "note": "You can hide your photos from anyone you have not matched with in Settings → Privacy.",
       "cta": "Add my photo"
     },
     "verify": {

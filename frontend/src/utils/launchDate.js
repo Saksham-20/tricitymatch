@@ -7,6 +7,8 @@
  * even though UTC is still the 10th.
  */
 
+import { calendarParts, isPunjabiLocale, PA_MONTHS_LONG, PA_WEEKDAYS_LONG } from './punjabiDate';
+
 // ISO calendar date, IST. `VITE_LAUNCH_DATE` lets a date slip be a rebuild, not
 // a code change; anything that is not YYYY-MM-DD falls back to the real date.
 const ENV_DATE = String(import.meta.env?.VITE_LAUNCH_DATE || '').trim();
@@ -26,9 +28,15 @@ export const launchDateLabel = () =>
  * Day, month and weekday of the launch as separate words in `locale`, for the
  * member-facing banner (Hindi/Punjabi month names). Separate calls, because
  * some locales (pa-IN) put the month before the day in a combined format.
+ * Punjabi comes from our own word list: Chrome has no Punjabi date data and
+ * printed "11 M10" and "Sun" on the launch banner.
  */
 export const launchDateParts = (locale = 'en-IN') => {
   const d = new Date(`${LAUNCH_DATE}T00:00:00Z`);
+  if (isPunjabiLocale(locale)) {
+    const p = calendarParts(d, 'UTC');
+    return { day: String(p.day), month: PA_MONTHS_LONG[p.month - 1], weekday: PA_WEEKDAYS_LONG[p.weekday] };
+  }
   const fmt = (opts) => d.toLocaleDateString(locale, { ...opts, timeZone: 'UTC' });
   return { day: fmt({ day: 'numeric' }), month: fmt({ month: 'long' }), weekday: fmt({ weekday: 'long' }) };
 };

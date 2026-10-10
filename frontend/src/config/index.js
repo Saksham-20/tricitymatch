@@ -100,7 +100,7 @@ export const legal = {
   // Shown as "Last updated" on both policies. One constant so the two pages,
   // the mobile mirrors and the annual re-notification cannot drift apart.
   termsUpdated: '2 October 2026',
-  privacyUpdated: '2 October 2026',
+  privacyUpdated: '10 October 2026',
 };
 
 // Cloudinary Configuration
@@ -140,60 +140,6 @@ export const ui = {
   thumbnailSize: 150,
 };
 
-// Subscription Plans
-export const subscriptionPlans = {
-  free: {
-    id: 'free',
-    name: 'Free',
-    price: 0,
-    features: ['Basic search', 'View profiles', '10 likes per day'],
-    limits: {
-      dailyLikes: 10,
-      galleryPhotos: 3,
-      canChat: false,
-      canSeeWhoLiked: false,
-    },
-  },
-  premium: {
-    id: 'premium',
-    name: 'Premium',
-    price: 2999,
-    features: [
-      'Unlimited likes',
-      'See who liked you',
-      'Chat with matches',
-      'Advanced filters',
-      'Priority support',
-    ],
-    limits: {
-      dailyLikes: Infinity,
-      galleryPhotos: 10,
-      canChat: true,
-      canSeeWhoLiked: true,
-    },
-  },
-  elite: {
-    id: 'elite',
-    name: 'Elite',
-    price: 4999,
-    features: [
-      'All Premium features',
-      'Verified badge',
-      'Profile boost',
-      'Priority in search',
-      'Dedicated support',
-    ],
-    limits: {
-      dailyLikes: Infinity,
-      galleryPhotos: 20,
-      canChat: true,
-      canSeeWhoLiked: true,
-      hasProfileBoost: true,
-      hasVerifiedBadge: true,
-    },
-  },
-};
-
 // Validation Patterns
 export const patterns = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -227,7 +173,6 @@ const config = {
   app,
   limits,
   ui,
-  subscriptionPlans,
   patterns,
   errorMessages,
 };

@@ -32,9 +32,27 @@ const OtpBoxes = ({
     if (code.length === length && next.every((c) => c !== '')) onComplete(code);
   };
 
+  // Spread several digits over the boxes from `start`; a whole code always
+  // starts at the first box, wherever it was dropped.
+  const fill = (start, digits) => {
+    const from = digits.length >= length ? 0 : start;
+    const next = [...chars];
+    digits.slice(0, length - from).split('').forEach((c, idx) => { next[from + idx] = c; });
+    emit(next);
+    refs.current[Math.min(from + digits.length, length - 1)]?.focus();
+  };
+
   const handleChange = (i, raw) => {
     if (disabled) return;
-    const digit = raw.replace(/\D/g, '').slice(-1);
+    const digits = raw.replace(/\D/g, '');
+    // The OS one-time-code autofill (and a keyboard's "paste code" chip) puts
+    // the whole code into one box in a single change. Two digits in a box that
+    // already held one is plain typing over it, handled below.
+    if (digits.length > 2 || (digits.length === 2 && !chars[i])) {
+      fill(i, digits);
+      return;
+    }
+    const digit = digits.slice(-1);
     const next = [...chars];
     next[i] = digit;
     emit(next);
@@ -74,7 +92,9 @@ const OtpBoxes = ({
   };
 
   return (
-    <div className="flex gap-2 sm:gap-2.5" onPaste={handlePaste} role="group" aria-label={ariaLabel ?? t('signup.otpAria')}>
+    // Boxes share the row and cap at 3rem, so six of them fit a 320px phone
+    // instead of pushing the page sideways (fixed widths did).
+    <div className="flex w-full gap-2 sm:gap-2.5" onPaste={handlePaste} role="group" aria-label={ariaLabel ?? t('signup.otpAria')}>
       {chars.map((c, i) => (
         <input
           key={i}
@@ -83,14 +103,16 @@ const OtpBoxes = ({
           inputMode="numeric"
           autoComplete={i === 0 ? 'one-time-code' : 'off'}
           pattern="[0-9]*"
-          maxLength={1}
+          /* Room for a whole code, so an autofilled code is not cut to its
+             first digit; handleChange spreads it over the boxes. */
+          maxLength={length}
           value={c}
           disabled={disabled}
           aria-label={t('signup.otpDigit', { n: i + 1 })}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onFocus={(e) => e.target.select()}
-          className={`w-11 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold rounded-xl border-2 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-[border-color,box-shadow] duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`flex-1 min-w-0 max-w-[3rem] h-12 sm:h-14 text-center text-xl font-semibold rounded-xl border-2 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-[border-color,box-shadow] duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
             error
               ? 'border-destructive focus:border-destructive focus:ring-2 focus:ring-destructive/20'
               : c

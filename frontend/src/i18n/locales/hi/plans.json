@@ -22,11 +22,10 @@
     "createProfile": "प्रोफ़ाइल बनाएँ",
     "browseMatches": "मैच देखें",
     "sendInterest": "रुचि भेजें",
-    "basicFilters": "बेसिक सर्च फ़िल्टर",
+    "basicFilters": "सभी सर्च फ़िल्टर",
     "viewContact": "संपर्क जानकारी देखें",
     "unlimitedMessages": "असीमित संदेश",
     "whoViewed": "देखें किसने आपकी प्रोफ़ाइल देखी",
-    "advancedFilters": "एडवांस्ड सर्च फ़िल्टर",
     "unlocks_one": "{{count}} संपर्क अनलॉक",
     "unlocks_other": "{{count}} संपर्क अनलॉक",
     "unlimitedUnlocks": "असीमित संपर्क अनलॉक",
@@ -35,14 +34,8 @@
     "validityFullYear": "पूरे साल की वैधता",
     "fullAccess": "{{duration}} की पूरी सुविधा",
     "profileBoost": "प्रोफ़ाइल बूस्ट",
-    "spotlight": "स्पॉटलाइट लिस्टिंग",
-    "prioritySupport": "प्राथमिकता वाली ग्राहक सहायता",
     "priorityRanking": "सर्च में ऊपर दिखें",
     "bestValue": "हर महीने के हिसाब से सबसे किफ़ायती",
-    "verifiedBadge": "सत्यापित बैज",
-    "relationshipAdvisor": "आपके लिए एक रिलेशनशिप सलाहकार",
-    "priorityNriSupport": "एनआरआई सदस्यों के लिए प्राथमिकता सहायता",
-    "timezoneMatching": "आपके टाइम ज़ोन के हिसाब से मैचिंग",
     "localCurrency": "आपकी अपनी मुद्रा में कीमतें",
     "chatMutuals": "अपने आपसी मैचों से चैट करें",
     "accessUntil": "{{date}} तक पूरी सुविधा"
@@ -65,10 +58,8 @@
       "chat": "मैचों से चैट",
       "likes": "देखें कौन आपको पसंद करता है",
       "rich": "रिएक्शन, वॉइस नोट और कोट करके जवाब",
-      "advancedFilters": "एडवांस्ड फ़िल्टर",
       "calls": "वॉइस और वीडियो कॉल",
-      "profileBoost": "प्रोफ़ाइल बूस्ट",
-      "relationshipManager": "रिलेशनशिप मैनेजर"
+      "profileBoost": "प्रोफ़ाइल बूस्ट"
     }
   },
   "stories": {
@@ -111,7 +102,7 @@
     "everythingPlus": "मुफ़्त प्लान की हर सुविधा, और साथ में"
   },
   "nri": {
-    "description": "विदेश में रहने वाले सदस्यों के लिए पूरी वीआईपी सुविधा: टाइम ज़ोन के हिसाब से मैचिंग, प्राथमिकता सहायता, और आपकी अपनी मुद्रा में कीमतें।",
+    "description": "विदेश में रहने वाले सदस्यों के लिए पूरी वीआईपी सुविधा, और कीमतें आपकी अपनी मुद्रा में।",
     "indicative": "(अनुमानित)",
     "billedInInr": "भुगतान रुपये (INR) में होगा"
   },

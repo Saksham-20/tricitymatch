@@ -1,4 +1,5 @@
 import React, { createContext, useState, useCallback, useContext, useEffect, useRef } from 'react';
+import { GUARDIAN_RESET, hasSignupCredentials } from '../utils/signupPayload';
 
 // Create context for onboarding state management
 const OnboardingContext = createContext();
@@ -53,10 +54,19 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     const forOther = (data) => (mode === 'create_for_other' && (!data.creatingFor || data.creatingFor === 'self')
       ? { ...data, creatingFor: 'other' }
       : data);
-    if (!draft) return forOther(getInitialFormData());
+    // The reverse switch ("Switch to a personal profile") lands here in signup
+    // mode with the guardian draft still saved. Its creatingFor:'other' made
+    // every later self-signup fail ("Please confirm the person this profile is
+    // for…") on a form with no such checkbox, for as long as the draft lived.
+    // A personal signup is always for the member, so drop the guardian fields.
+    const forSelf = (data) => (mode === 'signup' && data.creatingFor !== 'self'
+      ? { ...data, ...GUARDIAN_RESET }
+      : data);
+    const normalise = (data) => forSelf(forOther(data));
+    if (!draft) return normalise(getInitialFormData());
     // Always start with empty credential fields — drafts written by older
     // builds may still contain a plain-text password; never rehydrate one.
-    return forOther({ ...getInitialFormData(), ...draft, password: '', confirmPassword: '' });
+    return normalise({ ...getInitialFormData(), ...draft, password: '', confirmPassword: '' });
   });
 
   const [currentStep, setCurrentStep] = useState(() => {
@@ -76,6 +86,14 @@ export const OnboardingProvider = ({ children, mode = 'signup', existingProfile 
     // In create_for_other mode, start at "Who are you creating for?" step
     if (mode === 'create_for_other') {
       return 0; // Start at account type selection
+    }
+    // The password and the OTP proofs are never saved with the draft (see the
+    // auto-save below), so a draft resumed past the account step could not be
+    // finished: "Create my profile" answered "Password is required" on a page
+    // with no password field. Reopen the account step instead; the saved
+    // contact is still filled in, and only the code and password are asked again.
+    if (mode === 'signup' && !hasSignupCredentials(formData)) {
+      return 0;
     }
     let saved = null;
     try { saved = localStorage.getItem('onboarding_step'); } catch { saved = null; }

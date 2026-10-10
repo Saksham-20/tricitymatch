@@ -26,7 +26,7 @@
     "title": "Tricity's newest, most carefully verified matchmaking community. <em>Built family-first.</em>",
     "body": "We're starting the honest way: no inflated numbers, every verified badge earned with a live selfie, and matchmaking that stays inside Chandigarh, Mohali and Panchkula. Creating a profile is free, and the first families here shape what this becomes.",
     "cta": "Create your free profile",
-    "note": "Free to join · Photo-verified profiles · Local, family-first",
+    "note": "Free to join · Live-selfie verification · Local, family-first",
     "pledges": {
       "verified": {
         "title": "Verified, not vast",
@@ -44,11 +44,11 @@
     "facts": {
       "badge": "◉ Photo-verified badge earned with a live selfie",
       "flagged": "◉ Flagged profiles reviewed by our safety team",
-      "encrypted": "◉ Conversations encrypted in transit · numbers never shared"
+      "encrypted": "◉ Conversations encrypted in transit · you choose who can see your number"
     }
   },
   "ribbon": {
-    "verified": "Verified profiles",
+    "verified": "Live-selfie verification",
     "matched": "Expertly matched",
     "family": "Family-first",
     "local": "Hyperlocal",
@@ -95,7 +95,7 @@
   },
   "discover": {
     "title": "See how you'll<br/><em>discover</em> matches.",
-    "body": "A compatibility score, a verified badge, and the details families check first. Every real profile shows them. The photography here is illustrative, not real members.",
+    "body": "A compatibility score, the details families check first, and a verified badge for members who complete a live-selfie check. The photography here is illustrative, not real members.",
     "panelTitle": "What a real profile shows",
     "points": {
       "badge": "A photo-verified badge, earned with a live selfie",
@@ -177,7 +177,7 @@
       },
       "encrypted": {
         "t": "Encrypted in transit",
-        "b": "Conversations are encrypted over the network and never shared."
+        "b": "Conversations are encrypted over the network and never shown to other members."
       },
       "moderated": {
         "t": "Human-moderated",
@@ -237,11 +237,11 @@
       },
       "premium": {
         "q": "What does Premium include?",
-        "a": "One plan, no tiers to compare: unlimited contact unlocks, unlimited messaging, advanced filters, Incognito mode, a profile boost and a spotlight listing, for the full term. Browsing, matching and your profile stay free."
+        "a": "One plan, no tiers to compare: unlimited contact unlocks, unlimited messaging, seeing who viewed you and who likes you, and a profile boost, for the full term. Browsing, matching, your profile, every search filter and incognito mode stay free."
       },
       "privacy": {
         "q": "Is my data private?",
-        "a": "Yes. Conversations are encrypted in transit and access is restricted to you and your match. We never share your phone number, never sell data, never display you to non-mutual interests."
+        "a": "Yes. Conversations are encrypted in transit and stay between you and your match; our safety team sees one only if it is reported. Your number is shown only to a member who unlocks it, and you choose who can in Settings → Privacy: everyone, only your matches, or no one. You can also limit your profile to your matches, browse incognito, or pause your profile. We never sell your data."
       },
       "families": {
         "q": "Can families participate?",
@@ -257,7 +257,7 @@
     "note": "No credit card · 12-min setup · Verified in hours"
   },
   "footer": {
-    "about": "Tricity's own matrimonial platform. Connecting families through verified profiles and intelligent matching.",
+    "about": "Tricity's own matrimonial platform, connecting families through intelligent matching and live-selfie verification.",
     "platform": "Platform",
     "browse": "Browse profiles",
     "howItWorks": "How it works",

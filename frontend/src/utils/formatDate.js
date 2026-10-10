@@ -1,8 +1,12 @@
 import i18n from '../i18n';
+import { formatPunjabiDate, formatPunjabiDateTime } from './punjabiDate';
 
 // Month names follow the member's language (hi-IN / pa-IN keep Western digits).
 const LOCALES = { en: 'en-IN', hi: 'hi-IN', pa: 'pa-IN' };
 const locale = () => LOCALES[i18n.resolvedLanguage] || 'en-IN';
+// Punjabi is spelled from our own word list: Chrome has no Punjabi date data
+// and printed "2027 M01 10" (utils/punjabiDate.js).
+const isPunjabi = () => i18n.resolvedLanguage === 'pa';
 
 // "8 Oct 2026" for every date a member reads. A bare 8/10/2026 is ambiguous
 // (8 October in India, August 10 to a browser in US English), and pages mixed
@@ -11,6 +15,7 @@ export const formatDate = (value) => {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
+  if (isPunjabi()) return formatPunjabiDate(d);
   return d.toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
@@ -21,6 +26,7 @@ export const formatIstDate = (value) => {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
+  if (isPunjabi()) return formatPunjabiDate(d, { timeZone: 'Asia/Kolkata' });
   return d.toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 };
 
@@ -29,6 +35,7 @@ export const formatDateTime = (value) => {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
+  if (isPunjabi()) return formatPunjabiDateTime(d);
   return d.toLocaleString(locale(), {
     day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
   });

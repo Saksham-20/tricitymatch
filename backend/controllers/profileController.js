@@ -1362,7 +1362,7 @@ exports.getCompatibilityBreakdown = asyncHandler(async (req, res) => {
 });
 
 exports.updatePrivacySettings = asyncHandler(async (req, res) => {
-  const { profileVisibility, showOnlineStatus, showLastSeen, fieldVisibility, incognitoMode } = req.body;
+  const { profileVisibility, showOnlineStatus, showLastSeen, fieldVisibility, incognitoMode, photoBlurUntilMatch } = req.body;
   const profile = await Profile.findOne({ where: { userId: req.user.id } });
   if (!profile) throw createError.notFound('Profile not found');
 
@@ -1381,6 +1381,9 @@ exports.updatePrivacySettings = asyncHandler(async (req, res) => {
   if (typeof showOnlineStatus === 'boolean') profile.showOnlineStatus = showOnlineStatus;
   if (typeof showLastSeen === 'boolean') profile.showLastSeen = showLastSeen;
   if (typeof incognitoMode === 'boolean') profile.incognitoMode = incognitoMode;
+  // Hide photos until match: listings and profile reads withhold the photos
+  // from anyone who is not a mutual match (utils/profileVisibility).
+  if (typeof photoBlurUntilMatch === 'boolean') profile.photoBlurUntilMatch = photoBlurUntilMatch;
 
   await profile.save();
 
@@ -1389,6 +1392,7 @@ exports.updatePrivacySettings = asyncHandler(async (req, res) => {
     showOnlineStatus: profile.showOnlineStatus,
     showLastSeen: profile.showLastSeen,
     incognitoMode: Boolean(profile.incognitoMode),
+    photoBlurUntilMatch: Boolean(profile.photoBlurUntilMatch),
     fieldVisibility: profile.fieldVisibility || {},
   }});
 });

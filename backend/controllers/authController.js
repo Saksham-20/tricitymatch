@@ -28,6 +28,20 @@ const { getActiveSubscription } = require('../utils/entitlements');
 const { spendEmailBudget } = require('../utils/emailBudget');
 const { markSessionsRevoked } = require('../utils/sessionRevocation');
 
+// utils/email `deliver` never throws: a refused send (provider down, daily
+// quota spent, no provider configured) RESOLVES { success: false }. Code mail
+// that is not checked here tells the member "we sent a code" when nothing left,
+// and they wait for a mail that never comes. The one exception is local
+// development with no provider at all, where the code is logged instead.
+const emailNotSent = (result) =>
+  Boolean(result && result.success === false) && !(config.isDevelopment && !config.email.isConfigured());
+
+const EMAIL_SEND_FAILED = 'EMAIL_SEND_FAILED';
+const SIGNUP_EMAIL_FAILED_MESSAGE =
+  "We couldn't send the email code just now. Please try again in a few minutes, or sign up with your mobile number instead.";
+const ACCOUNT_EMAIL_FAILED_MESSAGE =
+  "We couldn't send the email just now. Please try again in a few minutes.";
+
 // Cookie configuration: Secure is UNCONDITIONAL in production. This used to be
 // gated on FRONTEND_URL starting with 'https', with a `|| ''` fallback — so an
 // unset or http FRONTEND_URL silently shipped the auth cookies without Secure,
@@ -933,8 +947,9 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
           return;
         }
         const name = await memberFirstName(user.id);
+        let sent;
         if (eligible) {
-          await sendPasswordResetEmail(user.email, name, resetUrl);
+          sent = await sendPasswordResetEmail(user.email, name, resetUrl);
         } else {
           // A Google member has no password, so they could never use the
           // mobile app (which has no Google sign-in). The mail also carries a
@@ -945,10 +960,15 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
             config.auth.jwtSecret,
             { expiresIn: config.auth.resetTokenExpiry }
           );
-          await sendGoogleSignInHelpEmail(
+          sent = await sendGoogleSignInHelpEmail(
             user.email, name, `${config.server.frontendUrl}/login`,
             `${config.server.frontendUrl}/reset-password?token=${setToken}`
           );
+        }
+        // The member already got the generic answer; a refused send can only
+        // be traced from here ("the reset mail never came").
+        if (emailNotSent(sent)) {
+          log.warn('Password reset email not sent', { reason: sent.error || sent.reason || 'send failed', userId: user.id, googleOnly });
         }
       } catch (error) {
         // Includes the 429 from an exhausted per-member budget.
@@ -1115,7 +1135,10 @@ exports.forgotPasswordPhoneEmail = asyncHandler(async (req, res) => {
           log.warn('Password reset mail skipped: daily account-mail budget spent', { userId: user.id });
           return;
         }
-        await sendPasswordResetEmail(user.email, await memberFirstName(user.id), resetUrl);
+        const sent = await sendPasswordResetEmail(user.email, await memberFirstName(user.id), resetUrl);
+        if (emailNotSent(sent)) {
+          log.warn('Password reset email not sent', { reason: sent.error || sent.reason || 'send failed', userId: user.id, route: 'phone-email' });
+        }
       } catch (error) {
         log.warn('Password reset email not sent', { error: error.message, userId: user.id, route: 'phone-email' });
       }
@@ -1475,14 +1498,25 @@ exports.sendOtp = asyncHandler(async (req, res) => {
     const otpEmail = canonicalEmail(target);
     await otpStore.spendSend('email', otpEmail);
     if (!(await spendEmailBudget())) {
-      throw new AppError('We cannot send verification codes right now. Please try again later.', 503);
+      throw new AppError(
+        "We can't send email codes right now. Please sign up with your mobile number instead, or try again later.",
+        503,
+        EMAIL_SEND_FAILED
+      );
     }
     const code = await otpStore.issue('email', otpEmail, { digits: 6 });
+    let sent;
     try {
-      await sendOtpEmail(otpEmail, code, 'verify your email');
+      sent = await sendOtpEmail(otpEmail, code, 'verify your email');
     } catch (err) {
       await otpStore.discard('email', otpEmail);
       throw err;
+    }
+    if (emailNotSent(sent)) {
+      // A code nobody received must not sit there waiting to be guessed.
+      await otpStore.discard('email', otpEmail);
+      log.warn('Signup email code not sent', { reason: sent.error || sent.reason || 'send failed', email: otpEmail });
+      throw new AppError(SIGNUP_EMAIL_FAILED_MESSAGE, 503, EMAIL_SEND_FAILED);
     }
     // Dev affordance: log the code when no email channel is configured.
     // Gate on isDevelopment, not !isProduction: the negative form is also true
@@ -1845,15 +1879,21 @@ exports.requestCurrentEmailVerification = asyncHandler(async (req, res) => {
 
   await otpStore.spendSend('email-verify', user.id);
   if (!(await spendEmailBudget())) {
-    throw new AppError('We cannot send verification codes right now. Please try again later.', 503);
+    throw new AppError('We cannot send verification codes right now. Please try again later.', 503, EMAIL_SEND_FAILED);
   }
   const target = `${user.id}:${user.email}`;
   const code = await otpStore.issue('email-verify', target, { digits: 6 });
+  let sent;
   try {
-    await sendOtpEmail(user.email, code, 'verify your email address');
+    sent = await sendOtpEmail(user.email, code, 'verify your email address');
   } catch (err) {
     await otpStore.discard('email-verify', target);
     throw err;
+  }
+  if (emailNotSent(sent)) {
+    await otpStore.discard('email-verify', target);
+    log.warn('Email verification code not sent', { reason: sent.error || sent.reason || 'send failed', userId: user.id });
+    throw new AppError(ACCOUNT_EMAIL_FAILED_MESSAGE, 503, EMAIL_SEND_FAILED);
   }
   if (!config.email.isConfigured() && config.isDevelopment) {
     log.info(`[EMAIL-VERIFY DEV] Code for ${user.email}: ${code}`);
@@ -1911,15 +1951,21 @@ exports.requestEmailChange = asyncHandler(async (req, res) => {
   // can burn its attempts or redeem it.
   await otpStore.spendSend('email-change', user.id);
   if (!(await spendEmailBudget())) {
-    throw new AppError('We cannot send verification codes right now. Please try again later.', 503);
+    throw new AppError('We cannot send verification codes right now. Please try again later.', 503, EMAIL_SEND_FAILED);
   }
   const changeTarget = `${user.id}:${normalized}`;
   const code = await otpStore.issue('email-change', changeTarget, { digits: 6 });
+  let sent;
   try {
-    await sendOtpEmail(normalized, code, 'confirm your new email address');
+    sent = await sendOtpEmail(normalized, code, 'confirm your new email address');
   } catch (err) {
     await otpStore.discard('email-change', changeTarget);
     throw err;
+  }
+  if (emailNotSent(sent)) {
+    await otpStore.discard('email-change', changeTarget);
+    log.warn('Email change code not sent', { reason: sent.error || sent.reason || 'send failed', userId: user.id });
+    throw new AppError(ACCOUNT_EMAIL_FAILED_MESSAGE, 503, EMAIL_SEND_FAILED);
   }
   // Dev affordance (matches smsService): log the code when email isn't configured.
   // isDevelopment, not !isProduction -- see the note in sendOtp.

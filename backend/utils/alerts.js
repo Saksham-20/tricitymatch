@@ -473,6 +473,99 @@ const clearAlerts = () => {
   alertHistory.length = 0;
 };
 
+// ── Alert email ────────────────────────────────────────────────────────────
+// Alert mail shares the provider quota with sign-up codes and password resets,
+// so it is capped twice: the same alert at most once an hour, and no more than
+// ALERT_EMAIL_DAILY_CAP alert mails a day in total. Without the caps one noisy
+// alert (a budget alert fires on EVERY send above 80%) could spend the quota
+// it is warning about.
+const ALERT_EMAIL_COOLDOWN_SECONDS = 60 * 60;
+const ALERT_EMAIL_DAILY_CAP = 10;
+
+const alertRecipients = () => {
+  const config = require('../config/env');
+  return String(config.monitoring?.alertEmails || '')
+    .split(',')
+    .map((addr) => addr.trim())
+    .filter(Boolean);
+};
+
+// Titles carry live counters ("Account email daily budget 405/500"), so the
+// cooldown key blanks the numbers out: otherwise every alert would look new and
+// only the daily cap would stop them. The title still separates two sources
+// that share a type (the email and SMS budgets both use RATE_LIMIT_EXCEEDED).
+const alertMailKey = (alert) => {
+  const shape = String(alert?.message || '').toLowerCase().replace(/\d+/g, '#').replace(/\s+/g, ' ').trim();
+  return require('crypto')
+    .createHash('sha256')
+    .update(`${alert?.type}|${alert?.severity}|${shape}`)
+    .digest('hex')
+    .slice(0, 16);
+};
+
+const alertEmailBody = (alert) => {
+  const { escapeHtml } = require('./sanitize');
+  let details = '';
+  try { details = JSON.stringify(alert?.data ?? {}, null, 2); } catch { details = ''; }
+  const rows = [
+    ['Severity', alert?.severity],
+    ['Type', alert?.type],
+    ['When', alert?.timestamp],
+  ];
+  const text = [
+    String(alert?.message || ''),
+    ...rows.map(([k, v]) => `${k}: ${v ?? ''}`),
+    details ? `Details:\n${details}` : '',
+  ].filter(Boolean).join('\n');
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#2D2D2D;">
+  <p style="font-size:16px;font-weight:bold;margin:0 0 12px;">${escapeHtml(String(alert?.message || ''))}</p>
+  ${rows.map(([k, v]) => `<div><strong>${k}:</strong> ${escapeHtml(String(v ?? ''))}</div>`).join('')}
+  ${details ? `<pre style="background:#F5F5F5;padding:12px;border-radius:6px;white-space:pre-wrap;">${escapeHtml(details)}</pre>` : ''}
+</div>`;
+  return { text, html };
+};
+
+/**
+ * Send one alert by email, inside the cooldown and the daily cap. Called by the
+ * email queue's `alert` processor (utils/queue.js). Never throws: an alert
+ * that cannot be mailed is logged, and the job is not retried into a provider
+ * that is already refusing mail.
+ */
+const deliverAlertEmail = async (alert, recipients) => {
+  const to = Array.isArray(recipients) && recipients.length > 0 ? recipients : alertRecipients();
+  if (to.length === 0) {
+    log.warn('Alert email skipped: ALERT_EMAILS is empty', { alertId: alert?.id });
+    return { sent: false, reason: 'no_recipients' };
+  }
+  try {
+    const { incr } = require('./cache');
+    const claims = await incr(`alert_mail:cool:${alertMailKey(alert)}`, ALERT_EMAIL_COOLDOWN_SECONDS);
+    if (claims !== 1) return { sent: false, reason: 'cooldown' };
+    const today = await incr(`alert_mail:day:${new Date().toISOString().slice(0, 10)}`, 26 * 60 * 60);
+    if (today > ALERT_EMAIL_DAILY_CAP) {
+      log.warn('Alert email skipped: daily alert-mail cap reached', { alertId: alert?.id, cap: ALERT_EMAIL_DAILY_CAP });
+      return { sent: false, reason: 'daily_cap' };
+    }
+    const { sendEmail } = require('./email');
+    const { text, html } = alertEmailBody(alert);
+    const result = await sendEmail({
+      to,
+      subject: `[TricityMatch ${String(alert?.severity || 'alert').toUpperCase()}] ${String(alert?.message || 'Alert').slice(0, 140)}`,
+      html,
+      text,
+      channel: 'documents',
+    });
+    if (result && result.success === false) {
+      log.error('Alert email not sent', { alertId: alert?.id, reason: result.error || result.reason || 'send failed' });
+      return { sent: false, reason: 'send_failed' };
+    }
+    return { sent: true };
+  } catch (error) {
+    log.error('Alert email failed', { alertId: alert?.id, error: error.message });
+    return { sent: false, reason: 'error' };
+  }
+};
+
 // Email alert handler
 const emailAlertHandler = async (alert) => {
   // Only send emails for critical alerts
@@ -480,11 +573,11 @@ const emailAlertHandler = async (alert) => {
 
   // Import dynamically to avoid circular dependencies
   const { addJob } = require('./queue');
-  
+
   try {
     await addJob('email', 'alert', {
       alert,
-      recipients: process.env.ALERT_EMAILS?.split(',') || []
+      recipients: alertRecipients()
     });
   } catch (error) {
     log.error('Failed to queue alert email', { error: error.message });
@@ -506,5 +599,8 @@ module.exports = {
   getAlertHistory,
   getAlertStats,
   registerAlertHandler,
-  clearAlerts
+  clearAlerts,
+  deliverAlertEmail,
+  alertMailKey,
+  ALERT_EMAIL_DAILY_CAP,
 };

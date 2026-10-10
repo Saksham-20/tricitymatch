@@ -708,6 +708,16 @@ exports.getShortlist = asyncHandler(async (req, res) => {
   });
 });
 
+// The liked-item snapshot is the sender's own record of what they liked, but a
+// liked PHOTO is the other member's photo URL: once that member hides their
+// photos until match, the sender must not keep receiving it. The note and the
+// fact that it was a photo stay.
+const likedItemForSender = (item, photosHidden) => {
+  if (!item) return null;
+  if (photosHidden && item.type === 'photo') return { type: 'photo' };
+  return item;
+};
+
 // @route   GET /api/match/sent
 // @desc    Profiles the current user has liked (sent interests) — D3
 // @access  Private
@@ -747,15 +757,18 @@ exports.getSentInterests = asyncHandler(async (req, res) => {
 
   const validSent = sent
     .filter(match => match.MatchedUser?.Profile)
-    .map(match => ({
-      userId: match.matchedUserId,
-      ...redactForViewer(match.MatchedUser.Profile.toJSON(), { isMutual: viewerCtx.mutualIds.has(match.matchedUserId), hasPaidAccess: viewerPaid }),
-      likedAt: match.createdAt,
-      compatibilityScore: match.compatibilityScore,
-      isMutual: match.isMutual,
-      note: match.note || null,
-      likedItem: match.likedItem || null
-    }));
+    .map(match => {
+      const isMutual = viewerCtx.mutualIds.has(match.matchedUserId);
+      return {
+        userId: match.matchedUserId,
+        ...redactForViewer(match.MatchedUser.Profile.toJSON(), { isMutual, hasPaidAccess: viewerPaid }),
+        likedAt: match.createdAt,
+        compatibilityScore: match.compatibilityScore,
+        isMutual: match.isMutual,
+        note: match.note || null,
+        likedItem: likedItemForSender(match.likedItem, Boolean(match.MatchedUser.Profile.photoBlurUntilMatch) && !isMutual)
+      };
+    });
 
   res.json({
     success: true,

@@ -91,3 +91,61 @@ describe('feature copy follows the live plan', () => {
     expect(planFeatures('basic_premium', false)).toContain('5 contact unlocks');
   });
 });
+
+/**
+ * Every line on a plan card must be something the product does. Search filters
+ * are not gated, and nothing delivers a spotlight listing, priority support, a
+ * relationship advisor, timezone matching or a plan-granted verified badge.
+ */
+describe('no claim the product does not deliver', () => {
+  const NOT_DELIVERED = [
+    'Advanced search filters',
+    'Spotlight listing',
+    'Priority customer support',
+    'Dedicated relationship advisor',
+    'Priority NRI support',
+    'Timezone-aware matching',
+    'Verified badge',
+  ];
+
+  it.each(['free', 'basic_premium', 'premium_plus', 'elite', 'vip', 'nri'])('%s', (tier) => {
+    for (const flag of [false, true]) {
+      for (const prev of [null, 'Basic', 'Premium']) {
+        const copy = planFeatures(tier, flag, null, prev);
+        for (const claim of NOT_DELIVERED) expect(copy).not.toContain(claim);
+      }
+    }
+  });
+
+  it('free says what is true: every search filter is free', () => {
+    expect(planFeatures('free', false)).toContain('All search filters');
+  });
+});
+
+/**
+ * With Basic withdrawn (the single-plan launch page), Premium chains off Free.
+ * "Everything in Free" alone would hide what Premium adds, so the paid basics
+ * are spelled out — and never twice when Basic is on the page.
+ */
+describe('a tier chained off Free spells out the paid basics', () => {
+  it('Premium chained off Free lists contact details and who viewed you (flag on)', () => {
+    const copy = planFeatures('premium_plus', true, { contactUnlocks: -1, duration: '3 months' }, 'Free');
+    expect(copy[0]).toBe('Everything in Free');
+    expect(copy).toContain('View contact details');
+    expect(copy).toContain('See who viewed profile');
+    expect(copy).toContain('Unlimited contact unlocks');
+    expect(copy).not.toContain('5 contact unlocks');
+    expect(copy).not.toContain('Unlimited messages');
+  });
+
+  it('with the flag off the paid basics include messaging', () => {
+    expect(planFeatures('premium_plus', false, null, null)).toContain('Unlimited messages');
+  });
+
+  it('chained off Basic, nothing is repeated', () => {
+    const copy = planFeatures('premium_plus', false, null, 'Basic');
+    expect(copy[0]).toBe('Everything in Basic');
+    expect(copy).not.toContain('View contact details');
+    expect(copy).not.toContain('See who viewed profile');
+  });
+});

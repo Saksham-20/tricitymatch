@@ -661,13 +661,14 @@ exports.getPlans = asyncHandler(async (req, res) => {
       'Advanced search filters',
       unlockLine(p),
     ],
+    // No "Spotlight listing" or "Priority customer support": nothing reads a
+    // spotlight entitlement and there is no support queue that orders by plan,
+    // so both lines promised something the plan does not deliver.
     premium_plus: [
       prevName ? `Everything in ${prevName}` : 'Everything in Free',
       unlockLine(p),
       validityLine(p),
       'Profile boost',
-      'Spotlight listing',
-      'Priority customer support',
     ],
     elite: [
       prevName ? `Everything in ${prevName}` : 'Everything in Free',

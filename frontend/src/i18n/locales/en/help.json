@@ -22,7 +22,7 @@
     },
     "photos": {
       "q": "Who can see my photos?",
-      "a": "You control this under Settings → Privacy. You can be visible to everyone or only to your matches, hide your online status and last-seen time, and turn on photo blur so members you have not matched with see a blurred photo — it is off by default until you switch it on."
+      "a": "You control this under Settings → Privacy. You can be visible to everyone or only to your matches, hide your online status and last-seen time, and hide your photos from members you have not matched with: they see your initials instead. Photo hiding is off until you switch it on."
     },
     "parents": {
       "q": "Can my parents manage my profile?",

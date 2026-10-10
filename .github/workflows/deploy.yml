@@ -1,8 +1,11 @@
 name: Deploy to Production
 
+# Manual only. Production runs on a shared VPS and is deployed by hand with
+#   docker compose up -d --no-deps --force-recreate backend frontend
+# after a pre-deploy DB backup. The jobs below would recreate EVERY service
+# (db and redis included) and the "staging" job targets the same directory as
+# production, so they must never run automatically on a push.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 # Least privilege: without this, every job -- including the third-party actions

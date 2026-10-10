@@ -44,7 +44,7 @@ const NIGHT = new Date('2026-09-19T22:00:00Z');
 const ago = (ms) => new Date(NOW.getTime() - ms).toISOString();
 
 const makeUser = (over = {}) => {
-  const u = { id: 'u1', email: 'aman@example.com', lifecycleMail: null, Profile: { firstName: 'Aman' }, ...over };
+  const u = { id: 'u1', email: 'aman@example.com', emailVerified: true, lifecycleMail: null, Profile: { firstName: 'Aman' }, ...over };
   u.update = jest.fn(async (v) => { Object.assign(u, v); });
   return u;
 };
@@ -421,10 +421,29 @@ describe('paused and scheduled-for-deletion members (AUTH-15)', () => {
     expect(email.sendWinBack).not.toHaveBeenCalled();
   });
 
-  it('a legacy account with no verified phone keeps its only contact', async () => {
+  it('an address nobody proved gets no nudge, even on an account with no verified phone', async () => {
+    // Unproven addresses bounce, and the provider judges every mail we send
+    // (sign-up codes included) on the bounce rate.
     stages({ lapsed: [lapsed({ emailVerified: false, phoneVerified: false })] });
     await runSubscriptionLifecycle(NOW);
-    expect(email.sendWinBack).toHaveBeenCalledTimes(1);
+    expect(email.sendWinBack).not.toHaveBeenCalled();
+  });
+
+  it('...but a notice about their own plan still reaches an unproven address', async () => {
+    stages({ ending: [renewal({ emailVerified: false, phoneVerified: false })] });
+    await runSubscriptionLifecycle(NOW);
+    expect(email.sendRenewalReminder).toHaveBeenCalledTimes(1);
+  });
+
+  it('the photo nudge skips an unproven address even if the query let it through', async () => {
+    const u = makeUser({
+      emailVerified: false,
+      createdAt: new Date(NOW.getTime() - 4 * DAY),
+      Profile: { firstName: 'Aman', photos: [] },
+    });
+    User.findAll.mockResolvedValueOnce([u]);
+    expect((await runPhotoNudge(NOW)).sent).toBe(0);
+    expect(email.sendAddPhotoNudge).not.toHaveBeenCalled();
   });
 
   it('the photo-nudge query excludes scheduled deletion, paused profiles and unproved addresses in SQL', async () => {
@@ -433,7 +452,9 @@ describe('paused and scheduled-for-deletion members (AUTH-15)', () => {
     const arg = User.findAll.mock.calls[0][0];
     const sql = JSON.stringify(arg.where[Object.getOwnPropertySymbols(arg.where)[0]].map((l) => l.val));
     expect(sql).toContain('deletionScheduledFor');
-    expect(sql).toContain('emailVerified');
+    // Only a proven address: the clause must require it, not merely mention it.
+    const clauses = arg.where[Object.getOwnPropertySymbols(arg.where)[0]].map((l) => l.val);
+    expect(clauses).toContain('"User"."emailVerified" = true');
     expect(arg.include[0].where.pausedAt).toBeNull();
   });
 });

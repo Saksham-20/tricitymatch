@@ -774,6 +774,7 @@ const PrivacyTab = () => {
     showOnlineStatus: true,
     showLastSeen: true,
     incognitoMode: false,
+    photoBlurUntilMatch: false,
     fieldVisibility: { income: 'everyone', birthDetails: 'everyone', contact: 'everyone' },
   });
   // CRITICAL fix: this used to render the hardcoded defaults above
@@ -800,6 +801,7 @@ const PrivacyTab = () => {
           showOnlineStatus: p.showOnlineStatus ?? true,
           showLastSeen: p.showLastSeen ?? true,
           incognitoMode: Boolean(p.incognitoMode),
+          photoBlurUntilMatch: Boolean(p.photoBlurUntilMatch),
           fieldVisibility: {
             income: p.fieldVisibility?.income || 'everyone',
             birthDetails: p.fieldVisibility?.birthDetails || 'everyone',
@@ -882,12 +884,20 @@ const PrivacyTab = () => {
             {t('settings.privacy.matchesOnlyNote')}
           </p>
         </div>
-        <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 overflow-hidden max-w-xl mt-5">
+        <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-w-xl mt-5">
           <Toggle
             value={settings.incognitoMode}
             onChange={(v) => setSettings((s) => ({ ...s, incognitoMode: v }))}
             label={t('settings.privacy.incognito')}
             desc={t('settings.privacy.incognitoDesc')}
+          />
+          {/* The server withholds the photos (it does not blur them) from
+              anyone who is not a mutual match, so the copy says "hide". */}
+          <Toggle
+            value={settings.photoBlurUntilMatch}
+            onChange={(v) => setSettings((s) => ({ ...s, photoBlurUntilMatch: v }))}
+            label={t('settings.privacy.hidePhotos')}
+            desc={t('settings.privacy.hidePhotosDesc')}
           />
         </div>
       </div>
@@ -956,6 +966,8 @@ const PrivacyTab = () => {
     </div>
   );
 };
+
+export { PrivacyTab };
 
 // ─── Notifications tab ────────────────────────────────────────────────────────
 const NotificationsTab = () => {

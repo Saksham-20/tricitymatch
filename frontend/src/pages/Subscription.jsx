@@ -84,7 +84,8 @@ const COMPARE_ROWS = [
   { id: 'chat', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
   { id: 'likes', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
   { id: 'rich', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
-  { id: 'advancedFilters', by: { free: false, basic_premium: true, premium_plus: true, elite: true, vip: true } },
+  // No "Advanced filters" row: search filters are not gated, so every filter
+  // already works for free members and a paid ✓ here would sell nothing.
   // Shown only when calls are switched on (VITE_AGORA_APP_ID). Without it the
   // call buttons are hidden everywhere, so the table sold a feature nobody could use.
   { id: 'calls', needsCalls: true, by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
@@ -93,7 +94,7 @@ const COMPARE_ROWS = [
   // ranking. This row said otherwise, so the table contradicted the card sitting
   // directly above it (which reads "Profile boost" from the same server data).
   { id: 'profileBoost', by: { free: false, basic_premium: false, premium_plus: true, elite: true, vip: true } },
-  { id: 'relationshipManager', by: { free: false, basic_premium: false, premium_plus: false, elite: false, vip: true } },
+  // No "Relationship manager" row: there is no such service behind any plan.
 ];
 const COMPARE_LABELS = {
   free: 'Free',
@@ -134,9 +135,8 @@ const ComparisonSection = ({ plans = {}, planKeys = [] }) => {
       ...row,
       values: cols.map((key) => (row.unlocks ? unlockCell(key) : Boolean(row.by?.[key]))),
     }))
-    // Drop a row no VISIBLE plan offers. With the full ladder up, "Relationship
-    // manager" separates VIP from the rest; with VIP withdrawn it is a line of
-    // dashes telling the reader about a thing nobody can buy.
+    // Drop a row no VISIBLE plan offers: with the tier that has it withdrawn,
+    // it is a line of dashes telling the reader about a thing nobody can buy.
     .filter((row) => row.unlocks || row.values.some(Boolean));
 
   if (cols.length === 0) return null;

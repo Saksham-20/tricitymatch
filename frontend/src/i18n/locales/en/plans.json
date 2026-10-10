@@ -22,11 +22,10 @@
     "createProfile": "Create profile",
     "browseMatches": "Browse matches",
     "sendInterest": "Send interest",
-    "basicFilters": "Basic search filters",
+    "basicFilters": "All search filters",
     "viewContact": "View contact details",
     "unlimitedMessages": "Unlimited messages",
     "whoViewed": "See who viewed profile",
-    "advancedFilters": "Advanced search filters",
     "unlocks_one": "{{count}} contact unlock",
     "unlocks_other": "{{count}} contact unlocks",
     "unlimitedUnlocks": "Unlimited contact unlocks",
@@ -35,14 +34,8 @@
     "validityFullYear": "Full-year validity",
     "fullAccess": "{{duration}} of full access",
     "profileBoost": "Profile boost",
-    "spotlight": "Spotlight listing",
-    "prioritySupport": "Priority customer support",
     "priorityRanking": "Priority ranking in search",
     "bestValue": "Best value per month",
-    "verifiedBadge": "Verified badge",
-    "relationshipAdvisor": "Dedicated relationship advisor",
-    "priorityNriSupport": "Priority NRI support",
-    "timezoneMatching": "Timezone-aware matching",
     "localCurrency": "Prices in your local currency",
     "chatMutuals": "Chat with your mutual matches",
     "accessUntil": "Full access until {{date}}"
@@ -65,10 +58,8 @@
       "chat": "Chat with matches",
       "likes": "See who likes you",
       "rich": "Reactions, voice notes & quote replies",
-      "advancedFilters": "Advanced filters",
       "calls": "Voice & video calls",
-      "profileBoost": "Profile boost",
-      "relationshipManager": "Relationship manager"
+      "profileBoost": "Profile boost"
     }
   },
   "stories": {
@@ -111,7 +102,7 @@
     "everythingPlus": "Everything in Free, plus"
   },
   "nri": {
-    "description": "Full VIP access built for members abroad: timezone-aware matching, priority support, and prices shown in your own currency.",
+    "description": "Full VIP access for members abroad, with prices shown in your own currency.",
     "indicative": "(indicative)",
     "billedInInr": "Billed in INR"
   },

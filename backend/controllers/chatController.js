@@ -19,6 +19,9 @@ const { getActiveSubscription, grantWindowState } = require('../utils/entitlemen
 const { REACTION_EMOJIS, VOICE_MESSAGE_MAX_DURATION_MS } = require('../constants/chat');
 const { assertActorAgeVerifiable } = require('../utils/ageVerifiable');
 const { keepMessageIfReported } = require('../utils/evidencePreservation');
+const { getIO } = require('../utils/socket');
+const { incr: cacheIncr } = require('../utils/cache');
+const { isEnabled: notificationEnabled } = require('../utils/notificationPrefs');
 
 // D2: the standard include for returning a message to clients — sender card
 // plus a minimal quote of the replied-to message (null once that message is
@@ -68,23 +71,53 @@ const ensureReplyGrant = async (senderId, receiverId) => {
   }
 };
 
+// One "new messages" email per sender → receiver pair per hour at most. It used
+// to go out for EVERY message, so a lively thread mailed the other person a
+// dozen times in minutes, all drawn from the same provider quota as sign-up
+// codes and password resets.
+const CHAT_EMAIL_WINDOW_SECONDS = 60 * 60;
+
+// Is the member connected right now? Their open tab or app already received
+// the message over the socket, so a mail would only repeat it. Reads this
+// process's rooms; production runs one backend instance (a second instance
+// behind the Redis adapter would need a shared presence check here).
+const isOnline = (userId) => {
+  const room = getIO()?.sockets?.adapter?.rooms?.get(`user_${userId}`);
+  return Boolean(room && room.size > 0);
+};
+
 // Non-blocking "you have a new message" email. Never passes message content, to
-// keep PII out of email previews and logs.
+// keep PII out of email previews and logs. Skipped when the receiver is online,
+// has no proven address, used the unsubscribe link, or switched message
+// notifications off; otherwise throttled per pair.
+const sendReceiverEmailNotice = async (senderId, receiverId) => {
+  if (isOnline(receiverId)) return 'online';
+
+  const receiver = await User.findByPk(receiverId, {
+    attributes: ['id', 'email', 'emailVerified', 'status', 'lifecycleMail', 'notificationPrefs'],
+  });
+  if (!receiver?.email || receiver.status !== 'active') return 'no_address';
+  // An address nobody proved may be a typo or someone else's inbox.
+  if (receiver.emailVerified !== true) return 'unverified';
+  if (receiver.lifecycleMail?.emailOptOut) return 'opted_out';
+  if (!notificationEnabled(receiver.notificationPrefs, 'messages')) return 'muted';
+
+  // Claim the hour for this pair before sending: two messages a second apart
+  // both reach this line, and only the first may mail.
+  const claims = await cacheIncr(`chat_email:${receiverId}:${senderId}`, CHAT_EMAIL_WINDOW_SECONDS);
+  if (claims !== 1) return 'throttled';
+
+  const senderProfile = await Profile.findOne({ where: { userId: senderId }, attributes: ['firstName', 'lastName'] });
+  if (!senderProfile) return 'no_sender';
+  const senderName = [senderProfile.firstName, senderProfile.lastName].filter(Boolean).join(' ') || 'A member';
+  await sendMessageNotification(receiver.email, senderName, 'You have a new message');
+  return 'sent';
+};
+
 const notifyReceiverByEmail = (senderId, receiverId) => {
   setImmediate(async () => {
     try {
-      const [receiver, senderProfile] = await Promise.all([
-        User.findByPk(receiverId, { attributes: ['id', 'email'], include: [{ model: Profile, attributes: ['firstName'] }] }),
-        Profile.findOne({ where: { userId: senderId }, attributes: ['firstName', 'lastName'] })
-      ]);
-
-      if (receiver?.email && senderProfile) {
-        await sendMessageNotification(
-          receiver.email,
-          `${senderProfile.firstName} ${senderProfile.lastName}`,
-          'You have a new message'
-        );
-      }
+      await sendReceiverEmailNotice(senderId, receiverId);
     } catch (error) {
       log.error('Failed to send message notification', { error: error.message, receiverId });
     }
@@ -807,3 +840,6 @@ exports.toggleReaction = asyncHandler(async (req, res) => {
     reactions: message.reactions
   });
 });
+
+// Exposed for unit tests of the email notice rules.
+exports.sendReceiverEmailNotice = sendReceiverEmailNotice;

@@ -245,7 +245,7 @@ const CreateAccountStep = () => {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{t('signup.enterCode', { count: codeLen })}</p>
-                  <p className="text-xs text-neutral-500 -mt-1.5"><Trans i18nKey="signup.sentTo" values={{ target: idType === 'phone' ? `+91 ${idTarget()}` : formData.email }} components={{ target: <span className="font-medium text-neutral-700 dark:text-neutral-300" /> }} /></p>
+                  <p className="text-xs text-neutral-500 -mt-1.5 break-words"><Trans i18nKey="signup.sentTo" values={{ target: idType === 'phone' ? `+91 ${idTarget()}` : formData.email }} components={{ target: <span className="font-medium text-neutral-700 dark:text-neutral-300" /> }} /></p>
                   <OtpBoxes length={codeLen} value={otpCode} onChange={setOtpCode} onComplete={verifyOtp} error={!!errors.otp} disabled={otpVerifying} autoFocus />
                   {/* Verification fires on the last digit — no button to hunt for. */}
                   <div className="flex items-center gap-3 min-h-[20px]">

@@ -44,6 +44,7 @@ const {
   authLimiter,
   refreshLimiter,
   otpLimiter,
+  otpVerifyLimiter,
   signupLimiter,
   passwordResetLimiter,
   passwordResetSubmitLimiter,
@@ -171,10 +172,12 @@ router.post(
   handleValidationErrors,
   checkReferralCode
 );
+// Sends spend the tight OTP budget (each one is an SMS or an email); checks of
+// a code spend their own, larger one (see otpVerifyLimiter).
 router.post('/send-otp', otpLimiter, otpTargetValidation, handleValidationErrors, sendOtp);
 router.post(
   '/verify-otp',
-  otpLimiter,
+  otpVerifyLimiter,
   otpTargetValidation,
   body('code').isLength({ min: 4, max: 6 }).isNumeric().withMessage('code must be 4–6 digits'),
   handleValidationErrors,
@@ -211,7 +214,7 @@ router.post('/change-password',
 router.post('/email/verify/request', auth, otpLimiter, requestCurrentEmailVerification);
 router.post('/email/verify/confirm',
   auth,
-  otpLimiter,
+  otpVerifyLimiter,
   body('code').isString().isLength({ min: 6, max: 6 }).isNumeric(),
   handleValidationErrors,
   confirmCurrentEmailVerification
@@ -227,7 +230,7 @@ router.post('/change-email/request',
 );
 router.post('/change-email/verify',
   auth,
-  otpLimiter,
+  otpVerifyLimiter,
   changeEmailVerifyValidation,
   handleValidationErrors,
   verifyEmailChange
@@ -245,7 +248,7 @@ router.post('/contact-number/request',
 );
 router.post('/contact-number/verify',
   auth,
-  otpLimiter,
+  otpVerifyLimiter,
   body('phone').isString().isLength({ min: 10, max: 16 }),
   body('code').optional().isLength({ min: 4, max: 6 }).isNumeric(),
   handleValidationErrors,

@@ -22,11 +22,10 @@
     "createProfile": "ਪ੍ਰੋਫ਼ਾਈਲ ਬਣਾਓ",
     "browseMatches": "ਮੈਚ ਵੇਖੋ",
     "sendInterest": "ਦਿਲਚਸਪੀ ਭੇਜੋ",
-    "basicFilters": "ਬੇਸਿਕ ਸਰਚ ਫ਼ਿਲਟਰ",
+    "basicFilters": "ਸਾਰੇ ਸਰਚ ਫ਼ਿਲਟਰ",
     "viewContact": "ਸੰਪਰਕ ਜਾਣਕਾਰੀ ਵੇਖੋ",
     "unlimitedMessages": "ਅਸੀਮਤ ਸੁਨੇਹੇ",
     "whoViewed": "ਵੇਖੋ ਕਿਸ ਨੇ ਤੁਹਾਡੀ ਪ੍ਰੋਫ਼ਾਈਲ ਵੇਖੀ",
-    "advancedFilters": "ਐਡਵਾਂਸਡ ਸਰਚ ਫ਼ਿਲਟਰ",
     "unlocks_one": "{{count}} ਸੰਪਰਕ ਅਨਲੌਕ",
     "unlocks_other": "{{count}} ਸੰਪਰਕ ਅਨਲੌਕ",
     "unlimitedUnlocks": "ਅਸੀਮਤ ਸੰਪਰਕ ਅਨਲੌਕ",
@@ -35,14 +34,8 @@
     "validityFullYear": "ਪੂਰੇ ਸਾਲ ਦੀ ਮਿਆਦ",
     "fullAccess": "{{duration}} ਦੀ ਪੂਰੀ ਸਹੂਲਤ",
     "profileBoost": "ਪ੍ਰੋਫ਼ਾਈਲ ਬੂਸਟ",
-    "spotlight": "ਸਪੌਟਲਾਈਟ ਲਿਸਟਿੰਗ",
-    "prioritySupport": "ਪਹਿਲ ਵਾਲੀ ਗਾਹਕ ਸਹਾਇਤਾ",
     "priorityRanking": "ਸਰਚ ਵਿੱਚ ਉੱਪਰ ਦਿਖੋ",
     "bestValue": "ਮਹੀਨੇ ਦੇ ਹਿਸਾਬ ਨਾਲ ਸਭ ਤੋਂ ਕਿਫ਼ਾਇਤੀ",
-    "verifiedBadge": "ਤਸਦੀਕਸ਼ੁਦਾ ਬੈਜ",
-    "relationshipAdvisor": "ਤੁਹਾਡੇ ਲਈ ਇੱਕ ਰਿਲੇਸ਼ਨਸ਼ਿਪ ਸਲਾਹਕਾਰ",
-    "priorityNriSupport": "ਐਨਆਰਆਈ ਮੈਂਬਰਾਂ ਲਈ ਪਹਿਲ ਵਾਲੀ ਸਹਾਇਤਾ",
-    "timezoneMatching": "ਤੁਹਾਡੇ ਟਾਈਮ ਜ਼ੋਨ ਦੇ ਹਿਸਾਬ ਨਾਲ ਮੈਚਿੰਗ",
     "localCurrency": "ਤੁਹਾਡੀ ਆਪਣੀ ਕਰੰਸੀ ਵਿੱਚ ਕੀਮਤਾਂ",
     "chatMutuals": "ਆਪਣੇ ਆਪਸੀ ਮੈਚਾਂ ਨਾਲ ਚੈਟ ਕਰੋ",
     "accessUntil": "{{date}} ਤੱਕ ਪੂਰੀ ਸਹੂਲਤ"
@@ -65,10 +58,8 @@
       "chat": "ਮੈਚਾਂ ਨਾਲ ਚੈਟ",
       "likes": "ਵੇਖੋ ਕੌਣ ਤੁਹਾਨੂੰ ਪਸੰਦ ਕਰਦਾ ਹੈ",
       "rich": "ਰਿਐਕਸ਼ਨ, ਵੌਇਸ ਨੋਟ ਤੇ ਕੋਟ ਕਰਕੇ ਜਵਾਬ",
-      "advancedFilters": "ਐਡਵਾਂਸਡ ਫ਼ਿਲਟਰ",
       "calls": "ਵੌਇਸ ਤੇ ਵੀਡੀਓ ਕਾਲ",
-      "profileBoost": "ਪ੍ਰੋਫ਼ਾਈਲ ਬੂਸਟ",
-      "relationshipManager": "ਰਿਲੇਸ਼ਨਸ਼ਿਪ ਮੈਨੇਜਰ"
+      "profileBoost": "ਪ੍ਰੋਫ਼ਾਈਲ ਬੂਸਟ"
     }
   },
   "stories": {
@@ -111,7 +102,7 @@
     "everythingPlus": "ਮੁਫ਼ਤ ਪਲਾਨ ਦੀ ਹਰ ਸਹੂਲਤ, ਅਤੇ ਨਾਲ ਹੀ"
   },
   "nri": {
-    "description": "ਵਿਦੇਸ਼ ਵਿੱਚ ਰਹਿਣ ਵਾਲੇ ਮੈਂਬਰਾਂ ਲਈ ਪੂਰੀ ਵੀਆਈਪੀ ਸਹੂਲਤ: ਟਾਈਮ ਜ਼ੋਨ ਦੇ ਹਿਸਾਬ ਨਾਲ ਮੈਚਿੰਗ, ਪਹਿਲ ਵਾਲੀ ਸਹਾਇਤਾ, ਅਤੇ ਤੁਹਾਡੀ ਆਪਣੀ ਕਰੰਸੀ ਵਿੱਚ ਕੀਮਤਾਂ।",
+    "description": "ਵਿਦੇਸ਼ ਵਿੱਚ ਰਹਿਣ ਵਾਲੇ ਮੈਂਬਰਾਂ ਲਈ ਪੂਰੀ ਵੀਆਈਪੀ ਸਹੂਲਤ, ਅਤੇ ਕੀਮਤਾਂ ਤੁਹਾਡੀ ਆਪਣੀ ਕਰੰਸੀ ਵਿੱਚ।",
     "indicative": "(ਅੰਦਾਜ਼ਨ)",
     "billedInInr": "ਭੁਗਤਾਨ ਰੁਪਏ (INR) ਵਿੱਚ ਹੋਵੇਗਾ"
   },

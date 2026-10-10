@@ -25,6 +25,11 @@ const UNLOCKS = (count) => ({ id: 'unlocks', count });
 const VALIDITY = (key) => ({ id: 'validity', key });
 const line = (key) => ({ id: key, key });
 
+// Every line must be something the product does today. Search filters are not
+// gated (a free member can use every filter), so Free says "All search filters"
+// and no paid tier sells filters. Spotlight listing, priority/NRI support, a
+// relationship advisor, timezone matching and a plan-granted verified badge
+// were listed here but nothing in the product delivers them, so they are gone.
 const PLAN_FEATURES = {
   free: [
     line('createProfile'),
@@ -36,7 +41,6 @@ const PLAN_FEATURES = {
     line('viewContact'),
     line('unlimitedMessages'),
     line('whoViewed'),
-    line('advancedFilters'),
     UNLOCKS(5),
   ],
   premium_plus: [
@@ -44,8 +48,6 @@ const PLAN_FEATURES = {
     UNLOCKS(15),
     VALIDITY('validity90Days'),
     line('profileBoost'),
-    line('spotlight'),
-    line('prioritySupport'),
   ],
   elite: [
     EVERYTHING_IN,
@@ -57,18 +59,20 @@ const PLAN_FEATURES = {
   vip: [
     EVERYTHING_IN,
     UNLOCKS(-1),
-    line('verifiedBadge'),
     VALIDITY('validityFullYear'),
-    line('relationshipAdvisor'),
   ],
   nri: [
     EVERYTHING_IN,
     UNLOCKS(-1),
-    line('priorityNriSupport'),
-    line('timezoneMatching'),
     line('localCurrency'),
   ],
 };
+
+// The paid basics every paid tier includes. A higher tier normally gets them
+// through "Everything in Basic"; when Basic is not on sale its chain falls back
+// to Free, and the card would otherwise never mention contact details or who
+// viewed you. Ids, not text, so the check works in every language.
+const PAID_BASICS = new Set(['viewContact', 'unlimitedMessages', 'whoViewed']);
 
 const isEnglish = () => !i18n.language || i18n.language.startsWith('en');
 
@@ -120,6 +124,15 @@ const textOf = (item, prevName) => {
   return i18n.t(`plans.features.${item.key}`);
 };
 
+// Basic's own lines in the server's world (see planFeatureItems).
+const basicLines = (freeChatForMutuals) => (freeChatForMutuals
+  ? [
+    line('viewContact'),
+    UNLOCKS(5),
+    line('whoViewed'),
+  ]
+  : PLAN_FEATURES.basic_premium);
+
 /**
  * Feature lines for a tier as `{ id, text }`, in the world the server says we
  * are in. Use this when a caller needs to drop a line by kind.
@@ -132,22 +145,22 @@ const textOf = (item, prevName) => {
  */
 export const planFeatureItems = (planKey, freeChatForMutuals, livePlan, prevName) => {
   const base = PLAN_FEATURES[planKey] || [];
-  const list = !freeChatForMutuals
-    ? base
-    : planKey === 'free'
-      ? [...base, line('chatMutuals')]
-      : planKey === 'basic_premium'
-        ? [
-          line('viewContact'),
-          UNLOCKS(5),
-          line('whoViewed'),
-          line('advancedFilters'),
-        ]
-        : base;
+  let list = planKey === 'free'
+    ? (freeChatForMutuals ? [...base, line('chatMutuals')] : base)
+    : planKey === 'basic_premium'
+      ? basicLines(freeChatForMutuals)
+      : base;
 
   // Resolve the chain line against the tier actually shown below this one.
   // With no previous tier (everything below was withdrawn) the honest
-  // comparison is against Free.
+  // comparison is against Free, and then the paid basics are spelled out:
+  // "Everything in Free" alone would hide what the plan actually adds.
+  const chainIsFree = !prevName || prevName === planDisplayName('free');
+  if (list[0]?.id === 'everythingIn' && chainIsFree) {
+    const basics = basicLines(freeChatForMutuals).filter((item) => PAID_BASICS.has(item.id));
+    list = [list[0], ...basics, ...list.slice(1)];
+  }
+
   return retermForLivePlan(list, livePlan)
     .map((item) => ({ id: item.id, text: textOf(item, prevName) }));
 };

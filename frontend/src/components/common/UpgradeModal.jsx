@@ -8,6 +8,7 @@ import { FaCrown } from 'react-icons/fa';
 import api from '../../api/axios';
 import Skeleton from '../ui/Skeleton';
 import ErrorState from '../ui/ErrorState';
+import { termSuffix } from '../../utils/planFeatures';
 
 // Presentation-only metadata (icon + accent colour), keyed by plan enum. Every
 // commercial fact here — price, tenure, contact unlocks, and which of these
@@ -225,7 +226,10 @@ const UpgradeModal = ({ isOpen, onClose, feature, description }) => {
                         )}
                       </div>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                        ₹{plan.price.toLocaleString('en-IN')}/{plan.duration} · {unlocksLabel}
+                        {/* termSuffix: "/3 months", or " until 10 Jan 2027" when the launch
+                            offer sells the plan to a fixed end date (a slash before a date
+                            read as "₹1,100/until 10 January 2027"). */}
+                        ₹{plan.price.toLocaleString('en-IN')}{termSuffix(plan, plan.duration)} · {unlocksLabel}
                       </p>
                     </div>
 

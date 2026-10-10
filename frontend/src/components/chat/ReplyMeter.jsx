@@ -5,6 +5,7 @@
  */
 
 import { useTranslation } from 'react-i18next';
+import { isPunjabiLocale, formatPunjabiDateTime } from '../../utils/punjabiDate';
 
 // English keeps its exact 'en-IN' rendering; Hindi/Punjabi get their own month
 // names with Western digits.
@@ -17,9 +18,12 @@ const ReplyMeter = ({ replyWindow }) => {
   if (!active) return null;
 
   const low = messagesRemaining <= 2;
-  const expiry = expiresAt
-    ? new Date(expiresAt).toLocaleString(meterLocale(i18n.language), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
-    : null;
+  // Chrome has no Punjabi month names ("M10"), so Punjabi uses our own list.
+  const expiry = !expiresAt
+    ? null
+    : isPunjabiLocale(i18n.language)
+      ? formatPunjabiDateTime(new Date(expiresAt), { year: false })
+      : new Date(expiresAt).toLocaleString(meterLocale(i18n.language), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 
   return (
     <div

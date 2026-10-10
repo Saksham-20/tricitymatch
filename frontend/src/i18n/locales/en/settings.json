@@ -144,6 +144,8 @@
     "matchesOnlyNote": "With \"Matches Only\", only members you have already liked can send you an interest, and only your matches can open your profile.",
     "incognito": "Incognito mode",
     "incognitoDesc": "Browse without leaving a trace: your visits are not recorded, and you stay out of search and daily matches until you switch it off.",
+    "hidePhotos": "Hide my photos until we match",
+    "hidePhotosDesc": "Members you haven't matched with see your initials instead of your photos.",
     "sharedTitle": "Details you share",
     "sharedDesc": "Choose who sees your contact details, income and birth details: everyone, only your matches, or no one",
     "fields": {

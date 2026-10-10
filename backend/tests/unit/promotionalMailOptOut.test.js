@@ -121,8 +121,8 @@ describe('weekly digest job', () => {
     return sendWeeklyDigest;
   };
 
-  const member = (id, lifecycleMail = null) => ({
-    id, email: `${id}@example.com`, lifecycleMail, Profile: { gender: 'male', firstName: 'Aman' },
+  const member = (id, lifecycleMail = null, over = {}) => ({
+    id, email: `${id}@example.com`, emailVerified: true, lifecycleMail, Profile: { gender: 'male', firstName: 'Aman' }, ...over,
   });
   const U1 = '3f0c9a52-8d6e-4b1a-9c77-2a5d1e6f4b10';
   const U2 = '9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d';
@@ -141,6 +141,13 @@ describe('weekly digest job', () => {
 
   it('skips a member who unsubscribed and still mails the others', async () => {
     const send = await setup([member(U1, { emailOptOut: '2026-09-01T00:00:00.000Z' }), member(U2)]);
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toBe(`${U2}@example.com`);
+  });
+
+  it('skips an address the member never proved (it may be a typo) and still mails the others', async () => {
+    const send = await setup([member(U1, null, { emailVerified: false }), member(U2)]);
 
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][0]).toBe(`${U2}@example.com`);

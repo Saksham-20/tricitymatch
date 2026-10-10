@@ -26,6 +26,8 @@
  *    the heels of one.
  *  • A member who used the unsubscribe link (`emailOptOut` on their ledger) gets
  *    no nudges at all. Notices are not optional and still go.
+ *  • Nudges go only to an address the member PROVED (signup code, Google, or
+ *    the verify-email code). Notices still go to whatever address is on file.
  *  • Cancelling a checkout leaves NOTHING pending. A pending order means one
  *    thing only: money may have moved, or a payment attempt failed.
  *  • There is no "you left something in your cart" mail. Closing the payment
@@ -87,10 +89,13 @@ const delivered = (result) => !result || result.success !== false;
 
 const optedOut = (user) => Boolean(user?.lifecycleMail?.emailOptOut);
 
-// An address typed at signup beside a verified phone was never proved to be
-// theirs; it must not be sold to. (Legacy accounts with no verified phone keep
-// getting mail: the address is their only contact.)
-const nudgeAddressUnproved = (user) => user?.emailVerified === false && user?.phoneVerified === true;
+// A nudge needs a proven address. An address typed at signup beside a
+// verified phone, or kept from before sign-up codes existed, may be a typo or
+// someone else's inbox: mailing it bounces, and the mail provider judges the
+// whole sender (sign-up codes included) on its bounce rate. A typed-in Gmail
+// that was never proved once collected a welcome, three digests and two photo
+// nudges, all bounced. Notices about money still go regardless (mayMail).
+const nudgeAddressUnproved = (user) => user?.emailVerified !== true;
 
 const memberQuiet = (user, nowMs) => {
   const last = user?.lifecycleMail?.lastSentAt;
@@ -379,9 +384,9 @@ const runPhotoNudge = async (now = new Date()) => {
       [Op.and]: [
         literal('"User"."lifecycleMail"->>\'photoNudge2\' IS NULL'),
         literal('"User"."lifecycleMail"->>\'emailOptOut\' IS NULL'),
-        // Not a member who scheduled deletion, and not an address nobody proved.
+        // Not a member who scheduled deletion, and only an address they proved.
         literal('"User"."deletionScheduledFor" IS NULL'),
-        literal('NOT ("User"."emailVerified" = false AND "User"."phoneVerified" = true)'),
+        literal('"User"."emailVerified" = true'),
       ],
     },
     include: [{
@@ -401,7 +406,7 @@ const runPhotoNudge = async (now = new Date()) => {
 
   let sent = 0;
   for (const user of candidates) {
-    if (!user.email || optedOut(user)) continue;
+    if (!user.email || optedOut(user) || nudgeAddressUnproved(user)) continue;
     const ledger = user.lifecycleMail || {};
 
     let key = null;

@@ -35,7 +35,8 @@ describeDb('voice message reply window', (t) => {
   const setup = async () => {
     const { Match, Subscription } = require('../../../models');
     const paid = await makeMember({ profile: { gender: 'male' } });
-    const free = await makeMember({ profile: { gender: 'female' } });
+    // A proven address: the "new message" mail only goes to one.
+    const free = await makeMember({ user: { emailVerified: true }, profile: { gender: 'female' } });
     ids.push(paid.user.id, free.user.id);
     await Subscription.create({
       userId: paid.user.id, planType: 'premium_plus', status: 'active', amount: 109900,
@@ -55,8 +56,10 @@ describeDb('voice message reply window', (t) => {
     expect(await Message.count({ where: { senderId: paid.id, receiverId: free.id, messageType: 'voice' } })).toBe(1);
     const grant = await ChatGrant.findOne({ where: { premiumUserId: paid.id, freeUserId: free.id } });
     expect(grant).not.toBeNull();
-    await new Promise((r) => setImmediate(r));
-    await new Promise((r) => setImmediate(r));
+    // The mail is sent off the request path after two lookups; wait for it.
+    for (let i = 0; i < 100 && mockMail.mock.calls.length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
     expect(mockMail).toHaveBeenCalledTimes(1);
     expect(mockMail.mock.calls[0][0]).toBe(free.email);
   });

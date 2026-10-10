@@ -160,6 +160,15 @@ const setupEmailProcessor = (queue) => {
     await sendSubscriptionConfirmation(to, name, plan, expiryDate);
     return { sent: true, to };
   });
+
+  // Ops alert mail, queued by utils/alerts.js (email + SMS budget exhaustion,
+  // monitoring). There was no processor for this name, so Bull failed every
+  // one of these jobs and no alert ever reached anyone. Cooldown and the daily
+  // cap live in deliverAlertEmail.
+  queue.process('alert', async (job) => {
+    const { deliverAlertEmail } = require('./alerts');
+    return deliverAlertEmail(job.data?.alert, job.data?.recipients);
+  });
 };
 
 /**
@@ -272,12 +281,19 @@ const setupCleanupProcessor = (queue) => {
         where: { isActive: true, gender: { [Op.in]: ['male', 'female'] } },
         attributes: ['gender', 'city', 'preferredAgeMin', 'preferredAgeMax', 'firstName']
       }],
-      attributes: ['id', 'email', 'lifecycleMail'],
+      attributes: ['id', 'email', 'emailVerified', 'lifecycleMail'],
     }, async (users) => {
     for (const user of users) {
       try {
         const profile = user.Profile;
         if (!profile || !user.email) continue;
+        // Optional mail goes only to an address the member proved (signup
+        // code, Google, or the verify-email code) and never after they used the
+        // unsubscribe link. A typed-in address nobody proved bounces, and the
+        // provider judges the whole sender on its bounce rate.
+        const mayEmail = user.emailVerified === true && !user.lifecycleMail?.emailOptOut;
+        const mayPush = Array.isArray(user.fcmTokens) && user.fcmTokens.length > 0;
+        if (!mayEmail && !mayPush) continue;
 
         const oppositeGender = profile.gender === 'male' ? 'female' : 'male';
         const ageMin = profile.preferredAgeMin;
@@ -330,9 +346,10 @@ const setupCleanupProcessor = (queue) => {
           : await Profile.count({ where: baseWhere });
 
         if (matchCount > 0) {
-          // Email digest — skipped for a member who unsubscribed from reminder
-          // mail (the push below is a separate channel and is unaffected).
-          if (!user.lifecycleMail?.emailOptOut) {
+          // Email digest — only to a proven address, and skipped for a member
+          // who unsubscribed from reminder mail (the push below is a separate
+          // channel and is unaffected).
+          if (mayEmail) {
             await sendWeeklyDigest(user.email, profile.firstName || 'there', matchCount, '', linksFor(user.id));
           }
 
@@ -550,6 +567,11 @@ const executeJob = async (job) => {
       }
       break;
     }
+    case 'alert': {
+      const { deliverAlertEmail } = require('./alerts');
+      await deliverAlertEmail(job.data?.alert, job.data?.recipients);
+      break;
+    }
     default:
       log.warn('Unknown job type', { type: job.type });
   }
@@ -714,6 +736,7 @@ module.exports = {
   runPhotoNudge: (...args) => lifecycle().runPhotoNudge(...args),
   initQueues,
   setupCleanupProcessor, // exported for tests: the digest processor is otherwise unreachable without Redis
+  setupEmailProcessor, // exported for tests: the alert processor is otherwise unreachable without Redis
   addJob,
   getQueue,
   scheduleCleanupJobs,

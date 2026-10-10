@@ -21,6 +21,7 @@ import RetryImage from '../components/ui/RetryImage';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui';
 import { listRow } from '../utils/animations';
 import apiErrorMessage from '../utils/apiError';
+import { isPunjabiLocale, formatPunjabiDate, calendarParts, PA_WEEKDAYS_LONG } from '../utils/punjabiDate';
 
 // Mouse-only hover lift (doctrine §4.7) — computed once so a touch tap never
 // leaves a button visually "raised" with no un-hover event to release it.
@@ -117,9 +118,12 @@ const listStamp = (iso, lng) => {
   const d = new Date(iso);
   const now = new Date();
   const locale = isEnglish(lng) ? [] : indicLocale(lng);
-  return d.toDateString() === now.toDateString()
-    ? d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-    : d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  }
+  // Chrome has no Punjabi month names ("M10"), so Punjabi uses our own list.
+  if (isPunjabiLocale(lng)) return formatPunjabiDate(d, { year: false });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 };
 
 const Chat = () => {
@@ -610,6 +614,9 @@ const Chat = () => {
     if (date.toDateString() === today.toDateString()) return t('chat.today');
     if (date.toDateString() === yesterday.toDateString()) return t('chat.yesterday');
     const lng = i18n.language;
+    if (isPunjabiLocale(lng)) {
+      return `${PA_WEEKDAYS_LONG[calendarParts(date).weekday]}, ${formatPunjabiDate(date, { year: false })}`;
+    }
     return date.toLocaleDateString(isEnglish(lng) ? 'en-US' : indicLocale(lng), { weekday: 'long', month: 'short', day: 'numeric' });
   };
 

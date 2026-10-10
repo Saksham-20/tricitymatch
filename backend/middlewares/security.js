@@ -17,6 +17,14 @@ const { createError, asyncHandler } = require('./errorHandler');
 
 // ==================== RATE LIMITERS ====================
 
+// IPv6 addresses are limited per /64, not the library's default /56. A /64 is
+// what one subscriber gets: Indian mobile carriers hand each phone its own /64,
+// so neighbouring members sit in the same /56 and a /56 key made strangers
+// share one bucket. A /64 is still the smallest block one person controls, so
+// rotating addresses inside it does not buy an attacker extra attempts.
+const IPV6_SUBNET = 64;
+const ipKey = (req) => ipKeyGenerator(req.ip, IPV6_SUBNET);
+
 // Create a rate limiter factory
 let limiterSeq = 0;
 
@@ -43,8 +51,8 @@ const createRateLimiter = (options) => {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: options.keyGenerator || ((req) => {
-      // Use user ID if authenticated, otherwise IP (ipKeyGenerator for IPv6-safe limiting)
-      return req.user?.id || ipKeyGenerator(req.ip);
+      // Use user ID if authenticated, otherwise IP (IPv6 grouped per /64, see ipKey)
+      return req.user?.id || ipKey(req);
     }),
     // Forwarded explicitly: this factory whitelists options, so anything not
     // listed here is silently dropped rather than reaching express-rate-limit.
@@ -87,7 +95,7 @@ const apiLimiter = createRateLimiter({
         // Expired/invalid token — fall through to IP keying.
       }
     }
-    return ipKeyGenerator(req.ip);
+    return ipKey(req);
   },
 });
 
@@ -103,7 +111,7 @@ const authLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 20, // 20 FAILED attempts per IP
   message: 'Too many login attempts. Please try again later.',
-  keyGenerator: (req) => ipKeyGenerator(req.ip), // Always use IP for auth
+  keyGenerator: ipKey, // Always use IP for auth
   skipSuccessfulRequests: true,
 });
 
@@ -117,20 +125,23 @@ const refreshLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 60, // plenty for many concurrent sessions behind one NAT
   message: 'Too many session refresh attempts. Please try again later.',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
   skipSuccessfulRequests: true,
 });
 
-// Signup limiter - strict, but only counts accounts that were ACTUALLY created.
+// Signup limiter - only counts accounts that were ACTUALLY created.
 // Counting rejected attempts meant three mistyped emails locked a genuine user
 // (and everyone sharing their NAT'd IP) out of registering for a full hour —
 // a silent conversion killer. Junk requests are still covered by apiLimiter.
+// 20, not 5: a partner roadshow or a college signs people up from one venue
+// Wi-Fi, and five an hour stopped the sixth family at the table. Every signup
+// already needs a fresh OTP proof, so this is a backstop, not the gate.
 const signupLimiter = createRateLimiter({
   name: 'signupLimiter',
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 real signups per hour per IP (families often register together)
+  max: 20, // 20 real signups per hour per IP (families and venues register together)
   message: 'Too many accounts created, please try again after an hour',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
   skipFailedRequests: true,
 });
 
@@ -140,7 +151,7 @@ const contactLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 enquiries per hour per IP
   message: 'Too many messages sent, please try again after an hour',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
 });
 
 // Public invite-resolve limiter (Phase S) — GET /invite/:token returns an
@@ -152,7 +163,7 @@ const inviteLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 30, // 30 lookups per 15 min per IP
   message: 'Too many invite lookups, please try again shortly',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
 });
 
 // Client analytics beacon limiter. Sized for a real browsing session (a few
@@ -164,16 +175,30 @@ const analyticsLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 60,
   message: 'Too many events',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
 });
 
-// OTP send/verify limiter — separate from auth limiter so OTP calls don't exhaust login pool
+// OTP SEND limiter — separate from auth limiter so OTP calls don't exhaust login pool.
+// Every send costs an SMS or an email, so this one stays tight.
 const otpLimiter = createRateLimiter({
   name: 'otpLimiter',
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 10, // 10 OTP attempts per 10 min per IP (generous for real users, tight enough vs bots)
+  max: 10, // 10 OTP sends per 10 min per IP (generous for real users, tight enough vs bots)
   message: 'Too many verification attempts, please try again in 10 minutes',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
+});
+
+// OTP VERIFY limiter — its own budget. Sharing the send budget meant a family
+// at one Wi-Fi, each sending a code and then typing it (auto-verify fires on the
+// last digit, and a typo is another call), ran the pool dry in a few signups.
+// Guessing is not the risk here: each code locks after a handful of wrong
+// tries in otpStore, whatever the address.
+const otpVerifyLimiter = createRateLimiter({
+  name: 'otpVerifyLimiter',
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 30, // 30 verify attempts per 10 min per IP
+  message: 'Too many verification attempts, please try again in 10 minutes',
+  keyGenerator: ipKey,
 });
 
 // Password reset REQUEST limiter — throttles how often reset emails can be
@@ -183,7 +208,7 @@ const passwordResetLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 reset emails per hour per IP (was 3 — too tight behind shared NAT)
   message: 'Too many password reset attempts, please try again later',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
 });
 
 // Password reset SUBMIT limiter — separate budget from the request limiter.
@@ -196,7 +221,7 @@ const passwordResetSubmitLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20, // 20 FAILED submissions per hour per IP
   message: 'Too many password reset attempts, please try again later',
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  keyGenerator: ipKey,
   skipSuccessfulRequests: true,
 });
 
@@ -246,7 +271,7 @@ const adminLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute for admins
   message: 'Too many admin requests',
-  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?.id || ipKey(req),
 });
 
 // ── Limiters added by the 2026-08-21 deep audit ──
@@ -271,7 +296,7 @@ const sensitiveActionLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
   message: 'Too many attempts, please try again later',
-  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?.id || ipKey(req),
 });
 
 // Reads that cost real server work: PDF rendering with an outbound image fetch,
@@ -281,7 +306,7 @@ const expensiveReadLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 20,
   message: 'Too many requests, please slow down',
-  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?.id || ipKey(req),
 });
 
 // Anything that creates a live payment-provider order. subscriptionRoutes had
@@ -292,7 +317,7 @@ const paymentLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
   message: 'Too many payment attempts, please try again later',
-  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?.id || ipKey(req),
 });
 
 // ==================== SECURITY HEADERS ====================
@@ -693,6 +718,7 @@ module.exports = {
   authLimiter,
   refreshLimiter,
   otpLimiter,
+  otpVerifyLimiter,
   signupLimiter,
   contactLimiter,
   inviteLimiter,

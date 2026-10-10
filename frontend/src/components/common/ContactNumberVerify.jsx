@@ -77,6 +77,11 @@ export default function ContactNumberVerify({
       } else {
         const res = await api.post('/auth/contact-number/request', { phone });
         if (res.data.alreadyVerified) {
+          // No code is needed for a number the account already verified, but the
+          // choice still has to be saved: picking the sign-in number again is
+          // what clears a separate contact number. Without this call the page
+          // said "Number verified" while members kept getting the old number.
+          await api.post('/auth/contact-number/verify', { phone });
           onVerified?.(phone);
         } else {
           setOtpSent(true);
