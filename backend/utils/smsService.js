@@ -40,6 +40,37 @@ const normalizePhone = (raw) => {
   return null;
 };
 
+// A provider that never answers must not hold the member's request open. After
+// this long the send is abandoned and fails like any other failed send: the
+// code is discarded and the member is asked to try again.
+const SEND_TIMEOUT_MS = 10 * 1000;
+
+/**
+ * Settle a provider call exactly once, and give up on it after SEND_TIMEOUT_MS.
+ * `arm(req)` starts the clock once the request exists; an answer that has
+ * already arrived needs none.
+ */
+const settleOnceWithTimeout = (resolve, reject, provider) => {
+  let settled = false;
+  let timer = null;
+  const settle = (fn) => (value) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    fn(value);
+  };
+  const ok = settle(resolve);
+  const fail = settle(reject);
+  const arm = (req) => {
+    if (settled) return;
+    timer = setTimeout(() => {
+      fail(new Error(`${provider} did not answer within ${SEND_TIMEOUT_MS / 1000}s`));
+      req.destroy();
+    }, SEND_TIMEOUT_MS);
+  };
+  return { ok, fail, arm };
+};
+
 // ─── Fast2SMS ─────────────────────────────────────────────────────────────────
 
 const sendFast2SMS = (phone, code) => {
@@ -70,18 +101,20 @@ const sendFast2SMS = (phone, code) => {
       },
     };
 
+    const { ok, fail, arm } = settleOnceWithTimeout(resolve, reject, 'Fast2SMS');
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (d) => { data += d; });
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          if (parsed.return === true) resolve(parsed);
-          else reject(new Error(parsed.message || 'Fast2SMS send failed'));
-        } catch { reject(new Error('Fast2SMS invalid response')); }
+          if (parsed.return === true) ok(parsed);
+          else fail(new Error(parsed.message || 'Fast2SMS send failed'));
+        } catch { fail(new Error('Fast2SMS invalid response')); }
       });
     });
-    req.on('error', reject);
+    req.on('error', fail);
+    arm(req);
     req.write(body);
     req.end();
   });
@@ -129,18 +162,20 @@ const sendMSG91 = (phone, code) => {
       },
     };
 
+    const { ok, fail, arm } = settleOnceWithTimeout(resolve, reject, 'MSG91');
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (d) => { data += d; });
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          if (parsed.type === 'success') resolve(parsed);
-          else reject(new Error(parsed.message || 'MSG91 send failed'));
-        } catch { reject(new Error('MSG91 invalid response')); }
+          if (parsed.type === 'success') ok(parsed);
+          else fail(new Error(parsed.message || 'MSG91 send failed'));
+        } catch { fail(new Error('MSG91 invalid response')); }
       });
     });
-    req.on('error', reject);
+    req.on('error', fail);
+    arm(req);
     req.write(body);
     req.end();
   });

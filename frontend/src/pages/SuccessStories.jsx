@@ -39,7 +39,7 @@ export default function SuccessStories() {
     <div className="min-h-[100dvh] bg-[#FDF8F2] dark:bg-surface-dark-1 text-neutral-900 dark:text-neutral-100">
       <Seo
         title="Success Stories"
-        description="Real couples who found their life partner on TricityMatch across Chandigarh, Mohali and Panchkula."
+        description="Stories from couples in Chandigarh, Mohali and Panchkula who met on TricityMatch and chose to share them."
         path="/success-stories"
       />
 
@@ -50,7 +50,7 @@ export default function SuccessStories() {
             {t('stories.heroLead')}
             <span className="text-primary-700 dark:text-primary-300 italic">{t('stories.heroAccent')}</span>
           </h1>
-          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400">{t('successStories.subtitle')}</p>
+          <p className="mt-6 text-lg text-neutral-600 dark:text-neutral-400">{t('stories.subtitle')}</p>
         </div>
       </section>
 
@@ -80,7 +80,7 @@ export default function SuccessStories() {
             <EmptyState
               icon={FiHeart}
               title={t('stories.emptyTitle')}
-              description={t('successStories.empty')}
+              description={t('stories.emptyBody')}
               className="max-w-md mx-auto bg-[#FFFAF6] dark:bg-surface-dark-3 border border-neutral-200 dark:border-neutral-800 rounded-2xl"
             />
           ) : (
@@ -98,7 +98,7 @@ export default function SuccessStories() {
                     <div className="mt-auto pt-4 border-t border-neutral-200 dark:border-neutral-800">
                       <p className="font-display text-lg font-bold text-neutral-900 dark:text-neutral-100">{s.coupleNames}</p>
                       <p className="text-xs uppercase tracking-[0.12em] text-neutral-600 dark:text-neutral-400 mt-1 tabular-nums">
-                        {[s.location, s.marriedOn && `${t('successStories.married')} ${new Date(s.marriedOn).getFullYear()}`].filter(Boolean).join(' · ')}
+                        {[s.location, s.marriedOn && `${t('stories.married')} ${new Date(s.marriedOn).getFullYear()}`].filter(Boolean).join(' · ')}
                       </p>
                     </div>
                   </div>
@@ -113,12 +113,8 @@ export default function SuccessStories() {
       <section className="px-4 pb-24">
         <div className="max-w-5xl mx-auto rounded-3xl bg-primary-600 text-[#FDF8F2] px-8 py-14 text-center">
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-3 text-[#FDF8F2]">{t('stories.ctaTitle')}</h2>
-          {/* Was "Thousands of Tricity families found their forever here" — an
-              unsupported headcount, the same species of claim as the "Join
-              thousands of families" line removed from Home.jsx (see
-              docs/LEGAL_REVIEW_2026-09-17.md A-3). This page shows only real,
-              published stories; the honest claim is that they're real, not a
-              count we don't have. */}
+          {/* No claim about couples here: the page can have no published
+              stories yet, and this line shows either way. */}
           <p className="text-[#FDF8F2]/70 max-w-xl mx-auto mb-8">
             {t('stories.ctaBody')}
           </p>

@@ -12,7 +12,7 @@ const sequelize = require('../config/database');
 const { severRelationshipRows, evictChatRoom } = require('../utils/relationship');
 const { REPORT_REASONS, HIGH_RISK_REASONS } = require('../constants/reportReasons');
 const { sendEmail } = require('../utils/email');
-const config = require('../config/env');
+const { staffAlertRecipients } = require('../utils/staffAlerts');
 const { mayBlock } = require('../utils/blockTargets');
 const { snapshotReportEvidence } = require('../utils/evidencePreservation');
 
@@ -129,8 +129,9 @@ exports.reportUser = asyncHandler(async (req, res) => {
   const targetUser = await User.findByPk(reportedUserId);
   if (!targetUser) throw createError.notFound('User not found');
 
-  // Threats, underage and financial-scam reports are urgent: they jump the
-  // queue and staff are mailed immediately rather than finding them later.
+  // Threats, underage, scams, someone else's photos and nude or sexual content
+  // are urgent: they jump the queue and staff are mailed immediately rather
+  // than finding them later.
   const urgent = HIGH_RISK_REASONS.includes(reason);
 
   // One open report per reporter and target. Without this, a single account could
@@ -232,7 +233,7 @@ exports.reportUser = asyncHandler(async (req, res) => {
   if (urgent && recentUrgent === 0) {
     // Best-effort: the report is already stored; a mail failure must not fail it.
     sendEmail({
-      to: config.email.support,
+      to: staffAlertRecipients(),
       channel: 'documents',
       subject: `URGENT report: ${reason.replace(/_/g, ' ')}`,
       html: `<p>An urgent report (<strong>${reason.replace(/_/g, ' ')}</strong>) was filed. Open the Reports queue and review it now.</p><p>Report id: ${report.id}</p>`,

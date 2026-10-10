@@ -21,24 +21,26 @@ const DEFAULT_IMAGE = `${SITE_URL}/images/og-card.png?v=2`;
  *  - image:       absolute OG/Twitter image URL
  *  - noindex:     when true, emits robots noindex (for auth/app pages)
  *  - bare:        use `title` verbatim without appending the site name
+ *  - canonical:   false leaves out the canonical link and og:url, for pages
+ *                 with no real address of their own (the 404 page)
  */
-export default function Seo({ title, description, path = '/', image, noindex = false, bare = false }) {
+export default function Seo({ title, description, path = '/', image, noindex = false, bare = false, canonical = true }) {
   const fullTitle = title ? (bare ? title : `${title} | TricityMatch`) : DEFAULT_TITLE;
   const desc = description || DEFAULT_DESCRIPTION;
-  const canonical = `${SITE_URL}${path === '/' ? '/' : path.replace(/\/$/, '')}`;
+  const pageUrl = `${SITE_URL}${path === '/' ? '/' : path.replace(/\/$/, '')}`;
   const ogImage = image || DEFAULT_IMAGE;
 
   return (
     <Helmet prioritizeSeoTags>
       <title>{fullTitle}</title>
       <meta name="description" content={desc} />
-      <link rel="canonical" href={canonical} />
+      {canonical && <link rel="canonical" href={pageUrl} />}
       {noindex && <meta name="robots" content="noindex, nofollow" />}
 
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={desc} />
-      <meta property="og:url" content={canonical} />
+      {canonical && <meta property="og:url" content={pageUrl} />}
       <meta property="og:image" content={ogImage} />
 
       {/* Twitter — card type must be re-emitted here so helmet's dedupe keeps it

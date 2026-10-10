@@ -81,6 +81,9 @@ export default function Matches() {
     try {
       const res = await api.get(cfg.endpoint);
       let list = res.data?.[cfg.respKey] || [];
+      // Everyone on Saved is saved, so the card's bookmark starts filled and a
+      // tap takes the profile back off the list instead of saving it again.
+      if (tabId === 'shortlist') list = list.map((p) => ({ ...p, matchStatus: 'shortlist' }));
       // On the Sent tab every profile is one the member has already liked, so
       // the card's primary action reads "Interest Sent" (a toggle to withdraw)
       // instead of offering to express interest in them a second time.
@@ -321,6 +324,7 @@ export default function Matches() {
                       userId={pid}
                       index={i}
                       primaryCta={active === 'mutual' || profile.likedBack ? 'message' : 'interest'}
+                      interestLabel={active === 'likes' ? t('matches.likeBack') : undefined}
                       onLike={(want) => handleAction(pid, 'like', want)}
                       onShortlist={(want) => handleAction(pid, 'shortlist', want)}
                     />

@@ -22,6 +22,7 @@
 
 const PDFDocument = require('pdfkit');
 const { pdfSafe } = require('./pdfText');
+const { placeLabel } = require('./tricityState');
 
 const BRAND = {
   burgundy: '#8B2346',
@@ -76,13 +77,10 @@ const shortHeight = (cm) => {
   return `${Math.floor(totalIn / 12)}'${totalIn % 12}"`;
 };
 
-// "Chandigarh, Chandigarh" read as a typo: show the state only when it adds something.
-const placeOf = (profile) => {
-  const city = cap(profile.city);
-  const state = cap(profile.state);
-  if (city && state && city.trim().toLowerCase() === state.trim().toLowerCase()) return city;
-  return [city, state].filter(Boolean).join(', ');
-};
+// The stored state is never printed: it defaulted to "Punjab" for everyone. The
+// state comes from the city instead ("Panchkula, Haryana"), Chandigarh reads
+// just "Chandigarh", and a city we cannot place is printed on its own.
+const placeOf = (profile) => placeLabel(cap(profile.city));
 
 // "Rs." — deliberately not ₹ (missing from pdfkit's built-in fonts).
 const fmtIncome = (income) => {

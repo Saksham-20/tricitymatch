@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -7,8 +7,40 @@ import {
 import { getAnalytics } from '../../api/adminApi';
 import { useAdminScopes } from '../../components/admin/AdminLayout';
 import planLabel from '../../utils/planLabel';
-import { FiUsers, FiCheckCircle, FiCreditCard, FiTrendingUp, FiFlag, FiAlertCircle } from 'react-icons/fi';
+import useAutoRefresh from '../../hooks/useAutoRefresh';
+import { FiUsers, FiCheckCircle, FiCreditCard, FiTrendingUp, FiFlag, FiAlertCircle, FiUserPlus, FiMail, FiRotateCcw } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
+
+const REFRESH_MS = 60 * 1000;
+
+// "3 min", "5 h", "2 days": how long the oldest unread enquiry has waited.
+export const waitedFor = (since, now = Date.now()) => {
+  if (!since) return null;
+  const mins = Math.max(0, Math.floor((now - new Date(since).getTime()) / 60000));
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) return `${hours} h`;
+  return `${Math.floor(hours / 24)} days`;
+};
+
+const clock = (d) => d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+
+// A figure that is also a door to the work behind it.
+const QueueTile = ({ icon: Icon, label, value, sub, to, alert }) => (
+  <Link
+    to={to}
+    className={`flex items-start gap-3 p-4 rounded-2xl border bg-white shadow-sm transition-colors hover:bg-gray-50 ${alert ? 'border-red-200' : 'border-gray-100'}`}
+  >
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${alert ? 'bg-red-100 text-red-700' : 'bg-primary-100 text-primary-700'}`}>
+      <Icon className="w-5 h-5" aria-hidden="true" />
+    </div>
+    <div className="min-w-0">
+      <p className={`text-xl font-bold tabular-nums ${alert ? 'text-red-700' : 'text-gray-900'}`}>{value}</p>
+      <p className="text-sm font-medium text-gray-600">{label}</p>
+      {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+    </div>
+  </Link>
+);
 
 // Brand-family ramp (burgundy → gold → muted tints); no off-brand green/blue/purple.
 const COLORS = ['#8B2346', '#C9A227', '#B76E79', '#5E1730', '#D8B24A'];
@@ -36,6 +68,7 @@ const KpiCard = ({ icon: Icon, label, value, sub, color = 'rose' }) => {
 const LINK_SCOPE = {
   '/admin/verifications': 'verifications',
   '/admin/reports': 'reports',
+  '/admin/appeals': 'reports',
   '/admin/contact-messages': 'support',
   '/admin/users': 'users',
   '/admin/funnel': 'users',
@@ -49,21 +82,47 @@ export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const [refreshFailedAt, setRefreshFailedAt] = useState(null);
+  const requestSeq = useRef(0);
 
   // A failed load used to be swallowed and the page rendered em-dashes and
   // "No data yet" as if the platform were empty. Say it failed, and offer a retry.
   const load = useCallback(() => {
+    const seq = ++requestSeq.current;
     setLoading(true);
     setLoadError(false);
     getAnalytics()
-      .then((r) => setData(r.data))
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
+      .then((r) => {
+        if (seq !== requestSeq.current) return;
+        setData(r.data);
+        setUpdatedAt(new Date());
+        setRefreshFailedAt(null);
+      })
+      .catch(() => { if (seq === requestSeq.current) setLoadError(true); })
+      .finally(() => { if (seq === requestSeq.current) setLoading(false); });
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) {
+  // Kept current while the page is open (launch night is watched from this
+  // screen). A failed refresh keeps the last figures on screen and says how old
+  // they are, rather than blanking the page.
+  const refresh = useCallback(() => {
+    const seq = ++requestSeq.current;
+    getAnalytics()
+      .then((r) => {
+        if (seq !== requestSeq.current) return;
+        setData(r.data);
+        setUpdatedAt(new Date());
+        setRefreshFailedAt(null);
+      })
+      .catch(() => { if (seq === requestSeq.current) setRefreshFailedAt(new Date()); });
+  }, []);
+
+  useAutoRefresh(refresh, REFRESH_MS, Boolean(data) && !loading);
+
+  if (loading && !data) {
     return (
       <div className="space-y-6">
         <div>
@@ -93,7 +152,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (loadError) {
+  if (loadError && !data) {
     return (
       <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10">
         <FiAlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-3" />
@@ -116,9 +175,18 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Overview of TricityMatch platform</p>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Overview of TricityMatch platform</p>
+        </div>
+        {refreshFailedAt ? (
+          <p className="text-xs text-amber-800" role="status">
+            Couldn&apos;t refresh at {clock(refreshFailedAt)}. Showing figures from {updatedAt ? clock(updatedAt) : 'earlier'}.
+          </p>
+        ) : updatedAt ? (
+          <p className="text-xs text-gray-500">Updated {clock(updatedAt)} · refreshes every minute</p>
+        ) : null}
       </div>
 
       {/* KPI cards */}
@@ -126,12 +194,44 @@ export default function AdminDashboard() {
         <KpiCard icon={FiUsers}       label="Total Users"         value={stats.totalUsers}         color="rose" />
         <KpiCard icon={FiCheckCircle} label="Photo-verified"      value={stats.verifiedUsers}      color="rose"
           sub={stats.emailVerifiedUsers != null ? `${stats.emailVerifiedUsers} with a verified email` : undefined} />
+        {/* Members whose plan was bought with real money, each counted once.
+            Founding places and staff grants are premium without payment. */}
         <KpiCard icon={FiCreditCard}  label="Paying Members"      value={stats.paidSubscribers ?? stats.activeSubscribers} color="rose"
-          sub={stats.foundingActive != null ? `plus ${stats.foundingActive} founding grants` : undefined} />
+          sub={[
+            stats.foundingActive != null ? `plus ${stats.foundingActive} founding` : null,
+            stats.staffGrantedActive != null ? `${stats.staffGrantedActive} granted by staff` : null,
+          ].filter(Boolean).join(' · ') || undefined} />
         <KpiCard icon={FiTrendingUp}  label="Revenue (This Month)"
           value={showRevenue ? `₹${Number(stats.revenueThisMonth).toLocaleString('en-IN')}` : 'None'}
           sub={showRevenue ? undefined : 'Revenue access required'} color="rose" />
       </div>
+
+      {/* Today (India time) and the work that is waiting. Each tile opens the
+          page where it is dealt with. */}
+      {(() => {
+        const tiles = [
+          { to: '/admin/users?joined=today', icon: FiUserPlus, label: 'Signups today', value: stats.signupsToday ?? 0 },
+          stats.paymentsToday != null && {
+            to: '/admin/revenue', icon: FiCreditCard, label: 'Payments today', value: stats.paymentsToday,
+          },
+          {
+            to: '/admin/reports?priority=urgent', icon: FiFlag, label: 'Urgent reports open', value: stats.urgentOpenReports ?? 0,
+            sub: 'Act within 24 hours', alert: (stats.urgentOpenReports || 0) > 0,
+          },
+          { to: '/admin/appeals', icon: FiRotateCcw, label: 'Appeals waiting', value: stats.pendingAppeals ?? 0 },
+          {
+            to: '/admin/contact-messages', icon: FiMail, label: 'Oldest unread enquiry',
+            value: stats.oldestUnreadSupportAt ? waitedFor(stats.oldestUnreadSupportAt) : 'None waiting',
+            sub: stats.unreadSupport ? `${stats.unreadSupport} unread` : undefined,
+          },
+        ].filter((tile) => tile && canOpen(tile.to));
+        if (!tiles.length) return null;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            {tiles.map((tile) => <QueueTile key={tile.to} {...tile} />)}
+          </div>
+        );
+      })()}
 
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -200,11 +300,13 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Pending Verifications', to: '/admin/verifications', badge: stats.pendingVerifications },
+              // Waiting and under review: opening a report no longer drops it off.
               { label: 'Open Reports',          to: '/admin/reports',       badge: stats.openReports },
               // An enquiry could previously sit unanswered indefinitely: nothing
               // anywhere in the panel said one had arrived.
               { label: 'Unread Support',        to: '/admin/contact-messages', badge: stats.unreadSupport },
-              { label: 'Profiles With No Photo', to: '/admin/users?hasPhoto=no', badge: stats.profilesWithoutPhoto },
+              // The same members the count is taken over: active member accounts.
+              { label: 'Profiles With No Photo', to: '/admin/users?hasPhoto=no&role=user&status=active', badge: stats.profilesWithoutPhoto },
               { label: 'Funnel',                to: '/admin/funnel' },
               { label: 'View Revenue',          to: '/admin/revenue' },
             ].filter(({ to }) => canOpen(to)).map(({ label, to, badge }) => (

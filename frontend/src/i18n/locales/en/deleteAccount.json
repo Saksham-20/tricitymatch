@@ -8,7 +8,7 @@
     "i1": "Log in at <loginlink>tricitymatch.com/login</loginlink>",
     "i2": "Go to <b>Settings</b>",
     "i3": "Open the <b>Pause or delete</b> tab and choose <b>Delete My Account</b>",
-    "i4": "Confirm with your password (if you signed in with Google, use the email request below instead). To erase everything at once instead of after 30 days, tick <b>Delete immediately</b>",
+    "i4": "Confirm with your password. If you joined with Google and have no password, confirm with Google instead. To erase everything at once instead of after 30 days, tick <b>Delete immediately</b>",
     "i5": "Changed your mind? Sign in and choose <b>Cancel deletion</b> on the same tab"
   },
   "app": {

@@ -21,6 +21,20 @@ const PLAN_LABELS = {
   founding_premium: 'Founding',
 };
 
+// Which members to list. "Paid" is money actually taken (a payment that was not
+// refunded); founding places and staff grants are premium without payment.
+const PLAN_FILTERS = [
+  ['paying', 'Paid (real payment)'],
+  ['premium', 'Any premium (incl. founding)'],
+  ['granted', 'Granted by staff'],
+  ['founding_premium', 'Founding'],
+  ['expiring', 'Expiring in 7 days'],
+  ['lapsed', 'Lapsed (paid before)'],
+  ['free', 'Free (no plan)'],
+  ['all', 'Everyone'],
+];
+const SEARCH_DEBOUNCE_MS = 350;
+
 const PlanBadge = ({ plan }) => {
   // Doctrine: one neutral + one premium-gold is the whole allowed set. Free is
   // neutral; every paid tier is gold (gold = premium). No blue/emerald/amber.
@@ -37,9 +51,13 @@ export default function AdminSubscriptions() {
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(false);
+  // What is typed, and what the list was last asked for (after a short pause).
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch]       = useState('');
+  const [plan, setPlan]           = useState('paying');
   const [page, setPage]           = useState(1);
   const [totalPages, setTotal]    = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [overrideModal, setModal] = useState(null);
   const [newPlan, setNewPlan]     = useState('');
   const [reason, setReason]       = useState('');
@@ -49,20 +67,34 @@ export default function AdminSubscriptions() {
   const { options: planOptions } = usePlanOptions();
   const firstFieldRef = useRef(null);
 
+  useEffect(() => {
+    if (searchInput.trim() === search) return undefined;
+    const id = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [searchInput, search]);
+
+  // Only the latest request may update the list, so a slow earlier response
+  // can never land on top of a newer filter.
+  const requestSeq = useRef(0);
   const fetchData = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
     setError(false);
     try {
-      const res = await getUsers({ page, limit: 20, search: search || undefined });
+      const params = { page, limit: 20, search: search || undefined };
+      if (plan !== 'all') params.plan = plan;
+      const res = await getUsers(params);
+      if (seq !== requestSeq.current) return;
       setUsers(res.data.users || []);
       setTotal(res.data.pagination?.pages || 1);
+      setTotalCount(res.data.pagination?.total || 0);
     } catch {
+      if (seq !== requestSeq.current) return;
       setError(true);
-      toast.error('Failed to load subscriptions');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, plan]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -116,19 +148,32 @@ export default function AdminSubscriptions() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Subscriptions</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Manage user subscription plans</p>
+        <p className="text-gray-500 text-sm mt-0.5">
+          {error ? 'The list did not load' : loading && !users.length ? 'Loading…' : `${totalCount.toLocaleString('en-IN')} member${totalCount === 1 ? '' : 's'} · ${(PLAN_FILTERS.find(([v]) => v === plan) || [])[1]}`}
+        </p>
       </div>
 
-      {/* Search */}
-      <div className="relative w-full max-w-sm">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search users…"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary-500"
-        />
+      {/* Search + plan */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative w-full max-w-sm">
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="search"
+            placeholder="Search name, email, phone or TCS code"
+            aria-label="Search members"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+        <select
+          value={plan}
+          onChange={(e) => { setPlan(e.target.value); setPage(1); }}
+          aria-label="Plan"
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          {PLAN_FILTERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
       </div>
 
       {/* Table */}
@@ -169,7 +214,9 @@ export default function AdminSubscriptions() {
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">No users found</td>
+                  <td colSpan={7} className="text-center py-12 text-gray-500 text-sm">
+                    {search ? 'No members match this search and plan filter' : 'No members on this plan filter'}
+                  </td>
                 </tr>
               ) : (
                 users.map((u) => {

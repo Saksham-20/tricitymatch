@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiShield, FiCheckCircle, FiClock, FiXCircle } from 'react-icons/fi';
+import { FiShield, FiCheckCircle, FiClock, FiXCircle, FiCamera } from 'react-icons/fi';
 import LiveSelfieCapture, { captureHeaders } from '../components/verification/LiveSelfieCapture';
 import ErrorState from '../components/ui/ErrorState';
 import Skeleton from '../components/ui/Skeleton';
@@ -78,17 +79,23 @@ export default function Verification() {
   // Default | loading | error — a failed fetch must never quietly render as
   // "not_submitted / 0%"; it gets its own state with a real retry (doctrine §6).
   const [loadState, setLoadState] = useState('loading');
+  // The selfie is compared with the profile photo. A member without one is
+  // told so before the camera opens, not after the capture. null = unknown.
+  const [hasPhoto, setHasPhoto] = useState(null);
 
   const loadStatus = useCallback(async () => {
     setLoadState('loading');
-    try {
-      const v = await api.get('/verification/status');
-      setSelfieStatus(v.data.verification?.status || 'not_submitted');
-      setAdminNotes(v.data.verification?.adminNotes || null);
-      setLoadState('default');
-    } catch {
+    const [v, me] = await Promise.allSettled([api.get('/verification/status'), api.get('/profile/me')]);
+    if (v.status === 'rejected') {
       setLoadState('error');
+      return;
     }
+    setSelfieStatus(v.value.data.verification?.status || 'not_submitted');
+    setAdminNotes(v.value.data.verification?.adminNotes || null);
+    // A failed profile read does not hide the camera: the server still refuses
+    // a selfie when there is no photo to compare it with.
+    setHasPhoto(me.status === 'fulfilled' ? Boolean((me.value.data?.profile || me.value.data)?.profilePhoto) : null);
+    setLoadState('default');
   }, []);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
@@ -248,6 +255,19 @@ export default function Verification() {
           ) : selfieStatus === 'flagged' ? (
             <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4 text-sm font-medium">
               <FiClock className="w-5 h-5" /> {t('verification.flaggedNote')}
+            </div>
+          ) : hasPhoto === false ? (
+            <div className="flex items-start gap-4 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700 p-4">
+              <div className="w-11 h-11 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">
+                <FiCamera className="w-5 h-5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">{t('verification.photoFirstTitle')}</h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">{t('verification.photoFirstBody')}</p>
+                <Link to="/profile/edit?section=photos" className="btn-primary mt-3 inline-flex items-center gap-2 min-h-11">
+                  <FiCamera className="w-4 h-4" aria-hidden="true" /> {t('verification.photoFirstCta')}
+                </Link>
+              </div>
             </div>
           ) : (
             <form onSubmit={submitSelfie} noValidate>

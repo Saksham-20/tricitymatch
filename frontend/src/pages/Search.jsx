@@ -221,6 +221,7 @@ const Search = () => {
       const pagination = response.data?.pagination || response.data?.data?.pagination || {};
       setHasMore(pagination.page < pagination.pages);
       setTotalCount(pagination.total || normalized.length);
+      return true;
     } catch (err) {
       const currentPage = options.overridePage || page;
       // 404 is the backend's "no results for these filters" — that is the EMPTY
@@ -238,6 +239,8 @@ const Search = () => {
         setFilterProblem(false);
       }
       if (currentPage === 1) setProfiles([]);
+      // 404 is "nothing matched": the search itself worked.
+      return err.response?.status === 404;
     } finally {
       setLoading(false);
     }
@@ -258,10 +261,12 @@ const Search = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleApplyFilters = () => {
+  // "Filters applied" only once the search has gone through: a refused filter
+  // or an outage shows its own card, and a success toast over it said the
+  // opposite of what happened.
+  const handleApplyFilters = async () => {
     setPage(1);
-    searchProfiles({ overridePage: 1 });
-    toast.success(t('search.filtersApplied'));
+    if (await searchProfiles({ overridePage: 1 })) toast.success(t('search.filtersApplied'));
   };
 
   const handleRemoveFilter = (key) => {
@@ -300,9 +305,10 @@ const Search = () => {
       const res = await api.post(`/match/${userId}`, { action: next ? action : 'undo' });
       // Saving someone you already sent an interest to keeps the interest.
       if (res.data?.keptLike) { toast(keptLikeMessage(res.data)); return false; }
-      // A new match gets the celebration instead of a toast underneath it.
-      if (next && !res.data?.newMatch) toast.success(action === 'like' ? t('matches.interestExpressed') : t('search.profileShortlisted'));
-      else toast.success(action === 'like' ? t('matches.interestWithdrawn') : t('matches.removedFromShortlist'));
+      // A new match gets the celebration instead of a toast underneath it (it
+      // used to fall through to "Interest withdrawn").
+      if (!next) toast.success(action === 'like' ? t('matches.interestWithdrawn') : t('matches.removedFromShortlist'));
+      else if (!res.data?.newMatch) toast.success(action === 'like' ? t('matches.interestExpressed') : t('search.profileShortlisted'));
       setProfiles(prev => prev.map(p => p.userId === userId ? { ...p, matchStatus: next ? action : null } : p));
       if (res.data?.newMatch) celebrate(profiles.find(p => p.userId === userId));
       return true;

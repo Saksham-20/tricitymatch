@@ -271,11 +271,14 @@ const setupCleanupProcessor = (queue) => {
 
     const { linksFor } = require('./emailUnsubscribe');
     const { forEachUserPage } = require('./batch');
+    const { ACTIVE_MEMBER_WHERE } = require('./memberRole');
 
     let sent = 0;
-    // Active users with complete profiles (have gender set), EVERY page of them.
+    // Active members with complete profiles (have gender set), EVERY page of
+    // them. Members only: a staff or partner account is not looking for a
+    // match, so "N new profiles for you" is not their mail to get.
     const total = await forEachUserPage(User, {
-      where: { status: 'active' },
+      where: { ...ACTIVE_MEMBER_WHERE },
       include: [{
         model: Profile,
         where: { isActive: true, gender: { [Op.in]: ['male', 'female'] } },

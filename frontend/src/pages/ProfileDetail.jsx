@@ -28,14 +28,16 @@ import SafetyMenu from '../components/safety/SafetyMenu';
 import UpgradeModal from '../components/common/UpgradeModal';
 import LikeNoteModal from '../components/profile/LikeNoteModal';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
+import { placeLabel } from '../utils/tricityState';
 import RetryImage from '../components/ui/RetryImage';
 import { ErrorState, Skeleton } from '../components/ui';
 import { pageFade, EASE_OUT } from '../utils/animations';
 import { promptLabel } from '../constants/profilePrompts';
 
 // Pointer-gated hover — touch fires a false hover on tap that would otherwise
-// leave a control stuck lifted after the finger lifts (doctrine §4.7).
-const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
+// leave a control stuck lifted after the finger lifts (doctrine §4.7). Spelled
+// out in full: Tailwind only builds classes it can read whole in the source.
+const HOVER_LIFT = '[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5';
 
 // ─── Compatibility Ring ──────────────────────────────────────────────────────
 const CompatRing = ({ score }) => {
@@ -86,14 +88,17 @@ const CompatRing = ({ score }) => {
 };
 
 // ─── Info Pill ───────────────────────────────────────────────────────────────
-const Pill = ({ icon: Icon, label, value, raw = false }) => {
+// Values are shown as given: stored choices (diet, habits…) are formatted with
+// formatEnum/friendlyLabel by the caller. A CSS capitalize here turned units
+// into "142 Cm" and "62 Kg".
+const Pill = ({ icon: Icon, label, value }) => {
   if (!value) return null;
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-neutral-50 dark:bg-surface-dark-2 rounded-xl border border-neutral-100 dark:border-neutral-800">
       {Icon && <Icon className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />}
       <div className="min-w-0">
         <p className="text-[0.625rem] text-neutral-500 dark:text-neutral-400 uppercase tracking-wide font-semibold leading-none mb-0.5">{label}</p>
-        <p className={`text-xs font-semibold text-neutral-700 dark:text-neutral-200 truncate ${raw ? '' : 'capitalize'}`}>{value}</p>
+        <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200 truncate">{value}</p>
       </div>
     </div>
   );
@@ -115,12 +120,14 @@ const Card = ({ title, icon: Icon, children, className = '' }) => (
 );
 
 // ─── Detail Row ──────────────────────────────────────────────────────────────
+// Same rule as Pill: no CSS capitalize ("₹12.0L/Yr"); callers format stored
+// choices, and what a member typed is shown as they typed it.
 const DetailRow = ({ label, value }) => {
   if (!value && value !== 0) return null;
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-neutral-50 dark:border-neutral-800 last:border-b-0">
       <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 capitalize text-right max-w-[55%]">{String(value).replace(/_/g, ' ')}</span>
+      <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 text-right max-w-[55%]">{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
@@ -490,6 +497,10 @@ const ProfileDetail = () => {
     || profile.subCaste || profile.gotra);
   const hasFamilyBackground = hasFamilyPills || hasFamilyRows;
 
+  // The state comes from the city; the stored column is not shown (it said
+  // "Punjab" for every profile, Panchkula and Chandigarh included).
+  const place = placeLabel(profile.city);
+
   const allPhotos = profile.profilePhoto
     ? [profile.profilePhoto, ...(profile.photos || []).filter(p => p !== profile.profilePhoto)]
     : (profile.photos || []);
@@ -672,10 +683,10 @@ const ProfileDetail = () => {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-                    {(profile.city || profile.state) && (
+                    {place && (
                       <span className="flex items-center gap-1.5 font-medium">
                         <FiMapPin className="w-3.5 h-3.5 text-primary-400" />
-                        {[profile.city, profile.state].filter(Boolean).join(', ')}
+                        {place}
                       </span>
                     )}
                     {profile.profession && (
@@ -700,10 +711,10 @@ const ProfileDetail = () => {
 
                   {/* Quick pills */}
                   <div className="flex flex-wrap gap-2">
-                    {profile.height && <Pill icon={FiUser} label={t('profileView.fields.height')} value={formatHeight(profile.height)} raw />}
-                    {profile.religion && <Pill icon={FiSun} label={t('profileView.fields.religion')} value={profile.religion} />}
+                    {profile.height && <Pill icon={FiUser} label={t('profileView.fields.height')} value={formatHeight(profile.height)} />}
+                    {profile.religion && <Pill icon={FiSun} label={t('profileView.fields.religion')} value={formatEnum(profile.religion)} />}
                     {profile.maritalStatus && <Pill icon={FiHeartOutline} label={t('profileView.fields.status')} value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
-                    {profile.motherTongue && <Pill label={t('profileView.fields.motherTongue')} value={profile.motherTongue} />}
+                    {profile.motherTongue && <Pill label={t('profileView.fields.motherTongue')} value={formatEnum(profile.motherTongue)} />}
                     {profile.diet && <Pill label={t('profileView.fields.diet')} value={formatEnum(profile.diet)} />}
                     {profile.personalityType && <Pill label={t('profileView.fields.personality')} value={profile.personalityType} />}
                   </div>
@@ -719,7 +730,7 @@ const ProfileDetail = () => {
                       <button
                         onClick={() => handleAction('like')}
                         disabled={isLiked}
-                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success dark:text-green-400 border border-success-100 dark:border-success-500/30' : `bg-primary-500 text-white hover:bg-primary-600 shadow-sm ${HOVER}:-translate-y-0.5`}`}
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-[transform,background-color] duration-[160ms] cursor-pointer ${isLiked ? 'bg-success-50 text-success dark:text-green-400 border border-success-100 dark:border-success-500/30' : `bg-primary-500 text-white hover:bg-primary-600 shadow-sm ${HOVER_LIFT}`}`}
                       >
                         {isLiked ? <><FiCheck className="w-4 h-4" /> {t('profileView.interested')}</> : <><FiHeart className="w-4 h-4" /> {t('profileView.expressInterest')}</>}
                       </button>
@@ -803,7 +814,7 @@ const ProfileDetail = () => {
                   {age && <DetailRow label={t('profileView.fields.age')} value={t('profileView.ageYears', { age })} />}
                   {profile.height && <DetailRow label={t('profileView.fields.height')} value={formatHeight(profile.height)} />}
                   {profile.weight && <DetailRow label={t('profileView.fields.weight')} value={`${profile.weight} kg`} />}
-                  <DetailRow label={t('profileView.fields.location')} value={[profile.city, profile.state].filter(Boolean).join(', ') || null} />
+                  <DetailRow label={t('profileView.fields.location')} value={place} />
                   {profile.isNri && (
                     <DetailRow
                       label={t('profileView.fields.livingAbroad')}
@@ -819,9 +830,9 @@ const ProfileDetail = () => {
                   <DetailRow label={t('profileView.fields.profession')} value={profile.profession} />
                   {profile.industry && <DetailRow label={t('profileView.fields.industry')} value={profile.industry} />}
                   {profile.income && <DetailRow label={t('profileView.fields.income')} value={formatIncome(profile.income)} />}
-                  <DetailRow label={t('profileView.fields.religion')} value={profile.religion} />
-                  <DetailRow label={t('profileView.fields.caste')} value={profile.caste} />
-                  <DetailRow label={t('profileView.fields.motherTongue')} value={profile.motherTongue} />
+                  <DetailRow label={t('profileView.fields.religion')} value={formatEnum(profile.religion)} />
+                  <DetailRow label={t('profileView.fields.caste')} value={formatEnum(profile.caste)} />
+                  <DetailRow label={t('profileView.fields.motherTongue')} value={formatEnum(profile.motherTongue)} />
                   <DetailRow label={t('profileView.fields.maritalStatus')} value={friendlyLabel('maritalStatus', profile.maritalStatus)} />
                   <DetailRow label={t('profileView.fields.diet')} value={formatEnum(profile.diet)} />
                   <DetailRow label={t('profileView.fields.smoking')} value={formatEnum(profile.smoking)} />
@@ -936,9 +947,9 @@ const ProfileDetail = () => {
                       {(profile.manglikStatus || profile.zodiacSign || profile.rashi || profile.nakshatra || profile.placeOfBirth || profile.birthTime) && (
                         <Card title={t('profileView.horoscope')} icon={FiSun}>
                           <div className="grid grid-cols-2 gap-3">
-                            {profile.zodiacSign && <Pill label={t('profileView.fields.zodiacSign')} value={profile.zodiacSign} />}
-                            {profile.rashi && <Pill label={t('profileView.fields.rashi')} value={profile.rashi} />}
-                            {profile.nakshatra && <Pill label={t('profileView.fields.nakshatra')} value={profile.nakshatra} />}
+                            {profile.zodiacSign && <Pill label={t('profileView.fields.zodiacSign')} value={formatEnum(profile.zodiacSign)} />}
+                            {profile.rashi && <Pill label={t('profileView.fields.rashi')} value={formatEnum(profile.rashi)} />}
+                            {profile.nakshatra && <Pill label={t('profileView.fields.nakshatra')} value={formatEnum(profile.nakshatra)} />}
                             {profile.manglikStatus && <Pill label={t('profileView.fields.manglik')} value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
                             {profile.placeOfBirth && <Pill label={t('profileView.fields.placeOfBirth')} value={profile.placeOfBirth} />}
                             {profile.birthTime && <Pill label={t('profileView.fields.birthTime')} value={profile.birthTime} />}
@@ -992,13 +1003,13 @@ const ProfileDetail = () => {
                   {activeTab === 'lifestyle' && (
                     <Card title={t('profileView.lifestyle')} icon={FiInfo}>
                       <div className="grid grid-cols-2 gap-3">
-                        {profile.diet && <Pill label={t('profileView.fields.diet')} value={profile.diet} />}
-                        {profile.smoking && <Pill label={t('profileView.fields.smoking')} value={profile.smoking} />}
-                        {profile.drinking && <Pill label={t('profileView.fields.drinking')} value={profile.drinking} />}
-                        {profile.skinTone && <Pill label={t('profileView.fields.skinTone')} value={profile.skinTone} />}
+                        {profile.diet && <Pill label={t('profileView.fields.diet')} value={formatEnum(profile.diet)} />}
+                        {profile.smoking && <Pill label={t('profileView.fields.smoking')} value={formatEnum(profile.smoking)} />}
+                        {profile.drinking && <Pill label={t('profileView.fields.drinking')} value={formatEnum(profile.drinking)} />}
+                        {profile.skinTone && <Pill label={t('profileView.fields.skinTone')} value={formatEnum(profile.skinTone)} />}
                         {profile.personalityType && <Pill label={t('profileView.fields.personality')} value={profile.personalityType} />}
-                        {profile.height && <Pill label={t('profileView.fields.height')} value={formatHeight(profile.height)} raw />}
-                        {profile.weight && <Pill label={t('profileView.fields.weight')} value={`${profile.weight} kg`} raw />}
+                        {profile.height && <Pill label={t('profileView.fields.height')} value={formatHeight(profile.height)} />}
+                        {profile.weight && <Pill label={t('profileView.fields.weight')} value={`${profile.weight} kg`} />}
                       </div>
                       {profile.lifestylePreferences && Object.keys(profile.lifestylePreferences).length > 0 && (
                         <div className="mt-4 pt-4 border-t border-neutral-50 dark:border-neutral-800">
@@ -1053,7 +1064,7 @@ const ProfileDetail = () => {
                       <div className="space-y-0 border border-neutral-100 dark:border-neutral-800 rounded-xl overflow-hidden">
                         {profile.fatherOccupation && <DetailRow label={t('profileView.fields.fathersOccupation')} value={profile.fatherOccupation} />}
                         {profile.motherOccupation && <DetailRow label={t('profileView.fields.mothersOccupation')} value={profile.motherOccupation} />}
-                        {profile.caste && <DetailRow label={t('profileView.fields.caste')} value={profile.caste} />}
+                        {profile.caste && <DetailRow label={t('profileView.fields.caste')} value={formatEnum(profile.caste)} />}
                         {profile.subCaste && <DetailRow label={t('profileView.fields.subCaste')} value={profile.subCaste} />}
                         {profile.gotra && <DetailRow label={t('profileView.fields.gotra')} value={profile.gotra} />}
                       </div>

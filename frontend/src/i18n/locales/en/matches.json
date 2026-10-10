@@ -50,5 +50,6 @@
     "cancel": "Keep match"
   },
   "keptLikeMutual": "You're already matched. Find them under Matches → Mutual.",
-  "keptLikeSent": "Already in your sent interests. Find them under Matches → Sent."
+  "keptLikeSent": "Already in your sent interests. Find them under Matches → Sent.",
+  "likeBack": "Like back"
 }

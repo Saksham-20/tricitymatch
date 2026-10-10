@@ -60,11 +60,12 @@ describe('assertProfileVisible', () => {
     await expect(assertProfileVisible(VIEWER, TARGET)).rejects.toMatchObject({ statusCode: 404 });
   });
 
-  it('403s when a block exists in either direction', async () => {
+  it('404s, like a missing profile, when a block exists in either direction', async () => {
     Profile.findOne.mockResolvedValue(visibleProfile());
     Block.findOne.mockResolvedValue({ id: 'block-1' });
 
-    await expect(assertProfileVisible(VIEWER, TARGET)).rejects.toMatchObject({ statusCode: 403 });
+    // A 403 told the blocked member they had been blocked.
+    await expect(assertProfileVisible(VIEWER, TARGET)).rejects.toMatchObject({ statusCode: 404, message: 'Profile not found' });
 
     // Bidirectional: the gate must not care who blocked whom.
     const orClause = Block.findOne.mock.calls[0][0].where[Object.getOwnPropertySymbols(
@@ -129,7 +130,7 @@ describe('assertProfileVisible', () => {
 
     await expect(
       assertProfileVisible(VIEWER, TARGET, { enforceVisibilityPreference: false })
-    ).rejects.toMatchObject({ statusCode: 403 });
+    ).rejects.toMatchObject({ statusCode: 404 });
   });
 
   it('still enforces account status even for already-paid access', async () => {

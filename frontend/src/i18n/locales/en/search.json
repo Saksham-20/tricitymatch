@@ -52,7 +52,7 @@
   "profilesBadge": "{{n}}+ profiles",
   "sortAria": "Sort profiles by",
   "sort": {
-    "compatibility": "Best Match %",
+    "compatibility": "Recommended",
     "age": "By Age",
     "location": "By Location",
     "recent": "Most Recent"
@@ -92,6 +92,11 @@
     "to": "to",
     "minAgeAria": "Minimum age",
     "maxAgeAria": "Maximum age",
+    "ageOrder": "Min age can't be more than max age.",
+    "height": "Height",
+    "minHeight": "Min Height",
+    "maxHeight": "Max Height",
+    "heightOrder": "Min height can't be more than max height.",
     "location": "Location",
     "city": "City",
     "cityPlaceholder": "e.g. Chandigarh, Mohali",

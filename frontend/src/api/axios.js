@@ -93,6 +93,12 @@ api.interceptors.response.use(
       body.message = body.error.message;
     }
 
+    // Updated Terms not accepted yet: let the auth context re-read the user so
+    // the accept screen shows (a tab opened before the change never saw it).
+    if (error.response?.status === 403 && body?.error?.code === 'TERMS_RECONSENT_REQUIRED') {
+      window.dispatchEvent(new Event('tm:reconsent-required'));
+    }
+
     const isRefresh = originalRequest.url?.includes('/auth/refresh');
 
     // Unauthenticated auth entrypoints: a 401/4xx here is a DOMAIN response

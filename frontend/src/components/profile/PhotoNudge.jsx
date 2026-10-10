@@ -25,8 +25,9 @@ import { FiCamera, FiX, FiLock, FiShield } from 'react-icons/fi';
  */
 
 // Copy lives in the `dashboard.nudge.<key>.*` strings, read at render.
+// `noteTo`: the photo note names Settings → Privacy, so it opens that tab.
 const PROMPTS = {
-  photo: { icon: FiCamera, to: '/profile/edit?section=photos' },
+  photo: { icon: FiCamera, to: '/profile/edit?section=photos', noteTo: '/settings?tab=privacy' },
   verify: { icon: FiShield, to: '/verification' },
 };
 
@@ -80,10 +81,22 @@ export default function PhotoNudge({ hasPhoto, isVerified = true, allow = ['phot
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
             {t(`dashboard.nudge.${key}.body`)}
           </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-2 flex items-center gap-1.5">
-            <FiLock className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
-            {t(`dashboard.nudge.${key}.note`)}
-          </p>
+          {prompt.noteTo ? (
+            <p className="mt-0.5">
+              <Link
+                to={prompt.noteTo}
+                className="min-h-[2.75rem] inline-flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 underline underline-offset-2 hover:text-primary-700 dark:hover:text-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+              >
+                <FiLock className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+                {t(`dashboard.nudge.${key}.note`)}
+              </Link>
+            </p>
+          ) : (
+            <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-2 flex items-center gap-1.5">
+              <FiLock className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+              {t(`dashboard.nudge.${key}.note`)}
+            </p>
+          )}
           <Link
             to={prompt.to}
             className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium transition-colors"

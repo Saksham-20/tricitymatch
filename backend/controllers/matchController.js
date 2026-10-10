@@ -83,7 +83,9 @@ exports.matchAction = asyncHandler(async (req, res) => {
     throw createError.forbidden('Staff accounts cannot send interests to members');
   }
 
-  // Prevent match actions between blocked users (either direction)
+  // Prevent match actions between blocked users (either direction). Answer as
+  // for a profile that does not exist: the block dialog promises the other
+  // person is not told, and a different status would tell them.
   const blockExists = await Block.findOne({
     where: {
       [Op.or]: [
@@ -93,7 +95,7 @@ exports.matchAction = asyncHandler(async (req, res) => {
     }
   });
   if (blockExists) {
-    throw createError.forbidden('Cannot perform this action');
+    throw createError.notFound('Profile not found');
   }
 
   // The target must be a real, active, visible member. This used to check only

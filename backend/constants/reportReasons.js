@@ -8,6 +8,12 @@
  * HIGH_RISK reasons are the ones where delay can mean harm or a legal duty:
  * they are surfaced ahead of the queue for human review. See the moderation
  * queue (admin) — reports are never actioned automatically.
+ *
+ * Someone else's or doctored photos (impersonation) and nude or sexual images
+ * are on that list because the Terms promise to act on them within 24 hours.
+ * `inappropriate_content` is the only reason a member can pick for nude or
+ * sexual images, so the whole reason is urgent: a separate reason would need a
+ * new value in the database enum.
  */
 
 const REPORT_REASONS = [
@@ -25,6 +31,6 @@ const REPORT_REASONS = [
   'misleading_info',
 ];
 
-const HIGH_RISK_REASONS = ['threats', 'underage', 'financial_scam'];
+const HIGH_RISK_REASONS = ['threats', 'underage', 'financial_scam', 'stolen_photos', 'inappropriate_content'];
 
 module.exports = { REPORT_REASONS, HIGH_RISK_REASONS };

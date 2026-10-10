@@ -1548,7 +1548,7 @@ const Home = () => {
           {[
             /* Doctrine §7: sentence case for headings/buttons, not Title Case.
                These five were the file's one drift from that rule. */
-            { title: t('home.footer.platform'), links: [[t('home.footer.browse'), '/search'], [t('home.footer.howItWorks'), '/#why'], [t('home.footer.pricing'), '/subscription'], [t('home.footer.stories'), '/#stories'], [t('home.footer.create'), '/onboarding']] },
+            { title: t('home.footer.platform'), links: [[t('home.footer.browse'), '/search'], [t('home.footer.howItWorks'), '/#why'], [t('home.footer.pricing'), '/subscription'], [t('home.footer.stories'), '/success-stories'], [t('home.footer.create'), '/onboarding']] },
             // Cities: the crawl path into the city landing pages. Without a real
             // internal link, /matrimony/* is sitemap-only — discoverable in
             // theory, orphaned in practice.

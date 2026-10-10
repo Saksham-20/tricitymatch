@@ -9,6 +9,9 @@ export const updateUserStatus = (userId, data) => api.put(`/admin/users/${userId
 // Quiet hide: { hidden: boolean, reason }. Not shown to the member.
 export const updateUserVisibility = (userId, data) => api.put(`/admin/users/${userId}/visibility`, data);
 export const updateSubscription = (userId, data) => api.put(`/admin/users/${userId}/subscription`, data);
+// Correct a member's date of birth and/or gender (locked to the member after
+// sign-up): { dateOfBirth?, gender?, reason } — reason is kept in the audit log.
+export const changeMemberIdentity = (userId, data) => api.put(`/admin/users/${userId}/identity`, data);
 
 // Verifications
 export const getVerifications = (params) => api.get('/admin/verifications', { params });
@@ -25,6 +28,11 @@ export const updateReport = (reportId, data) => api.put(`/admin/reports/${report
 // Appeals against a suspension
 export const getAppeals = (params) => api.get('/admin/appeals', { params });
 export const decideAppeal = (id, data) => api.put(`/admin/appeals/${id}`, data);
+
+// Preserved report evidence. The list is metadata only ({ reportId } or
+// { userId }); opening one record returns what was captured and is audited.
+export const getEvidenceList = (params) => api.get('/admin/evidence', { params });
+export const getEvidenceRecord = (id) => api.get(`/admin/evidence/${id}`);
 
 // Photo review (auto-held uploads and stolen-photo reports)
 export const getMediaReviews = (params) => api.get('/admin/media-reviews', { params });

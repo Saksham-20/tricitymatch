@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback, Fragment } from 'react';
-import { FiFilter, FiMail, FiAlertCircle, FiInbox, FiRefreshCw } from 'react-icons/fi';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { FiFilter, FiMail, FiAlertCircle, FiInbox, FiRefreshCw, FiSearch, FiCheck, FiUser } from 'react-icons/fi';
 import apiClient from '../../api/apiClient';
+import { useDebounce } from '../../hooks/useDebounce';
+import QueueMemberLink from '../../components/admin/QueueMemberLink';
 
 const STATUS_STYLES = {
   new: 'bg-primary-100 text-primary-700',
@@ -27,6 +30,14 @@ const formatRelative = (iso) => {
 };
 
 const STATUS_OPTIONS = ['new', 'read', 'resolved'];
+
+// The inbox opens on what needs doing: unread enquiries, whoever has waited
+// longest first. Every filter lives in the URL, so a link (the dashboard's
+// "Unread Support" tile, a colleague's paste) opens the same view.
+const DEFAULT_STATUS = 'new';
+const DEFAULT_SORT = 'oldest';
+
+const selectCls = 'w-full sm:w-auto min-h-[40px] border border-gray-200 bg-white text-gray-900 px-3 rounded-lg text-sm';
 
 /**
  * The status chip IS the control: click (or Enter/Space) opens a small menu,
@@ -100,21 +111,47 @@ function StatusChipMenu({ value, disabled, onChange, label }) {
 }
 
 export default function AdminContactMessages() {
+  const [params, setParams] = useSearchParams();
+  const status = ['all', ...STATUS_OPTIONS].includes(params.get('status'))
+    ? params.get('status')
+    : DEFAULT_STATUS; // 'all' = every status
+  const sort = params.get('sort') === 'newest' ? 'newest' : DEFAULT_SORT;
+  const replied = ['yes', 'no'].includes(params.get('replied')) ? params.get('replied') : '';
+  const assigned = ['me', 'unassigned'].includes(params.get('assigned')) ? params.get('assigned') : '';
+  const search = params.get('search') || '';
+  const page = Math.max(parseInt(params.get('page'), 10) || 1, 1);
+
+  // Typing waits for a pause before it asks the server.
+  const [searchInput, setSearchInput] = useState(search);
+  const debouncedSearch = useDebounce(searchInput, 350);
+
   const [messages, setMessages] = useState([]);
   const [newCount, setNewCount] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
+  const [loadError, setLoadError] = useState('');
+  const [error, setError] = useState('');   // a failed action (assign, status)
   const [totalPages, setTotalPages] = useState(1);
-  const [status, setStatus] = useState('');
-  const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [replyDraft, setReplyDraft] = useState({});   // id → text
   const [replyingId, setReplyingId] = useState(null);
   const [replyError, setReplyError] = useState({});   // id → message
   const [staff, setStaff] = useState([]);
-  const [assigned, setAssigned] = useState('');
+  const requestSeq = useRef(0);
+
+  const setFilter = useCallback((key, value) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set(key, value); else next.delete(key);
+      next.delete('page');
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  useEffect(() => {
+    if (debouncedSearch.trim() !== search) setFilter('search', debouncedSearch.trim());
+  }, [debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     apiClient.get('/admin/support-staff').then((r) => setStaff(r.data.staff || [])).catch(() => {});
@@ -130,24 +167,31 @@ export default function AdminContactMessages() {
   };
 
   const fetchMessages = useCallback(async () => {
+    // Only the newest request may fill the table: a slow answer for an older
+    // filter or search must not replace the one on screen.
+    const seq = ++requestSeq.current;
+    setLoading(true);
     try {
-      setLoading(true);
-      const params = new URLSearchParams({ page, limit: 20 });
-      if (status) params.append('status', status);
-      if (assigned) params.append('assigned', assigned);
-      if (search.trim()) params.append('search', search.trim());
+      const q = new URLSearchParams({ page: String(page), limit: '20', sort });
+      if (status !== 'all') q.set('status', status);
+      if (assigned) q.set('assigned', assigned);
+      if (replied) q.set('replied', replied);
+      if (search) q.set('search', search);
 
-      const res = await apiClient.get(`/admin/contact-messages?${params}`);
+      const res = await apiClient.get(`/admin/contact-messages?${q}`);
+      if (seq !== requestSeq.current) return;
       setMessages(res.data.messages || []);
       setNewCount(res.data.newCount || 0);
       setTotalPages(res.data.pagination?.pages || 1);
-      setError('');
+      setTotal(res.data.pagination?.total || 0);
+      setLoadError('');
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Failed to load enquiries');
+      if (seq !== requestSeq.current) return;
+      setLoadError(err.response?.data?.error?.message || 'Failed to load enquiries');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
-  }, [page, status, search, assigned]);
+  }, [page, status, sort, replied, assigned, search]);
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
@@ -194,16 +238,31 @@ export default function AdminContactMessages() {
     }
   };
 
-  const applySearch = (e) => {
-    e.preventDefault();
-    setPage(1);
-    fetchMessages();
+  // Opening an unread enquiry is reading it: it stops counting as unread.
+  const toggleExpanded = (m) => {
+    const opening = expanded !== m.id;
+    setExpanded(opening ? m.id : null);
+    if (opening && m.status === 'new') changeStatus(m.id, 'read');
   };
 
+  const applySearch = (e) => {
+    e.preventDefault();
+    setFilter('search', searchInput.trim());
+  };
+
+  const goPage = (p) => setParams((prev) => {
+    const next = new URLSearchParams(prev);
+    if (p > 1) next.set('page', String(p)); else next.delete('page');
+    return next;
+  });
+
+  const showEverything = () => { setSearchInput(''); setParams({ status: 'all' }, { replace: true }); };
+  const onlyUnread = status === 'new' && !replied && !assigned && !search;
+
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">Support Inbox</h1>
           <p className="text-sm text-neutral-500 mt-1">
             Enquiries from the public contact form.
@@ -211,59 +270,80 @@ export default function AdminContactMessages() {
           </p>
         </div>
         <button
+          type="button"
           onClick={fetchMessages}
-          className="inline-flex items-center gap-2 border px-3 py-2 rounded text-sm hover:bg-neutral-50"
+          className="inline-flex items-center gap-2 min-h-[40px] border border-gray-200 px-3 rounded-lg text-sm text-gray-700 hover:bg-neutral-50"
         >
-          <FiRefreshCw size={16} /> Refresh
+          <FiRefreshCw size={16} aria-hidden="true" /> Refresh
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-lg mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <FiFilter size={20} />
-          <h2 className="text-lg font-semibold">Filters</h2>
+      <section aria-label="Filters" className="bg-white border border-gray-100 p-4 rounded-2xl">
+        <div className="flex items-center gap-2 mb-3">
+          <FiFilter size={18} aria-hidden="true" />
+          <h2 className="text-base font-semibold text-gray-900">Filters</h2>
         </div>
-        <div className="flex gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
           <select
             value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="border px-3 py-2 rounded"
+            onChange={(e) => setFilter('status', e.target.value)}
+            className={selectCls}
             aria-label="Filter by status"
           >
-            <option value="">All statuses</option>
-            <option value="new">New</option>
+            <option value="new">Unread</option>
             <option value="read">Read</option>
             <option value="resolved">Resolved</option>
+            <option value="all">All statuses</option>
+          </select>
+          <select
+            value={replied}
+            onChange={(e) => setFilter('replied', e.target.value)}
+            className={selectCls}
+            aria-label="Filter by reply"
+          >
+            <option value="">Replied or not</option>
+            <option value="no">Not replied yet</option>
+            <option value="yes">Replied</option>
           </select>
           <select
             value={assigned}
-            onChange={(e) => { setAssigned(e.target.value); setPage(1); }}
-            className="border px-3 py-2 rounded"
+            onChange={(e) => setFilter('assigned', e.target.value)}
+            className={selectCls}
             aria-label="Filter by assignee"
           >
             <option value="">Everyone's enquiries</option>
             <option value="me">Assigned to me</option>
             <option value="unassigned">Unassigned</option>
           </select>
-          <form onSubmit={applySearch} className="flex gap-2 flex-1 min-w-[240px]">
+          <select
+            value={sort}
+            onChange={(e) => setFilter('sort', e.target.value === DEFAULT_SORT ? '' : e.target.value)}
+            className={selectCls}
+            aria-label="Order"
+          >
+            <option value="oldest">Oldest first</option>
+            <option value="newest">Newest first</option>
+          </select>
+          <form onSubmit={applySearch} role="search" className="relative w-full sm:flex-1 sm:min-w-[220px]">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} aria-hidden="true" />
             <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name, email or message"
-              className="border px-3 py-2 rounded flex-1"
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search name, email, phone or message"
+              className="w-full min-w-0 min-h-[40px] border border-gray-200 bg-white text-gray-900 pl-9 pr-3 rounded-lg text-sm"
               aria-label="Search enquiries"
             />
-            <button type="submit" className="px-4 py-2 rounded bg-primary-600 text-white">Search</button>
           </form>
         </div>
-      </div>
+      </section>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 flex items-start gap-3">
-          <FiAlertCircle size={18} className="mt-0.5 shrink-0" />
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-start gap-3" role="alert">
+          <FiAlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           <div className="flex-1">
             <p className="font-medium">{error}</p>
-            <button onClick={fetchMessages} className="text-sm underline mt-1">Retry</button>
+            <button type="button" onClick={() => setError('')} className="text-sm underline mt-1">Dismiss</button>
           </div>
         </div>
       )}
@@ -274,16 +354,33 @@ export default function AdminContactMessages() {
             <div key={i} className="h-16 bg-neutral-100 rounded animate-pulse" />
           ))}
         </div>
+      ) : loadError ? (
+        // A failed load is never shown as an empty inbox.
+        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100" role="alert">
+          <FiAlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-3" aria-hidden="true" />
+          <p className="text-sm text-gray-600 mb-4">{loadError}</p>
+          <button type="button" onClick={fetchMessages} className="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium">
+            Try again
+          </button>
+        </div>
       ) : messages.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg">
-          <FiInbox size={40} className="mx-auto text-neutral-300 mb-3" />
-          <p className="text-neutral-600 font-medium">No enquiries found</p>
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+          <FiInbox size={40} className="mx-auto text-neutral-300 mb-3" aria-hidden="true" />
+          <p className="text-neutral-600 font-medium">{onlyUnread ? 'No unread enquiries' : 'No enquiries found'}</p>
           <p className="text-sm text-neutral-400 mt-1">
-            {status || search ? 'Try clearing the filters.' : 'Messages from the contact form will appear here.'}
+            {onlyUnread ? 'Everything that came in has been read.' : 'Try another filter, or show every enquiry.'}
           </p>
+          {status !== 'all' || replied || assigned || search ? (
+            <button type="button" onClick={showEverything} className="mt-4 min-h-[40px] px-4 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+              Show every enquiry
+            </button>
+          ) : null}
         </div>
       ) : (
         <>
+          <p className="text-xs text-gray-500" aria-live="polite">
+            {total} {total === 1 ? 'enquiry' : 'enquiries'} · {sort === 'oldest' ? 'oldest first' : 'newest first'}
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse bg-white">
               <thead>
@@ -304,23 +401,39 @@ export default function AdminContactMessages() {
                       tabIndex={0}
                       aria-expanded={expanded === m.id}
                       aria-controls={`msg-body-${m.id}`}
-                      onClick={() => setExpanded(expanded === m.id ? null : m.id)}
+                      onClick={() => toggleExpanded(m)}
                       onKeyDown={(e) => {
                         // Only the row itself toggles — Enter/Space on the inner
                         // chip, assign select or email link must not bubble here.
                         if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
                           e.preventDefault();
-                          setExpanded(expanded === m.id ? null : m.id);
+                          toggleExpanded(m);
                         }
                       }}
                     >
                       <td className="border p-3 whitespace-nowrap text-sm" title={formatDate(m.createdAt)}>{formatRelative(m.createdAt)}</td>
                       <td className="border p-3">
                         <div className="font-medium">{m.name}</div>
-                        <div className="text-sm text-neutral-500">{m.email}</div>
+                        <div className="text-sm text-neutral-500 break-all">{m.email}</div>
                         {m.phone && <div className="text-sm text-neutral-500">{m.phone}</div>}
+                        {m.memberId && (
+                          <div className="text-sm mt-0.5" onClick={(e) => e.stopPropagation()}>
+                            <QueueMemberLink userId={m.memberId} className="inline-flex items-center gap-1">
+                              <FiUser size={13} aria-hidden="true" />
+                              Member account
+                              <span className="sr-only"> (same {m.memberMatch === 'phone' ? 'mobile number' : 'email'})</span>
+                            </QueueMemberLink>
+                          </div>
+                        )}
                       </td>
-                      <td className="border p-3">{m.subject || <span className="text-neutral-400">(no subject)</span>}</td>
+                      <td className="border p-3">
+                        <div>{m.subject || <span className="text-neutral-400">(no subject)</span>}</div>
+                        {m.repliedAt && (
+                          <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium" title={formatDate(m.repliedAt)}>
+                            <FiCheck size={12} aria-hidden="true" /> Replied {formatRelative(m.repliedAt)}
+                          </span>
+                        )}
+                      </td>
                       <td className="border p-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-3">
                           <StatusChipMenu
@@ -378,7 +491,7 @@ export default function AdminContactMessages() {
                               {replyError[m.id] && (
                                 <p className="text-sm text-red-700 mt-1">{replyError[m.id]}</p>
                               )}
-                              <div className="flex items-center gap-3 mt-2">
+                              <div className="flex flex-wrap items-center gap-3 mt-2">
                                 <button
                                   onClick={() => sendReply(m.id)}
                                   disabled={replyingId === m.id || (replyDraft[m.id] || '').trim().length < 2}
@@ -404,17 +517,19 @@ export default function AdminContactMessages() {
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 mt-6">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1 rounded border disabled:opacity-40"
+                type="button"
+                onClick={() => goPage(Math.max(1, page - 1))}
+                disabled={page <= 1}
+                className="min-h-[40px] px-3 rounded border disabled:opacity-40"
               >
                 Previous
               </button>
               <span className="text-sm text-neutral-600">Page {page} of {totalPages}</span>
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1 rounded border disabled:opacity-40"
+                type="button"
+                onClick={() => goPage(Math.min(totalPages, page + 1))}
+                disabled={page >= totalPages}
+                className="min-h-[40px] px-3 rounded border disabled:opacity-40"
               >
                 Next
               </button>

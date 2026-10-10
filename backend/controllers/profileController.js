@@ -675,7 +675,8 @@ exports.deleteProfilePhoto = asyncHandler(async (req, res) => {
  * including deleted, suspended, matches_only and blocking members.
  *
  * Returns the gated profile plus the mutual-match flag callers need.
- * Throws 404 when the target is absent/inactive, 403 when a gate rejects.
+ * Throws 404 when the target is absent, inactive or blocked (either way), and
+ * 403 when their matches_only setting keeps the viewer out.
  */
 const assertProfileVisible = async (
   viewerId,
@@ -715,7 +716,9 @@ const assertProfileVisible = async (
     throw createError.notFound('Profile not found');
   }
 
-  // Blocks are bidirectional and must not reveal which direction fired.
+  // Blocks are bidirectional and must not reveal which direction fired. The
+  // answer is the same 404 as a profile that does not exist: a 403 told the
+  // blocked member they had been blocked, which the block promises not to.
   const blockExists = await Block.findOne({
     where: {
       [Op.or]: [
@@ -726,7 +729,7 @@ const assertProfileVisible = async (
     attributes: ['id'],
   });
   if (blockExists) {
-    throw createError.forbidden('Cannot perform this action');
+    throw createError.notFound('Profile not found');
   }
 
   const existingMatch = await Match.findOne({

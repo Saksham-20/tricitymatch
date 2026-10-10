@@ -12,14 +12,21 @@
  * never returned; only staff notes and machine labels are.
  */
 
+const { Op } = require('sequelize');
 const { Report, MediaReview, Appeal, AuditLog, User, Profile } = require('../models');
 
 const LIMIT = 100;
 
+// Staff opening the record ("member_record_viewed", "moderation_history_viewed")
+// is logged too. Those reads used to share the 100-row window with real actions
+// and outnumber them, so a ban could fall off the end behind a page of "viewed"
+// lines. They are fetched separately and flagged, so the page can fold them away.
+const VIEW_ACTION = '_viewed$';
+
 const toEntry = (at, kind, summary, extra = {}) => ({ at, kind, summary, ...extra });
 
 const buildModerationHistory = async (userId) => {
-  const [received, filed, media, appeals, audits] = await Promise.all([
+  const [received, filed, media, appeals, audits, views, viewCount] = await Promise.all([
     Report.findAll({
       where: { reportedUserId: userId },
       attributes: ['id', 'reason', 'status', 'adminNotes', 'reviewedBy', 'createdAt', 'updatedAt'],
@@ -40,11 +47,18 @@ const buildModerationHistory = async (userId) => {
       limit: LIMIT,
     }),
     AuditLog.findAll({
-      where: { targetUserId: userId },
+      where: { targetUserId: userId, action: { [Op.notRegexp]: VIEW_ACTION } },
       attributes: ['id', 'action', 'actorId', 'details', 'createdAt'],
       order: [['createdAt', 'DESC']],
       limit: LIMIT,
     }),
+    AuditLog.findAll({
+      where: { targetUserId: userId, action: { [Op.regexp]: VIEW_ACTION } },
+      attributes: ['id', 'action', 'actorId', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: LIMIT,
+    }),
+    AuditLog.count({ where: { targetUserId: userId, action: { [Op.regexp]: VIEW_ACTION } } }),
   ]);
 
   const timeline = [];
@@ -75,6 +89,9 @@ const buildModerationHistory = async (userId) => {
   for (const e of audits) {
     timeline.push(toEntry(e.createdAt, 'staff_action', e.action, { id: e.id, by: e.actorId || null, details: e.details || null }));
   }
+  for (const e of views) {
+    timeline.push(toEntry(e.createdAt, 'staff_action', e.action, { id: e.id, by: e.actorId || null, details: null, view: true }));
+  }
 
   timeline.sort((x, y) => new Date(x.at) - new Date(y.at));
 
@@ -99,6 +116,9 @@ const buildModerationHistory = async (userId) => {
       photosHeld: media.length,
       photosRejected: media.filter((m) => m.status === 'rejected').length,
       appeals: appeals.length,
+      // Times staff opened this member's record (all of them, not just the
+      // latest shown in the timeline).
+      views: viewCount,
     },
     timeline: timeline.map((t) => ({ ...t, byName: t.by ? names[t.by] || null : null })),
   };

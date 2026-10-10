@@ -167,7 +167,7 @@ const NotFoundPage = () => {
   const { t } = useTranslation();
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 text-center">
-      <Seo title="Page Not Found" description="The page you're looking for doesn't exist or has been moved." noindex />
+      <Seo title="Page Not Found" description="The page you're looking for doesn't exist or has been moved." noindex canonical={false} />
       <div className="font-display text-8xl font-bold text-primary-200">404</div>
       <h1 className="font-display text-2xl font-semibold text-neutral-800">{t('appShell.notFound.title')}</h1>
       <p className="text-neutral-500 max-w-sm">{t('appShell.notFound.body')}</p>

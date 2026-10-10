@@ -6,6 +6,7 @@ import { getImageUrl } from '../../utils/cloudinary';
 import { API_BASE_URL } from '../../utils/api';
 import Skeleton from '../../components/ui/Skeleton';
 import { formatDate } from '../../utils/formatDate';
+import QueueMemberLink from '../../components/admin/QueueMemberLink';
 
 const TAB_OPTIONS = ['pending', 'approved', 'rejected', 'flagged', 'all'];
 
@@ -219,7 +220,9 @@ export default function AdminVerifications() {
             <div key={v.id} className="bg-white rounded-2xl p-5 border border-gray-100 flex flex-col gap-3">
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-800 truncate">{memberName(v)}</p>
+                  <p className="font-medium text-gray-800 truncate">
+                    <QueueMemberLink userId={v.User?.id || v.userId}>{memberName(v)}</QueueMemberLink>
+                  </p>
                   <p className="text-xs text-gray-400 truncate">{v.User?.email || v.User?.phone}</p>
                 </div>
                 <StatusBadge status={v.status} />
@@ -293,7 +296,8 @@ export default function AdminVerifications() {
           >
             <h2 id="verify-review-title" className="text-lg font-bold text-gray-900 mb-1">Review Photo Verification</h2>
             <p className="text-sm text-gray-500 mb-4">
-              {memberName(reviewModal)} · {reviewModal.User?.email || reviewModal.User?.phone}
+              <QueueMemberLink userId={reviewModal.User?.id || reviewModal.userId}>{memberName(reviewModal)}</QueueMemberLink>
+              {' · '}{reviewModal.User?.email || reviewModal.User?.phone}
             </p>
 
             {/* Large side-by-side comparison */}

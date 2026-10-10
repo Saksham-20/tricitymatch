@@ -74,7 +74,8 @@ describeDb('matchAction on a real database', (t) => {
     const [a, b] = await pair();
     await Block.create({ blockerId: b.id, blockedUserId: a.id });
     const out = await call(matchAction, { user: a, params: { userId: b.id }, body: { action: 'like' } });
-    expect(out.statusCode).toBe(403);
+    // Answered as "not found", so the blocked member is not told about the block.
+    expect(out.statusCode).toBe(404);
     expect(await Match.count({ where: { userId: a.id, matchedUserId: b.id } })).toBe(0);
   });
 

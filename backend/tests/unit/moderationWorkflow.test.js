@@ -57,7 +57,7 @@ describe('report escalation', () => {
       const created = models.Report.create.mock.calls.at(-1)[0];
       expect(created.priority).toBe('urgent');
       expect(created.escalatedAt).toBeInstanceOf(Date);
-      expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'support@example.com', subject: expect.stringMatching(/URGENT/) }));
+      expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: ['support@example.com'], subject: expect.stringMatching(/URGENT/) }));
     }
   });
 

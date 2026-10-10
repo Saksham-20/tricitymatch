@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { FiAlertTriangle, FiImage, FiActivity, FiRefreshCw } from 'react-icons/fi';
+import { FiAlertTriangle, FiImage, FiActivity, FiRefreshCw, FiXCircle } from 'react-icons/fi';
 import { useAdminScopes } from '../../components/admin/AdminLayout';
 import {
   getSuspicious, getModerationStats, getPhotoQueue, removePhoto, updateUserStatus,
 } from '../../api/adminApi';
 import { formatDate } from '../../utils/formatDate';
+import QueueMemberLink from '../../components/admin/QueueMemberLink';
 
 const TABS = [
   { id: 'suspicious', label: 'Suspicious accounts', icon: FiAlertTriangle },
@@ -26,23 +27,39 @@ const Loading = () => (
   </div>
 );
 
+// A failed load must never read as "nothing to worry about": say it failed and
+// offer a retry, instead of the all-clear empty message.
+const LoadFailed = ({ children, onRetry }) => (
+  <div className="bg-white rounded-2xl p-12 text-center border border-gray-100" role="alert">
+    <FiXCircle className="w-8 h-8 text-gray-300 mx-auto mb-3" aria-hidden="true" />
+    <p className="text-sm text-gray-600 mb-4">{children}</p>
+    <button type="button" onClick={onRetry} className="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium">
+      Try again
+    </button>
+  </div>
+);
+
 const scoreTone = (score) => (score >= 60 ? 'bg-red-100 text-red-700' : score >= 35 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600');
 
 function Suspicious() {
   // Banning needs the `users` scope on the server; a reports-only sub-admin can
   // review but would get a 403 on every Ban, so the button is not offered.
+  // Opening a member page needs the same scope, so "Review" follows it too.
   const scopes = useAdminScopes();
   const canBan = scopes === null || scopes.includes('users');
   const [accounts, setAccounts] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [includeTest, setIncludeTest] = useState(false);
 
   const load = useCallback(async () => {
     setAccounts(null);
+    setLoadError(false);
     try {
       const res = await getSuspicious({ includeTest: includeTest || undefined });
       setAccounts(res.data.accounts || []);
     } catch (err) {
       toast.error(errMsg(err, 'Could not load suspicious accounts'));
+      setLoadError(true);
       setAccounts([]);
     }
   }, [includeTest]);
@@ -78,7 +95,9 @@ function Suspicious() {
         </div>
       </div>
 
-      {accounts === null ? <Loading /> : accounts.length === 0 ? (
+      {accounts === null ? <Loading /> : loadError ? (
+        <LoadFailed onRetry={load}>Could not load suspicious accounts.</LoadFailed>
+      ) : accounts.length === 0 ? (
         <Empty>No account matches a suspicious pattern right now.</Empty>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
@@ -86,7 +105,9 @@ function Suspicious() {
             <div key={a.id} className="flex items-start justify-between gap-4 p-4 flex-wrap">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-gray-900">{a.name || '—'}</span>
+                  <span className="font-medium text-gray-900">
+                    <QueueMemberLink userId={a.id}>{a.name || a.email || a.phone || '—'}</QueueMemberLink>
+                  </span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${scoreTone(a.score)}`}>Risk {a.score}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">{a.email || a.phone} · joined {formatDate(a.createdAt)}{a.city ? ` · ${a.city}` : ''}</p>
@@ -96,10 +117,12 @@ function Suspicious() {
                   ))}
                 </ul>
               </div>
-              <div className="flex items-center gap-2">
-                <Link to={`/admin/users/${a.id}`} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700">Review</Link>
-                {canBan && <button onClick={() => ban(a)} className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-medium text-red-700">Ban</button>}
-              </div>
+              {canBan && (
+                <div className="flex items-center gap-2">
+                  <Link to={`/admin/users/${a.id}`} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700">Review</Link>
+                  <button onClick={() => ban(a)} className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-medium text-red-700">Ban</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -109,16 +132,21 @@ function Suspicious() {
 }
 
 function Photos() {
+  const scopes = useAdminScopes();
+  const canOpenMembers = scopes === null || scopes.includes('users');
   const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     setData(null);
+    setLoadError(false);
     try {
       const res = await getPhotoQueue({ page });
       setData(res.data);
     } catch (err) {
       toast.error(errMsg(err, 'Could not load photos'));
+      setLoadError(true);
       setData({ profiles: [], pagination: { pages: 1 } });
     }
   }, [page]);
@@ -139,6 +167,7 @@ function Photos() {
   };
 
   if (data === null) return <Loading />;
+  if (loadError) return <LoadFailed onRetry={load}>Could not load profile photos.</LoadFailed>;
   if (!data.profiles.length) return <Empty>No profile photos to review.</Empty>;
 
   return (
@@ -149,10 +178,10 @@ function Photos() {
           <div key={p.userId} className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="min-w-0">
-                <p className="font-medium text-gray-900 truncate">{p.name}</p>
+                <p className="font-medium text-gray-900 truncate"><QueueMemberLink userId={p.userId}>{p.name}</QueueMemberLink></p>
                 <p className="text-xs text-gray-500 truncate">{p.email}</p>
               </div>
-              <Link to={`/admin/users/${p.userId}`} className="text-xs text-primary-700 hover:underline">Open</Link>
+              {canOpenMembers && <Link to={`/admin/users/${p.userId}`} className="text-xs text-primary-700 hover:underline">Open</Link>}
             </div>
             <div className="grid grid-cols-3 gap-2">
               {p.photos.map((url) => (
@@ -213,11 +242,13 @@ const ModTable = ({ title, rows }) => (
 
 function Stats() {
   const [stats, setStats] = useState(null);
-  useEffect(() => {
+  const load = useCallback(() => {
+    setStats(null);
     getModerationStats().then((r) => setStats(r.data)).catch((err) => { toast.error(errMsg(err, 'Could not load stats')); setStats(false); });
   }, []);
+  useEffect(() => { load(); }, [load]);
   if (stats === null) return <Loading />;
-  if (stats === false) return <Empty>Could not load moderation stats.</Empty>;
+  if (stats === false) return <LoadFailed onRetry={load}>Could not load moderation stats.</LoadFailed>;
   const { reports, verifications, support } = stats;
   return (
     <div className="space-y-6">

@@ -218,6 +218,29 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   }, [checkAuth]);
 
+  // The server refuses most requests until a member accepts updated Terms. A
+  // tab that was open when the Terms changed still holds the old user, so no
+  // accept screen shows and every action just fails. Re-read the user once so
+  // the accept screen (TermsReconsentPrompt) appears.
+  useEffect(() => {
+    let inFlight = false;
+    const onReconsent = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const response = await api.get('/auth/me');
+        const userData = response.data.user || response.data;
+        if (userData) setUser(userData);
+      } catch {
+        // A failed read leaves things as they were; the next refusal retries.
+      } finally {
+        inFlight = false;
+      }
+    };
+    window.addEventListener('tm:reconsent-required', onReconsent);
+    return () => window.removeEventListener('tm:reconsent-required', onReconsent);
+  }, []);
+
   // `identifier` may be an email or a phone number (flexible auth).
   const login = async (identifier, password, mfaCode) => {
     try {

@@ -22,7 +22,7 @@ const { getPublicSuccessStories } = require('../controllers/adminController');
 const { submitContact, submitSuccessStory } = require('../controllers/contactController');
 const { recordClientEvent } = require('../controllers/analyticsController');
 const { contactLimiter, analyticsLimiter } = require('../middlewares/security');
-const { contactValidation, successStoryValidation } = require('../validators');
+const { contactValidation, successStoryValidation, appealValidation } = require('../validators');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
 
 // Public success stories (no auth) — social proof for the marketing site
@@ -34,11 +34,8 @@ router.post('/success-stories', contactLimiter, successStoryValidation, handleVa
 router.post('/contact', contactLimiter, contactValidation, handleValidationErrors, submitContact);
 
 // Appeal against a suspension (no auth — a suspended member cannot sign in).
-// Same answer whatever the email is, so it is not an account-existence oracle.
-router.post('/appeals', contactLimiter,
-  require('express-validator').body('email').isEmail().withMessage('Please provide a valid email'),
-  require('express-validator').body('statement').isString().isLength({ min: 20, max: 2000 }).withMessage('Please write 20-2000 characters'),
-  handleValidationErrors, require('../controllers/appealController').submitAppeal);
+// Same answer whatever the email or number is, so it is not an account-existence oracle.
+router.post('/appeals', contactLimiter, appealValidation, handleValidationErrors, require('../controllers/appealController').submitAppeal);
 
 // Traffic-stage beacon. Public by necessity — the stages it reports happen
 // before an account exists, which is exactly the half of the funnel nothing

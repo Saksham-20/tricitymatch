@@ -176,6 +176,8 @@
     "matchesDesc": "When you and another member like each other (app, push and email)",
     "interests": "Interests",
     "interestsDesc": "When someone likes your profile",
+    "messages": "Messages",
+    "messagesDesc": "An email when a match sends you a message while you are away",
     "title": "Notification Preferences",
     "desc": "Choose which alerts you want to receive",
     "loadError": "Could not load your preferences.",
@@ -208,7 +210,10 @@
     "resubmit": "Please resubmit a clearer selfie.",
     "privacyNote": "Your selfie is captured live from your camera (no uploads) and only used by our team to verify your profile photos. It is never shown to other members.",
     "submitting": "Submitting…",
-    "submit": "Submit for Verification"
+    "submit": "Submit for Verification",
+    "photoFirstTitle": "Add a profile photo first",
+    "photoFirstBody": "Your selfie is compared with your profile photo, so you need one before you start.",
+    "photoFirstCta": "Add a photo"
   },
   "danger": {
     "hidden": "Your profile is hidden",

@@ -24,6 +24,10 @@
   "changeOnlyPhoto": "To change this photo, add the new one first, then delete this one.",
   "confirmPrompt": "Tap “Confirm delete” to remove this photo for good, or <btn>keep it</btn>.",
   "nextBecomesMain": "Your next photo becomes your main photo.",
+  "lastDeleteTitle": "Delete your only photo?",
+  "lastDeleteBody": "Profiles without a photo show lower in search. The verified badge also needs a profile photo: if you have the badge, it is removed until you add a photo and our team checks it again.",
+  "lastDeleteConfirm": "Delete photo",
+  "lastDeleteCancel": "Keep it",
   "guide": {
     "title": "What makes a great profile photo",
     "do": "Do",

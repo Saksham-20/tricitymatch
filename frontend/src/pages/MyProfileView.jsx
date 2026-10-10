@@ -22,6 +22,7 @@ import PhotoManager from '../components/profile/PhotoManager';
 import { useAuth } from '../context/AuthContext';
 import { ImageLightbox } from '../components/ui/ImageLightbox';
 import { friendlyLabel, formatEnum } from '../constants/profileOptions';
+import { placeLabel } from '../utils/tricityState';
 import RetryImage from '../components/ui/RetryImage';
 import { promptLabel } from '../constants/profilePrompts';
 
@@ -48,12 +49,14 @@ const Card = ({ title, icon: Icon, children, action, className = '' }) => (
 );
 
 // ─── Info Pill ───────────────────────────────────────────────────────────────
+// Values are shown as given: stored choices are formatted with formatEnum /
+// friendlyLabel by the caller. A CSS capitalize turned units into "142 Cm".
 const Pill = ({ label, value, highlight }) => {
   if (!value && value !== 0) return null;
   return (
     <div className={`flex flex-col px-3 py-2.5 rounded-xl border ${highlight ? 'bg-primary-50 border-primary-100' : 'bg-neutral-50 border-neutral-100'}`}>
       <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400 mb-0.5">{label}</span>
-      <span className={`text-xs font-bold capitalize ${highlight ? 'text-primary-700' : 'text-neutral-700'}`}>{String(value).replace(/_/g, ' ')}</span>
+      <span className={`text-xs font-bold ${highlight ? 'text-primary-700' : 'text-neutral-700'}`}>{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
@@ -64,7 +67,7 @@ const DetailRow = ({ label, value, isLast }) => {
   return (
     <div className={`flex justify-between items-center py-2.5 ${!isLast ? 'border-b border-neutral-50' : ''}`}>
       <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">{label}</span>
-      <span title={String(value).replace(/_/g, ' ')} className="text-sm font-semibold text-neutral-700 capitalize text-right max-w-[55%] truncate">{String(value).replace(/_/g, ' ')}</span>
+      <span title={String(value).replace(/_/g, ' ')} className="text-sm font-semibold text-neutral-700 text-right max-w-[55%] truncate">{String(value).replace(/_/g, ' ')}</span>
     </div>
   );
 };
@@ -241,7 +244,9 @@ const MyProfileView = () => {
   const age = profile.dateOfBirth
     ? Math.floor((Date.now() - new Date(profile.dateOfBirth)) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
-  const location = [profile.city, profile.state].filter(Boolean).join(', ') || null;
+  // The state comes from the city; the stored column is not shown (it said
+  // "Punjab" for every profile, Panchkula and Chandigarh included).
+  const location = placeLabel(profile.city);
   const allPhotos = profile.profilePhoto
     ? [profile.profilePhoto, ...(profile.photos || []).filter(p => p !== profile.profilePhoto)]
     : (profile.photos || []);
@@ -555,11 +560,11 @@ const MyProfileView = () => {
                 {profile.profession && <DetailRow label={t('profileView.fields.profession')} value={profile.profession} />}
                 {profile.industry && <DetailRow label={t('profileView.fields.industry')} value={profile.industry} />}
                 {profile.income && <DetailRow label={t('profileView.fields.income')} value={formatIncome(profile.income)} />}
-                {profile.religion && <DetailRow label={t('profileView.fields.religion')} value={profile.religion} />}
-                {profile.caste && <DetailRow label={t('profileView.fields.caste')} value={profile.caste} />}
+                {profile.religion && <DetailRow label={t('profileView.fields.religion')} value={formatEnum(profile.religion)} />}
+                {profile.caste && <DetailRow label={t('profileView.fields.caste')} value={formatEnum(profile.caste)} />}
                 {profile.subCaste && <DetailRow label={t('profileView.fields.subCaste')} value={profile.subCaste} />}
                 {profile.gotra && <DetailRow label={t('profileView.fields.gotra')} value={profile.gotra} />}
-                {profile.motherTongue && <DetailRow label={t('profileView.fields.motherTongue')} value={profile.motherTongue} />}
+                {profile.motherTongue && <DetailRow label={t('profileView.fields.motherTongue')} value={formatEnum(profile.motherTongue)} />}
                 {profile.maritalStatus && <DetailRow label={t('profileView.fields.maritalStatus')} value={friendlyLabel('maritalStatus', profile.maritalStatus)} />}
                 {/* Diet/Smoking/Drinking/Skin tone live in the dedicated Lifestyle
                     card below — not repeated here. */}
@@ -583,9 +588,9 @@ const MyProfileView = () => {
             {(profile.manglikStatus || profile.zodiacSign || profile.rashi || profile.nakshatra) && (
               <Card title={t('myProfile.horoscope')} icon={FiSun} action={<EditBtn small to="/profile/edit?section=horoscope" />}>
                 <div>
-                  {profile.zodiacSign && <DetailRow label={t('profileView.fields.zodiacSign')} value={profile.zodiacSign} />}
-                  {profile.rashi && <DetailRow label={t('profileView.fields.rashi')} value={profile.rashi} />}
-                  {profile.nakshatra && <DetailRow label={t('profileView.fields.nakshatra')} value={profile.nakshatra} />}
+                  {profile.zodiacSign && <DetailRow label={t('profileView.fields.zodiacSign')} value={formatEnum(profile.zodiacSign)} />}
+                  {profile.rashi && <DetailRow label={t('profileView.fields.rashi')} value={formatEnum(profile.rashi)} />}
+                  {profile.nakshatra && <DetailRow label={t('profileView.fields.nakshatra')} value={formatEnum(profile.nakshatra)} />}
                   {profile.manglikStatus && <DetailRow label={t('profileView.fields.manglik')} value={friendlyLabel('manglikStatus', profile.manglikStatus)} />}
                   {profile.placeOfBirth && <DetailRow label={t('profileView.fields.placeOfBirth')} value={profile.placeOfBirth} />}
                   {profile.birthTime && <DetailRow label={t('profileView.fields.birthTime')} value={profile.birthTime} isLast />}

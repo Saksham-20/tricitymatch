@@ -369,6 +369,7 @@ const runSubscriptionLifecycle = async (now = new Date()) => {
  */
 const runPhotoNudge = async (now = new Date()) => {
   const { User, Profile } = require('../models');
+  const { ACTIVE_MEMBER_WHERE } = require('./memberRole');
   const email = require('./email');
   const nowMs = now.getTime();
 
@@ -376,7 +377,8 @@ const runPhotoNudge = async (now = new Date()) => {
 
   const candidates = await User.findAll({
     where: {
-      status: 'active',
+      // Members only: a staff or partner account is not building a profile.
+      ...ACTIVE_MEMBER_WHERE,
       createdAt: { [Op.lt]: new Date(nowMs - CADENCE.photoFirstMinHours * HOUR_MS) },
       // The ledger is filtered in SQL, not in JS: once a member has had both
       // nudges they stay a "no photo" candidate forever, and a JS-side skip

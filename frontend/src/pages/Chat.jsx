@@ -711,6 +711,11 @@ const Chat = () => {
             <p className="text-neutral-500 dark:text-neutral-400 mb-6 leading-relaxed">
               {t('chat.premiumBody')}
             </p>
+            {user?.features?.freeReplyWindow && (
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed">
+                {t('chat.freeReplyNote')}
+              </p>
+            )}
             <button
               onClick={() => setShowUpgradeModal(true)}
               className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-hero text-white rounded-xl font-semibold ${HOVER}:shadow-burgundy ${HOVER}:scale-105 transition-[transform,box-shadow] duration-[160ms]`}

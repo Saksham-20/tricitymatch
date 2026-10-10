@@ -4,6 +4,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { FiCamera, FiCheck, FiPlus, FiStar, FiTrash2 } from 'react-icons/fi';
 import api from '../../api/axios';
 import RetryImage from '../ui/RetryImage';
+import { useConfirm } from '../ui/ConfirmDialog';
 import { API_BASE_URL } from '../../utils/api';
 import { getImageUrl } from '../../utils/cloudinary';
 
@@ -32,6 +33,7 @@ export default function PhotoManager({ profile, onChange }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
   const photos = orderedPhotos(profile);
   const main = profile?.profilePhoto;
   const room = MAX_PHOTOS - photos.length;
@@ -82,6 +84,18 @@ export default function PhotoManager({ profile, onChange }) {
   };
 
   const remove = (url) => run(() => api.delete('/profile/me/photo', { data: { photoUrl: url } }), t('photos.deleted'));
+
+  // The last photo can go too, but only after the member has read what it
+  // costs: a profile without a photo ranks lower and cannot hold the badge.
+  const removeLast = async (url) => {
+    const ok = await confirm({
+      title: t('photos.lastDeleteTitle'),
+      body: t('photos.lastDeleteBody'),
+      confirmLabel: t('photos.lastDeleteConfirm'),
+      cancelLabel: t('photos.lastDeleteCancel'),
+    });
+    if (ok) remove(url);
+  };
 
   return (
     <div>
@@ -134,10 +148,10 @@ export default function PhotoManager({ profile, onChange }) {
                 ) : (
                   <button
                     type="button"
-                    disabled={busy || photos.length <= 1}
-                    onClick={() => setConfirming(url)}
+                    disabled={busy}
+                    onClick={() => (photos.length === 1 ? removeLast(url) : setConfirming(url))}
                     aria-label={t('photos.deletePhotoN', { n: i + 1 })}
-                    title={photos.length <= 1 ? t('photos.addBeforeDelete') : t('photos.deletePhoto')}
+                    title={t('photos.deletePhoto')}
                     className="min-h-[2.75rem] min-w-[2.75rem] inline-flex items-center justify-center rounded-lg bg-white/90 text-neutral-900 hover:bg-white disabled:opacity-50"
                   >
                     <FiTrash2 className="w-4 h-4" />
@@ -170,7 +184,7 @@ export default function PhotoManager({ profile, onChange }) {
           ? t('photos.emptyHint')
           : t('photos.galleryHint')}
       </p>
-      {/* The disabled delete only says why in a hover title, which a phone never shows. */}
+      {/* Changing the only photo: add first, so the profile is never without one. */}
       {photos.length === 1 && (
         <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-300">
           {t('photos.changeOnlyPhoto')}
@@ -185,6 +199,7 @@ export default function PhotoManager({ profile, onChange }) {
           {confirming === main && ` ${t('photos.nextBecomesMain')}`}
         </p>
       )}
+      {confirmDialog}
     </div>
   );
 }

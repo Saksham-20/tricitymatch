@@ -1,11 +1,20 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getReports, updateReport } from '../../api/adminApi';
 import toast from 'react-hot-toast';
 import { FiSearch, FiEye } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
-import { formatDate } from '../../utils/formatDate';
+import { formatDate, formatDateTime } from '../../utils/formatDate';
+import { useAdminScopes } from '../../components/admin/AdminLayout';
+import QueueMemberLink, { memberLabel, memberContact } from '../../components/admin/QueueMemberLink';
+import ReportDeadlineChip, { reportDeadline } from '../../components/admin/ReportDeadline';
+import ReportEvidence from '../../components/admin/ReportEvidence';
+import ReportMemberActions from '../../components/admin/ReportMemberActions';
 
-const TAB_OPTIONS = ['pending', 'reviewing', 'resolved', 'dismissed', 'all'];
+// "open" is everything still waiting on a decision (pending or being reviewed):
+// what the dashboard counts as open, and where the urgent clocks matter.
+const TAB_OPTIONS = ['open', 'pending', 'reviewing', 'resolved', 'dismissed', 'all'];
+const DEFAULT_TAB = 'open';
 
 const StatusBadge = ({ status }) => {
   const map = {
@@ -21,41 +30,90 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// "Banned" / "Invisible" next to a reported member, so nobody bans twice.
+const AccountState = ({ user }) => (
+  <>
+    {user?.status === 'banned' && (
+      <span className="ml-1.5 inline-flex px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-semibold uppercase">Banned</span>
+    )}
+    {user?.invisible && (
+      <span className="ml-1.5 inline-flex px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-semibold uppercase">Invisible</span>
+    )}
+  </>
+);
+
+export const otherReportsText = (report) => {
+  const others = Number(report?.otherReports) || 0;
+  if (!others) return 'No other reports against this member';
+  const open = Number(report.otherOpenReports) || 0;
+  return `${others} other ${others === 1 ? 'report' : 'reports'} against this member${open ? ` (${open} still open)` : ''}`;
+};
+
 export default function AdminReports() {
+  // The tab and "urgent only" live in the address, so a dashboard tile can open
+  // the queue already filtered (?priority=urgent) and a view can be shared.
+  const [params, setParams] = useSearchParams();
+  const activeTab = TAB_OPTIONS.includes(params.get('status')) ? params.get('status') : DEFAULT_TAB;
+  const urgentOnly = params.get('priority') === 'urgent';
+  const setFilter = useCallback((key, value) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set(key, value); else next.delete(key);
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+  const setActiveTab = (tab) => setFilter('status', tab === DEFAULT_TAB ? '' : tab);
+  const setUrgentOnly = (on) => setFilter('priority', on ? 'urgent' : '');
+
   const [reports, setReports]     = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [activeTab, setActiveTab] = useState('pending');
   const [search, setSearch]       = useState('');
   const [query, setQuery]         = useState('');   // debounced `search`
-  const [urgentOnly, setUrgentOnly] = useState(false);
   const [page, setPage]           = useState(1);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loadError, setLoadError] = useState(false);
   const [modal, setModal]         = useState(null);
   const [notes, setNotes]         = useState('');
   const [submitting, setSubmit]   = useState(false);
+  const [now, setNow]             = useState(() => Date.now());
   const panelRef = useRef(null);
+  const requestSeq = useRef(0);
+
+  const scopes = useAdminScopes();
+  const canChangeMembers = scopes === null || scopes.includes('users');
 
   const fetchData = useCallback(async () => {
+    // Only the newest request may update the list: a slow answer for an older
+    // filter must not land on top of the one the admin is looking at.
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       setLoadError(false);
-      const params = { page, limit: 20 };
-      if (activeTab !== 'all') params.status = activeTab;
-      if (query) params.search = query;
-      if (urgentOnly) params.priority = 'urgent';
-      const res = await getReports(params);
+      const filters = { page, limit: 20 };
+      if (activeTab !== 'all') filters.status = activeTab;
+      if (query) filters.search = query;
+      if (urgentOnly) filters.priority = 'urgent';
+      const res = await getReports(filters);
+      if (seq !== requestSeq.current) return;
       setReports(res.data.reports || res.data || []);
       if (res.data.pagination) setPagination(res.data.pagination);
+      setNow(Date.now());
     } catch {
+      if (seq !== requestSeq.current) return;
       setLoadError(true);
       toast.error('Failed to load reports');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }, [activeTab, query, urgentOnly, page]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // The urgent "due in" clocks move on their own between loads.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Typing in the box waits a moment before it hits the API, and a new filter
   // always starts from page 1.
@@ -67,8 +125,9 @@ export default function AdminReports() {
 
   // The review modal is a dialog: move focus into it on open, trap Tab, close on
   // Escape, and restore focus to the trigger on close.
+  const modalId = modal?.id;
   useEffect(() => {
-    if (!modal) return undefined;
+    if (!modalId) return undefined;
     const opener = document.activeElement;
     panelRef.current?.focus();
     const onKey = (e) => {
@@ -88,7 +147,7 @@ export default function AdminReports() {
       document.removeEventListener('keydown', onKey);
       if (opener && opener.focus) opener.focus();
     };
-  }, [modal]);
+  }, [modalId]);
 
   const openModal = (r) => {
     setModal(r);
@@ -110,6 +169,16 @@ export default function AdminReports() {
     }
   };
 
+  // After a ban or hide, show the new state in the open report and refresh the
+  // list (every row about the same member changes with it).
+  const memberChanged = (patch) => {
+    setModal((m) => (m ? { ...m, ReportedUser: { ...m.ReportedUser, ...patch } } : m));
+    fetchData();
+  };
+
+  const reporterName = memberLabel(modal?.Reporter);
+  const reportedName = memberLabel(modal?.ReportedUser);
+
   return (
     <div className="space-y-5">
       <div>
@@ -119,11 +188,13 @@ export default function AdminReports() {
 
       {/* Tabs + Search */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 max-w-full overflow-x-auto">
           {TAB_OPTIONS.map((t) => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
+              aria-pressed={activeTab === t}
+              title={t === 'open' ? 'Pending and under review' : undefined}
               className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${
                 activeTab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -189,18 +260,29 @@ export default function AdminReports() {
                 reports.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-800">{[r.Reporter?.Profile?.firstName, r.Reporter?.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
-                      <p className="text-xs text-gray-500">{r.Reporter?.email}</p>
+                      <p className="font-medium text-gray-800">
+                        <QueueMemberLink userId={r.Reporter?.id}>{memberLabel(r.Reporter)}</QueueMemberLink>
+                      </p>
+                      <p className="text-xs text-gray-500">{memberContact(r.Reporter)}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-800">{[r.ReportedUser?.Profile?.firstName, r.ReportedUser?.Profile?.lastName].filter(Boolean).join(' ') || '—'}</p>
-                      <p className="text-xs text-gray-500">{r.ReportedUser?.email}</p>
+                      <p className="font-medium text-gray-800">
+                        <QueueMemberLink userId={r.ReportedUser?.id}>{memberLabel(r.ReportedUser)}</QueueMemberLink>
+                        <AccountState user={r.ReportedUser} />
+                      </p>
+                      <p className="text-xs text-gray-500">{memberContact(r.ReportedUser)}</p>
+                      {Number(r.otherReports) > 0 && (
+                        <p className="text-xs font-medium text-amber-800 mt-0.5">
+                          +{r.otherReports} other {Number(r.otherReports) === 1 ? 'report' : 'reports'}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 capitalize text-xs">
                       {r.priority === 'urgent' && (
                         <span className="mr-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase">Urgent</span>
                       )}
                       {r.reason?.replace(/_/g, ' ')}
+                      {reportDeadline(r, now) && <div className="mt-1"><ReportDeadlineChip report={r} now={now} /></div>}
                     </td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
                     <td className="px-4 py-3 text-xs text-gray-600">
@@ -245,14 +327,38 @@ export default function AdminReports() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="report-review-title"
-            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl focus:outline-none"
+            className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto focus:outline-none"
           >
-            <h3 id="report-review-title" className="text-lg font-bold text-gray-900 mb-1">Review Report</h3>
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h3 id="report-review-title" className="text-lg font-bold text-gray-900">Review Report</h3>
+              {modal.priority === 'urgent' && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase">Urgent</span>
+              )}
+              <ReportDeadlineChip report={modal} now={now} />
+            </div>
             <div className="text-sm text-gray-500 mb-4 space-y-1">
-              <p><span className="font-medium text-gray-700">From:</span> {[modal.Reporter?.Profile?.firstName, modal.Reporter?.Profile?.lastName].filter(Boolean).join(' ') || modal.Reporter?.email || '—'}</p>
-              <p><span className="font-medium text-gray-700">Against:</span> {[modal.ReportedUser?.Profile?.firstName, modal.ReportedUser?.Profile?.lastName].filter(Boolean).join(' ') || modal.ReportedUser?.email || '—'}</p>
+              <p>
+                <span className="font-medium text-gray-700">From:</span>{' '}
+                <QueueMemberLink userId={modal.Reporter?.id}>{reporterName}</QueueMemberLink>
+                {memberContact(modal.Reporter) && <span className="text-gray-500"> · {memberContact(modal.Reporter)}</span>}
+              </p>
+              <p>
+                <span className="font-medium text-gray-700">Against:</span>{' '}
+                <QueueMemberLink userId={modal.ReportedUser?.id}>{reportedName}</QueueMemberLink>
+                {memberContact(modal.ReportedUser) && <span className="text-gray-500"> · {memberContact(modal.ReportedUser)}</span>}
+                <AccountState user={modal.ReportedUser} />
+              </p>
               <p><span className="font-medium text-gray-700">Reason:</span> {modal.reason?.replace(/_/g, ' ')}</p>
-              {modal.description && <p className="bg-gray-50 rounded-lg px-3 py-2 text-gray-600">{modal.description}</p>}
+              <p><span className="font-medium text-gray-700">Filed:</span> {formatDateTime(modal.createdAt)}</p>
+              <p className={Number(modal.otherReports) > 0 ? 'font-medium text-amber-800' : ''}>{otherReportsText(modal)}</p>
+              {modal.description && <p className="bg-gray-50 rounded-lg px-3 py-2 text-gray-600 whitespace-pre-wrap break-words">{modal.description}</p>}
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <ReportEvidence report={modal} reporterName={reporterName} reportedName={reportedName} />
+              {canChangeMembers && modal.ReportedUser?.id && modal.ReportedUser.role === 'user' && (
+                <ReportMemberActions member={modal.ReportedUser} onChanged={memberChanged} />
+              )}
             </div>
 
             <label htmlFor="report-notes" className="block text-sm font-medium text-gray-700 mb-1.5">Admin Notes</label>

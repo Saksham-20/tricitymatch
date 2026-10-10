@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { FiCheck, FiMail, FiClock, FiShield, FiAlertCircle } from 'react-icons/fi';
@@ -7,6 +7,7 @@ import FormField from '../components/ui/FormField';
 import CheckBox from '../components/ui/CheckBox';
 import api from '../api/axios';
 import { legal } from '../config';
+import { useAuth } from '../context/AuthContext';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,8 +23,32 @@ const FIELD_RULES = {
 
 export default function Contact() {
   const { t } = useTranslation();
+  const { user, isAuthenticated } = useAuth();
+  // A signed-in member accepted the Terms and Privacy Policy when they joined,
+  // so they are not asked again, and their details are filled in for them.
+  const member = Boolean(isAuthenticated && user && (!user.role || user.role === 'user'));
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [agreed, setAgreed] = useState(false);
+
+  // Fill in what the account knows once it is loaded (once only, so a field
+  // the member clears stays clear); never overwrite what they typed.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (!member || prefilled.current) return;
+    prefilled.current = true;
+    const profile = user.Profile || user.profile || {};
+    const known = {
+      name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
+      email: user.email || '',
+      phone: user.contactPhone || user.phone || '',
+    };
+    setForm((f) => ({
+      ...f,
+      name: f.name || known.name,
+      email: f.email || known.email,
+      phone: f.phone || known.phone,
+    }));
+  }, [member, user]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -48,7 +73,7 @@ export default function Contact() {
     const nameMsg = FIELD_RULES.name(form.name); if (nameMsg) e.name = nameMsg;
     const emailMsg = FIELD_RULES.email(form.email); if (emailMsg) e.email = emailMsg;
     const messageMsg = FIELD_RULES.message(form.message); if (messageMsg) e.message = messageMsg;
-    if (!agreed) e.agreed = 'contact.errors.agreed';
+    if (!agreed && !member) e.agreed = 'contact.errors.agreed';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -143,6 +168,7 @@ export default function Contact() {
                   />
                   {errors.message && <p id="contact-message-error" className="text-sm text-red-600 dark:text-red-400 font-medium">{t(errors.message)}</p>}
                 </div>
+                {!member && (
                 <div>
                   <CheckBox
                     checked={agreed}
@@ -162,6 +188,7 @@ export default function Contact() {
                   />
                   {errors.agreed && <p className="text-sm text-red-600 dark:text-red-400 font-medium mt-1.5">{t(errors.agreed)}</p>}
                 </div>
+                )}
                 {submitError && (
                   <div role="alert" className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-red-900/50 text-destructive dark:text-red-300 text-sm">
                     <FiAlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />

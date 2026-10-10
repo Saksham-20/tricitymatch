@@ -615,6 +615,35 @@ const templates = {
     }),
     text: `Hi ${name || 'there'},\n\n${replyBody}\n\n— TricityMatch Support (${config.email.support})`,
   }),
+
+  // Staff suspended a member's account, or restored it. A suspended member
+  // cannot sign in to read the in-app notice, so the reason and the way to
+  // appeal arrive here. The reason is admin-typed text and is escaped.
+  accountStatus: (name, suspended, reason) => (suspended ? {
+    subject: 'Your TricityMatch account has been suspended',
+    html: brandLayout({
+      eyebrow: 'Your account',
+      preheader: 'Your account has been suspended. Here is why, and how to appeal.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name || 'there')},</p>
+        <p>Your TricityMatch account has been suspended, so you cannot sign in for now.</p>
+        ${reason ? panel(`<strong>Reason:</strong> <span style="white-space:pre-wrap;">${escapeHtml(reason)}</span>`) : ''}
+        <p style="margin-bottom:0;">If you think this is a mistake, you can appeal. A person reads every appeal and replies by email.</p>`,
+      cta: { href: `${config.server.frontendUrl}/appeal`, label: 'Appeal this decision' },
+    }),
+    text: `Hi ${name || 'there'},\n\nYour TricityMatch account has been suspended, so you cannot sign in for now.${reason ? `\n\nReason: ${reason}` : ''}\n\nIf you think this is a mistake, you can appeal: ${config.server.frontendUrl}/appeal`,
+  } : {
+    subject: 'Your TricityMatch account is active again',
+    html: brandLayout({
+      eyebrow: 'Your account',
+      preheader: 'Your account is active again.',
+      bodyHtml: `
+        <p style="margin-top:0;">Hi ${escapeHtml(name || 'there')},</p>
+        <p style="margin-bottom:0;">Your TricityMatch account is active again. You can sign in and carry on where you left off.</p>`,
+      cta: { href: `${config.server.frontendUrl}/login`, label: 'Sign in' },
+    }),
+    text: `Hi ${name || 'there'},\n\nYour TricityMatch account is active again. You can sign in and carry on where you left off: ${config.server.frontendUrl}/login`,
+  }),
 };
 
 // Send email. Accepts three call shapes (all historically used in this codebase):
@@ -696,6 +725,10 @@ const sendPartnerWelcome = (to, name) => sendEmail(to, 'partnerWelcome', { name 
 const sendSupportReply = (to, name, replyBody, originalMessage) =>
   sendEmail(to, 'supportReply', { name, replyBody, originalMessage });
 
+// A member's account was suspended (with the staff reason) or restored.
+const sendAccountStatusEmail = (to, name, suspended, reason) =>
+  sendEmail(to, 'accountStatus', { name, suspended, reason });
+
 // ── Lifecycle senders ───────────────────────────────────────────────────
 // `sendEmail(to, name, data)` spreads data by key ORDER, so each object below
 // must list its keys in the template's parameter order.
@@ -733,6 +766,7 @@ module.exports = {
   sendWinBack,
   sendAddPhotoNudge,
   sendSupportReply,
+  sendAccountStatusEmail,
   sendPartnerWelcome,
   sendWelcomeEmail,
   sendPasswordResetEmail,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FiChevronLeft, FiChevronRight, FiDownload, FiRefreshCw, FiSearch, FiShield, FiX, FiAlertCircle } from 'react-icons/fi';
@@ -33,11 +33,19 @@ function Field({ label, htmlFor, children }) {
   );
 }
 
+// "Asha Verma · asha@example.com · 9888800011", whatever of that the account
+// has. A member who joined by phone has no email and used to show as a blank.
+export const personText = (user) => {
+  if (!user) return '';
+  const name = [user.Profile?.firstName, user.Profile?.lastName].filter(Boolean).join(' ');
+  return [name, user.email, user.phone].filter(Boolean).join(' · ');
+};
+
 function Person({ user }) {
   if (!user) return <span className="text-gray-400">—</span>;
   return (
     <>
-      <span className="break-words">{user.email}</span>
+      <span className="break-words">{personText(user) || 'Unnamed account'}</span>
       {user.role && <span className="text-gray-500"> · {roleText(user.role)}</span>}
     </>
   );
@@ -75,20 +83,26 @@ export default function AdminAuditLog() {
   };
   const reset = () => setParams(new URLSearchParams(), { replace: true });
 
+  // Only the newest request may fill the table: a slow answer for an older
+  // filter must not land on top of the filters now selected.
+  const requestSeq = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
     try {
       const query = { page, limit: LIMIT };
       FILTER_KEYS.forEach((k) => { if (applied[k]) query[k] = applied[k]; });
       const res = await getAuditLog(query);
+      if (seq !== requestSeq.current) return;
       setEntries(res.data.entries || []);
       setTotal(res.data.pagination?.total || 0);
       setPages(res.data.pagination?.pages || 1);
     } catch (err) {
+      if (seq !== requestSeq.current) return;
       setError(err?.response?.data?.error?.message || 'Could not load the audit log');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }, [page, applied]);
 
@@ -166,10 +180,10 @@ export default function AdminAuditLog() {
           </Field>
         </div>
         <Field label="Done by (email or part of it)" htmlFor="audit-actor">
-          <input id="audit-actor" type="text" value={draft.actor} onChange={(e) => setDraft((d) => ({ ...d, actor: e.target.value }))} placeholder="admin@…" className={fieldCls} autoComplete="off" />
+          <input id="audit-actor" type="text" value={draft.actor} onChange={(e) => setDraft((d) => ({ ...d, actor: e.target.value }))} placeholder="Name, email or phone" aria-describedby="audit-people-hint" className={fieldCls} autoComplete="off" />
         </Field>
         <Field label="About (member email or ID)" htmlFor="audit-target">
-          <input id="audit-target" type="text" value={draft.target} onChange={(e) => setDraft((d) => ({ ...d, target: e.target.value }))} placeholder="member@…" className={fieldCls} autoComplete="off" />
+          <input id="audit-target" type="text" value={draft.target} onChange={(e) => setDraft((d) => ({ ...d, target: e.target.value }))} placeholder="Name, email, phone or ID" aria-describedby="audit-people-hint" className={fieldCls} autoComplete="off" />
         </Field>
         <Field label="From" htmlFor="audit-from">
           <input id="audit-from" type="date" value={applied.from} max={applied.to || undefined} onChange={(e) => apply({ from: e.target.value })} className={fieldCls} />
@@ -177,8 +191,11 @@ export default function AdminAuditLog() {
         <Field label="To" htmlFor="audit-to">
           <input id="audit-to" type="date" value={applied.to} min={applied.from || undefined} onChange={(e) => apply({ to: e.target.value })} className={fieldCls} />
         </Field>
+        <p id="audit-people-hint" className="sm:col-span-2 lg:col-span-6 text-xs text-gray-600 -mt-1">
+          The two people boxes match part of a name or email, a phone number in any format, or an exact ID.
+        </p>
         <div className="sm:col-span-2 lg:col-span-6 flex items-center gap-2 flex-wrap">
-          <button type="submit" className="min-h-[44px] inline-flex items-center gap-2 px-4 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800">
+          <button type="submit" className="min-h-[44px] inline-flex items-center gap-2 px-4 rounded-xl bg-primary-700 text-white text-sm font-medium hover:bg-primary-800">
             <FiSearch className="w-4 h-4" aria-hidden="true" /> Apply
           </button>
           {filtersActive && (
@@ -233,7 +250,9 @@ export default function AdminAuditLog() {
                       <td className="px-4 py-3 text-xs text-gray-700"><Person user={e.Actor} /></td>
                       <td className="px-4 py-3 text-xs text-gray-700">
                         {e.TargetUser ? (
-                          <Link to={`/admin/users/${e.TargetUser.id}`} className="text-primary-700 underline underline-offset-2 break-words">{e.TargetUser.email}</Link>
+                          <Link to={`/admin/users/${e.TargetUser.id}`} className="text-primary-700 underline underline-offset-2 break-words">
+                            {personText(e.TargetUser) || 'Unnamed account'}
+                          </Link>
                         ) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-700 max-w-md">

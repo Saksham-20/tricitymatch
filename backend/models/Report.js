@@ -44,8 +44,9 @@ const Report = sequelize.define('Report', {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  // 'urgent' for threats / underage / financial scam (constants/reportReasons
-  // HIGH_RISK_REASONS): surfaced first in the queue and mailed to staff at once.
+  // 'urgent' for threats, underage, financial scam, stolen photos and
+  // inappropriate content (constants/reportReasons HIGH_RISK_REASONS): surfaced
+  // first in the queue and mailed to staff at once.
   priority: {
     type: DataTypes.STRING(12),
     allowNull: false,

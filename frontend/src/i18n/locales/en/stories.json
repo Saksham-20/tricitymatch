@@ -1,10 +1,13 @@
 {
   "heroLead": "Found on TricityMatch,",
   "heroAccent": " married for life.",
+  "subtitle": "Stories from couples who met on TricityMatch and chose to share them.",
+  "married": "Married",
   "errorTitle": "Couldn't load stories",
   "errorBody": "Something went wrong fetching these. Please try again.",
   "emptyTitle": "No stories yet",
+  "emptyBody": "We are new, so the first stories are still being written. When couples who met here marry and choose to share their story, you will find it here.",
   "ctaTitle": "Write your own story.",
-  "ctaBody": "Real Tricity couples found their forever here. Yours could be next.",
+  "ctaBody": "Meet people from Chandigarh, Mohali and Panchkula who are looking to marry. Your story could start here.",
   "ctaButton": "Create free profile"
 }

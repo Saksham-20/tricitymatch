@@ -102,7 +102,8 @@ exports.getFunnel = asyncHandler(async (req, res) => {
 
 // @route   GET /api/v1/admin/audit-log
 // @desc    Privileged actions, newest first. Filters: action, actor, target
-//          (a user id OR part of an email), from/to (YYYY-MM-DD, India days).
+//          (a user id, or part of an email or name, or a phone number),
+//          from/to (YYYY-MM-DD, India days).
 //          `format=csv` streams the whole filtered log as a file.
 // @access  Private/Admin (scope: team)
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -111,25 +112,43 @@ const isYmd = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !
 const escapeLike = (v) => String(v).replace(/[%_\\]/g, '\\$&');
 const AUDIT_EXPORT_BATCH = 1000;
 
-/** Sequelize where + required joins for the audit filters in a query string. */
+/**
+ * The accounts a typed "who" could mean, as a subquery of user ids: part of an
+ * email, part of a name (first, last or both), or a phone number matched on its
+ * digits, so "+91 98888 00011" finds the member stored as 9888800011 and a
+ * member with no email can be traced at all. Every value is escaped.
+ */
+const peopleMatching = (text) => {
+  const like = sequelize.escape(`%${escapeLike(text)}%`);
+  const tests = [
+    `u.email ILIKE ${like}`,
+    `concat_ws(' ', p."firstName", p."lastName") ILIKE ${like}`,
+  ];
+  const digits = text.replace(/\D/g, '');
+  if (/^[+\d\s().-]+$/.test(text) && digits.length >= 6) {
+    const tail = sequelize.escape(`%${digits.slice(-10)}%`);
+    tests.push(`regexp_replace(coalesce(u.phone, ''), '\\D', '', 'g') LIKE ${tail}`);
+    tests.push(`regexp_replace(coalesce(u."contactPhone", ''), '\\D', '', 'g') LIKE ${tail}`);
+  }
+  return `(SELECT u.id FROM "Users" u LEFT JOIN "Profiles" p ON p."userId" = u.id WHERE ${tests.join(' OR ')})`;
+};
+
+/** Sequelize where for the audit filters in a query string. */
 const auditFilters = (query) => {
   const { Op } = require('sequelize');
-  const { User } = require('../models');
   const where = {};
-  const joins = {};
 
   if (query.action) where.action = String(query.action).slice(0, 64);
 
   // "Who did it" / "who was it about": a pasted user id matches exactly, anything
-  // else is treated as part of an email address.
-  const person = (raw, idField, alias, key) => {
+  // else is looked up by email, name or phone.
+  const person = (raw, idField) => {
     const v = String(raw || '').trim().slice(0, 120);
     if (!v) return;
-    if (UUID.test(v)) { where[idField] = v; return; }
-    joins[key] = { model: User, as: alias, attributes: ['id', 'email', 'role'], required: true, where: { email: { [Op.iLike]: `%${escapeLike(v)}%` } } };
+    where[idField] = UUID.test(v) ? v : { [Op.in]: sequelize.literal(peopleMatching(v)) };
   };
-  person(query.actor || query.actorId, 'actorId', 'Actor', 'actor');
-  person(query.target || query.targetUserId, 'targetUserId', 'TargetUser', 'target');
+  person(query.actor || query.actorId, 'actorId');
+  person(query.target || query.targetUserId, 'targetUserId');
 
   // Whole India calendar days, matching how the rest of the panel reads dates.
   const range = {};
@@ -137,26 +156,37 @@ const auditFilters = (query) => {
   if (isYmd(query.to)) range[Op.lte] = new Date(`${query.to}T23:59:59.999${IST_OFFSET}`);
   if (Object.getOwnPropertySymbols(range).length) where.createdAt = range;
 
-  return { where, joins };
+  return { where };
 };
 
-const auditIncludes = (joins) => {
+// Name, email and phone for both sides of an entry: a member who signed up with
+// a phone number has no email, and showed as a blank.
+const auditIncludes = () => {
   const { User, Profile } = require('../models');
-  return [
-    joins.actor || { model: User, as: 'Actor', attributes: ['id', 'email', 'role'], required: false, include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }] },
-    joins.target || { model: User, as: 'TargetUser', attributes: ['id', 'email', 'role'], required: false },
-  ];
+  const person = (as) => ({
+    model: User,
+    as,
+    attributes: ['id', 'email', 'phone', 'role'],
+    required: false,
+    include: [{ model: Profile, attributes: ['firstName', 'lastName'], required: false }],
+  });
+  return [person('Actor'), person('TargetUser')];
 };
+
+// "Asha Verma · asha@example.com · 9888800011", whatever of that the account has.
+const personText = (u) => (u
+  ? [[u.Profile?.firstName, u.Profile?.lastName].filter(Boolean).join(' '), u.email, u.phone].filter(Boolean).join(' · ')
+  : '');
 
 exports.getAuditLog = asyncHandler(async (req, res) => {
   const { AuditLog } = require('../models');
-  const { where, joins } = auditFilters(req.query);
+  const { where } = auditFilters(req.query);
 
   if (req.query.format === 'csv') {
     const { streamCsv } = require('../utils/csvStream');
     const { Op } = require('sequelize');
     const { logAudit, log } = require('../middlewares/logger');
-    const total = await AuditLog.count({ where, include: Object.values(joins).map((j) => ({ ...j, attributes: [] })) });
+    const total = await AuditLog.count({ where });
     const when = (d) => new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' });
 
     const result = await streamCsv(res, {
@@ -171,14 +201,14 @@ exports.getAuditLog = asyncHandler(async (req, res) => {
         }
         const rows = await AuditLog.findAll({
           where: { [Op.and]: and },
-          include: auditIncludes(joins),
+          include: auditIncludes(),
           order: [['createdAt', 'DESC'], ['id', 'DESC']],
           limit: AUDIT_EXPORT_BATCH,
         });
         const last = rows[rows.length - 1];
         return { rows, next: rows.length === AUDIT_EXPORT_BATCH ? { createdAt: last.createdAt, id: last.id } : null };
       },
-      toRow: (e) => [when(e.createdAt), e.action, e.Actor?.email || '', e.Actor?.role || '', e.TargetUser?.email || '', e.details ? JSON.stringify(e.details) : ''],
+      toRow: (e) => [when(e.createdAt), e.action, personText(e.Actor), e.Actor?.role || '', personText(e.TargetUser), e.details ? JSON.stringify(e.details) : ''],
     });
     // Reading the audit trail in bulk is itself worth a line in it.
     logAudit('audit_log_exported', req.user.id, { rows: result.rows, filters: Object.keys(req.query).filter((k) => req.query[k] && k !== 'format') });
@@ -190,7 +220,7 @@ exports.getAuditLog = asyncHandler(async (req, res) => {
 
   const { count, rows } = await AuditLog.findAndCountAll({
     where,
-    include: auditIncludes(joins),
+    include: auditIncludes(),
     order: [['createdAt', 'DESC'], ['id', 'DESC']],
     limit,
     offset: (page - 1) * limit,

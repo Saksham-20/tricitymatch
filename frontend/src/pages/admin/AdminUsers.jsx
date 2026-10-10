@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getUsers, updateUserStatus, exportUsers, deleteUsers, bulkUpdateStatus } from '../../api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiEyeOff, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark, FiUsers } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiChevronLeft, FiChevronRight, FiEye, FiEyeOff, FiDownload, FiTrash2, FiX, FiSliders, FiBookmark, FiUsers, FiAlertCircle } from 'react-icons/fi';
 import Skeleton from '../../components/ui/Skeleton';
 import { saveCsv, describeExport } from '../../utils/saveCsv';
 import planLabel from '../../utils/planLabel';
-import { formatDate } from '../../utils/formatDate';
+import { formatIstDate } from '../../utils/formatDate';
+import { formatLeadPhone } from '../../utils/leadContact';
 
 // Must match User model status enum: active/inactive/banned/pending/deleted.
 const STATUS_OPTIONS   = ['all', 'active', 'inactive', 'banned', 'pending', 'deleted'];
@@ -16,12 +17,21 @@ const STATUS_OPTIONS   = ['all', 'active', 'inactive', 'banned', 'pending', 'del
 const SETTABLE_STATUSES = ['active', 'inactive', 'banned', 'pending'];
 const ROLE_OPTIONS = ['all', 'user', 'sub_admin', 'admin', 'super_admin', 'marketing', 'marketing_manager'];
 
+// "Paid" means money taken (a real payment that was not refunded); founding
+// places and staff grants are premium without payment. The server still reads
+// the old 'paid' value as "any premium", so older saved views keep working;
+// they are shown under that name here.
 const PLAN_OPTIONS = [
-  ['all', 'Any plan'], ['free', 'Free (no plan)'], ['paid', 'Any paid plan'], ['expiring', 'Expiring in 7 days'],
+  ['all', 'Any plan'], ['free', 'Free (no plan)'], ['paying', 'Paid (real payment)'], ['premium', 'Any premium (incl. founding)'],
+  ['granted', 'Granted by staff'], ['expiring', 'Expiring in 7 days'],
   ['lapsed', 'Lapsed (paid before)'], ['founding_premium', 'Founding'], ['premium_plus', 'Premium'],
   ['basic_premium', 'Basic'], ['elite', 'Elite'], ['vip', 'VIP'], ['nri', 'NRI'],
 ];
-const JOINED_OPTIONS = [['', 'Any time'], ['recent', 'Recently joined'], ['oldest', 'Oldest first'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['90', 'Last 90 days']];
+const PLAN_VALUES = PLAN_OPTIONS.map(([v]) => v);
+const normalisePlan = (v) => (v === 'paid' ? 'premium' : PLAN_VALUES.includes(v) ? v : 'all');
+// 'today' is the India calendar day (the server counts it from midnight IST).
+const JOINED_OPTIONS = [['', 'Any time'], ['recent', 'Recently joined'], ['oldest', 'Oldest first'], ['today', 'Today'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['90', 'Last 90 days']];
+const SEARCH_DEBOUNCE_MS = 350;
 const YES_NO = [['all', 'Any'], ['yes', 'Yes'], ['no', 'No']];
 const SORT_OPTIONS = [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['lastLogin', 'Last active']];
 const EMPTY_FILTERS = {
@@ -75,17 +85,27 @@ export default function AdminUsers() {
   const navigate = useNavigate();
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState('');
-  const [statusFilter, setStatus] = useState('all');
-  const [roleFilter, setRole]     = useState('all');
+  const [loadError, setLoadError] = useState(false);
+  // Dashboard tiles deep-link here (?hasPhoto=no&role=user&status=active,
+  // ?joined=today, ?plan=granted); honour them instead of opening the
+  // unfiltered list under a misleading count.
+  const [searchParams] = useSearchParams();
+  // What is typed, and what the list was last asked for: the request waits for
+  // a pause in typing so each keystroke is not its own query.
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '');
+  const [search, setSearch]       = useState(() => searchParams.get('search') || '');
+  const [statusFilter, setStatus] = useState(() => (STATUS_OPTIONS.includes(searchParams.get('status')) ? searchParams.get('status') : 'all'));
+  const [roleFilter, setRole]     = useState(() => (ROLE_OPTIONS.includes(searchParams.get('role')) ? searchParams.get('role') : 'all'));
   const { user: me } = useAuth();
   const canDelete = me?.role === 'admin' || me?.role === 'super_admin';
-  // The dashboard's "Profiles With No Photo" tile deep-links here; honour it
-  // instead of opening the unfiltered list under a misleading count.
-  const [searchParams] = useSearchParams();
   const [filters, setFilters]     = useState(() => {
+    const next = { ...EMPTY_FILTERS };
     const hasPhoto = searchParams.get('hasPhoto');
-    return hasPhoto === 'no' || hasPhoto === 'yes' ? { ...EMPTY_FILTERS, hasPhoto } : EMPTY_FILTERS;
+    if (hasPhoto === 'no' || hasPhoto === 'yes') next.hasPhoto = hasPhoto;
+    if (searchParams.get('plan')) next.plan = normalisePlan(searchParams.get('plan'));
+    const joined = searchParams.get('joined');
+    if (joined === 'today' || /^\d+$/.test(joined || '')) next.joinedWithin = joined;
+    return next;
   });
   // Open the advanced filters when we arrived with one applied, so the filter
   // that is narrowing the list is visible rather than silent.
@@ -100,21 +120,37 @@ export default function AdminUsers() {
   const [totalPages, setTotal]    = useState(1);
   const limit = 20;
 
+  useEffect(() => {
+    if (searchInput.trim() === search) return undefined;
+    const id = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); setSelected(new Set()); }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [searchInput, search]);
+
+  // Two quick filter changes send two requests; whichever answers last used to
+  // win, so an unfiltered list could land under "Last 7 days". Only the latest
+  // request may update the page.
+  const requestSeq = useRef(0);
   const fetchUsers = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
+    setLoadError(false);
     try {
       const params = { page, limit, search: search || undefined };
       if (statusFilter !== 'all') params.status = statusFilter;
       if (roleFilter   !== 'all') params.role   = roleFilter;
       Object.assign(params, activeFilterParams(filters));
       const res = await getUsers(params);
+      if (seq !== requestSeq.current) return;
       setTotalCount(res.data.pagination?.total || 0);
       setUsers(res.data.users || []);
       setTotal(res.data.pagination?.pages || 1);
     } catch {
-      toast.error('Failed to load users');
+      if (seq !== requestSeq.current) return;
+      // A failed load is not an empty list: say so and offer a retry.
+      setLoadError(true);
+      setUsers([]);
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }, [page, search, statusFilter, roleFilter, filters]);
 
@@ -144,7 +180,7 @@ export default function AdminUsers() {
   const setJoined = (v) => {
     setFilters((f) => ({
       ...f,
-      joinedWithin: /^\d+$/.test(v) ? v : '',
+      joinedWithin: /^\d+$/.test(v) || v === 'today' ? v : '',
       sort: v === 'oldest' ? 'oldest' : 'newest',
       joinedTouched: v === 'recent',
     }));
@@ -152,7 +188,7 @@ export default function AdminUsers() {
     setSelected(new Set());
   };
   const activeCount = Object.keys(activeFilterParams(filters)).length;
-  const clearAll = () => { setFilters(EMPTY_FILTERS); setSearch(''); setStatus('all'); setRole('all'); setPage(1); setSelected(new Set()); };
+  const clearAll = () => { setFilters(EMPTY_FILTERS); setSearchInput(''); setSearch(''); setStatus('all'); setRole('all'); setPage(1); setSelected(new Set()); };
 
   const deletableOnPage = users.filter((u) => u.role === 'user');
   const allSelected = deletableOnPage.length > 0 && deletableOnPage.every((u) => selected.has(u.id));
@@ -176,7 +212,9 @@ export default function AdminUsers() {
   const applyView = (name) => {
     const v = views.find((x) => x.name === name);
     if (!v) return;
-    setFilters({ ...EMPTY_FILTERS, ...v.filters });
+    // A view saved before "paid" was split meant any premium plan.
+    setFilters({ ...EMPTY_FILTERS, ...v.filters, plan: normalisePlan(v.filters?.plan || 'all') });
+    setSearchInput(v.search || '');
     setSearch(v.search || '');
     setStatus(v.status || 'all');
     setRole(v.role || 'all');
@@ -226,7 +264,9 @@ export default function AdminUsers() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{total.toLocaleString('en-IN')} matching user{total === 1 ? '' : 's'}</p>
+          <p className="text-gray-500 text-sm mt-0.5">
+            {loadError ? 'The list did not load' : `${total.toLocaleString('en-IN')} matching user${total === 1 ? '' : 's'}`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
         <button
@@ -249,10 +289,11 @@ export default function AdminUsers() {
         <div className="relative flex-1 min-w-[200px]">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
-            type="text"
-            placeholder="Search by name or email…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            type="search"
+            placeholder="Search name, email, phone or TCS code"
+            aria-label="Search name, email, phone or TCS code"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
           />
         </div>
@@ -438,6 +479,19 @@ export default function AdminUsers() {
                     <td className="px-4 py-3"><div className="flex justify-end"><Skeleton className="h-7 w-16 rounded-lg" /></div></td>
                   </tr>
                 ))
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={canDelete ? 7 : 6} className="py-14">
+                    <div className="flex flex-col items-center justify-center text-center" role="alert">
+                      <FiAlertCircle className="w-8 h-8 text-gray-300 mb-3" aria-hidden="true" />
+                      <p className="text-sm font-medium text-gray-700">Couldn&apos;t load the members</p>
+                      <p className="text-sm text-gray-500 mt-0.5">This is a loading problem, not an empty list.</p>
+                      <button type="button" onClick={fetchUsers} className="mt-3 min-h-[44px] px-4 rounded-xl bg-primary-700 hover:bg-primary-600 text-white text-sm font-medium">
+                        Retry
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={canDelete ? 7 : 6} className="py-14">
@@ -480,7 +534,9 @@ export default function AdminUsers() {
                               </span>
                             )}
                           </p>
-                          <p className="text-xs text-gray-500">{u.email}</p>
+                          {u.email && <p className="text-xs text-gray-500 break-all">{u.email}</p>}
+                          {/* Phone-only members used to show as a bare name. */}
+                          {u.phone && <p className="text-xs text-gray-500 tabular-nums">{formatLeadPhone(u.phone)}</p>}
                         </div>
                       </div>
                     </td>
@@ -510,7 +566,7 @@ export default function AdminUsers() {
                       </select>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
-                      {u.createdAt ? formatDate(u.createdAt) : '—'}
+                      {u.createdAt ? formatIstDate(u.createdAt) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       {/* `activePlan` is derived server-side with the same predicate the

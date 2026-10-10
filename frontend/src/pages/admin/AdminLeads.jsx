@@ -44,7 +44,7 @@ function MemberCell({ lead }) {
   }
   return (
     <div className="text-sm">
-      <Link to={`/admin/users/${lead.convertedUserId}`} className="font-medium text-primary-700 hover:underline whitespace-nowrap">
+      <Link to={`/admin/users/${lead.convertedUserId}`} className="font-medium text-primary-700 hover:underline [overflow-wrap:anywhere]">
         {m?.name || m?.email || 'Open member'}
       </Link>
       {m?.signedUpAt && <div className="text-xs text-gray-500 mt-0.5">Joined {fmtDate(m.signedUpAt)}</div>}
@@ -68,9 +68,9 @@ function SourceCell({ lead }) {
   return (
     <div className="text-sm">
       {lead.referralCode
-        ? <span className="font-mono text-xs px-2 py-1 rounded bg-primary-50 text-primary-700">{lead.referralCode}</span>
+        ? <span className="font-mono text-xs px-2 py-1 rounded bg-primary-50 text-primary-700 [overflow-wrap:anywhere]">{lead.referralCode}</span>
         : <span className="text-xs text-gray-600">Added by hand</span>}
-      {lead.campaign && <div className="text-xs text-gray-500 mt-1 break-words">{lead.campaign}</div>}
+      {lead.campaign && <div className="text-xs text-gray-500 mt-1 [overflow-wrap:anywhere]">{lead.campaign}</div>}
     </div>
   );
 }
@@ -201,7 +201,7 @@ export default function AdminLeads() {
       onClick={() => setMoving(lead)}
       // `relative` anchors the sr-only name inside the scrolling table; without
       // it the hidden span escaped and widened the whole page by ~27px.
-      className="relative min-h-[44px] px-2 text-sm font-medium text-primary-700 hover:underline"
+      className="relative min-h-[44px] px-2 text-sm font-medium text-primary-700 hover:underline whitespace-nowrap"
     >
       Reassign<span className="sr-only"> {lead.name}</span>
     </button>
@@ -209,11 +209,11 @@ export default function AdminLeads() {
 
   const partnerCell = (lead) => (lead.AssignedMarketer ? (
     <div className="text-sm min-w-0">
-      <Link to={`/admin/marketing-users/${lead.assignedToMarketingUserId}`} className="font-medium text-gray-900 hover:text-primary-700 hover:underline break-words">
+      <Link to={`/admin/marketing-users/${lead.assignedToMarketingUserId}`} className="font-medium text-gray-900 hover:text-primary-700 hover:underline [overflow-wrap:anywhere]">
         {lead.partnerName || lead.AssignedMarketer.email}
       </Link>
       {lead.partnerName && lead.partnerName !== lead.AssignedMarketer.email && (
-        <div className="text-xs text-gray-500 truncate max-w-[14rem]" title={lead.AssignedMarketer.email}>{lead.AssignedMarketer.email}</div>
+        <div className="text-xs text-gray-500 truncate max-w-[10rem]" title={lead.AssignedMarketer.email}>{lead.AssignedMarketer.email}</div>
       )}
       {lead.AssignedMarketer.status && lead.AssignedMarketer.status !== 'active' && (
         <div className="text-xs text-amber-800">Partner {lead.AssignedMarketer.status}</div>
@@ -221,8 +221,10 @@ export default function AdminLeads() {
     </div>
   ) : <span className="text-gray-500">—</span>);
 
+  // The admin shell already pads the page, so no second padding here: the table
+  // needs the width to show every column at 1440 without scrolling sideways.
   return (
-    <div className="p-4 sm:p-6">
+    <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold">Partner members</h1>
@@ -394,35 +396,38 @@ export default function AdminLeads() {
           ))}
         </ul>
       ) : (
-        <div className={`overflow-x-auto bg-white border border-gray-200 rounded-xl ${loading ? 'opacity-60' : ''}`}>
-          <table className="w-full min-w-[1000px] text-left">
+        // `relative` keeps the hidden header text and button names inside this
+        // scroller; the narrower cells let every column, Reassign included, fit
+        // at 1440 without a sideways scroll.
+        <div className={`relative overflow-x-auto bg-white border border-gray-200 rounded-xl ${loading ? 'opacity-60' : ''}`}>
+          <table className="w-full min-w-[960px] text-left">
             <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-600">
               <tr>
-                <th scope="col" className="px-4 py-3">Name</th>
-                <th scope="col" className="px-4 py-3">Contact</th>
-                <th scope="col" className="px-4 py-3">Partner</th>
-                <th scope="col" className="px-4 py-3">Came through</th>
-                <th scope="col" className="px-4 py-3">Member</th>
-                <th scope="col" className="px-4 py-3">Paid</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
+                <th scope="col" className="px-3 py-3">Name</th>
+                <th scope="col" className="px-3 py-3">Contact</th>
+                <th scope="col" className="px-3 py-3">Partner</th>
+                <th scope="col" className="px-3 py-3">Came through</th>
+                <th scope="col" className="px-3 py-3">Member</th>
+                <th scope="col" className="px-3 py-3">Paid</th>
+                <th scope="col" className="px-3 py-3">Status</th>
+                <th scope="col" className="relative px-3 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {leads.map((lead) => (
                 <tr key={lead.id} className="align-top hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900 min-w-[9rem]">{lead.name}</td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-3 py-3 font-medium text-gray-900 min-w-[7rem] [overflow-wrap:anywhere]">{lead.name}</td>
+                  <td className="px-3 py-3 text-sm">
                     <div className="whitespace-nowrap">{formatLeadPhone(lead.phone)}</div>
-                    {leadEmail(lead.email) && <div className="text-xs text-gray-500 truncate max-w-[14rem]" title={leadEmail(lead.email)}>{leadEmail(lead.email)}</div>}
+                    {leadEmail(lead.email) && <div className="text-xs text-gray-500 truncate max-w-[10rem]" title={leadEmail(lead.email)}>{leadEmail(lead.email)}</div>}
                     {lead.city && <div className="text-xs text-gray-500">{lead.city}</div>}
                   </td>
-                  <td className="px-4 py-3">{partnerCell(lead)}</td>
-                  <td className="px-4 py-3"><SourceCell lead={lead} /></td>
-                  <td className="px-4 py-3"><MemberCell lead={lead} /></td>
-                  <td className="px-4 py-3"><PaidCell lead={lead} /></td>
-                  <td className="px-4 py-3">{statusSelect(lead)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{reassignAction(lead)}</td>
+                  <td className="px-3 py-3">{partnerCell(lead)}</td>
+                  <td className="px-3 py-3"><SourceCell lead={lead} /></td>
+                  <td className="px-3 py-3"><MemberCell lead={lead} /></td>
+                  <td className="px-3 py-3"><PaidCell lead={lead} /></td>
+                  <td className="px-3 py-3">{statusSelect(lead)}</td>
+                  <td className="px-3 py-3">{reassignAction(lead)}</td>
                 </tr>
               ))}
             </tbody>

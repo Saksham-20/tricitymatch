@@ -1128,6 +1128,15 @@ const Subscription = () => {
   const paidCardCount = gridPlans.filter(([key]) => key !== 'free').length + (showNri ? 1 : 0);
   const singlePlan = paidCardCount === 1;
 
+  // A member whose plan is already the best on sale has nothing to buy here:
+  // "Go Premium" above and the closing call to action only led to a refused
+  // order. Ranked like checkout (a founding grant ranks as free, so its holder
+  // still sees the offer).
+  const currentRank = TIER_RANK[currentPlanType] ?? 0;
+  const canUpgrade = gridPlans.some(([key]) => key !== 'free' && (TIER_RANK[key] ?? 0) > currentRank)
+    || (showNri && TIER_RANK.nri > currentRank);
+  const nothingToBuy = currentPlanType !== 'free' && !canUpgrade;
+
   return (
     <div className="min-h-[100dvh] bg-neutral-50 dark:bg-surface-dark-1">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -1136,11 +1145,15 @@ const Subscription = () => {
             carries the meaning on its own. */}
         <motion.div {...fadeRise} className="text-center mb-12">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
-            {singlePlan ? t('plans.header.goPremium') : t('plans.header.choosePlan')}
+            {nothingToBuy
+              ? t('navbar.subscription')
+              : singlePlan ? t('plans.header.goPremium') : t('plans.header.choosePlan')}
           </h1>
-          <p className="text-neutral-500 dark:text-neutral-400 text-lg max-w-lg mx-auto">
-            {t('plans.header.subtitle')}
-          </p>
+          {!nothingToBuy && (
+            <p className="text-neutral-500 dark:text-neutral-400 text-lg max-w-lg mx-auto">
+              {t('plans.header.subtitle')}
+            </p>
+          )}
         </motion.div>
 
         {/* Launch offer (server-gated) */}
@@ -1279,16 +1292,18 @@ const Subscription = () => {
         <SuccessStrip />
         <FaqSection unlockDailyCap={Object.values(plans).find((p) => p.contactUnlocks === -1)?.unlockDailyCap ?? null} />
 
-        <section className="mt-14 text-center">
-          <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t('plans.closing.heading')}</h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">{t('plans.closing.subtitle')}</p>
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-xl font-semibold hover:shadow-burgundy transition-[box-shadow,transform] duration-200"
-          >
-            <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? t('plans.header.goPremium') : t('plans.closing.choosePlan')}
-          </button>
-        </section>
+        {!nothingToBuy && (
+          <section className="mt-14 text-center">
+            <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">{t('plans.closing.heading')}</h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">{t('plans.closing.subtitle')}</p>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-hero text-white rounded-xl font-semibold hover:shadow-burgundy transition-[box-shadow,transform] duration-200"
+            >
+              <FaCrown className="w-4 h-4 text-gold-300" /> {singlePlan ? t('plans.header.goPremium') : t('plans.closing.choosePlan')}
+            </button>
+          </section>
+        )}
 
         <StickyCtaBar show={(currentPlanType || 'free') === 'free'} />
 

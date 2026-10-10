@@ -26,11 +26,11 @@
     },
     "parents": {
       "q": "Can my parents manage my profile?",
-      "a": "Yes. Guardian access lets a parent or sibling browse and shortlist on your behalf from their own login — they never see your chats. Set it up under Guardian."
+      "a": "Yes, alongside you. Guardian access lets a parent or sibling see your matches and shortlist from their own login. It is view-only: they cannot like or message anyone for you, and they never see your chats. Set it up under Guardian."
     },
     "nri": {
       "q": "I am an NRI — can I join?",
-      "a": "Yes, as long as you are from the Tricity or your family is. TricityMatch is hyperlocal by design: every profile is from Chandigarh, Mohali or Panchkula, or has direct family ties to the region — where you currently live does not change that. Tick \"I’m an NRI / currently living outside India\" on the Location step and add the country you live in, and we will show that on your profile so families know an NRI alliance is on the table. Your family’s Tricity location stays on the profile too, and a parent or sibling here can run the search with you through Guardian access while you are abroad."
+      "a": "Yes, as long as you are from the Tricity or your family is. TricityMatch is hyperlocal by design: every profile is from Chandigarh, Mohali or Panchkula, or has direct family ties to the region — where you currently live does not change that. Tick \"I’m an NRI / currently living outside India\" on the Location step and add the country you live in, and we will show that on your profile so families know an NRI alliance is on the table. Your family’s Tricity location stays on the profile too, and a parent or sibling here can follow your matches and shortlist through Guardian access while you are abroad."
     },
     "unlocks": {
       "q": "What do contact unlocks do?",
@@ -38,11 +38,11 @@
     },
     "upgrade": {
       "q": "Can I upgrade in the middle of a plan?",
-      "a": "Yes — you can move up to a higher plan at any time while your current plan is active. The new plan starts fresh from the day you upgrade, and your unlock allowance resets to the new plan."
+      "a": "During the launch offer there is one plan, Premium, so there is nothing to upgrade to. Every Premium membership bought in the offer runs until 10 January 2027, whatever day you buy it; one bought from 11 December runs until 10 February 2027."
     },
     "carryOver": {
       "q": "Do unused days or unlocks carry over?",
-      "a": "No. A plan runs for its stated term, and unlocks belong to the plan that granted them. Upgrading starts a fresh full term rather than adding to the old one."
+      "a": "No. Every membership bought in the launch offer ends on its set date (10 January 2027, or 10 February 2027 if bought from 11 December), and unlocks belong to the plan that granted them. Unused days and unlocks are not added to a later plan."
     },
     "refund": {
       "q": "Can I get a refund?",
@@ -62,11 +62,11 @@
     },
     "behaviour": {
       "q": "Someone is behaving inappropriately. What do I do?",
-      "a": "Use Report on their profile or in the chat. Reports go to our safety team; threats, reports about someone under the legal age and scams are marked urgent and read first. Blocking them immediately stops all contact and hides your profile from them."
+      "a": "Use Report on their profile or in the chat. Reports go to our safety team; threats, reports about someone under the legal age, scams, someone else's or doctored photos, and nude or sexual content are marked urgent and read first. Blocking them immediately stops all contact and hides your profile from them."
     },
     "appeal": {
       "q": "My account was suspended. Can I appeal?",
-      "a": "Yes. Use the appeal form at tricitymatch.com/appeal with the email address of your account and tell us what happened. A person reads every appeal and replies by email; if we got it wrong, your account is restored."
+      "a": "Yes. Use the appeal form at tricitymatch.com/appeal with the email address or mobile number of your account and tell us what happened. A person reads every appeal and replies, by email or, if your account has no email, by phone. If we got it wrong, your account is restored."
     },
     "delete": {
       "q": "How do I delete my account?",

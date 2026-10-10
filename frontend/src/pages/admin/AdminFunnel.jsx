@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FiArrowDown, FiFilter, FiRefreshCw, FiTrendingDown, FiTrendingUp } from 'react-icons/fi';
 import { getFunnel } from '../../api/adminApi';
 
@@ -14,7 +14,14 @@ import { getFunnel } from '../../api/adminApi';
  * before it. A single total cannot tell you whether a quiet week is normal.
  */
 
-const WINDOWS = [7, 30, 90];
+// The first window is the last 24 hours (on launch day, "today so far" is the
+// question), counted back from now rather than from midnight.
+const WINDOWS = [
+  { days: 1, label: '24 hours' },
+  { days: 7, label: '7 days' },
+  { days: 30, label: '30 days' },
+  { days: 90, label: '90 days' },
+];
 
 export default function AdminFunnel() {
   const [days, setDays] = useState(30);
@@ -22,16 +29,21 @@ export default function AdminFunnel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Switching windows quickly must not leave an older window's numbers showing.
+  const requestSeq = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
     try {
       const res = await getFunnel({ days });
+      if (seq !== requestSeq.current) return;
       setStages(res.data.stages || []);
     } catch (err) {
+      if (seq !== requestSeq.current) return;
       setError(err?.response?.data?.error?.message || 'Could not load the funnel');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }, [days]);
 
@@ -49,16 +61,17 @@ export default function AdminFunnel() {
             recorded server-side, and “Paid” is counted from real payments.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {WINDOWS.map((w) => (
             <button
-              key={w}
-              onClick={() => setDays(w)}
+              key={w.days}
+              onClick={() => setDays(w.days)}
+              aria-pressed={days === w.days}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                days === w ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                days === w.days ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {w} days
+              {w.label}
             </button>
           ))}
           <button

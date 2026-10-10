@@ -13,6 +13,7 @@ const { createError, asyncHandler } = require('../middlewares/errorHandler');
 const { assessMessage, recordHighSignal } = require('../utils/chatSafety');
 const { log, logAudit } = require('../middlewares/logger');
 const { sendEmail } = require('../utils/email');
+const { staffAlertRecipients } = require('../utils/staffAlerts');
 const { assertNotBlocked, blockedIdsFor, isBlockedBetween } = require('../utils/blocks');
 const { ACTIVE_MEMBER_WHERE, ACTIVE_MEMBERS_SQL, bothMembers } = require('../utils/memberRole');
 const { getActiveSubscription, grantWindowState } = require('../utils/entitlements');
@@ -438,7 +439,7 @@ const escalateScamPattern = async (senderId, receiverId, flags) => {
   if (!crossed) return;
   logAudit('chat_scam_pattern', senderId, { flags, lastReceiverId: receiverId });
   sendEmail({
-    to: config.email.support,
+    to: staffAlertRecipients(),
     channel: 'documents',
     subject: 'Chat safety: a member is repeatedly sending payment or phishing signals',
     html: `<p>A member has sent several messages carrying payment or phishing signals (${flags.join(', ')}) to more than one person in the last 24 hours.</p><p>Member id: ${senderId}</p><p>Open the member in the admin panel and read the audit log and their conversations before deciding.</p>`,

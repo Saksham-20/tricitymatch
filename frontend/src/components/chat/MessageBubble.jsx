@@ -24,7 +24,11 @@ import { listRow } from '../../utils/animations';
 // visibly open over the next bubble after a tap, with no hover-out event to
 // release it. Tap (`actionsOpen`) and keyboard (`group-focus-within`) reveal
 // it unconditionally; only the mouse-hover path is gated.
-const GROUP_HOVER = '[@media(hover:hover)_and_(pointer:fine)]:group-hover';
+// Each class is spelled out in full: Tailwind only builds classes it can see
+// whole in the source, so one glued together from a shared prefix never
+// reaches the stylesheet and the toolbar showed on hover but took no clicks.
+const TOOLBAR_HOVER_REVEAL =
+  '[@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-hover:pointer-events-auto';
 
 const MessageTicks = ({ message, isSent }) => {
   const { t } = useTranslation();
@@ -168,7 +172,7 @@ const MessageBubble = ({
           <div
             className={`absolute bottom-full pb-3 ${isSentByMe ? 'right-0' : 'left-0'} z-20 flex items-center gap-1 transition-opacity duration-[160ms] ${
               actionsOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            } ${GROUP_HOVER}:opacity-100 ${GROUP_HOVER}:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto`}
+            } ${TOOLBAR_HOVER_REVEAL} group-focus-within:opacity-100 group-focus-within:pointer-events-auto`}
           >
             {/* React */}
             <button

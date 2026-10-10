@@ -812,11 +812,40 @@ const contactValidation = [
     .isLength({ min: 10, max: 2000 }).withMessage('Message must be 10–2000 characters'),
 ];
 
+// ==================== APPEAL VALIDATOR ====================
+// A suspended member names the account by its email or its mobile number:
+// members who joined by phone have no email to give. When both are sent the
+// email is the one used, so the number is not checked.
+const appealValidation = [
+  body()
+    .custom((_, { req }) => {
+      if (!req.body.email && !req.body.phone) throw new Error('Enter the email or mobile number of your account');
+      return true;
+    }),
+  body('email')
+    .optional({ checkFalsy: true })
+    .isEmail()
+    .withMessage('Please provide a valid email'),
+  body('phone')
+    .optional({ checkFalsy: true })
+    .custom((value, { req }) => {
+      if (req.body.email) return true;
+      const digits = String(value).replace(/\D/g, '');
+      return digits.length >= 10 && digits.length <= 12 && /^[6-9]\d{9}$/.test(digits.slice(-10));
+    })
+    .withMessage('Enter a valid 10-digit Indian mobile number'),
+  body('statement')
+    .isString()
+    .isLength({ min: 20, max: 2000 })
+    .withMessage('Please write 20-2000 characters'),
+];
+
 module.exports = {
   // Auth
   signupValidation,
   contactValidation,
   successStoryValidation,
+  appealValidation,
   loginValidation,
   changeEmailRequestValidation,
   changeEmailVerifyValidation,

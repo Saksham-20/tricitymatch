@@ -22,5 +22,8 @@
   "step2Desc": "Matched to your profile photos",
   "step3Title": "Get the badge",
   "step3Desc": "Verified tick on your profile",
-  "submitForReview": "Submit for review"
+  "submitForReview": "Submit for review",
+  "photoFirstTitle": "Add a profile photo first",
+  "photoFirstBody": "Your selfie is compared with your profile photo, so you need one before you start.",
+  "photoFirstCta": "Add a photo"
 }

@@ -150,6 +150,43 @@ const ACTIVE_SUB_SQL = (planSql) => `SELECT "userId" FROM "Subscriptions"
 
 const isYmd = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
+// Member lookup by whatever support is handed: a phone number typed any way
+// ("+91 98765 10001", "98765-10001"), the TCS- code on the member's profile, or
+// the account id from a log line. A plain ILIKE found none of those unless the
+// digits were typed exactly as stored.
+const { parseProfileCode } = require('../utils/profileCode');
+const { istYmd, istDayStart, istDayEnd, istTodayStart } = require('../utils/istDay');
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PROFILE_CODE_RE = /^TCS-[0-9A-F]{8}$/i;
+const PHONE_LIKE_RE = /^[+\d\s().-]+$/;
+
+const memberSearchWhere = (raw) => {
+  const search = String(raw).trim();
+  if (UUID_RE.test(search)) return { id: search.toLowerCase() };
+  if (PROFILE_CODE_RE.test(search)) {
+    // The code is the first eight hex digits of the id, so this is an indexed
+    // range over the primary key rather than a cast-and-LIKE scan.
+    const prefix = parseProfileCode(search);
+    return { id: { [Op.between]: [`${prefix}-0000-0000-0000-000000000000`, `${prefix}-ffff-ffff-ffff-ffffffffffff`] } };
+  }
+  const like = `%${escapeLikePattern(search)}%`;
+  const or = [
+    { email: { [Op.iLike]: like } },
+    { phone: { [Op.iLike]: like } },
+    sequelize.literal(`"User"."id" IN (SELECT "userId" FROM "Profiles" WHERE ("firstName" || ' ' || COALESCE("lastName", '')) ILIKE ${sequelize.escape(like)})`),
+  ];
+  // Numbers are stored as the bare 10 digits; a contact number can differ from
+  // the sign-in one. Only for input that is nothing but a number, so an email
+  // or a name with digits in it keeps its plain meaning.
+  const digits = search.replace(/\D/g, '');
+  if (PHONE_LIKE_RE.test(search) && digits.length >= 7) {
+    const tail = `%${digits.slice(-10)}%`;
+    or.push({ phone: { [Op.iLike]: tail } }, { contactPhone: { [Op.iLike]: tail } });
+  }
+  return { [Op.or]: or };
+};
+
 /**
  * Turn the admin filter query into a Sequelize where. Every value is checked
  * against an allowlist / strict format before it reaches a literal, and
@@ -167,33 +204,48 @@ const buildUserWhere = (query) => {
 
   if (status && VALID_USER_STATUSES.includes(status)) and.push({ status });
   if (role && VALID_USER_ROLES.includes(role)) and.push({ role });
-  if (search) {
-    const like = `%${escapeLikePattern(search)}%`;
-    and.push({
-      [Op.or]: [
-        { email: { [Op.iLike]: like } },
-        { phone: { [Op.iLike]: like } },
-        sequelize.literal(`"User"."id" IN (SELECT "userId" FROM "Profiles" WHERE ("firstName" || ' ' || COALESCE("lastName", '')) ILIKE ${sequelize.escape(like)})`),
-      ],
-    });
-  }
+  if (search && String(search).trim()) and.push(memberSearchWhere(search));
 
-  if (isYmd(joinedFrom)) and.push({ createdAt: { [Op.gte]: new Date(`${joinedFrom}T00:00:00.000Z`) } });
-  if (isYmd(joinedTo)) and.push({ createdAt: { [Op.lt]: new Date(new Date(`${joinedTo}T00:00:00.000Z`).getTime() + 86400000) } });
+  // Whole days in India time: someone who joined at 00:30 IST on the 11th
+  // joined on the 11th, though it is still the 10th in UTC.
+  if (isYmd(joinedFrom)) and.push({ createdAt: { [Op.gte]: istDayStart(joinedFrom) } });
+  if (isYmd(joinedTo)) and.push({ createdAt: { [Op.lt]: istDayEnd(joinedTo) } });
+  if (joinedWithin === 'today') and.push({ createdAt: { [Op.gte]: istTodayStart() } });
   const within = parseInt(joinedWithin, 10);
   if (within > 0 && within <= 3650) and.push({ createdAt: { [Op.gte]: new Date(Date.now() - within * 86400000) } });
 
   const quoted = (list) => list.map((p) => sequelize.escape(p)).join(',');
-  if (plan === 'free') and.push(inSub(ACTIVE_SUB_SQL(`"planType" IN (${quoted(PAID_PLANS)})`), true));
-  else if (plan === 'paid') and.push(inSub(ACTIVE_SUB_SQL(`"planType" IN (${quoted(PAID_PLANS)})`)));
-  else if (plan === 'expiring') {
-    and.push(inSub(`SELECT "userId" FROM "Subscriptions" WHERE status = 'active' AND "planType" IN (${quoted(PAID_PLANS)})
+  const paidTier = `"planType" IN (${quoted(PAID_PLANS)})`;
+  // A live plan belongs to a live account: an erased member keeps their rows as
+  // financial records but holds no plan (attachActivePlans lists them as Free).
+  const liveAccount = () => and.push({ status: { [Op.ne]: 'deleted' } });
+  if (plan === 'free') and.push(inSub(ACTIVE_SUB_SQL(paidTier), true));
+  else if (plan === 'paying') {
+    // Bought with real money: the one revenue predicate (a payment reference,
+    // not fully refunded) on a live plan. Founding and staff grants are not this.
+    liveAccount();
+    and.push(inSub(ACTIVE_SUB_SQL(`${paidTier} AND ${PAID_SUBSCRIPTION_SQL}`)));
+  } else if (plan === 'premium' || plan === 'paid') {
+    // Any live premium plan, founding and staff grants included. 'paid' is the
+    // old name for this, kept so saved views and links keep their meaning.
+    liveAccount();
+    and.push(inSub(ACTIVE_SUB_SQL(paidTier)));
+  } else if (plan === 'granted') {
+    // A paid tier handed out by staff: no payment behind it, not a founding place.
+    liveAccount();
+    and.push(inSub(ACTIVE_SUB_SQL(`${paidTier} AND "planType" <> ${sequelize.escape(FOUNDING_PLAN)} AND "razorpayPaymentId" IS NULL`)));
+  } else if (plan === 'expiring') {
+    liveAccount();
+    and.push(inSub(`SELECT "userId" FROM "Subscriptions" WHERE status = 'active' AND ${paidTier}
       AND "endDate" > NOW() AND "endDate" < NOW() + INTERVAL '7 days'`));
   } else if (plan === 'lapsed') {
     // Had a paid plan once, has none live now.
-    and.push(inSub(`SELECT "userId" FROM "Subscriptions" WHERE "planType" IN (${quoted(PAID_PLANS)}) AND "razorpayPaymentId" IS NOT NULL`));
-    and.push(inSub(ACTIVE_SUB_SQL(`"planType" IN (${quoted(PAID_PLANS)})`), true));
-  } else if (PAID_PLANS.includes(plan)) and.push(inSub(ACTIVE_SUB_SQL(`"planType" = ${sequelize.escape(plan)}`)));
+    and.push(inSub(`SELECT "userId" FROM "Subscriptions" WHERE ${paidTier} AND "razorpayPaymentId" IS NOT NULL`));
+    and.push(inSub(ACTIVE_SUB_SQL(paidTier), true));
+  } else if (PAID_PLANS.includes(plan)) {
+    liveAccount();
+    and.push(inSub(ACTIVE_SUB_SQL(`"planType" = ${sequelize.escape(plan)}`)));
+  }
 
   if (verified === 'yes' || verified === 'no' || verified === 'pending') {
     if (verified === 'yes') and.push(inSub(`SELECT "userId" FROM "Verifications" WHERE status = 'approved'`));
@@ -339,6 +391,31 @@ exports.updateUserVisibility = asyncHandler(async (req, res) => {
   });
 });
 
+// A suspended member cannot sign in to read the in-app notice, so the decision,
+// the reason and the way to appeal also go by email. Resolves true when the mail
+// was accepted for delivery. Never throws: the status has already changed, and a
+// slow or failing mail service must not hold up or fail the admin's action.
+const STATUS_MAIL_TIMEOUT_MS = 8000;
+const mailAccountStatus = async (user, suspended, reason) => {
+  try {
+    const { sendAccountStatusEmail } = require('../utils/email');
+    const profile = await Profile.findOne({ where: { userId: user.id }, attributes: ['firstName'] });
+    let timer;
+    const timedOut = new Promise((resolve) => {
+      timer = setTimeout(() => resolve({ success: false, error: 'timed out' }), STATUS_MAIL_TIMEOUT_MS);
+    });
+    const sent = await Promise.race([
+      sendAccountStatusEmail(user.email, profile?.firstName || null, suspended, reason || null),
+      timedOut,
+    ]).finally(() => clearTimeout(timer));
+    if (sent?.success) return true;
+    log.warn('Account status mail not sent', { targetUserId: user.id, suspended, error: sent?.error || sent?.reason || 'unknown' });
+  } catch (err) {
+    log.warn('Account status mail not sent', { targetUserId: user.id, suspended, error: err.message });
+  }
+  return false;
+};
+
 // @route   PUT /api/admin/users/:userId/status
 // @desc    Update user status
 // @access  Private/Admin
@@ -413,8 +490,23 @@ exports.updateUserStatus = asyncHandler(async (req, res) => {
     } catch { /* notification is best-effort */ }
   }
 
+  // The same news by email: only to a verified address (an unverified one may
+  // not be theirs), and only to members. A member with only a phone number gets
+  // the in-app notice alone; the response says so, so staff can call them.
+  const suspended = status === 'banned';
+  const restored = status === 'active' && previousStatus === 'banned';
+  let memberEmail = 'not_needed';
+  if (user.role === 'user' && status !== previousStatus && (suspended || restored)) {
+    memberEmail = user.emailVerified === true && user.email
+      ? (await mailAccountStatus(user, suspended, reason) ? 'sent' : 'failed')
+      : 'no_verified_email';
+  }
+
   res.json({
     success: true,
+    memberEmailed: memberEmail === 'sent',
+    // 'sent' | 'failed' | 'no_verified_email' | 'not_needed', for the admin's message.
+    memberEmail,
     message: 'User status updated',
     user
   });
@@ -611,15 +703,20 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
   // refuses them with a 403, so the figures are only computed and returned for
   // a holder of the `revenue` scope.
   const canSeeRevenue = hasScope(req.user, 'revenue');
+  const { Appeal } = require('../models');
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  // "Today" and the signups chart run on India days, so launch night
+  // (00:00–05:30 IST) counts as the launch date, not the day before.
+  const todayStart = istTodayStart(now);
+  const chartFirstDay = istYmd(new Date(todayStart.getTime() - 29 * 24 * 60 * 60 * 1000));
+  const openReport = { status: { [Op.in]: ['pending', 'reviewing'] } };
 
   const [
     totalUsers,
     verifiedUsers,
-    activeSubscribers,
+    members,
     revenueThisMonth,
     pendingVerifications,
     openReports,
@@ -630,7 +727,11 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     foundingGranted,
     profilesWithoutPhoto,
     photoVerifiedUsers,
-    foundingActive,
+    urgentOpenReports,
+    pendingAppeals,
+    oldestUnreadSupportAt,
+    signupsToday,
+    paymentsToday,
   ] = await Promise.all([
     // Total non-admin users
     User.count({ where: { role: 'user' } }),
@@ -638,20 +739,31 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // Email-verified users
     User.count({ where: { role: 'user', emailVerified: true } }),
 
-    // Active premium subscribers.
-    // NOTE (Phase S): `founding_premium` is in PAID_PLANS, so founding grants
-    // are counted here — the number is "members with premium entitlements", not
-    // "members who paid". Revenue is unaffected (founding rows carry amount 0),
-    // and planDistribution below breaks the two apart.
-    // Erased members keep their rows; they are not subscribers any more.
-    Subscription.count({
-      where: {
-        status: 'active',
-        planType: { [Op.in]: PAID_PLANS },
-        [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: now } }],
-      },
-      include: [{ model: User, attributes: [], required: true, where: { status: { [Op.ne]: 'deleted' } } }],
-    }),
+    // Members on a live premium plan, each counted once, split by how they got
+    // it. Counting rows said 9 "paying" when 7 had paid: a staff grant carries
+    // the list price but no payment, and one member can hold two live rows.
+    // "Paying" is the one revenue predicate (utils/paidRevenue). Erased members
+    // keep their rows as records; they are not subscribers any more.
+    sequelize.query(
+      `SELECT COUNT(*)::int AS premium,
+              (COUNT(*) FILTER (WHERE paid))::int AS paying,
+              (COUNT(*) FILTER (WHERE NOT paid AND founding))::int AS founding,
+              (COUNT(*) FILTER (WHERE NOT paid AND NOT founding AND granted))::int AS granted
+         FROM (
+           SELECT s."userId",
+                  BOOL_OR(${PAID_SUBSCRIPTION_SQL}) AS paid,
+                  BOOL_OR(s."planType" = :foundingPlan) AS founding,
+                  BOOL_OR(s."razorpayPaymentId" IS NULL AND s."planType" <> :foundingPlan) AS granted
+             FROM "Subscriptions" s
+             JOIN "Users" u ON u.id = s."userId"
+            WHERE s.status = 'active'
+              AND s."planType" IN (:paidPlans)
+              AND (s."endDate" IS NULL OR s."endDate" > :now)
+              AND u.status <> 'deleted'
+            GROUP BY s."userId"
+         ) live`,
+      { replacements: { now, paidPlans: PAID_PLANS, foundingPlan: FOUNDING_PLAN }, type: sequelize.QueryTypes.SELECT }
+    ).then(([row]) => row || { premium: 0, paying: 0, founding: 0, granted: 0 }),
 
     // Revenue collected this calendar month. "Collected" means a real payment
     // reference exists: an admin grant is written with the plan's list price
@@ -673,19 +785,29 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // Pending verification requests
     Verification.count({ where: { status: 'pending' } }),
 
-    // Open (pending) user reports
-    Report.count({ where: { status: 'pending' } }),
+    // Open reports: waiting AND being looked at. Counting only `pending` let a
+    // report drop off the dashboard the moment someone opened it.
+    Report.count({ where: openReport }),
 
-    // Daily registrations for last 30 days
+    // Daily registrations for the last 30 India days. generate_series + LEFT
+    // JOIN so a day with no signups is a 0 point, not a missing one (the chart
+    // used to join the gaps and overstate the trend).
     sequelize.query(
-      // generate_series + LEFT JOIN so a day with no signups is a 0 point, not a
-      // missing one (the chart used to join the gaps and overstate the trend).
-      `SELECT TO_CHAR(d.day, 'FMDD Mon') AS date, COUNT(u.id)::int AS count
-       FROM generate_series((:thirtyDaysAgo)::date, CURRENT_DATE, interval '1 day') AS d(day)
-       LEFT JOIN "Users" u ON u."createdAt"::date = d.day::date AND u.role = 'user'
-       GROUP BY d.day
-       ORDER BY d.day ASC`,
-      { replacements: { thirtyDaysAgo }, type: sequelize.QueryTypes.SELECT }
+      `WITH days AS (
+         SELECT generate_series(CAST(:firstDay AS timestamp), CAST(:lastDay AS timestamp), interval '1 day')::date AS day
+       ), joined AS (
+         SELECT ("createdAt" AT TIME ZONE 'Asia/Kolkata')::date AS day, COUNT(*)::int AS n
+           FROM "Users"
+          WHERE role = 'user' AND "createdAt" >= :since
+          GROUP BY 1
+       )
+       SELECT TO_CHAR(days.day, 'FMDD Mon') AS date, COALESCE(joined.n, 0)::int AS count
+         FROM days LEFT JOIN joined ON joined.day = days.day
+        ORDER BY days.day ASC`,
+      {
+        replacements: { firstDay: chartFirstDay, lastDay: istYmd(now), since: istDayStart(chartFirstDay) },
+        type: sequelize.QueryTypes.SELECT,
+      }
     ),
 
     // Monthly revenue for last 6 months
@@ -724,24 +846,43 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     // capped, and neither figure surfaced anywhere until it was already spent.
     Subscription.count({ where: { planType: FOUNDING_PLAN } }),
 
-    // Profiles with no photograph — the strongest predictor of a member who
-    // gets nowhere, and invisible from every other admin screen.
-    Profile.count({ where: { photos: { [Op.eq]: [] } } }),
+    // Active members with no photograph — the strongest predictor of a member
+    // who gets nowhere. The same predicate as the list the tile opens
+    // (/admin/users?hasPhoto=no&role=user&status=active), so the two agree:
+    // staff, erased accounts and paused ones are not in it.
+    User.count({
+      where: {
+        role: 'user',
+        status: 'active',
+        [Op.and]: [sequelize.literal(`"User"."id" NOT IN (SELECT "userId" FROM "Profiles" WHERE COALESCE(array_length(photos, 1), 0) > 0)`)],
+      },
+    }),
 
     // The product's verified badge is an APPROVED photo verification, not a
     // verified email — count members who actually hold it.
     Verification.count({ where: { status: 'approved' }, distinct: true, col: 'userId' }),
 
-    // Founding grants currently live, so "active subscribers" can be split into
-    // people who paid and people who were given a place.
-    Subscription.count({
-      where: {
-        status: 'active',
-        planType: FOUNDING_PLAN,
-        [Op.or]: [{ endDate: null }, { endDate: { [Op.gt]: now } }],
-      },
-      include: [{ model: User, attributes: [], required: true, where: { status: { [Op.ne]: 'deleted' } } }],
-    }),
+    // Threats, underage and scam reports still open.
+    Report.count({ where: { ...openReport, priority: 'urgent' } }),
+
+    // Suspended members waiting for an answer to their appeal.
+    Appeal.count({ where: { status: 'pending' } }),
+
+    // How long the longest-waiting enquiry has sat unread.
+    ContactMessage.min('createdAt', { where: { status: 'new' } }),
+
+    // Members who joined today (India day).
+    User.count({ where: { role: 'user', createdAt: { [Op.gte]: todayStart } } }),
+
+    // Payments taken today (India day): the revenue predicate, dated by when
+    // the plan started, which is when the payment was confirmed.
+    canSeeRevenue
+      ? sequelize.query(
+        `SELECT COUNT(*)::int AS n FROM "Subscriptions"
+          WHERE ${PAID_SUBSCRIPTION_SQL} AND COALESCE("startDate", "createdAt") >= :todayStart`,
+        { replacements: { todayStart }, type: sequelize.QueryTypes.SELECT }
+      ).then(([row]) => row?.n || 0)
+      : Promise.resolve(null),
   ]);
 
   res.json({
@@ -752,15 +893,23 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
       // the dashboard already reads; the old email-verified count is below.
       verifiedUsers: photoVerifiedUsers,
       emailVerifiedUsers: verifiedUsers,
-      // Members holding premium entitlements = paid + founding grants.
-      activeSubscribers,
-      paidSubscribers: Math.max(0, activeSubscribers - foundingActive),
-      foundingActive,
+      // Members on a live premium plan, however they got it.
+      activeSubscribers: members.premium,
+      // ...of whom: bought it, hold a founding place, or were given it by staff.
+      paidSubscribers: members.paying,
+      foundingActive: members.founding,
+      staffGrantedActive: members.granted,
       // null = this admin lacks the revenue scope (not "zero revenue").
       revenueThisMonth: canSeeRevenue ? (revenueThisMonth || 0) : null,
       pendingVerifications,
       openReports,
+      urgentOpenReports,
+      pendingAppeals,
       unreadSupport,
+      oldestUnreadSupportAt: oldestUnreadSupportAt || null,
+      signupsToday,
+      // A count of payments is money information too: null without `revenue`.
+      paymentsToday,
       profilesWithoutPhoto,
       founding: {
         granted: foundingGranted,
@@ -772,6 +921,43 @@ exports.getAnalytics = asyncHandler(async (req, res) => {
     planDistribution: planDistribution.map((p) => ({ plan: p.planType, count: parseInt(p.count) })),
   });
 });
+
+const OPEN_REPORT_STATUSES = ['pending', 'reviewing'];
+
+/**
+ * How often each reported member on a page of reports has been reported, so a
+ * reviewer sees a pattern without opening every case: `otherReports` counts the
+ * other reports against the same member (any status), `otherOpenReports` the
+ * ones still waiting. One grouped query for the whole page. Also swaps the raw
+ * hidden timestamp for a plain `invisible` flag.
+ */
+const attachReportHistory = async (reports) => {
+  for (const r of reports) {
+    const member = r.ReportedUser;
+    if (member) {
+      member.dataValues.invisible = Boolean(member.dataValues.hiddenAt);
+      delete member.dataValues.hiddenAt;
+    }
+  }
+  const ids = [...new Set(reports.map((r) => r.reportedUserId).filter(Boolean))];
+  if (!ids.length) return;
+  const rows = await sequelize.query(
+    `SELECT "reportedUserId",
+            count(*)::int AS total,
+            (count(*) FILTER (WHERE status IN ('pending', 'reviewing')))::int AS open
+       FROM "Reports"
+      WHERE "reportedUserId" IN (:ids)
+      GROUP BY "reportedUserId"`,
+    { replacements: { ids }, type: sequelize.QueryTypes.SELECT }
+  );
+  const byMember = new Map(rows.map((row) => [row.reportedUserId, row]));
+  for (const r of reports) {
+    const counts = byMember.get(r.reportedUserId) || { total: 1, open: 0 };
+    const thisOneOpen = OPEN_REPORT_STATUSES.includes(r.status) ? 1 : 0;
+    r.dataValues.otherReports = Math.max(0, counts.total - 1);
+    r.dataValues.otherOpenReports = Math.max(0, counts.open - thisOneOpen);
+  }
+};
 
 // @route   GET /api/admin/reports
 // @desc    Get user reports with optional status filter
@@ -787,10 +973,13 @@ exports.getReports = asyncHandler(async (req, res) => {
   // silently returned everything.
   const VALID_REPORT_STATUSES = ['pending', 'reviewing', 'reviewed', 'resolved', 'dismissed'];
   const where = {};
-  if (status && VALID_REPORT_STATUSES.includes(status)) where.status = status;
+  // `open` = everything still waiting on a decision (pending or being reviewed),
+  // the same set the dashboard counts as open.
+  if (status === 'open') where.status = { [Op.in]: OPEN_REPORT_STATUSES };
+  else if (status && VALID_REPORT_STATUSES.includes(status)) where.status = status;
   if (['urgent', 'normal'].includes(req.query.priority)) where.priority = req.query.priority;
 
-  // Free-text search over the reason and either party's name / email.
+  // Free-text search over the reason and either party's name / email / phone.
   const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
   if (search) {
     const like = { [Op.iLike]: `%${escapeLikePattern(search)}%` };
@@ -798,6 +987,8 @@ exports.getReports = asyncHandler(async (req, res) => {
       sequelize.where(sequelize.cast(sequelize.col('Report.reason'), 'text'), like),
       { '$Reporter.email$': like },
       { '$ReportedUser.email$': like },
+      { '$Reporter.phone$': like },
+      { '$ReportedUser.phone$': like },
       { '$Reporter.Profile.firstName$': like },
       { '$Reporter.Profile.lastName$': like },
       { '$ReportedUser.Profile.firstName$': like },
@@ -807,7 +998,7 @@ exports.getReports = asyncHandler(async (req, res) => {
 
   // Open work is oldest-first (whoever has waited longest is next); finished
   // reports are newest-first. Urgent always leads.
-  const openQueue = status === 'pending' || status === 'reviewing';
+  const openQueue = status === 'open' || status === 'pending' || status === 'reviewing';
   const { count, rows: reports } = await Report.findAndCountAll({
     where,
     distinct: true,
@@ -822,13 +1013,15 @@ exports.getReports = asyncHandler(async (req, res) => {
       {
         model: User,
         as: 'Reporter',
-        attributes: ['id', 'email'],
+        attributes: ['id', 'email', 'phone'],
         include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
       },
       {
         model: User,
         as: 'ReportedUser',
-        attributes: ['id', 'email'],
+        // status / role / hiddenAt so the reviewer can see whether the member
+        // is already banned or hidden, and is offered only the actions that apply.
+        attributes: ['id', 'email', 'phone', 'role', 'status', 'hiddenAt'],
         include: [{ model: Profile, attributes: ['firstName', 'lastName'] }],
       },
     ],
@@ -837,6 +1030,8 @@ exports.getReports = asyncHandler(async (req, res) => {
     limit,
     offset,
   });
+
+  await attachReportHistory(reports);
 
   res.json({
     success: true,
@@ -983,6 +1178,17 @@ exports.getUser = asyncHandler(async (req, res) => {
     const subscriptions = await user.getSubscriptions
       ? await Subscription.findAll({ where: { userId }, order: [['createdAt', 'DESC']], limit: 10 })
       : [];
+    // What support is asked about on each row: when the money arrived (the
+    // plan starts the moment the payment is confirmed), which rail took it, and
+    // when it was last refunded. The gateway ids, refund totals and dispute
+    // state are the row's own columns.
+    for (const s of subscriptions) {
+      const paid = Boolean(s.razorpayPaymentId);
+      const refundTimes = (Array.isArray(s.refunds) ? s.refunds : []).map((r) => r && r.at).filter(Boolean).sort();
+      s.dataValues.paidAt = paid ? (s.startDate || s.createdAt) : null;
+      s.dataValues.paymentRail = !paid ? null : (s.razorpaySignature === 'GOOGLE_PLAY' ? 'google_play' : 'razorpay');
+      s.dataValues.lastRefundAt = refundTimes.length ? refundTimes[refundTimes.length - 1] : (s.refundedAt || null);
+    }
     user.dataValues.Subscriptions = subscriptions;
   }
 
@@ -990,12 +1196,13 @@ exports.getUser = asyncHandler(async (req, res) => {
 
   await attachActivePlans([user]);
 
-  // Reports received by this user
+  // Reports received by this user. What the reporter wrote goes only to staff
+  // who can work the report queue, where the same text is shown anyway.
   const reports = await Report.findAll({
     where: { reportedUserId: userId },
     limit: 10,
     order: [['createdAt', 'DESC']],
-    attributes: ['id', 'reason', 'status', 'createdAt'],
+    attributes: ['id', 'reason', 'status', 'priority', 'createdAt', ...(hasScope(req.user, 'reports') ? ['description'] : [])],
   });
 
   // Invisible-to-members state for the admin banner (User.toJSON strips the
@@ -1288,7 +1495,9 @@ exports.exportUsers = asyncHandler(async (req, res) => {
   const baseWhere = buildUserWhere(req.query);
   const total = await User.count({ where: baseWhere });
   const { toProfileCode } = require('../utils/profileCode');
-  const ymd = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+  // India dates, like every other admin screen: someone who joined at 00:30 IST
+  // on the 11th joined on the 11th, not the 10th.
+  const ymd = (d) => (d ? istYmd(d) : '');
 
   const header = [
     'Name', 'Email', 'Phone', 'City', 'Gender', 'Role', 'Status', 'Plan', 'Has photo', 'Joined',
@@ -1298,7 +1507,7 @@ exports.exportUsers = asyncHandler(async (req, res) => {
   ];
 
   const result = await streamCsv(res, {
-    filename: `tricitymatch-members-${new Date().toISOString().slice(0, 10)}.csv`,
+    filename: `tricitymatch-members-${istYmd()}.csv`,
     header,
     total,
     log,
@@ -2823,6 +3032,55 @@ exports.getPublicSuccessStories = asyncHandler(async (req, res) => {
 
 // ==================== CONTACT MESSAGES (SUPPORT INBOX) ====================
 
+const lastTenDigits = (raw) => {
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : null;
+};
+
+/**
+ * The member account behind each enquiry on a page, when there is one: the same
+ * email (any spelling it may be stored under, any case), or else the same
+ * 10-digit mobile number. Ordinary members only; a staff address writing in is
+ * not a member account. Adds `memberId` and `memberMatch` ('email' | 'phone').
+ */
+const attachEnquiryMembers = async (messages) => {
+  if (!messages.length) return;
+  const emails = new Set();
+  const phones = new Set();
+  for (const m of messages) {
+    emailLookupCandidates(m.email).forEach((e) => emails.add(e));
+    const phone = lastTenDigits(m.phone);
+    if (phone) phones.add(phone);
+  }
+  const anyOf = [];
+  if (emails.size) {
+    anyOf.push(sequelize.where(sequelize.fn('lower', sequelize.col('email')), { [Op.in]: [...emails] }));
+  }
+  if (phones.size) {
+    anyOf.push(sequelize.where(
+      sequelize.fn('right', sequelize.fn('regexp_replace', sequelize.col('phone'), '\\D', '', 'g'), 10),
+      { [Op.in]: [...phones] }
+    ));
+  }
+  const members = anyOf.length
+    ? await User.findAll({ where: { role: 'user', [Op.or]: anyOf }, attributes: ['id', 'email', 'phone'] })
+    : [];
+  const byEmail = new Map();
+  const byPhone = new Map();
+  for (const u of members) {
+    if (u.email) byEmail.set(u.email.toLowerCase(), u.id);
+    const phone = lastTenDigits(u.phone);
+    if (phone) byPhone.set(phone, u.id);
+  }
+  for (const m of messages) {
+    const viaEmail = emailLookupCandidates(m.email).map((e) => byEmail.get(e)).find(Boolean) || null;
+    const phone = lastTenDigits(m.phone);
+    const viaPhone = phone ? byPhone.get(phone) || null : null;
+    m.dataValues.memberId = viaEmail || viaPhone;
+    m.dataValues.memberMatch = viaEmail ? 'email' : (viaPhone ? 'phone' : null);
+  }
+};
+
 // @route   GET /api/v1/admin/contact-messages
 // @desc    List public contact-form enquiries (support inbox)
 // @access  Private/Admin
@@ -2831,29 +3089,40 @@ exports.getContactMessages = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(rawLimit, 1), 100);
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const offset = (page - 1) * limit;
-  const { status, search } = req.query;
+  const { status } = req.query;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 100) : '';
 
   const VALID_STATUSES = ['new', 'read', 'resolved'];
   const where = {};
   if (status && VALID_STATUSES.includes(status)) where.status = status;
   if (req.query.assigned === 'me') where.assignedTo = req.user.id;
   else if (req.query.assigned === 'unassigned') where.assignedTo = null;
+  // "Not replied" is the list that matters on a busy day: answered enquiries
+  // can still be open, and an unanswered one can have been marked read.
+  if (req.query.replied === 'yes') where.repliedAt = { [Op.ne]: null };
+  else if (req.query.replied === 'no') where.repliedAt = null;
   if (search) {
     const term = `%${escapeLikePattern(search)}%`;
     where[Op.or] = [
       { name: { [Op.iLike]: term } },
       { email: { [Op.iLike]: term } },
+      { phone: { [Op.iLike]: term } },
       { subject: { [Op.iLike]: term } },
       { message: { [Op.iLike]: term } },
     ];
   }
 
+  // Oldest first puts whoever has waited longest at the top; newest first stays
+  // the default for callers that do not ask.
+  const direction = req.query.sort === 'oldest' ? 'ASC' : 'DESC';
   const { count, rows: messages } = await ContactMessage.findAndCountAll({
     where,
-    order: [['createdAt', 'DESC']],
+    order: [['createdAt', direction], ['id', direction]],
     limit,
     offset,
   });
+
+  await attachEnquiryMembers(messages);
 
   const newCount = await ContactMessage.count({ where: { status: 'new' } });
 

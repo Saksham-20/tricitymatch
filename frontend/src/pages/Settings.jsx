@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -1000,10 +1000,13 @@ const NotificationsTab = () => {
   };
 
   // Only the notices we actually send. Payment, security and verification
-  // messages are not optional and are not listed.
+  // messages are not optional and are not listed. The server also keeps
+  // `profileViews` and `promotions`, but nothing is sent under either yet, so
+  // a switch for them would change nothing.
   const items = [
     { key: 'matches',   label: t('settings.notifications.matches'),   desc: t('settings.notifications.matchesDesc') },
     { key: 'interests', label: t('settings.notifications.interests'), desc: t('settings.notifications.interestsDesc') },
+    { key: 'messages',  label: t('settings.notifications.messages'),  desc: t('settings.notifications.messagesDesc') },
   ];
 
   if (loadError) {
@@ -1019,7 +1022,7 @@ const NotificationsTab = () => {
       <div className="space-y-4">
         <GroupHeader title={t('settings.notifications.title')} desc={t('settings.notifications.desc')} />
         <div className="rounded-2xl border border-neutral-100 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-w-xl">
-          {[0, 1].map((i) => (
+          {[0, 1, 2].map((i) => (
             <div key={i} className="py-3.5 flex items-center justify-between gap-4">
               <div className="space-y-2 flex-1">
                 <Skeleton className="h-3.5 w-32" />
@@ -1058,13 +1061,20 @@ const VerificationTab = () => {
   const [loadError, setLoadError] = useState(false);
   const [selfiePhoto, setSelfiePhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // The selfie is compared with the profile photo. A member without one is
+  // told so before the camera opens, not after the capture. null = unknown.
+  const [hasPhoto, setHasPhoto] = useState(null);
 
   const load = () => {
     setStatus(null);
     setLoadError(false);
-    api.get('/verification/status')
-      .then((r) => setStatus(r.data.verification))
-      .catch(() => setLoadError(true));
+    Promise.allSettled([api.get('/verification/status'), api.get('/profile/me')]).then(([verification, me]) => {
+      if (verification.status === 'rejected') { setLoadError(true); return; }
+      // A failed profile read does not hide the camera: the server still
+      // refuses a selfie when there is no photo to compare it with.
+      setHasPhoto(me.status === 'fulfilled' ? Boolean((me.value.data?.profile || me.value.data)?.profilePhoto) : null);
+      setStatus(verification.value.data.verification);
+    });
   };
 
   useEffect(() => { load(); }, []);
@@ -1152,7 +1162,9 @@ const VerificationTab = () => {
   }
 
   // ── Pending state ─────────────────────────────────────────────────────────
-  if (status.status === 'pending') {
+  // Flagged is a review too: the server refuses a new selfie while it lasts,
+  // so the camera form would only fail after the capture.
+  if (status.status === 'pending' || status.status === 'flagged') {
     return (
       <div className="space-y-6">
         <GroupHeader title={t('settings.verification.title')} desc={t('settings.verification.pendingDesc')} />
@@ -1209,7 +1221,20 @@ const VerificationTab = () => {
         </div>
       )}
 
-      {/* Form */}
+      {hasPhoto === false ? (
+        <div className="flex items-start gap-4 p-5 bg-neutral-100 dark:bg-neutral-800/60 rounded-2xl max-w-xl">
+          <div className="w-11 h-11 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">
+            <FiCamera className="w-5 h-5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">{t('settings.verification.photoFirstTitle')}</p>
+            <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5">{t('settings.verification.photoFirstBody')}</p>
+            <Link to="/profile/edit?section=photos" className="btn-primary mt-3 inline-flex items-center gap-2 min-h-11">
+              <FiCamera className="w-4 h-4" aria-hidden="true" /> {t('settings.verification.photoFirstCta')}
+            </Link>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-5 max-w-xl">
         <LiveSelfieCapture file={selfiePhoto} onChange={setSelfiePhoto} />
 
@@ -1230,6 +1255,7 @@ const VerificationTab = () => {
           )}
         </button>
       </form>
+      )}
     </div>
   );
 };
@@ -1542,7 +1568,23 @@ export default function Settings() {
   const { user } = useAuth();
   const member = isMemberAccount(user);
   const tabs = member ? TABS : TABS.filter((tab) => tab.id === 'account');
-  const [activeTab, setActiveTab] = useState('account');
+  // ?tab=privacy opens that tab, so copy that says "Settings → Privacy" can
+  // link straight to it. Only a tab this account actually has is honoured.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get('tab');
+  const requestedTab = tabs.some((tab) => tab.id === requested) ? requested : null;
+  const [activeTab, setActiveTab] = useState(requestedTab || 'account');
+
+  // A link can change ?tab= while the page is already open.
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
+
+  // Keep the address in step, so a reload or a shared link lands on this tab.
+  const selectTab = (id) => {
+    setActiveTab(id);
+    setSearchParams(id === 'account' ? {} : { tab: id }, { replace: true });
+  };
 
   const renderTab = () => {
     switch (activeTab) {
@@ -1550,7 +1592,7 @@ export default function Settings() {
       case 'privacy':       return <PrivacyTab />;
       case 'notifications': return <NotificationsTab />;
       case 'verification':  return <VerificationTab />;
-      case 'danger':        return <DangerTab goToTab={setActiveTab} />;
+      case 'danger':        return <DangerTab goToTab={selectTab} />;
       default:              return null;
     }
   };
@@ -1579,7 +1621,7 @@ export default function Settings() {
               {tabs.map(({ id, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => selectTab(id)}
                   aria-current={activeTab === id ? 'page' : undefined}
                   className={`flex items-center gap-3 w-full px-4 py-3.5 text-left transition-[color,background-color,transform] active:scale-[0.97] duration-[160ms] border-b border-neutral-100 dark:border-neutral-800 last:border-0 group cursor-pointer ${
                     activeTab === id

@@ -22,7 +22,10 @@ exports.listMediaReviews = asyncHandler(async (req, res) => {
   const where = { status };
   if (['auto', 'report', 'admin'].includes(req.query.source)) where.source = req.query.source;
 
-  const reviews = await MediaReview.findAll({ where, order: [['createdAt', 'ASC']], limit: 100 });
+  // The waiting queue is oldest first; decided photos newest first, so the
+  // latest decisions are always on the page.
+  const order = status === 'pending' ? [['createdAt', 'ASC']] : [['decidedAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']];
+  const reviews = await MediaReview.findAll({ where, order, limit: 100 });
   const profiles = await Profile.findAll({
     where: { userId: { [Op.in]: [...new Set(reviews.map((r) => r.userId))] } },
     attributes: ['userId', 'firstName', 'lastName', 'city'],

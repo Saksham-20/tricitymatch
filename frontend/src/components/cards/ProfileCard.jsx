@@ -14,7 +14,10 @@ import { staggerIndex, DUR, EASE_OUT } from '../../utils/animations';
 
 // Pointer-gated hover — touch fires a false hover on tap that would otherwise
 // leave a card stuck lifted/scaled after the finger lifts (doctrine §4.7).
-const HOVER = '[@media(hover:hover)_and_(pointer:fine)]:hover';
+// Spelled out in full: Tailwind only builds classes it can read whole in the
+// source, never one glued together from a shared prefix at runtime.
+const HOVER_LIFT = '[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-card-hover [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1.5';
+const HOVER_SCALE = '[@media(hover:hover)_and_(pointer:fine)]:hover:scale-110';
 
 /* ──────────────────────────────────────────────────────────
    Animated compatibility arc — circular score indicator
@@ -150,6 +153,9 @@ const ProfileCard = ({
   // 'message' is for people you've already matched with (Mutual) —
   // the primary CTA becomes "Message" and deep-links into the chat.
   primaryCta = 'interest',
+  // Overrides the "Express Interest" label, e.g. "Like back" for someone who
+  // already liked you.
+  interestLabel,
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -221,7 +227,7 @@ const ProfileCard = ({
       // Radius unified to `rounded-xl` (doctrine §2 ruling #6, §3.4 — "one
       // system, no exceptions"); was `rounded-3xl` (24px), off the card/button
       // scale.
-      className={`group relative bg-white rounded-xl overflow-hidden cursor-pointer shadow-card ${HOVER}:shadow-card-hover ${HOVER}:-translate-y-1.5 transition-[transform,box-shadow] duration-[200ms] h-full flex flex-col`}
+      className={`group relative bg-white rounded-xl overflow-hidden cursor-pointer shadow-card ${HOVER_LIFT} transition-[transform,box-shadow] duration-[200ms] h-full flex flex-col`}
       onClick={handleCardClick}
       role="article"
       aria-label={t('cards.profileOf', { name: fullName })}
@@ -302,10 +308,11 @@ const ProfileCard = ({
                 whileTap={{ scale: 0.88 }}
                 onClick={handleShortlist}
                 aria-label={isShortlisted ? t('cards.removeFromShortlist') : t('cards.shortlist')}
+                aria-pressed={isShortlisted}
                 // 44px hit-target floor (doctrine §3.5) — was w-10/40px,
                 // below the floor the photoless header's equivalent button
                 // already meets.
-                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-colors duration-[160ms] ${HOVER}:scale-110 ${isShortlisted
+                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-colors duration-[160ms] ${HOVER_SCALE} ${isShortlisted
                     ? 'bg-neutral-800 text-white'
                     : 'bg-white/70 backdrop-blur-md text-neutral-500 hover:bg-white hover:text-neutral-800 ring-1 ring-white/50'
                   }`}
@@ -316,7 +323,8 @@ const ProfileCard = ({
                 whileTap={{ scale: 0.88 }}
                 onClick={handleLike}
                 aria-label={isLiked ? t('cards.unlike') : t('cards.expressInterestAria')}
-                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-colors duration-[160ms] ${HOVER}:scale-110 ${isLiked
+                aria-pressed={isLiked}
+                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-colors duration-[160ms] ${HOVER_SCALE} ${isLiked
                     ? 'bg-primary-500 text-white'
                     : 'bg-white/70 backdrop-blur-md text-primary-400 hover:bg-white hover:text-primary-500 ring-1 ring-white/50'
                   }`}
@@ -422,13 +430,14 @@ const ProfileCard = ({
               whileTap={{ scale: 0.88 }}
               onClick={handleShortlist}
               aria-label={isShortlisted ? t('cards.removeFromShortlist') : t('cards.shortlist')}
+              aria-pressed={isShortlisted}
               // `hover:bg-neutral-100` has a dark-mode override (index.css);
               // `hover:text-neutral-800` doesn't, so it stayed near-black on
               // that dark hover background — dropped rather than adding a
               // hover-only dark override this file's scope doesn't cover; the
               // resting `text-neutral-500` (already dark-safe) carries the icon
               // through hover too.
-              className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-[160ms] ${HOVER}:scale-110 ${isShortlisted
+              className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-[160ms] ${HOVER_SCALE} ${isShortlisted
                   ? 'bg-neutral-800 text-white'
                   : 'bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
                 }`}
@@ -544,7 +553,7 @@ const ProfileCard = ({
                 >
                   {isLiked ? (
                     <span className="inline-flex items-center justify-center gap-1.5"><FiCheck className="w-4 h-4" /> {t('cards.interestSent')}</span>
-                  ) : t('cards.expressInterest')}
+                  ) : (interestLabel || t('cards.expressInterest'))}
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}

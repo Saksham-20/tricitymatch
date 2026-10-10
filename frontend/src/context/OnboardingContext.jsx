@@ -298,9 +298,10 @@ function getInitialFormData() {
     height: '',
     weight: '',
 
-    // Location
+    // Location. No `state`: nothing asks for it, and a default here wrote
+    // "Punjab" onto Panchkula and Chandigarh profiles. Pages show the state
+    // worked out from the city (utils/tricityState).
     city: 'Chandigarh', // default
-    state: 'Punjab',
 
     // NRI / living abroad — declared inline on the Location step. When isNri is
     // true we collect residence + where the family is based in India (no separate

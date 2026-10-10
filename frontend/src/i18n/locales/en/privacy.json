@@ -18,7 +18,7 @@
     "i8": "<b>Payment records</b> — plan, amount, date, and the payment and order identifiers our payment provider returns. <b>We never receive or store your card, UPI or bank credentials.</b>",
     "i9": "<b>Guardian and family information</b> — if you invite a guardian, or someone creates a profile for you, the name and contact details needed to link the two accounts.",
     "i10": "<b>Technical data</b> — IP address, device and browser information, app version, and server logs, used for security, abuse prevention and to keep the Service running. If you enable push notifications we store the device push token.",
-    "i11": "<b>Counters</b> — a small set of anonymous product counters (for example \"an OTP was verified\", \"a profile was completed\") used to see where people get stuck. They carry no message content and no profile content.",
+    "i11": "<b>Counters</b> — a small set of product counters (for example \"an OTP was verified\", \"a profile was completed\") used to see where people get stuck. Some are linked to your account — that you created it, filled in most of your profile, or sent your first interest — so each step is counted once per member; the rest are anonymous. They carry no message content and no profile content.",
     "p2": "<b>Sensitive categories.</b> Some of the above — religion, caste and community, horoscope details, your photographs and verification selfie, and financial information — are sensitive. We collect them because matrimonial matching in India cannot work without them, we collect them only with your consent, and every field beyond the minimum needed to register is optional."
   },
   "s2": {
@@ -58,7 +58,7 @@
     "i4": "<b>Our SMS provider</b> — one-time passcodes to your mobile number.",
     "i5": "<b>Firebase Cloud Messaging</b> — push notifications, if you enable them.",
     "i6": "<b>Agora</b> — carrying in-app voice and video calls, if you use them.",
-    "i7": "<b>Our hosting and monitoring providers</b> — running the servers and database and alerting us to errors.",
+    "i7": "<b>Cloudflare, and our hosting and monitoring providers</b> — Cloudflare carries all traffic between you and our servers, protects the site from attacks, and counts page visits without cookies (Cloudflare Web Analytics); our hosting and monitoring providers run the servers and database and alert us to errors.",
     "i8": "<b>Astrologers</b> you book a consultation with receive the horoscope details needed for that consultation.",
     "i9": "<b>Legal and safety</b> — courts, police and government agencies where the law requires it, and where it is necessary to protect the rights, property or safety of our members or the public. We cooperate with investigating agencies as the IT Act and the rules made under it direct.",
     "i10": "<b>A successor</b> — if the business is transferred, your data moves with it under this policy, and we will tell you."
@@ -70,7 +70,7 @@
   "s7": {
     "h": "7. Messages, notifications & your choices",
     "i1": "<b>Service messages</b> — one-time passcodes, password resets, security alerts, payment receipts and membership expiry notices. These are part of the Service and cannot be switched off while you have an account.",
-    "i2": "<b>Match and activity notifications</b> — new matches, interests, messages, weekly digests and reminders. Push notifications can be turned off in <settingslink>Settings</settingslink> or in your device settings; to stop non-service email such as digests and reminders, write to <privacymail>{{privacyEmail}}</privacymail>.",
+    "i2": "<b>Match and activity notifications</b> — new matches, interests, messages, weekly digests and reminders. Push notifications can be turned off in <settingslink>Settings</settingslink> or in your device settings. To stop non-service email such as digests and reminders, use the one-click unsubscribe link at the bottom of any of those emails, or write to <privacymail>{{privacyEmail}}</privacymail>.",
     "i3": "<b>SMS</b> is used only for one-time passcodes, not for marketing."
   },
   "s8": {

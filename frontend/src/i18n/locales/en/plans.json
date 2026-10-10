@@ -69,14 +69,14 @@
   "faq": {
     "heading": "Common questions",
     "q1": "Can I upgrade later?",
-    "a1": "Yes. You can move up to a higher plan any time while your current plan is active. The new plan starts fresh from the day you upgrade.",
+    "a1": "During the launch offer there is one plan, Premium, so there is nothing to upgrade to. Every Premium membership bought in the offer runs until 10 January 2027, whatever day you buy it; one bought from 11 December runs until 10 February 2027.",
     "q2": "Is my payment secure?",
     "a2": "All payments run through Razorpay over SSL. We never see or store your card details.",
     "q3": "What are contact unlocks?",
     "a3": "Each unlock reveals a member’s phone number so your families can talk directly.",
     "a3Cap": "Each unlock reveals a member’s phone number so your families can talk directly. Unlimited-tier plans are capped at {{cap}} unlocks a day, to keep the directory safe from bulk scraping.",
     "q4": "Do unused days carry over?",
-    "a4": "Upgrading starts a full fresh term on the new plan; remaining days on the old plan are not added on top.",
+    "a4": "No. Every membership bought in the launch offer ends on its set date (10 January 2027, or 10 February 2027 if bought from 11 December). Unused days and unlocks are not added to a later plan.",
     "q5": "Can my parents manage this account?",
     "a5": "Yes. The Guardian feature lets a family member view matches and shortlists for you."
   },
@@ -157,5 +157,5 @@
     "subtitle": "Join the Tricity members already talking to their matches.",
     "choosePlan": "Choose a plan"
   },
-  "footer": "Secure payments via Razorpay · One-time payment, no auto-renewal · Full refund within 7 days, see our <anchor>Refund Policy</anchor>"
+  "footer": "Secure payments via Razorpay · One-time payment, no auto-renewal · Refund within 7 days (used unlocks deducted), see our <anchor>Refund Policy</anchor>"
 }

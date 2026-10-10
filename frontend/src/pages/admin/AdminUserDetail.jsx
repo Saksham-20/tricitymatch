@@ -1,16 +1,23 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, refundSubscription, deleteUsers, updateUserStatus, updateUserVisibility, removePhoto, flagPhoto } from '../../api/adminApi';
+import { getUser, getModerationHistory, updateSubscription, updateVerification, cancelSubscription, deleteUsers, updateUserStatus, updateUserVisibility, removePhoto, flagPhoto } from '../../api/adminApi';
 import { useAdminScopes } from '../../components/admin/AdminLayout';
 import usePlanOptions from '../../hooks/usePlanOptions';
 import planLabel from '../../utils/planLabel';
 import PlanOverrideNotice, { overrideProblem } from '../../components/admin/PlanOverrideNotice';
+import MemberIdentityDialog from '../../components/admin/MemberIdentityDialog';
+import PlanRefundDialog from '../../components/admin/PlanRefundDialog';
+import PlanHistoryList from '../../components/admin/PlanHistoryList';
 import toast from 'react-hot-toast';
 import RetryImage from '../../components/ui/RetryImage';
-import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield, FiEye, FiEyeOff, FiUsers } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiXCircle, FiTrash2, FiSlash, FiFlag, FiImage, FiX, FiRotateCcw, FiShield, FiEye, FiEyeOff, FiUsers, FiCopy, FiEdit2, FiAlertCircle } from 'react-icons/fi';
 import { FaCrown } from 'react-icons/fa';
 import { formatDate, formatDateTime } from '../../utils/formatDate';
+import { toProfileCode } from '../../utils/profileCode';
+import { stateForCity } from '../../utils/tricityState';
+import copyText from '../../utils/copyText';
+import { actionLabel, summarise } from '../../utils/auditLabels';
 
 const Section = ({ title, children }) => (
   <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -36,20 +43,44 @@ const HISTORY_LABEL = {
   staff_action: 'Staff action',
 };
 
+// Staff opening the record is logged too ("Member record opened"). Those reads
+// far outnumber real actions, so they are folded away unless asked for.
+const isViewEvent = (e) => e.view === true || (e.kind === 'staff_action' && /_viewed$/.test(e.summary || ''));
+
 // Reports, photo holds, appeals and staff actions in one timeline. Needs the
-// `reports` scope; a member of staff without it simply does not see the block.
+// `reports` scope; the page only mounts it for staff who hold it.
 function ModerationHistory({ userId }) {
   const [history, setHistory] = useState(null);
-  useEffect(() => {
+  const [failed, setFailed] = useState(false);
+  const [showViews, setShowViews] = useState(false);
+
+  const load = useCallback(() => {
     let alive = true;
+    setFailed(false);
     getModerationHistory(userId)
       .then((res) => { if (alive) setHistory(res.data); })
-      .catch(() => { if (alive) setHistory(null); });
+      .catch(() => { if (alive) { setHistory(null); setFailed(true); } });
     return () => { alive = false; };
   }, [userId]);
 
+  useEffect(() => load(), [load]);
+
+  if (failed) {
+    return (
+      <Section title="Moderation History">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600" role="alert">
+          <FiAlertCircle className="w-4 h-4 text-gray-400" aria-hidden="true" />
+          <span>Couldn&apos;t load the moderation history.</span>
+          <button type="button" onClick={load} className="min-h-[36px] px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium">Retry</button>
+        </div>
+      </Section>
+    );
+  }
   if (!history || history.timeline.length === 0) return null;
   const { summary, timeline } = history;
+  const views = timeline.filter(isViewEvent);
+  const shown = showViews ? timeline : timeline.filter((e) => !isViewEvent(e));
+  const viewCount = summary.views ?? views.length;
   const stats = [
     ['Reports received', summary.reportsReceived],
     ['Resolved', summary.reportsResolved],
@@ -66,24 +97,44 @@ function ModerationHistory({ userId }) {
           </span>
         ))}
       </div>
+      {shown.length === 0 && (
+        <p className="text-sm text-gray-500 mb-2">No reports, photo holds, appeals or staff actions.</p>
+      )}
       <ol className="space-y-2">
-        {[...timeline].reverse().map((e) => (
-          <li key={`${e.kind}-${e.id}-${e.at}`} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-medium text-gray-800">
-                {HISTORY_LABEL[e.kind] || e.kind}
-                <span className="font-normal text-gray-500"> · {e.summary?.replace(/_/g, ' ')}</span>
-              </p>
-              <span className="text-xs text-gray-400 flex-shrink-0">{formatDateTime(e.at)}</span>
-            </div>
-            {(e.byName || e.note) && (
-              <p className="text-xs text-gray-500 mt-0.5">
-                {e.byName ? `By ${e.byName}` : ''}{e.byName && e.note ? ' — ' : ''}{e.note || ''}
-              </p>
-            )}
-          </li>
-        ))}
+        {[...shown].reverse().map((e) => {
+          const staff = e.kind === 'staff_action';
+          // Staff actions read as a sentence: what changed, from what, and why
+          // ("active → banned · “fake photos”"), not the bare action name.
+          const detail = staff ? summarise(e.summary, e.details) : '';
+          return (
+            <li key={`${e.kind}-${e.id}-${e.at}`} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-medium text-gray-800">
+                  {HISTORY_LABEL[e.kind] || e.kind}
+                  <span className="font-normal text-gray-500"> · {staff ? actionLabel(e.summary) : e.summary?.replace(/_/g, ' ')}</span>
+                </p>
+                <span className="text-xs text-gray-400 flex-shrink-0">{formatDateTime(e.at)}</span>
+              </div>
+              {detail && <p className="text-sm text-gray-700 mt-0.5 break-words">{detail}</p>}
+              {(e.byName || e.note) && (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {e.byName ? `By ${e.byName}` : ''}{e.byName && e.note ? ' — ' : ''}{e.note || ''}
+                </p>
+              )}
+            </li>
+          );
+        })}
       </ol>
+      {viewCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowViews((v) => !v)}
+          aria-expanded={showViews}
+          className="mt-3 min-h-[36px] px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100"
+        >
+          {showViews ? 'Hide record views' : `Show views (${viewCount})`}
+        </button>
+      )}
     </Section>
   );
 }
@@ -95,6 +146,8 @@ export default function AdminUserDetail() {
   const canDelete = me?.role === 'admin' || me?.role === 'super_admin';
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
+  // 'not_found' only for a real 404; anything else is a failed load with a retry.
+  const [loadError, setLoadError] = useState(null);
   const [planModal, setPlanModal] = useState(false);
   const [newPlan, setNewPlan]     = useState('');
   const [reason, setReason]       = useState('');
@@ -103,11 +156,9 @@ export default function AdminUserDetail() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling]   = useState(false);
   // Refund: money leaves through Razorpay and cannot be recalled, so it has its
-  // own modal that states the amount and needs a reason.
+  // own modal that states the amount, the policy figure, and needs a reason.
   const [refundTarget, setRefundTarget] = useState(null); // the Subscription row
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundReason, setRefundReason] = useState('');
-  const [refunding, setRefunding]       = useState(false);
+  const [identityOpen, setIdentityOpen] = useState(false);
   const planPanelRef   = useRef(null);
   const cancelPanelRef = useRef(null);
   const { options: planOptions } = usePlanOptions();
@@ -153,8 +204,17 @@ export default function AdminUserDetail() {
     if (statusTarget === 'banned' && statusReason.trim().length < 5) { toast.error('Give a brief reason for the ban (at least 5 characters)'); return; }
     setStatusBusy(true);
     try {
-      await updateUserStatus(userId, { status: statusTarget, reason: statusReason.trim() });
-      toast.success(statusTarget === 'banned' ? 'User banned' : 'User reinstated');
+      const res = await updateUserStatus(userId, { status: statusTarget, reason: statusReason.trim() });
+      // Say whether the member was told by email: someone with no verified
+      // address only gets the in-app notice, which a banned member cannot read.
+      const mail = res?.data?.memberEmail;
+      const done = statusTarget === 'banned' ? 'User banned' : 'User reinstated';
+      toast.success(
+        mail === 'sent' ? `${done} and emailed`
+          : mail === 'failed' ? `${done}. The email to the member did not go through`
+          : mail === 'no_verified_email' ? `${done}. Not emailed: no verified email address`
+          : done,
+      );
       setStatusTarget(null); setStatusReason('');
       fetchUser();
     } catch (err) {
@@ -176,19 +236,36 @@ export default function AdminUserDetail() {
     } finally { setVisBusy(false); }
   };
 
-  const fetchUser = async () => {
-    setLoading(true);
+  // The page reloads the member after every action. Only the first load shows
+  // the spinner or an error card; a failed reload keeps what is on screen and
+  // says so, and a response for a member no longer open is ignored.
+  const loadSeq = useRef(0);
+  const fetchUser = async ({ initial = false } = {}) => {
+    const seq = ++loadSeq.current;
     try {
       const res = await getUser(userId);
+      if (seq !== loadSeq.current) return;
       setData(res.data);
-    } catch {
-      toast.error('Failed to load user');
+      setLoadError(null);
+    } catch (err) {
+      if (seq !== loadSeq.current) return;
+      if (err?.response?.status === 404) { setData(null); setLoadError('not_found'); }
+      else if (initial) setLoadError('failed');
+      else toast.error('Could not refresh this member. Showing what was loaded before.');
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchUser(); }, [userId]);
+  useEffect(() => {
+    setData(null);
+    setLoadError(null);
+    setLoading(true);
+    fetchUser({ initial: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const retryLoad = () => { setLoadError(null); setLoading(true); fetchUser({ initial: true }); };
 
   // Both modals are dialogs: move focus into the panel on open and close on
   // Escape. Without this a keyboard operator got no modal semantics on a
@@ -271,28 +348,6 @@ export default function AdminUserDetail() {
     }
   };
 
-  const openRefund = (row) => {
-    const left = Math.max(0, (Number(row.amount) || 0) - (Number(row.refundedAmount) || 0));
-    setRefundAmount(String(left));
-    setRefundReason('');
-    setRefundTarget(row);
-  };
-
-  const handleRefund = async () => {
-    setRefunding(true);
-    try {
-      await refundSubscription(refundTarget.id, { amount: Number(refundAmount), reason: refundReason.trim() });
-      toast.success('Refund issued. It reaches the member in five to seven working days.');
-      setRefundTarget(null);
-      fetchUser();
-    } catch (err) {
-      const e = err?.response?.data?.error;
-      toast.error(e?.details?.[0]?.message || e?.message || 'Could not issue the refund');
-    } finally {
-      setRefunding(false);
-    }
-  };
-
   const handleVerification = async (verificationId, action) => {
     try {
       await updateVerification(verificationId, { status: action, adminNotes: '' });
@@ -303,7 +358,7 @@ export default function AdminUserDetail() {
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
@@ -311,9 +366,36 @@ export default function AdminUserDetail() {
     );
   }
 
-  if (!data) return <div className="text-center text-gray-500 py-20">User not found</div>;
+  if (loadError === 'not_found') {
+    return (
+      <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10">
+        <FiUsers className="w-8 h-8 text-gray-300 mx-auto mb-3" aria-hidden="true" />
+        <h2 className="text-lg font-bold text-gray-900 mb-1">User not found</h2>
+        <p className="text-sm text-gray-500 mb-5">No account has this id. It may have been deleted.</p>
+        <Link to="/admin/users" className="inline-flex items-center min-h-[44px] px-4 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium">Back to Users</Link>
+      </div>
+    );
+  }
+
+  if (loadError || !data) {
+    return (
+      <div className="bg-white rounded-2xl p-10 border border-gray-100 text-center max-w-md mx-auto mt-10" role="alert">
+        <FiAlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-3" aria-hidden="true" />
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Couldn&apos;t load this member</h2>
+        <p className="text-sm text-gray-500 mb-5">The record did not come back. Nothing has changed on the account.</p>
+        <button type="button" onClick={retryLoad} className="min-h-[44px] px-4 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium">
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   const { user, reports } = data;
+  const profileCode = toProfileCode(user.id);
+  const copyProfileCode = async () => {
+    if (await copyText(profileCode)) toast.success('Profile code copied');
+    else toast.error('Could not copy');
+  };
   const profile = user?.Profile || null;
   // Server-derived: the newest row is routinely a `pending` order nobody paid
   // or a `cancelled` row left by an override, so the panel reads the same
@@ -423,6 +505,21 @@ export default function AdminUserDetail() {
             )}
           </div>
           <p className="text-gray-500 text-sm break-all">{user.email}</p>
+          {/* The code members share and quote to support ("my ID is TCS-…"). */}
+          {profileCode && (
+            <p className="mt-1 inline-flex items-center gap-1 text-sm text-gray-700">
+              <span className="font-mono font-semibold">{profileCode}</span>
+              <button
+                type="button"
+                onClick={copyProfileCode}
+                aria-label="Copy profile code"
+                title="Copy profile code"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+              >
+                <FiCopy className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            </p>
+          )}
           <p className="text-gray-500 text-xs mt-1 break-all">ID: {user.id} · Role: {user.role} · Status: {user.status}</p>
         </div>
         {/* On a phone the actions drop below the name as a full-width row of
@@ -588,12 +685,16 @@ export default function AdminUserDetail() {
           <InfoRow label="Status"        value={user.status} />
           <InfoRow label="Joined"        value={user.createdAt ? formatDateTime(user.createdAt) : null} />
           <InfoRow label="Last Login"    value={user.lastLogin ? formatDateTime(user.lastLogin) : null} />
-          {/* DPDP consent record. NULL = account predates the record (mig 000062) — not a refusal. */}
+          {/* DPDP consent record. NULL = account predates the record (mig 000062) — not a refusal.
+              'assisted-signup' (backend constants/legal ASSISTED_SIGNUP_TERMS) marks an account
+              staff created: the member accepts the Terms themselves at first sign-in. */}
           <InfoRow
             label="Terms Accepted"
             value={user.termsAcceptedAt
               ? `${formatDateTime(user.termsAcceptedAt)}${user.termsVersion ? ` (v${user.termsVersion})` : ''}`
-              : 'Before consent records began'}
+              : user.termsVersion === 'assisted-signup'
+                ? 'Not accepted yet (assisted signup)'
+                : 'Before consent records began'}
           />
         </Section>
 
@@ -601,12 +702,25 @@ export default function AdminUserDetail() {
         <Section title="Profile Information">
           {profile ? (
             <>
+              {/* Members cannot change these after sign-up; support corrects them here. */}
+              {can('users') && (
+                <div className="flex justify-end -mt-2 mb-1">
+                  <button
+                    type="button"
+                    onClick={() => setIdentityOpen(true)}
+                    className="inline-flex items-center gap-1.5 min-h-[36px] px-3 rounded-lg text-xs font-medium text-primary-700 hover:bg-primary-50"
+                  >
+                    <FiEdit2 className="w-3.5 h-3.5" aria-hidden="true" /> Edit date of birth / gender
+                  </button>
+                </div>
+              )}
               <InfoRow label="Gender"        value={profile.gender} />
               <InfoRow label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null} />
               {profile.height && <InfoRow label="Height" value={`${profile.height} cm`} />}
               {profile.maritalStatus && <InfoRow label="Marital Status" value={String(profile.maritalStatus).replace(/_/g, ' ')} />}
               <InfoRow label="City"          value={profile.city} />
-              {(profile.state || profile.familyLocation) && <InfoRow label="State / Area" value={profile.state || profile.familyLocation} />}
+              {/* The stored state is a sign-up default, not something the member chose. */}
+              {(stateForCity(profile.city) || profile.familyLocation) && <InfoRow label="State / Area" value={stateForCity(profile.city) || profile.familyLocation} />}
               {profile.isNri && <InfoRow label="NRI" value={profile.residenceCountry ? `Yes · ${profile.residenceCountry}` : 'Yes'} />}
               <InfoRow label="Religion"      value={profile.religion} />
               <InfoRow label="Caste"         value={profile.caste} />
@@ -669,34 +783,7 @@ export default function AdminUserDetail() {
           {subscriptionHistory.length > 0 && (
             <div className="mt-4 pt-3 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-500 mb-2">History</p>
-              <div className="space-y-1">
-                {subscriptionHistory.map((h) => {
-                  const paid = Boolean(h.razorpayPaymentId) && Number(h.amount) > 0;
-                  const refunded = Number(h.refundedAmount) || 0;
-                  // An order id with no payment is a checkout the member closed; a staff grant has neither.
-                  // A Google Play purchase stores its token in razorpayPaymentId;
-                  // those are refunded from the Play Console, not here.
-                  const refundable = paid && h.razorpaySignature !== 'GOOGLE_PLAY' && !h.refundedAt && refunded < Number(h.amount);
-                  return (
-                    <div key={h.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-gray-500">
-                      <span>{planLabel(h.planType)}</span>
-                      <span>{h.status}</span>
-                      <span>{paid ? `₹${Number(h.amount).toLocaleString('en-IN')}` : h.razorpayOrderId ? 'not paid' : (Number(h.amount) > 0 ? 'granted' : '—')}</span>
-                      <span>{h.endDate ? formatDate(h.endDate) : '—'}</span>
-                      {(h.refundedAt || refunded > 0) && <span className="text-red-700 font-medium">{h.refundedAt ? 'Refunded in full' : `Refunded ₹${refunded.toLocaleString('en-IN')}`}</span>}
-                      {refundable && can('subscriptions') && (
-                        <button
-                          type="button"
-                          onClick={() => openRefund(h)}
-                          className="inline-flex items-center min-h-[32px] px-2 rounded-lg text-red-700 font-medium hover:bg-red-50"
-                        >
-                          Refund
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <PlanHistoryList rows={subscriptionHistory} canRefund={can('subscriptions')} onRefund={setRefundTarget} />
             </div>
           )}
         </Section>
@@ -756,9 +843,13 @@ export default function AdminUserDetail() {
           <div className="space-y-2">
             {reports.map((r) => (
               <div key={r.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-800 capitalize">{r.reason?.replace(/_/g, ' ')}</p>
-                  <p className="text-xs text-gray-500">{r.description}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 capitalize">
+                    {r.reason?.replace(/_/g, ' ')}
+                    {r.priority === 'urgent' && <span className="ml-2 normal-case px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-semibold align-middle">Urgent</span>}
+                  </p>
+                  {/* What the reporter wrote: sent only to staff who can work the report queue. */}
+                  {r.description && <p className="text-xs text-gray-600 mt-0.5 whitespace-pre-line break-words">{r.description}</p>}
                   <p className="text-xs text-gray-400 mt-0.5">{formatDate(r.createdAt)}</p>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
@@ -774,7 +865,7 @@ export default function AdminUserDetail() {
         </Section>
       )}
 
-      <ModerationHistory userId={userId} />
+      {can('reports') && <ModerationHistory userId={userId} />}
 
       {/* Override Plan Modal */}
       {planModal && (
@@ -853,57 +944,24 @@ export default function AdminUserDetail() {
         </div>
       )}
 
-      {/* Refund (real money, via Razorpay) */}
-      {refundTarget && (() => {
-        const left = Math.max(0, (Number(refundTarget.amount) || 0) - (Number(refundTarget.refundedAmount) || 0));
-        const amt = Number(refundAmount);
-        const problem = !Number.isFinite(amt) || amt <= 0 ? 'Enter an amount above zero'
-          : amt > left ? `The most that can be refunded is ₹${left.toLocaleString('en-IN')}`
-          : refundReason.trim().length < 5 ? 'Give a reason of at least 5 characters (it is kept in the audit log)'
-          : null;
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div role="dialog" aria-modal="true" aria-labelledby="refund-title" className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-              <h3 id="refund-title" className="text-lg font-bold text-gray-900 mb-1">Refund this payment</h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Paid ₹{Number(refundTarget.amount).toLocaleString('en-IN')} for {planLabel(refundTarget.planType)}.
-                This sends money back to the member&apos;s original payment method through Razorpay and cannot be undone. It does not end their plan; use End plan for that.
-              </p>
-              <label htmlFor="refund-amount" className="block text-sm font-medium text-gray-700 mb-1">Amount to refund (₹)</label>
-              <input
-                id="refund-amount"
-                type="number"
-                min="1"
-                max={left}
-                step="0.01"
-                value={refundAmount}
-                onChange={(e) => setRefundAmount(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-3"
-              />
-              <label htmlFor="refund-reason" className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-              <textarea
-                id="refund-reason"
-                value={refundReason}
-                onChange={(e) => setRefundReason(e.target.value)}
-                rows={3}
-                placeholder="e.g. within the 7-day window, duplicate payment"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-2"
-              />
-              {problem && <p role="status" className="text-xs text-amber-800 mb-3">{problem}</p>}
-              <div className="flex gap-3 mt-2">
-                <button onClick={() => setRefundTarget(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors">Cancel</button>
-                <button
-                  onClick={handleRefund}
-                  disabled={refunding || Boolean(problem)}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {refunding ? 'Refunding…' : `Refund ₹${Number.isFinite(amt) && amt > 0 ? amt.toLocaleString('en-IN') : ''}`}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Refund (real money, via Razorpay), with the published policy worked out */}
+      {refundTarget && (
+        <PlanRefundDialog
+          row={refundTarget}
+          onClose={() => setRefundTarget(null)}
+          onRefunded={() => { setRefundTarget(null); fetchUser(); }}
+        />
+      )}
+
+      {/* Correct date of birth / gender (locked to the member after sign-up) */}
+      {identityOpen && (
+        <MemberIdentityDialog
+          userId={userId}
+          profile={profile}
+          onClose={() => setIdentityOpen(false)}
+          onSaved={() => { setIdentityOpen(false); fetchUser(); }}
+        />
+      )}
 
       {/* Full-size photo viewer */}
       {lightbox && (
@@ -1012,8 +1070,8 @@ export default function AdminUserDetail() {
             </h3>
             <p className="text-sm text-gray-500 mb-3">
               {statusTarget === 'banned'
-                ? 'The member is signed out everywhere and cannot log back in. They are notified and can appeal. Removing an inappropriate photo is a separate action — do that first if it should come down.'
-                : 'The member can sign in and use their account again. They are notified.'}
+                ? 'The member is signed out everywhere and cannot log back in. They are notified, and emailed the reason and how to appeal if their email is verified. Removing an inappropriate photo is a separate action — do that first if it should come down.'
+                : 'The member can sign in and use their account again. They are notified, and emailed if their email is verified.'}
             </p>
             <textarea
               value={statusReason}

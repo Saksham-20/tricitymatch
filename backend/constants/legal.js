@@ -4,9 +4,11 @@
  * legal pages:
  *   - frontend/src/config/index.js  → legal.termsUpdated / legal.privacyUpdated
  *   - mobile/src/constants/config.ts → LEGAL_UPDATED
- * Bump all of them together whenever the Terms or Privacy Policy change.
+ * Bump all of them together whenever the Terms or Privacy Policy change. The
+ * version is the LATER of the two web dates, as YYYY-MM-DD; a unit test
+ * (tests/unit/termsVersionLockstep.test.js) fails when they drift apart.
  */
-const TERMS_VERSION = '2026-08-26';
+const TERMS_VERSION = '2026-10-10';
 
 /**
  * Marker for an account an admin created on a member's behalf (assisted

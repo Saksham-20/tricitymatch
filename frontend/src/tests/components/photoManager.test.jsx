@@ -33,9 +33,30 @@ describe('PhotoManager', () => {
     expect(screen.getAllByRole('button', { name: /make main/i })).toHaveLength(1);
   });
 
-  it('cannot delete the only photo', () => {
+  it('can delete the only photo, after a dialog that says what it costs', async () => {
+    const onChange = vi.fn();
+    render(<PhotoManager profile={profile(['https://x/a.jpg'])} onChange={onChange} />);
+    const del = screen.getByRole('button', { name: /delete photo 1/i });
+    expect(del).toBeEnabled();
+    fireEvent.click(del);
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent(/delete your only photo/i);
+    expect(dialog).toHaveTextContent(/lower in search/i);
+    expect(dialog).toHaveTextContent(/verified badge/i);
+    expect(mocks.del).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^delete photo$/i }));
+    await waitFor(() => expect(mocks.del).toHaveBeenCalledWith('/profile/me/photo', { data: { photoUrl: 'https://x/a.jpg' } }));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+  });
+
+  it('keeps the only photo when the member backs out of the dialog', async () => {
     render(<PhotoManager profile={profile(['https://x/a.jpg'])} />);
-    expect(screen.getByRole('button', { name: /delete photo 1/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /delete photo 1/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /keep it/i }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(mocks.del).not.toHaveBeenCalled();
   });
 
   it('delete needs a second tap, then calls DELETE with the photo url and refreshes', async () => {

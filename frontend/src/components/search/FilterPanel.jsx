@@ -5,8 +5,37 @@ import { CASTE_OPTIONS, PROFESSION_GROUPS } from '../../constants/profileOptions
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiFilter, FiX, FiMapPin, FiBriefcase, FiBook, FiCalendar,
-  FiChevronDown, FiSearch, FiCheck, FiHeart, FiShield,
+  FiChevronDown, FiSearch, FiCheck, FiHeart, FiShield, FiUser,
 } from 'react-icons/fi';
+
+// 4'6" – 7'0" in one-inch steps, valued in cm: the same list the profile
+// editor offers (onboarding BasicInfoStep), so a filter value lands exactly on
+// a height members can have.
+export const HEIGHT_OPTIONS = (() => {
+  const opts = [];
+  for (let ft = 4; ft <= 7; ft++) {
+    for (let inch = 0; inch <= 11; inch++) {
+      if (ft === 4 && inch < 6) continue;
+      if (ft === 7 && inch > 0) break;
+      const cm = Math.round(ft * 30.48 + inch * 2.54);
+      opts.push({ value: String(cm), label: `${ft}'${inch}" (${cm} cm)` });
+    }
+  }
+  return opts;
+})();
+
+/**
+ * A minimum above its maximum can match nobody (and the server refuses it), so
+ * Apply stops and says which pair is the wrong way round. Returns the
+ * `search.panel.*` message key per group, empty when both are fine.
+ */
+export const rangeErrors = (filters = {}) => {
+  const out = {};
+  const inverted = (lo, hi) => lo !== '' && lo != null && hi !== '' && hi != null && Number(lo) > Number(hi);
+  if (inverted(filters.ageMin, filters.ageMax)) out.age = 'ageOrder';
+  if (inverted(filters.heightMin, filters.heightMax)) out.height = 'heightOrder';
+  return out;
+};
 
 // ─── Filter Section (collapsible) ───────────
 const FilterSection = ({ title, icon: Icon, sectionKey, expanded, onToggle, children }) => (
@@ -52,13 +81,14 @@ const FieldLabel = ({ htmlFor, children }) => (
 );
 
 // ─── Styled select ───────────────────────────
-const StyledSelect = ({ id, name, value, onChange, children }) => (
+const StyledSelect = ({ id, name, value, onChange, children, ...rest }) => (
   <div className="relative">
     <select
       id={id}
       name={name}
       value={value}
       onChange={onChange}
+      {...rest}
       className="w-full pl-3 pr-9 py-2.5 text-base bg-white border border-neutral-200 rounded-xl text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-[border-color,box-shadow] duration-[160ms] appearance-none cursor-pointer"
     >
       {children}
@@ -98,10 +128,11 @@ const INCOME_MAX = [500000, 1000000, 2000000, 5000000];
 const DIETS = ['vegetarian', 'non-vegetarian', 'vegan', 'jain'];
 const HABITS = ['never', 'occasionally', 'regularly'];
 
-const FilterContent = ({ filters, onChange }) => {
+const FilterContent = ({ filters, onChange, errors = {} }) => {
   const { t } = useTranslation();
   const [sections, setSections] = useState({
     basic: true,
+    height: true,
     location: true,
     background: false,
     education: false,
@@ -154,6 +185,8 @@ const FilterContent = ({ filters, onChange }) => {
               value={filters.ageMin || ''} onChange={onChange}
               placeholder="21" min="18" max="99"
               aria-label={t('search.panel.minAgeAria')}
+              aria-invalid={errors.age ? true : undefined}
+              aria-describedby={errors.age ? 'ageRangeError' : undefined}
             />
           </div>
           <div className="flex-shrink-0 mt-5 text-neutral-400 text-xs font-medium">{t('search.panel.to')}</div>
@@ -164,9 +197,46 @@ const FilterContent = ({ filters, onChange }) => {
               value={filters.ageMax || ''} onChange={onChange}
               placeholder="40" min="18" max="99"
               aria-label={t('search.panel.maxAgeAria')}
+              aria-invalid={errors.age ? true : undefined}
+              aria-describedby={errors.age ? 'ageRangeError' : undefined}
             />
           </div>
         </div>
+        {errors.age && (
+          <p id="ageRangeError" role="alert" className="text-xs text-destructive">{t(`search.panel.${errors.age}`)}</p>
+        )}
+      </FilterSection>
+
+      {/* Height */}
+      <FilterSection title={t('search.panel.height')} icon={FiUser} sectionKey="height" expanded={sections.height} onToggle={toggle}>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <FieldLabel htmlFor="heightMin">{t('search.panel.minHeight')}</FieldLabel>
+            <StyledSelect
+              id="heightMin" name="heightMin" value={filters.heightMin || ''} onChange={onChange}
+              aria-invalid={errors.height ? true : undefined}
+              aria-describedby={errors.height ? 'heightRangeError' : undefined}
+            >
+              <option value="">{t('search.panel.any')}</option>
+              {HEIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </StyledSelect>
+          </div>
+          <div className="flex-shrink-0 mt-5 text-neutral-400 text-xs font-medium">{t('search.panel.to')}</div>
+          <div className="flex-1 min-w-0">
+            <FieldLabel htmlFor="heightMax">{t('search.panel.maxHeight')}</FieldLabel>
+            <StyledSelect
+              id="heightMax" name="heightMax" value={filters.heightMax || ''} onChange={onChange}
+              aria-invalid={errors.height ? true : undefined}
+              aria-describedby={errors.height ? 'heightRangeError' : undefined}
+            >
+              <option value="">{t('search.panel.any')}</option>
+              {HEIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </StyledSelect>
+          </div>
+        </div>
+        {errors.height && (
+          <p id="heightRangeError" role="alert" className="text-xs text-destructive">{t(`search.panel.${errors.height}`)}</p>
+        )}
       </FilterSection>
 
       {/* Location */}
@@ -317,6 +387,8 @@ const FilterPanel = ({
 }) => {
   const { t } = useTranslation();
   const [sheetOpen, setSheetOpen] = useState(false);
+  // An inverted min/max pair, shown under the pair until the member fixes it.
+  const [errors, setErrors] = useState({});
   const sheetRef = useRef(null);
   const dragStartY = useRef(null);
 
@@ -325,15 +397,30 @@ const FilterPanel = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Editing either end of a flagged pair clears its message; Apply re-checks.
+    const group = name.startsWith('age') ? 'age' : name.startsWith('height') ? 'height' : null;
+    if (group && errors[group]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[group];
+        return next;
+      });
+    }
     onFilterChange?.({ name, value });
   };
 
   const handleApply = () => {
+    const found = rangeErrors(filters);
+    setErrors(found);
+    // Nothing is searched (and no "Filters applied") until the pair is fixed;
+    // the sheet stays open on the message.
+    if (Object.keys(found).length) return;
     onApply?.();
     setSheetOpen(false);
   };
 
   const handleClear = () => {
+    setErrors({});
     onClear?.();
   };
 
@@ -383,7 +470,7 @@ const FilterPanel = ({
           </div>
 
           {onApplySaved && <SavedSearches filters={filters} onApplySaved={onApplySaved} />}
-          <FilterContent filters={filters} onChange={handleChange} />
+          <FilterContent filters={filters} onChange={handleChange} errors={errors} />
 
           {/* Apply */}
           <div className="mt-5 pt-4 border-t border-neutral-100 space-y-2.5">
@@ -486,7 +573,7 @@ const FilterPanel = ({
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto px-5 py-2">
                 {onApplySaved && <SavedSearches filters={filters} onApplySaved={onApplySaved} />}
-          <FilterContent filters={filters} onChange={handleChange} />
+          <FilterContent filters={filters} onChange={handleChange} errors={errors} />
               </div>
 
               {/* Sticky apply */}

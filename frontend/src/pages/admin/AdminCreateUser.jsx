@@ -61,11 +61,16 @@ export default function AdminCreateUser() {
     e.preventDefault();
     setLoading(true);
     try {
-      await createUser(form);
+      const res = await createUser(form);
       toast.success('User created successfully');
-      navigate('/admin/users');
+      // Straight to the new member's page: the next step is usually a plan,
+      // a photo or a check of what was typed, all of which happen there.
+      const newId = res?.data?.user?.id;
+      navigate(newId ? `/admin/users/${newId}` : '/admin/users');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create user');
+      // The API answers { error: { message } }; the old flat read always fell
+      // back to the generic text and hid "number already used" and the like.
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to create user');
     } finally {
       setLoading(false);
     }
