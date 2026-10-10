@@ -67,18 +67,17 @@ describe('sensitive routes carry a dedicated limiter', () => {
   });
 });
 
-describe('expensive reads carry expensiveReadLimiter', () => {
-  const profile = () => routeSrc('profileRoutes.js');
-
+describe('expensive reads carry their own limiter', () => {
   it.each([
-    ['/me/biodata', 'get'],
-    ['/:userId/compatibility', 'get'],
-    ['/:userId/horoscope-match', 'get'],
-    ['/:userId/horoscope-match/pdf', 'get'],
-  ])('%s', (routePath, method) => {
-    const chain = routeChain(profile(), method, routePath);
+    ['profileRoutes.js', '/me/biodata', 'get', 'pdfLimiter'],
+    ['profileRoutes.js', '/:userId/horoscope-match/pdf', 'get', 'pdfLimiter'],
+    ['profileRoutes.js', '/:userId/compatibility', 'get', 'profileInsightLimiter'],
+    ['profileRoutes.js', '/:userId/horoscope-match', 'get', 'profileInsightLimiter'],
+    ['matchRoutes.js', '/daily', 'get', 'dailyMatchesLimiter'],
+  ])('%s %s', (file, routePath, method, limiter) => {
+    const chain = routeChain(routeSrc(file), method, routePath);
     expect(chain).not.toBeNull();
-    expect(chain).toContain('expensiveReadLimiter');
+    expect(chain).toContain(limiter);
   });
 });
 

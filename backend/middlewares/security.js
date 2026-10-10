@@ -299,13 +299,35 @@ const sensitiveActionLimiter = createRateLimiter({
   keyGenerator: (req) => req.user?.id || ipKey(req),
 });
 
-// Reads that cost real server work: PDF rendering with an outbound image fetch,
-// and the compatibility engine over the daily candidate set.
-const expensiveReadLimiter = createRateLimiter({
-  name: 'expensiveReadLimiter',
+// Reads that cost real server work, each with its own per-member budget. They
+// used to share ONE 20/min bucket, and ProfileDetail calls horoscope-match on
+// every profile open: a member browsing ~20 profiles in a minute silently lost
+// numerology on later profiles and got an error in Today's Matches.
+
+// The compatibility engine over the daily candidate set (cached per IST day).
+const dailyMatchesLimiter = createRateLimiter({
+  name: 'dailyMatchesLimiter',
   windowMs: 60 * 1000,
-  max: 20,
+  max: 30,
   message: 'Too many requests, please slow down',
+  keyGenerator: (req) => req.user?.id || ipKey(req),
+});
+
+// Compatibility breakdown and horoscope match: one of each per profile opened.
+const profileInsightLimiter = createRateLimiter({
+  name: 'profileInsightLimiter',
+  windowMs: 60 * 1000,
+  max: 60,
+  message: 'Too many requests, please slow down',
+  keyGenerator: (req) => req.user?.id || ipKey(req),
+});
+
+// PDF rendering (biodata, Kundli report) with an outbound image fetch.
+const pdfLimiter = createRateLimiter({
+  name: 'pdfLimiter',
+  windowMs: 60 * 1000,
+  max: 10,
+  message: 'Too many downloads, please wait a minute',
   keyGenerator: (req) => req.user?.id || ipKey(req),
 });
 
@@ -733,7 +755,9 @@ module.exports = {
   adminLimiter,
   monitoringLimiter,
   sensitiveActionLimiter,
-  expensiveReadLimiter,
+  dailyMatchesLimiter,
+  profileInsightLimiter,
+  pdfLimiter,
   paymentLimiter,
   createRateLimiter,
   // Security

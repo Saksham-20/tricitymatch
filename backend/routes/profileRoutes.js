@@ -30,7 +30,7 @@ const {
 const { auth, requirePremium, checkContactUnlockLimit, verifyTargetUser } = require('../middlewares/auth');
 const { uploadPhotos, uploadLimitWhenPhotos, validateUploadedFiles, uploadVoiceIntro, uploadVideoIntro } = require('../middlewares/upload');
 const { handleValidationErrors } = require('../middlewares/errorHandler');
-const { profileUpdateLimiter, uploadLimiter, expensiveReadLimiter } = require('../middlewares/security');
+const { profileUpdateLimiter, uploadLimiter, profileInsightLimiter, pdfLimiter } = require('../middlewares/security');
 const { updateProfileValidation, getProfileValidation, deletePhotoValidation } = require('../validators');
 
 // ==================== OWN PROFILE ROUTES ====================
@@ -93,7 +93,7 @@ router.get('/me/recently-viewed', auth, getRecentlyViewed);
 
 // Download own marriage-biodata PDF (D5 — FREE for every tier; branded footer
 // is the acquisition loop). ?template=classic|modern
-router.get('/me/biodata', auth, expensiveReadLimiter, downloadBiodata);
+router.get('/me/biodata', auth, pdfLimiter, downloadBiodata);
 
 // Delete a gallery photo
 router.delete('/me/photo', 
@@ -160,7 +160,7 @@ router.post('/:userId/unlock-contact',
 // Compatibility breakdown (APP-049 — "Why This Match")
 router.get('/:userId/compatibility',
   auth,
-  expensiveReadLimiter,
+  profileInsightLimiter,
   getProfileValidation,
   handleValidationErrors,
   getCompatibilityBreakdown
@@ -169,7 +169,7 @@ router.get('/:userId/compatibility',
 // Horoscope / Ashtakoot match (APP-055)
 router.get('/:userId/horoscope-match',
   auth,
-  expensiveReadLimiter,
+  profileInsightLimiter,
   getProfileValidation,
   handleValidationErrors,
   getHoroscopeMatch
@@ -181,7 +181,7 @@ router.get('/:userId/horoscope-match/pdf',
   // The heaviest read in the app: full Ashtakoot computation plus a pdfkit
   // render, streamed. The global apiLimiter would allow 200 of these per
   // 15 minutes from one address.
-  expensiveReadLimiter,
+  pdfLimiter,
   requirePremium,
   getProfileValidation,
   handleValidationErrors,
