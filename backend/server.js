@@ -429,7 +429,7 @@ const startServer = async () => {
 ╚════════════════════════════════════════════════════════════╝
       `);
       logger.log.info('Capacity settings', {
-        passwordHashing: implementationName(),
+        hashLibrary: implementationName(),
         loadShedLagMs: config.server.loadShedLagMs || 'off',
         dbPoolAcquireMs: config.database.pool.acquire,
       });
